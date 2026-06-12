@@ -3,27 +3,54 @@
 import { useState } from 'react';
 
 const PRESETS = [20, 80, 200, 400, 800];
+type Method = 'card' | 'paypal';
+
+function detectBrand(num: string): 'visa' | 'mastercard' | 'amex' | null {
+  const n = num.replace(/\s/g, '');
+  if (/^4/.test(n)) return 'visa';
+  if (/^(5[1-5]|2[2-7])/.test(n)) return 'mastercard';
+  if (/^3[47]/.test(n)) return 'amex';
+  return null;
+}
+
+function BrandMark({ brand }: { brand: string }) {
+  const base = 'inline-flex h-5 items-center rounded px-1.5 text-[9px] font-bold tracking-wide';
+  if (brand === 'visa') return <span className={`${base} bg-[#1434cb] text-white`}>VISA</span>;
+  if (brand === 'mastercard') return <span className={`${base} bg-[#eb001b] text-white`}>MC</span>;
+  if (brand === 'amex') return <span className={`${base} bg-[#1f72cd] text-white`}>AMEX</span>;
+  return null;
+}
 
 export function TopUp() {
   const [amount, setAmount] = useState(80);
   const [custom, setCustom] = useState('');
+  const [method, setMethod] = useState<Method>('card');
+  const [card, setCard] = useState('');
+  const [exp, setExp] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [name, setName] = useState('');
 
-  const pick = (n: number) => {
-    setAmount(n);
-    setCustom('');
-  };
+  const pick = (n: number) => { setAmount(n); setCustom(''); };
   const onCustom = (v: string) => {
     setCustom(v);
     const n = Number(v);
     if (n >= 5) setAmount(n);
   };
   const tooLow = custom !== '' && Number(custom) < 5;
+  const brand = detectBrand(card);
+
+  const fmtCard = (v: string) => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+  const fmtExp = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 4);
+    return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-      <h2 className="display text-lg font-semibold tracking-tight">Top up credits by bank transfer</h2>
-      <p className="text-xs text-muted-foreground">Choose an amount and scan the QR with your banking app. Credits are added automatically within 1–5 minutes.</p>
+      <h2 className="display text-lg font-semibold tracking-tight">Top up credits</h2>
+      <p className="text-xs text-muted-foreground">Pay securely by card or PayPal. Credits are added to your balance instantly.</p>
 
+      {/* amount */}
       <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Choose an amount</p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {PRESETS.map((n) => (
@@ -36,36 +63,79 @@ export function TopUp() {
         {tooLow && <p className="mt-1 text-[11px] font-medium text-destructive">Minimum top-up is $5.</p>}
       </div>
 
-      <div className="mt-5 grid gap-5 rounded-xl border border-border bg-background p-4 sm:grid-cols-[auto_1fr]">
-        <div className="flex flex-col items-center gap-2">
-          <div className="rounded-xl border border-border bg-white p-2">
-            <img
-              alt="Bank transfer QR"
-              width={190}
-              height={190}
-              className="block h-[190px] w-[190px] rounded-md object-contain"
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${encodeURIComponent(`HEVASEO INC · 004210998765 · $${amount} · HEVA HV2026`)}`}
-            />
-          </div>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-device-mobile-camera" /> Scan with your banking app / camera</span>
-        </div>
-        <div className="space-y-2.5 text-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-border pb-2"><span className="text-muted-foreground">Bank</span><span className="font-semibold">Chase</span></div>
-          <div className="flex items-center justify-between gap-2 border-b border-border pb-2"><span className="text-muted-foreground">Account holder</span><span className="font-semibold text-right">HEVASEO INC.</span></div>
-          <div className="flex items-center justify-between gap-2 border-b border-border pb-2"><span className="text-muted-foreground">Account number</span><b className="font-mono">0042 1099 8765</b></div>
-          <div className="flex items-center justify-between gap-2 border-b border-border pb-2"><span className="text-muted-foreground">Amount</span><span className="display font-semibold text-primary">${amount}</span></div>
-          <div className="flex items-center justify-between gap-2"><span className="text-muted-foreground">Transfer reference</span><b className="font-mono">HEVA HV2026</b></div>
-          <div className="mt-1 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-            <i className="ph-bold ph-warning-circle" /> Keep the exact <b>transfer reference</b> so the system can add your credits automatically.
-          </div>
-        </div>
+      {/* method switch */}
+      <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => setMethod('card')}
+          className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition ${method === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40'}`}
+        >
+          <i className="ph-bold ph-credit-card text-base" /> Card
+        </button>
+        <button
+          onClick={() => setMethod('paypal')}
+          className={`flex items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition ${method === 'paypal' ? 'border-primary bg-primary/5' : 'border-border bg-background hover:border-primary/40'}`}
+        >
+          <span className="text-[#003087]">Pay</span><span className="text-[#0070e0]">Pal</span>
+        </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[11px] text-muted-foreground">Transferred but don&apos;t see your credit? Contact <a href="/support" className="font-semibold text-primary hover:underline">Support</a>.</p>
-        <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-          <i className="ph-bold ph-check" /> I&apos;ve made the transfer
-        </button>
+      {method === 'card' ? (
+        <>
+          {/* express wallets */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button className="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+              <i className="ph-fill ph-apple-logo text-base" /> Pay
+            </button>
+            <button className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent">
+              <span className="font-bold"><span className="text-[#4285f4]">G</span> Pay</span>
+            </button>
+          </div>
+
+          <div className="my-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or pay with card <span className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* card form */}
+          <div className="space-y-3">
+            <div>
+              <label className="lbl">Card number</label>
+              <div className="relative">
+                <input value={card} onChange={(e) => setCard(fmtCard(e.target.value))} inputMode="numeric" className="field pr-14 font-mono" placeholder="1234 5678 9012 3456" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">{brand ? <BrandMark brand={brand} /> : <i className="ph-bold ph-credit-card text-muted-foreground" />}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="lbl">Expiry</label><input value={exp} onChange={(e) => setExp(fmtExp(e.target.value))} inputMode="numeric" className="field font-mono" placeholder="MM/YY" /></div>
+              <div><label className="lbl">CVC</label><input value={cvc} onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" className="field font-mono" placeholder="123" /></div>
+            </div>
+            <div><label className="lbl">Name on card</label><input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder="Full name" /></div>
+          </div>
+
+          <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
+            <i className="ph-bold ph-lock-simple" /> Pay ${amount}
+          </button>
+        </>
+      ) : (
+        <div className="mt-4">
+          <div className="rounded-xl border border-border bg-background p-5 text-center">
+            <p className="text-3xl font-bold"><span className="text-[#003087]">Pay</span><span className="text-[#0070e0]">Pal</span></p>
+            <p className="mt-2 text-sm text-muted-foreground">You&apos;ll be redirected to PayPal to complete your <b className="text-foreground">${amount}</b> payment, then sent right back here.</p>
+          </div>
+          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#ffc439] px-5 py-3 text-sm font-bold text-[#003087] shadow-lg transition hover:-translate-y-0.5 hover:brightness-95 active:scale-[.98]">
+            Continue with <span><span className="text-[#003087]">Pay</span><span className="text-[#0070e0]">Pal</span></span>
+          </button>
+        </div>
+      )}
+
+      {/* trust footer */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <i className="ph-bold ph-lock-simple text-emerald-500" /> Payments secured by <b className="text-foreground">Stripe</b> · we never store your card details
+        </p>
+        <div className="flex items-center gap-1.5">
+          <BrandMark brand="visa" /><BrandMark brand="mastercard" /><BrandMark brand="amex" />
+        </div>
       </div>
     </div>
   );

@@ -111,10 +111,10 @@ export interface CreditTx {
 }
 
 export const TRANSACTIONS: CreditTx[] = [
-  { date: '06/06/2026', description: 'Bank transfer · Chase', type: 'topup', amount: 199, status: 'success' },
+  { date: '06/06/2026', description: 'Visa •••• 4242', type: 'topup', amount: 199, status: 'success' },
   { date: '05/30/2026', description: 'Order IDX-1035 · Indexer Pro', type: 'order', amount: -40, status: 'success' },
   { date: '05/28/2026', description: 'Order CT-1033 · Content SEO/GEO', type: 'order', amount: -700, status: 'success' },
-  { date: '05/08/2026', description: 'Bank transfer · Chase', type: 'topup', amount: 399, status: 'success' },
+  { date: '05/08/2026', description: 'PayPal · huy@hevashop.com', type: 'topup', amount: 399, status: 'success' },
 ];
 
 export interface Invoice {

@@ -15,7 +15,7 @@ export default function CreditPage() {
     <>
       <div>
         <h1 className="display text-2xl font-semibold tracking-tight md:text-3xl">Credit &amp; Invoices</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Top up credits by bank transfer, and view your transaction history and invoices.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Top up credits with card or PayPal, and view your transaction history and invoices.</p>
       </div>
 
       {/* balance */}
@@ -42,12 +42,12 @@ export default function CreditPage() {
         <TopUp />
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-border bg-card p-5">
-            <h3 className="text-sm font-semibold">How to top up credits</h3>
+            <h3 className="text-sm font-semibold">How top-ups work</h3>
             <ol className="mt-3 space-y-3 text-sm">
               <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">1</span><span className="text-muted-foreground">Choose the amount to top up.</span></li>
-              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">2</span><span className="text-muted-foreground">Open your banking app → scan the QR code.</span></li>
-              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">3</span><span className="text-muted-foreground">Confirm the transfer, keeping the reference unchanged.</span></li>
-              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600">✓</span><span className="text-muted-foreground">Credits are added automatically within 1–5 minutes.</span></li>
+              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">2</span><span className="text-muted-foreground">Pay by card, Apple&nbsp;Pay, Google&nbsp;Pay, or PayPal.</span></li>
+              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">3</span><span className="text-muted-foreground">Payment is processed securely by Stripe.</span></li>
+              <li className="flex gap-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600">✓</span><span className="text-muted-foreground">Credits land in your balance instantly — no waiting.</span></li>
             </ol>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5">
