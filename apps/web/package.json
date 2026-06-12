@@ -1,0 +1,19 @@
+{
+  "name": "@heva/web",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@heva/ui": "workspace:*",
+    "astro": "^5.6.1",
+    "@astrojs/tailwind": "^5.1.5",
+    "@astrojs/sitemap": "^3.2.1",
+    "tailwindcss": "^3.4.17"
+  }
+}

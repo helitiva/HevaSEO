@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HevaSEO — Orders</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%231d4ed8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='240' rx='56' fill='url(%23g)'/%3E%3Cpath d='M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z' fill='white'/%3E%3C/svg%3E" />
+
+  <script>
+    (function () { try { if (localStorage.getItem('heva-theme-blue') === 'dark') document.documentElement.classList.add('dark'); } catch (e) {} })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script>
+    (function () {
+      function reveal(){ document.documentElement.classList.add('ready'); }
+      if (document.readyState === 'complete') { reveal(); return; }
+      window.addEventListener('DOMContentLoaded', function(){ requestAnimationFrame(function(){ requestAnimationFrame(reveal); }); });
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 1000);
+    })();
+  </script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], display: ['"Inter Tight"', 'Inter', 'system-ui', 'sans-serif'] },
+        colors: {
+          border: 'hsl(var(--border))', input: 'hsl(var(--input))', ring: 'hsl(var(--ring))',
+          background: 'hsl(var(--background))', foreground: 'hsl(var(--foreground))',
+          primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+          secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+          muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+          accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+          destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+          card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+          brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
+        },
+        borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+      } },
+    };
+  </script>
+
+  <style>
+    :root {
+      --background: 214 55% 97%; --foreground: 222 47% 9%;
+      --card: 0 0% 100%; --card-foreground: 240 10% 8%;
+      --primary: 213 90% 50%; --primary-foreground: 0 0% 100%;
+      --secondary: 214 45% 92%; --secondary-foreground: 222 47% 14%;
+      --muted: 214 45% 92%; --muted-foreground: 215 18% 42%;
+      --accent: 211 100% 94%; --accent-foreground: 213 90% 30%;
+      --destructive: 0 72% 51%; --destructive-foreground: 0 0% 100%;
+      --border: 214 30% 86%; --input: 214 30% 86%; --ring: 213 90% 50%;
+      --radius: 0.75rem;
+    }
+    .dark {
+      --background: 222 60% 5%; --foreground: 0 0% 96%;
+      --card: 220 45% 10%; --card-foreground: 0 0% 96%;
+      --primary: 210 100% 62%; --primary-foreground: 222 60% 6%;
+      --secondary: 220 35% 16%; --secondary-foreground: 0 0% 96%;
+      --muted: 220 30% 14%; --muted-foreground: 215 25% 72%;
+      --accent: 212 70% 24%; --accent-foreground: 205 100% 85%;
+      --destructive: 0 70% 58%; --destructive-foreground: 0 0% 96%;
+      --border: 211 50% 44%; --input: 216 38% 28%; --ring: 205 100% 60%;
+    }
+    .dark body { background:
+      radial-gradient(1000px 540px at 50% -14%, hsl(208 100% 34% / .55), transparent 60%),
+      radial-gradient(820px 460px at 2% 104%, hsl(214 100% 26% / .5), transparent 55%),
+      radial-gradient(820px 460px at 100% 104%, hsl(202 100% 28% / .5), transparent 55%),
+      linear-gradient(180deg, hsl(222 60% 6%), hsl(223 58% 4%)); background-attachment: fixed; }
+    * { border-color: hsl(var(--border)); }
+    body { font-feature-settings: "cv11", "ss01"; }
+    html:not(.ready) body { opacity: 0; }
+    body { transition: opacity .2s ease; }
+    html.ready main { animation: pageIn .32s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce){ body{opacity:1 !important;} html.ready main{animation:none;} }
+    .display { font-family: '"Inter Tight"', Inter, sans-serif; }
+
+    .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500;
+      color:hsl(var(--muted-foreground)); transition:all .15s; cursor:pointer; }
+    .nav-item:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .nav-item.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); box-shadow:0 6px 16px -6px hsl(var(--primary)/.5); }
+    .nav-item i { font-size:1rem; }
+
+    .pill { display:inline-flex; align-items:center; gap:.35rem; border-radius:9999px; padding:.2rem .6rem; font-size:.7rem; font-weight:700; white-space:nowrap; }
+    .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
+    .bar { height:.4rem; border-radius:9999px; background:hsl(var(--muted)); overflow:hidden; }
+    .bar > i { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,#3b82f6,#2563eb); }
+    .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background:hsl(var(--border)); border-radius:9999px; }
+
+    .prio { font-size:.62rem; font-weight:800; padding:.1rem .45rem; border-radius:.4rem; letter-spacing:.03em; }
+    .prio-high { background:#ef44441f; color:#dc2626; }
+    .prio-med { background:#f59e0b1f; color:#d97706; }
+    .prio-low { background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); }
+    .pay { display:inline-flex; align-items:center; gap:.3rem; border-radius:9999px; padding:.12rem .5rem; font-size:.65rem; font-weight:700; white-space:nowrap; }
+
+    .kcol { background:hsl(var(--muted)/.5); border:1px solid hsl(var(--border)); border-radius:1rem; padding:.7rem; min-width:270px; }
+    .kcard { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.8rem; padding:.8rem .85rem; transition:.15s; cursor:pointer; }
+    .kcard:hover { border-color:hsl(var(--primary)/.45); transform:translateY(-2px); box-shadow:0 14px 28px -18px hsl(var(--foreground)/.35); }
+    .orow { cursor:pointer; }
+
+    /* toast */
+    #toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); z-index:95; display:flex; align-items:center; gap:.5rem;
+      background:hsl(var(--card)); color:hsl(var(--foreground)); border:1px solid hsl(var(--border)); border-radius:.75rem;
+      padding:.55rem .55rem .55rem .9rem; font-size:.8125rem; font-weight:500; box-shadow:0 18px 44px -12px hsl(var(--foreground)/.45); }
+
+    /* drawer */
+    #drawer-backdrop { position:fixed; inset:0; z-index:85; background:hsl(var(--foreground)/.4); backdrop-filter:blur(2px); }
+    #drawer { position:fixed; top:0; right:0; bottom:0; z-index:86; width:100%; max-width:460px; display:flex; flex-direction:column;
+      background:hsl(var(--card)); border-left:1px solid hsl(var(--border)); box-shadow:-24px 0 60px -24px hsl(var(--foreground)/.5);
+      transform:translateX(100%); transition:transform .28s cubic-bezier(.22,.61,.36,1); }
+    #drawer.open { transform:none; }
+    @media (prefers-reduced-motion: reduce){ #drawer{ transition:none; } }
+    .tl-step { position:relative; padding-left:1.7rem; padding-bottom:1.1rem; }
+    .tl-step::before { content:''; position:absolute; left:.36rem; top:1.2rem; bottom:-.1rem; width:2px; background:hsl(var(--border)); }
+    .tl-step:last-child::before { display:none; }
+    .tl-dot { position:absolute; left:0; top:.1rem; height:.9rem; width:.9rem; border-radius:9999px; border:2px solid hsl(var(--border)); background:hsl(var(--card)); }
+    .tl-step.done .tl-dot { background:#10b981; border-color:#10b981; }
+    .tl-step.done::before { background:#10b981; }
+    .tl-step.cur .tl-dot { background:hsl(var(--primary)); border-color:hsl(var(--primary)); box-shadow:0 0 0 3px hsl(var(--primary)/.2); }
+
+    @media (max-width:1023px){ #sidebar{ position:fixed; inset:0 auto 0 0; z-index:60; transform:translateX(-100%); transition:.25s; }
+      #sidebar.open{ transform:none; } }
+  </style>
+</head>
+
+<body class="bg-background text-foreground font-sans antialiased">
+
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-40 left-1/3 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-brand-400/12 blur-[120px] dark:bg-brand-500/10"></div>
+    <div class="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-teal-300/12 blur-[120px] dark:bg-teal-500/10"></div>
+  </div>
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="flex w-52 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl">
+      <div class="flex h-[68px] items-center gap-2 border-b border-border px-4">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">
+          <svg viewBox="0 0 240 240" class="h-[88%] w-[88%]" fill="currentColor" aria-hidden="true"><path d="M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z"/></svg>
+        </span>
+        <span class="text-base font-semibold tracking-tight">Heva<span class="text-primary">SEO</span></span>
+        <button id="sb-close" class="ml-auto grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent lg:hidden"><i class="ph-bold ph-x"></i></button>
+      </div>
+
+      <div class="px-2.5 pt-3">
+        <a href="dashboard.html" class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[13px] font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
+          <i class="ph-bold ph-plus"></i> Order service
+        </a>
+      </div>
+
+      <nav class="flex-1 space-y-0.5 overflow-y-auto scrollbar-thin px-2.5 pb-4 pt-3">
+        <p class="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Overview</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-squares-four"></i> Overview</a>
+        <a href="projects.html" class="nav-item"><i class="ph-bold ph-globe-hemisphere-west"></i> Projects</a>
+        <a class="nav-item active"><i class="ph-bold ph-kanban"></i> Orders <span id="nav-count" class="ml-auto rounded-full bg-primary-foreground/20 px-1.5 text-[10px] font-bold"></span></a>
+
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Services</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-share-network"></i> Backlink</a>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-pen-nib"></i> Content SEO/GEO</a>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-magnifying-glass"></i> Indexer</a>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-stethoscope"></i> Audit & Optimization</a>
+
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Analytics</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-chart-line-up"></i> Reports</a>
+        <a href="credit.html" class="nav-item"><i class="ph-bold ph-wallet"></i> Credit & Invoices</a>
+        <a href="settings.html" class="nav-item"><i class="ph-bold ph-gear-six"></i> Settings</a>
+        <a href="support.html" class="nav-item"><i class="ph-bold ph-headset"></i> Support</a>
+        <a href="faq.html" class="nav-item"><i class="ph-bold ph-question"></i> FAQ</a>
+      </nav>
+
+      <div class="border-t border-border p-2.5">
+        <div class="rounded-xl border border-primary/25 bg-primary/5 p-3">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-primary">Credit</p>
+            <span class="pill pill-good">Pro</span>
+          </div>
+          <p class="mt-1 text-lg font-semibold tracking-tight">$179</p>
+          <div class="mt-2 bar"><i style="width:62%"></i></div>
+          <button class="mt-2.5 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Top up</button>
+        </div>
+      </div>
+    </aside>
+
+    <div id="backdrop" class="fixed inset-0 z-50 hidden bg-foreground/40 backdrop-blur-sm lg:hidden"></div>
+
+    <!-- MAIN -->
+    <div class="flex min-w-0 flex-1 flex-col">
+      <header class="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
+        <button id="sb-open" class="grid h-10 w-10 place-items-center rounded-lg border border-border text-foreground lg:hidden"><i class="ph-bold ph-list text-lg"></i></button>
+        <div class="hidden w-1/3 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:flex">
+          <i class="ph-bold ph-magnifying-glass"></i>
+          <input class="w-full bg-transparent outline-none placeholder:text-muted-foreground" placeholder="Search…" />
+          <kbd class="rounded border border-border bg-muted px-1.5 text-[10px] font-semibold">⌘K</kbd>
+        </div>
+        <div class="flex-1"></div>
+        <span class="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold sm:flex"><i class="ph-bold ph-wallet text-primary"></i> 4.5tr</span>
+        <button id="theme-toggle" class="grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent hover:text-accent-foreground">
+          <i class="ph-bold ph-sun-dim hidden text-lg dark:block"></i>
+          <i class="ph-bold ph-moon-stars block text-lg dark:hidden"></i>
+        </button>
+        <button class="relative grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent">
+          <i class="ph-bold ph-bell text-lg"></i>
+          <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card"></span>
+        </button>
+        <span class="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-md">HV</span>
+      </header>
+
+      <main class="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 lg:px-7">
+        <!-- page head -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="display text-2xl font-semibold tracking-tight md:text-3xl">Orders</h1>
+              <span id="hd-count" class="pill pill-good"></span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">Manage all service orders · payments · invoices</p>
+          </div>
+          <a href="dashboard.html" class="inline-flex items-center gap-2 self-start rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
+            <i class="ph-bold ph-plus"></i> Order service
+          </a>
+        </div>
+
+        <!-- KPI -->
+        <section id="kpi" class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5"></section>
+
+        <!-- toolbar -->
+        <div class="mt-5 flex flex-col gap-3 rounded-2xl border border-border bg-card/70 p-3 backdrop-blur lg:flex-row lg:items-center">
+          <div class="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm">
+            <i class="ph-bold ph-magnifying-glass text-muted-foreground"></i>
+            <input id="search" placeholder="Search order ID / project…" class="w-40 bg-transparent outline-none placeholder:text-muted-foreground sm:w-52" />
+          </div>
+          <div class="flex flex-wrap items-center gap-2 lg:ml-auto">
+            <select id="f-svc" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
+              <option value="all">All services</option>
+              <option value="backlink">Backlink</option><option value="content">Content</option>
+              <option value="indexer">Indexer</option><option value="audit">Audit</option>
+              <option value="optimize">Optimization</option><option value="keyword">Keywords</option><option value="design">Design</option>
+            </select>
+            <select id="f-status" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
+              <option value="all">All statuses</option>
+              <option value="planned">Planning</option><option value="progress">In progress</option>
+              <option value="review">In review</option><option value="completed">Completed</option>
+            </select>
+            <select id="f-proj" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none"></select>
+            <select id="f-pay" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
+              <option value="all">All payments</option>
+              <option value="paid">Credits deducted</option><option value="pending">Awaiting payment</option>
+            </select>
+            <div class="flex items-center gap-1 rounded-lg bg-muted p-1 text-sm">
+              <button id="btn-list" class="rounded-md bg-card px-2.5 py-1.5 shadow-sm"><i class="ph-bold ph-rows"></i> List</button>
+              <button id="btn-kanban" class="rounded-md px-2.5 py-1.5 text-muted-foreground"><i class="ph-bold ph-kanban"></i> Kanban</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-list" class="mt-4 overflow-x-auto rounded-2xl border border-border bg-card/70 backdrop-blur"></div>
+        <div id="view-kanban" class="mt-4 hidden gap-3 overflow-x-auto pb-2"></div>
+        <div id="empty" class="mt-6 hidden rounded-2xl border border-dashed border-border py-14 text-center">
+          <i class="ph-bold ph-receipt text-3xl text-muted-foreground"></i>
+          <p class="mt-2 text-sm font-semibold">No matching orders</p>
+          <p class="mt-1 text-xs text-muted-foreground">Try adjusting the filters.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- DRAWER -->
+  <div id="drawer-wrap" class="hidden">
+    <div id="drawer-backdrop"></div>
+    <aside id="drawer" aria-label="Order details">
+      <div class="flex items-center justify-between border-b border-border px-5 py-4">
+        <div class="min-w-0">
+          <h3 id="dr-title" class="display text-lg font-semibold tracking-tight"></h3>
+          <p id="dr-sub" class="truncate text-xs text-muted-foreground"></p>
+        </div>
+        <button id="drawer-close" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <div id="drawer-body" class="flex-1 space-y-5 overflow-y-auto scrollbar-thin px-5 py-5"></div>
+      <div id="drawer-foot" class="border-t border-border px-5 py-4"></div>
+    </aside>
+  </div>
+
+  <script>
+    /* shared chrome */
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      var d = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('heva-theme-blue', d ? 'dark' : 'light'); } catch (e) {}
+    });
+    var sb = document.getElementById('sidebar'), bd = document.getElementById('backdrop');
+    document.getElementById('sb-open').addEventListener('click', function(){ sb.classList.add('open'); bd.classList.remove('hidden'); });
+    function closeSb(){ sb.classList.remove('open'); bd.classList.add('hidden'); }
+    document.getElementById('sb-close').addEventListener('click', closeSb);
+    bd.addEventListener('click', closeSb);
+
+    (function () {
+      var SVC = {
+        backlink: { label: 'Backlink', icon: 'ph-share-network' },
+        content:  { label: 'Content SEO/GEO', icon: 'ph-pen-nib' },
+        indexer:  { label: 'Indexer', icon: 'ph-magnifying-glass' },
+        audit:    { label: 'Audit', icon: 'ph-stethoscope' },
+        optimize: { label: 'Optimization', icon: 'ph-gauge' },
+        keyword:  { label: 'Keywords', icon: 'ph-tree-structure' },
+        design:   { label: 'Design', icon: 'ph-palette' }
+      };
+      var ST = {
+        planned:  { label: 'Planned',    color: '#94a3b8' },
+        progress: { label: 'In progress',  color: '#2563eb' },
+        review:   { label: 'In review',        color: '#f59e0b' },
+        completed:{ label: 'Completed',       color: '#10b981' }
+      };
+      var ST_ORDER = ['planned', 'progress', 'review', 'completed'];
+      var PRIO = { high: 'HIGH', med: 'MED', low: 'LOW' };
+      var PAY = {
+        paid:    { label: 'Credits deducted', color: '#10b981', icon: 'ph-check-circle' },
+        pending: { label: 'Awaiting payment', color: '#f59e0b', icon: 'ph-clock' }
+      };
+      var STEPS = ['Placed', 'Confirmed', 'In progress', 'In review', 'Completed'];
+      var STEP_OF = { planned: 1, progress: 2, review: 3, completed: 4 };
+
+      var ORDERS = [
+        { id:'BLEN-1042', date:'05/06/2026', s:'backlink', t:'Backlink Entity', sub:'80 profile · NAP, citations', dom:'hevashop.com', st:'planned', prog:null, prio:'high', eta:'3 days', pic:'Daniel Brooks', cost:8900000, pay:'pending', inv:null },
+        { id:'KW-1041', date:'04/06/2026', s:'keyword', t:'Keyword map', sub:'48 terms · dermatology cluster', dom:'clinicpro.com', st:'planned', prog:null, prio:'low', eta:'5 days', pic:'Emily Hart', cost:0, pay:'paid', inv:'HD-2041' },
+        { id:'AD-1040', date:'04/06/2026', s:'audit', t:'Audit website', sub:'200+ criteria', dom:'newsite.com', st:'planned', prog:null, prio:'med', eta:'4 days', pic:'Ryan Cole', cost:1500000, pay:'pending', inv:null },
+        { id:'WD-1038', date:'03/06/2026', s:'design', t:'Landing page design', sub:'1 landing page', dom:'beautyspa.com', st:'planned', prog:null, prio:'low', eta:'2 weeks', pic:'Grace Lee', cost:15000000, pay:'pending', inv:null },
+        { id:'CT-1033', date:'28/05/2026', s:'content', t:'Content SEO/GEO x30', sub:'12/30 articles · E-E-A-T', dom:'hevashop.com', st:'progress', prog:40, prio:'med', eta:'8 days', pic:'Sophie Lane', cost:17500000, pay:'paid', inv:'HD-2033' },
+        { id:'IDX-1035', date:'30/05/2026', s:'indexer', t:'Indexer Pro', sub:'9.2k / 10k URL · retry', dom:'hevashop.com', st:'progress', prog:92, prio:'high', eta:'2 days', pic:'Daniel Brooks', cost:990000, pay:'paid', inv:'HD-2035' },
+        { id:'BLPR-1034', date:'29/05/2026', s:'backlink', t:'Press backlinks', sub:'8 VIP press articles', dom:'anphat.com', st:'progress', prog:60, prio:'high', eta:'6 days', pic:'Emily Hart', cost:8900000, pay:'paid', inv:'HD-2034' },
+        { id:'OP-1030', date:'26/05/2026', s:'optimize', t:'Core Web Vitals optimization', sub:'LCP · INP · CLS', dom:'techland.com', st:'progress', prog:55, prio:'med', eta:'1 week', pic:'Ryan Cole', cost:3900000, pay:'paid', inv:'HD-2030' },
+        { id:'CT-1029', date:'25/05/2026', s:'content', t:'Content, 10 articles', sub:'6/10 articles', dom:'clinicpro.com', st:'progress', prog:60, prio:'low', eta:'5 days', pic:'Sophie Lane', cost:6500000, pay:'paid', inv:'HD-2029' },
+        { id:'CT-1028', date:'24/05/2026', s:'content', t:'Dental cluster articles', sub:'5 articles in review', dom:'clinicpro.com', st:'review', prog:100, prio:'med', eta:'Today', pic:'Grace Lee', cost:6500000, pay:'paid', inv:'HD-2028' },
+        { id:'AD-1027', date:'23/05/2026', s:'audit', t:'Audit website', sub:'Report awaiting handover', dom:'saigonhomes.com', st:'review', prog:100, prio:'high', eta:'Today', pic:'Daniel Brooks', cost:1500000, pay:'paid', inv:'HD-2027' },
+        { id:'AD-1015', date:'12/05/2026', s:'audit', t:'Audit website', sub:'Score 78/100', dom:'anphat.com', st:'completed', prog:100, prio:'low', eta:'Delivered', pic:'Emily Hart', cost:1500000, pay:'paid', inv:'HD-2015' },
+        { id:'BLEN-1012', date:'08/05/2026', s:'backlink', t:'Entity citations', sub:'65 profile live', dom:'hevashop.com', st:'completed', prog:100, prio:'med', eta:'Delivered', pic:'Ryan Cole', cost:3900000, pay:'paid', inv:'HD-2012' },
+        { id:'IDX-1009', date:'05/05/2026', s:'indexer', t:'Indexer batch', sub:'5.000 link · 98% indexed', dom:'techland.com', st:'completed', prog:100, prio:'low', eta:'Delivered', pic:'Sophie Lane', cost:290000, pay:'paid', inv:'HD-2009' },
+        { id:'CT-1004', date:'28/04/2026', s:'content', t:'Content, 20 articles', sub:'20/20 published', dom:'vietbeauty.com', st:'completed', prog:100, prio:'med', eta:'Delivered', pic:'Grace Lee', cost:17500000, pay:'paid', inv:'HD-2004' },
+        { id:'OP-1001', date:'20/04/2026', s:'optimize', t:'Speed optimization', sub:'5.2s → 1.8s', dom:'saigonhomes.com', st:'completed', prog:100, prio:'low', eta:'Delivered', pic:'Daniel Brooks', cost:3900000, pay:'paid', inv:'HD-2001' }
+      ];
+
+      var state = { search: '', svc: 'all', status: 'all', proj: 'all', pay: 'all', view: 'list' };
+
+      function fmtVND(n) { return n === 0 ? 'Free' : '$' + Math.round(n/25000).toLocaleString('en-US'); }
+      function picAvatar(name) {
+        var ini = (name.split(' ').slice(-1)[0][0] + name.split(' ')[0][0]).toUpperCase();
+        var pal = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ec4899'], h = 0;
+        for (var i=0;i<name.length;i++) h = name.charCodeAt(i) + ((h<<5)-h);
+        return '<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white" style="background:' + pal[Math.abs(h)%pal.length] + '">' + ini + '</span>';
+      }
+      function payPill(o) {
+        var p = PAY[o.pay];
+        return '<span class="pay" style="background:' + p.color + '1f;color:' + p.color + '"><i class="ph-bold ' + p.icon + '"></i> ' + p.label + '</span>';
+      }
+      function byId(id) { return ORDERS.filter(function (o) { return o.id === id; })[0]; }
+
+      function visible() {
+        return ORDERS.filter(function (o) {
+          if (state.search) { var q = state.search.toLowerCase(); if ((o.id + ' ' + o.dom + ' ' + o.t).toLowerCase().indexOf(q) === -1) return false; }
+          if (state.svc !== 'all' && o.s !== state.svc) return false;
+          if (state.status !== 'all' && o.st !== state.status) return false;
+          if (state.proj !== 'all' && o.dom !== state.proj) return false;
+          if (state.pay !== 'all' && o.pay !== state.pay) return false;
+          return true;
+        });
+      }
+
+      /* ---------- KPI ---------- */
+      function renderKPI() {
+        var active = ORDERS.filter(function (o) { return o.st !== 'completed'; }).length;
+        var done = ORDERS.filter(function (o) { return o.st === 'completed'; }).length;
+        var spent = ORDERS.filter(function (o) { return o.pay === 'paid'; }).reduce(function (a, o) { return a + o.cost; }, 0);
+        var pendingAmt = ORDERS.filter(function (o) { return o.pay === 'pending'; }).reduce(function (a, o) { return a + o.cost; }, 0);
+        var k = [
+          { ic:'ph-receipt', cl:'text-primary', v: ORDERS.length, t:'Total orders' },
+          { ic:'ph-spinner-gap', cl:'text-blue-500', v: active, t:'In progress' },
+          { ic:'ph-check-circle', cl:'text-emerald-500', v: done, t:'Completed' },
+          { ic:'ph-wallet', cl:'text-primary', v: fmtVND(spent), t:'Total spend', small:true },
+          { ic:'ph-clock', cl:'text-amber-500', v: fmtVND(pendingAmt), t:'Awaiting payment', small:true }
+        ];
+        document.getElementById('kpi').innerHTML = k.map(function (x) {
+          return '<div class="rounded-2xl border border-border bg-card px-4 py-3">'
+            + '<div class="flex items-center gap-1.5 text-xs text-muted-foreground"><i class="ph-bold ' + x.ic + ' ' + x.cl + '"></i> ' + x.t + '</div>'
+            + '<p class="mt-1 ' + (x.small ? 'text-lg' : 'text-2xl') + ' font-bold tracking-tight tabular-nums">' + x.v + '</p></div>';
+        }).join('');
+        document.getElementById('hd-count').textContent = active + ' in progress';
+        document.getElementById('nav-count').textContent = active;
+      }
+
+      /* ---------- list ---------- */
+      function orderRow(o, idx) {
+        var s = ST[o.st];
+        return '<tr class="orow border-b border-border/60 transition hover:bg-accent/40" data-id="' + o.id + '">'
+          + '<td class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">' + idx + '</td>'
+          + '<td class="px-3 py-3"><span class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#' + o.id + '</span><div class="mt-1 text-[11px] text-muted-foreground">' + o.date + '</div></td>'
+          + '<td class="px-3 py-3"><div class="flex items-center gap-2.5"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ' + SVC[o.s].icon + '"></i></span><div><p class="font-semibold leading-tight">' + o.t + '</p><p class="text-[11px] text-muted-foreground">' + o.sub + '</p></div></div></td>'
+          + '<td class="px-3 py-3"><a href="projects.html?p=' + encodeURIComponent(o.dom) + '" onclick="event.stopPropagation()" class="text-[13px] font-medium text-primary hover:underline">' + o.dom + '</a></td>'
+          + '<td class="px-3 py-3"><span class="pill" style="background:' + s.color + '1f;color:' + s.color + '">● ' + s.label + '</span></td>'
+          + '<td class="px-3 py-3 whitespace-nowrap"><div class="font-semibold tabular-nums">' + fmtVND(o.cost) + '</div><div class="mt-1">' + payPill(o) + '</div></td>'
+          + '<td class="px-3 py-3 whitespace-nowrap font-semibold' + (o.st === 'completed' ? ' text-emerald-600' : '') + '">' + o.eta + '</td>'
+          + '<td class="px-4 py-3 text-right"><i class="ph-bold ph-caret-right text-muted-foreground"></i></td>'
+          + '</tr>';
+      }
+      function renderList(data) {
+        var total = data.reduce(function (a, o) { return a + o.cost; }, 0);
+        var tfoot = data.length
+          ? '<tfoot><tr class="border-t-2 border-border font-semibold"><td colspan="5" class="px-3 py-3 text-right text-muted-foreground">Total value (' + data.length + ' orders)</td><td class="px-3 py-3 whitespace-nowrap tabular-nums text-primary">' + fmtVND(total) + '</td><td colspan="2"></td></tr></tfoot>'
+          : '';
+        document.getElementById('view-list').innerHTML =
+          '<table class="w-full min-w-[760px] text-left text-sm"><thead><tr class="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">'
+          + '<th class="px-4 py-3 text-center">No.</th><th class="px-3 py-3">Order ID</th><th class="px-3 py-3">Service / plan</th><th class="px-3 py-3">Projects</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Cost</th><th class="px-3 py-3">ETA</th><th class="px-4 py-3"></th></tr></thead><tbody>'
+          + data.map(function (o, i) { return orderRow(o, i + 1); }).join('') + '</tbody>' + tfoot + '</table>';
+        wireRows();
+      }
+
+      /* ---------- kanban ---------- */
+      function orderCard(o) {
+        var foot = o.st === 'review'
+          ? '<p class="mt-2 text-right text-[11px] font-bold text-amber-600">Awaiting your review</p>'
+          : (o.prog != null
+            ? '<div class="mt-2 bar"><i style="width:' + o.prog + '%"></i></div><p class="mt-1 text-right text-[11px] font-bold" style="color:' + (o.st === 'completed' ? '#059669' : '#2563eb') + '">' + o.prog + '%</p>'
+            : '<p class="mt-2 text-right text-[11px] font-semibold text-muted-foreground">' + o.eta + '</p>');
+        return '<article class="kcard orow" data-id="' + o.id + '"><div class="flex items-start justify-between gap-2"><h4 class="text-sm font-semibold">' + o.t + '</h4>'
+          + (o.st === 'completed' ? '<i class="ph-fill ph-check-circle text-emerald-500"></i>' : '<span class="prio prio-' + o.prio + '">' + PRIO[o.prio] + '</span>') + '</div>'
+          + '<p class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><i class="ph-bold ' + SVC[o.s].icon + '"></i> ' + o.dom + '</p>'
+          + '<div class="mt-1.5 flex items-center justify-between"><span class="inline-flex items-center gap-1.5">' + picAvatar(o.pic) + '<span class="text-[11px] text-muted-foreground">' + o.pic + '</span></span><span class="text-[11px] font-semibold tabular-nums">' + fmtVND(o.cost) + '</span></div>'
+          + '<div class="mt-1.5 flex items-center justify-between"><span class="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#' + o.id + '</span>' + payPill(o) + '</div>'
+          + foot + '</article>';
+      }
+      function renderKanban(data) {
+        document.getElementById('view-kanban').innerHTML = ST_ORDER.map(function (st) {
+          var s = ST[st], items = data.filter(function (o) { return o.st === st; });
+          var cards = items.map(orderCard).join('') || '<p class="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[11px] text-muted-foreground">Empty</p>';
+          return '<div class="kcol"><div class="mb-2.5 flex items-center gap-2 px-1"><span class="cdot h-2 w-2 rounded-full" style="background:' + s.color + '"></span><h4 class="text-sm font-semibold">' + s.label + '</h4><span class="ml-auto text-xs font-bold text-muted-foreground">' + items.length + '</span></div><div class="space-y-2.5">' + cards + '</div></div>';
+        }).join('');
+        wireRows();
+      }
+
+      function wireRows() {
+        Array.prototype.forEach.call(document.querySelectorAll('.orow'), function (el) {
+          el.addEventListener('click', function () { openDrawer(el.dataset.id); });
+        });
+      }
+
+      /* ---------- drawer ---------- */
+      function timelineHtml(o) {
+        var cur = STEP_OF[o.st];
+        return STEPS.map(function (label, i) {
+          var cls = i < cur ? 'done' : (i === cur ? 'cur' : '');
+          var cap = i < cur ? 'Done' : (i === cur ? 'Current step' : 'Upcoming');
+          var date = i === 0 ? o.date : '';
+          return '<div class="tl-step ' + cls + '"><span class="tl-dot"></span>'
+            + '<p class="text-sm font-semibold leading-tight">' + label + '</p>'
+            + '<p class="text-[11px] text-muted-foreground">' + cap + (date ? ' · ' + date : '') + '</p></div>';
+        }).join('');
+      }
+      function metaItem(label, val) {
+        return '<div><p class="text-[11px] uppercase tracking-wide text-muted-foreground">' + label + '</p><div class="mt-0.5 text-sm font-semibold">' + val + '</div></div>';
+      }
+      function openDrawer(id) {
+        var o = byId(id); if (!o) return;
+        var s = ST[o.st];
+        document.getElementById('dr-title').textContent = '#' + o.id;
+        document.getElementById('dr-sub').textContent = o.t + ' · ' + o.date;
+        var body = '<div class="flex items-start gap-3">'
+          + '<span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ' + SVC[o.s].icon + ' text-lg"></i></span>'
+          + '<div class="min-w-0"><p class="text-sm font-semibold">' + o.t + '</p><p class="text-xs text-muted-foreground">' + o.sub + '</p>'
+          + '<span class="mt-1.5 inline-flex"><span class="pill" style="background:' + s.color + '1f;color:' + s.color + '">● ' + s.label + '</span></span></div></div>';
+        body += '<div class="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border border-border bg-muted/30 p-3.5">'
+          + metaItem('Projects', '<a href="projects.html?p=' + encodeURIComponent(o.dom) + '" class="text-primary hover:underline">' + o.dom + '</a>')
+          + metaItem('Owner', '<span class="inline-flex items-center gap-1.5">' + picAvatar(o.pic) + o.pic + '</span>')
+          + metaItem('Priority', '<span class="prio prio-' + o.prio + '">' + PRIO[o.prio] + '</span>')
+          + metaItem('ETA', o.eta)
+          + '</div>';
+        if (o.prog != null && o.st !== 'review') body += '<div><div class="mb-1 flex justify-between text-xs text-muted-foreground"><span>Progress</span><span class="font-semibold text-foreground">' + o.prog + '%</span></div><div class="bar"><i style="width:' + o.prog + '%"></i></div></div>';
+        body += '<div><p class="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Order timeline</p>' + timelineHtml(o) + '</div>';
+        body += '<div class="rounded-xl border border-border p-3.5">'
+          + '<div class="flex items-center justify-between"><span class="text-sm text-muted-foreground">Cost</span><span class="display text-lg font-semibold tabular-nums">' + fmtVND(o.cost) + '</span></div>'
+          + '<div class="mt-1.5 flex items-center justify-between"><span class="text-xs text-muted-foreground">Payment</span>' + payPill(o) + '</div>'
+          + (o.inv ? '<a href="credit.html" class="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent"><i class="ph-bold ph-file-text"></i> View invoice #' + o.inv + '</a>' : '<div class="mt-2.5 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600"><i class="ph-bold ph-clock"></i> No invoice yet — order not paid</div>')
+          + '</div>';
+        if (o.st === 'completed') body += '<a href="#" onclick="return false" class="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400"><i class="ph-bold ph-download-simple"></i> Download deliverables</a>';
+        document.getElementById('drawer-body').innerHTML = body;
+        document.getElementById('drawer-foot').innerHTML =
+          '<div class="flex gap-2"><button id="dr-chat" class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i class="ph-bold ph-chat-circle-dots"></i> Message specialist</button>'
+          + '<button id="dr-reorder" class="flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2.5 text-sm font-semibold transition hover:bg-accent"><i class="ph-bold ph-arrows-clockwise"></i> Reorder</button></div>';
+        document.getElementById('dr-chat').onclick = function () { showToast('Opened a chat with the specialist about order #' + o.id); };
+        document.getElementById('dr-reorder').onclick = function () { showToast('Copied order #' + o.id + ' — taking you to the order page', 'Order now', function () { location.href = 'dashboard.html'; }); };
+
+        var wrap = document.getElementById('drawer-wrap'), dr = document.getElementById('drawer');
+        wrap.classList.remove('hidden');
+        requestAnimationFrame(function () { dr.classList.add('open'); });
+      }
+      function closeDrawer() {
+        var wrap = document.getElementById('drawer-wrap'), dr = document.getElementById('drawer');
+        dr.classList.remove('open');
+        setTimeout(function () { wrap.classList.add('hidden'); }, 280);
+      }
+      document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+      document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+      /* ---------- toast ---------- */
+      var toastTimer = null;
+      function hideToast() { document.getElementById('toast').classList.add('hidden'); }
+      function showToast(msg, actLabel, actFn) {
+        var t = document.getElementById('toast');
+        t.innerHTML = '<span>' + msg + '</span>' + (actFn ? '<button class="undo font-bold text-primary px-2.5 py-1 rounded-md hover:bg-accent">' + actLabel + '</button>' : '');
+        t.classList.remove('hidden');
+        if (actFn) t.querySelector('.undo').onclick = function () { actFn(); hideToast(); };
+        clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 5000);
+      }
+
+      /* ---------- toolbar + render ---------- */
+      var doms = ORDERS.map(function (o) { return o.dom; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
+      document.getElementById('f-proj').innerHTML = '<option value="all">All projects</option>' + doms.map(function (d) { return '<option value="' + d + '">' + d + '</option>'; }).join('');
+
+      document.getElementById('search').addEventListener('input', function (e) { state.search = e.target.value; render(); });
+      document.getElementById('f-svc').addEventListener('change', function (e) { state.svc = e.target.value; render(); });
+      document.getElementById('f-status').addEventListener('change', function (e) { state.status = e.target.value; render(); });
+      document.getElementById('f-proj').addEventListener('change', function (e) { state.proj = e.target.value; render(); });
+      document.getElementById('f-pay').addEventListener('change', function (e) { state.pay = e.target.value; render(); });
+      var bL = document.getElementById('btn-list'), bK = document.getElementById('btn-kanban');
+      var onCls = 'rounded-md bg-card px-2.5 py-1.5 shadow-sm', offCls = 'rounded-md px-2.5 py-1.5 text-muted-foreground';
+      bL.addEventListener('click', function () { state.view = 'list'; bL.className = onCls; bK.className = offCls; render(); });
+      bK.addEventListener('click', function () { state.view = 'kanban'; bK.className = onCls; bL.className = offCls; render(); });
+
+      function render() {
+        renderKPI();
+        var data = visible();
+        document.getElementById('empty').classList.toggle('hidden', data.length > 0);
+        var vL = document.getElementById('view-list'), vK = document.getElementById('view-kanban');
+        if (state.view === 'list') { vL.style.display = ''; vK.style.display = 'none'; renderList(data); }
+        else { vL.style.display = 'none'; vK.style.display = 'flex'; renderKanban(data); }
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

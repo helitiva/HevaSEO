@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { margin:0; background:#0a0a0a; display:flex; gap:50px; padding:60px; justify-content:center; align-items:center; min-height:100vh; flex-wrap:wrap; font-family:system-ui,sans-serif; }
+.card { text-align:center; color:#777; font-size:15px; }
+.card div { width:200px; height:200px; border-radius:42px; position:relative; overflow:hidden; }
+.label { margin-top:12px; }
+
+/* A: Smooth diagonal gradient — dark top-left to vivid blue bottom-right */
+.v-a div {
+  background: linear-gradient(160deg, #020418 0%, #060e30 30%, #0f2460 55%, #1a3d96 75%, #2558c0 100%);
+}
+
+/* B: Bottom glow style — very dark with radial from bottom */
+.v-b div {
+  background: radial-gradient(ellipse 130% 80% at 50% 105%, #2a5cc8 0%, #163888 25%, #0a1e55 50%, #030516 80%);
+}
+
+/* C: Center-bottom glow + horizon blend */
+.v-c div {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 90%, rgba(40,88,200,0.6) 0%, rgba(20,50,120,0.3) 40%, transparent 80%),
+    linear-gradient(180deg, #020418 0%, #060d2a 40%, #0e2050 70%, #183878 100%);
+}
+</style>
+</head>
+<body>
+  <div class="card v-a">
+    <div></div>
+    <p class="label">A — diagonal gradient</p>
+  </div>
+  <div class="card v-b">
+    <div></div>
+    <p class="label">B — bottom radial glow</p>
+  </div>
+  <div class="card v-c">
+    <div></div>
+    <p class="label">C — horizon + glow blend</p>
+  </div>
+</body>
+</html>

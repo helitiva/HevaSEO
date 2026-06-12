@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="HevaSEO — FAQ"
+>
+  <style slot="head" is:global is:inline>
+:root { --background:214 55% 97%; --foreground:222 47% 9%; --card:0 0% 100%; --card-foreground:240 10% 8%;
+      --primary:213 90% 50%; --primary-foreground:0 0% 100%; --secondary:214 45% 92%; --secondary-foreground:222 47% 14%;
+      --muted:214 45% 92%; --muted-foreground:215 18% 42%; --accent:211 100% 94%; --accent-foreground:213 90% 30%;
+      --destructive:0 72% 51%; --destructive-foreground:0 0% 100%; --border:214 30% 86%; --input:214 30% 86%; --ring:213 90% 50%; --radius:0.75rem; }
+    .dark { --background:222 60% 5%; --foreground:0 0% 96%; --card:220 45% 10%; --card-foreground:0 0% 96%;
+      --primary:210 100% 62%; --primary-foreground:222 60% 6%; --secondary:220 35% 16%; --secondary-foreground:0 0% 96%;
+      --muted:220 30% 14%; --muted-foreground:215 25% 72%; --accent:212 70% 24%; --accent-foreground:205 100% 85%;
+      --destructive:0 70% 58%; --destructive-foreground:0 0% 96%; --border:211 50% 44%; --input:216 38% 28%; --ring:205 100% 60%; }
+    .dark body { background:
+      radial-gradient(1000px 540px at 50% -14%, hsl(208 100% 34% / .55), transparent 60%),
+      radial-gradient(820px 460px at 2% 104%, hsl(214 100% 26% / .5), transparent 55%),
+      radial-gradient(820px 460px at 100% 104%, hsl(202 100% 28% / .5), transparent 55%),
+      linear-gradient(180deg, hsl(222 60% 6%), hsl(223 58% 4%)); background-attachment: fixed; }
+    * { border-color: hsl(var(--border)); }
+    .display { font-family: '"Inter Tight"', Inter, sans-serif; }
+    html:not(.ready) body { opacity: 0; }
+    body { transition: opacity .2s ease; }
+    html.ready main { animation: pageIn .32s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce){ body{opacity:1 !important;} html.ready main{animation:none;} }
+    .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500; color:hsl(var(--muted-foreground)); transition:all .15s; cursor:pointer; }
+    .nav-item:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .nav-item.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); box-shadow:0 6px 16px -6px hsl(var(--primary)/.5); }
+    .nav-item i { font-size:1rem; }
+    .pill { display:inline-flex; align-items:center; gap:.35rem; border-radius:9999px; padding:.2rem .6rem; font-size:.7rem; font-weight:700; }
+    .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
+    .code-chip { font-family:ui-monospace,Menlo,monospace; font-weight:700; font-size:.7rem; letter-spacing:.02em;
+      background:hsl(var(--primary)/.12); color:hsl(var(--primary)); border-radius:.4rem; padding:.15rem .45rem; white-space:nowrap; }
+    .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background:hsl(var(--border)); border-radius:9999px; }
+    .ticker::before,.ticker::after { content:''; position:absolute; top:0; bottom:0; width:2.5rem; z-index:1; pointer-events:none; }
+    .ticker::before { left:0; background:linear-gradient(to right, hsl(var(--background)), transparent); }
+    .ticker::after { right:0; background:linear-gradient(to left, hsl(var(--background)), transparent); }
+    .ticker-track { animation: ticker 15s linear infinite; will-change:transform; }
+    .ticker:hover .ticker-track { animation-play-state:paused; }
+    @keyframes ticker { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+    .ticker-item { display:inline-flex; align-items:center; gap:.45rem; font-size:.8125rem; color:hsl(var(--muted-foreground)); }
+    .ticker-item i { font-size:.95rem; } .ticker-item b { color:hsl(var(--foreground)); font-weight:600; }
+    @media (prefers-reduced-motion: reduce){ .ticker-track{ animation:none; } }
+    .faq summary { cursor:pointer; list-style:none; } .faq summary::-webkit-details-marker { display:none; }
+    .faq .plus { transition:transform .2s; } .faq details[open] .plus { transform:rotate(45deg); }
+    @media (max-width:1023px){ #sidebar{ position:fixed; inset:0 auto 0 0; z-index:60; transform:translateX(-100%); transition:.25s; } #sidebar.open{ transform:none; } }
+  </style>
+
+<main class="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 lg:px-7">
+        <div>
+          <h1 class="display text-2xl font-semibold tracking-tight md:text-3xl">Frequently Asked Questions</h1>
+          <p class="mt-1 text-sm text-muted-foreground">Quick answers about services, credits, orders, and service codes.</p>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-[1.7fr_1fr]">
+          <!-- FAQ accordion -->
+          <div class="faq rounded-2xl border border-border bg-card p-2 sm:p-3">
+            <details class="group border-b border-border p-4" open>
+              <summary class="flex items-center justify-between gap-4 font-semibold">What does a service code (e.g. BLEN-1042) on the dashboard mean?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Every service order has an identifier in the form <b class="text-foreground">CODE-####</b>. The letters indicate the service type (see the <b class="text-foreground">Service code legend</b> table beside it), and the number increments in order of creation. This code appears under Reports (Kanban & List) and is used when opening a support ticket.</p>
+            </details>
+            <details class="group border-b border-border p-4">
+              <summary class="flex items-center justify-between gap-4 font-semibold">How long until a backlink gets indexed?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The Indexer (IDX) pipeline automatically submits, checks, and retries. Typically 70–90% of links are recognized within 1–7 days; harder links keep being retried until they're indexed.</p>
+            </details>
+            <details class="group border-b border-border p-4">
+              <summary class="flex items-center justify-between gap-4 font-semibold">How do I top up &amp; use credits?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Top up credits under Credit &amp; Invoices (or the “Top up” button in the sidebar). When you order a service, the system deducts credits for the selected plan and shows your remaining balance before you confirm.</p>
+            </details>
+            <details class="group border-b border-border p-4">
+              <summary class="flex items-center justify-between gap-4 font-semibold">Can I buy a single service on its own?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes. You can buy each service separately (CT, BLEN, IDX…) or combine them into a bundle. Some services, like Keyword Research (KW), are included free when you buy Content or Backlinks.</p>
+            </details>
+            <details class="group border-b border-border p-4">
+              <summary class="flex items-center justify-between gap-4 font-semibold">Refund / cancellation policy?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Orders in the <b class="text-foreground">Planned</b> (not started) status can be canceled and refunded in credits. Orders that have moved to In progress are billed for the work already completed.</p>
+            </details>
+            <details class="group p-4">
+              <summary class="flex items-center justify-between gap-4 font-semibold">How do I reach an advisor?<i class="ph-bold ph-plus plus shrink-0 text-muted-foreground"></i></summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Go to the <a href="/demo/support.html" class="font-semibold text-primary hover:underline">Support</a> page to chat live, call the hotline, or submit a ticket. Response targets: chat &lt; 5 minutes, urgent tickets &lt; 2 hours.</p>
+            </details>
+          </div>
+
+          <!-- legend: service codes -->
+          <aside class="lg:sticky lg:top-[84px] h-fit rounded-2xl border border-border bg-card p-5">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-bold ph-tag"></i></span>
+              <div><p class="text-sm font-semibold leading-tight">Service code legend</p><p class="text-[11px] text-muted-foreground">Format: CODE-####</p></div>
+            </div>
+
+            <p class="mt-4 mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Content &amp; Website</p>
+            <ul class="space-y-1.5 text-sm">
+              <li class="flex items-center gap-2.5"><span class="code-chip">CT</span><span class="text-muted-foreground">Content SEO/GEO</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">WD</span><span class="text-muted-foreground">Web Design</span></li>
+            </ul>
+
+            <p class="mt-4 mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Backlink</p>
+            <ul class="space-y-1.5 text-sm">
+              <li class="flex items-center gap-2.5"><span class="code-chip">BL</span><span class="text-muted-foreground">Backlink (chung)</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">BLEN</span><span class="text-muted-foreground">Backlink Entity</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">BLGP</span><span class="text-muted-foreground">Backlink Guest Post</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">BLPR</span><span class="text-muted-foreground">Press Backlinks (PR)</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">BLPY</span><span class="text-muted-foreground">Backlink Pyramid</span></li>
+            </ul>
+
+            <p class="mt-4 mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Technical &amp; strategy</p>
+            <ul class="space-y-1.5 text-sm">
+              <li class="flex items-center gap-2.5"><span class="code-chip">IDX</span><span class="text-muted-foreground">Indexer</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">AD</span><span class="text-muted-foreground">Audit website</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">OP</span><span class="text-muted-foreground">Website optimization</span></li>
+              <li class="flex items-center gap-2.5"><span class="code-chip">KW</span><span class="text-muted-foreground">Keyword research</span></li>
+            </ul>
+
+            <p class="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">VD: <b class="text-foreground">BLEN-1042</b> = Entity Backlink order no. 1042.</p>
+          </aside>
+        </div>
+
+        <p class="mt-8 text-center text-xs text-muted-foreground">HevaSEO Workspace · FAQ · sample data</p>
+      </main>
+
+  <script is:inline>
+(function () {
+      function reveal(){ document.documentElement.classList.add('ready'); }
+      if (document.readyState === 'complete') { reveal(); return; }
+      window.addEventListener('DOMContentLoaded', function(){ requestAnimationFrame(function(){ requestAnimationFrame(reveal); }); });
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 1000);
+    })();
+  </script>
+</BaseLayout>

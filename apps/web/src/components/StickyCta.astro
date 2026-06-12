@@ -1,0 +1,14 @@
+---
+import { site } from '../data/site';
+interface Props { contactHref?: string }
+const { contactHref = '/#lienhe' } = Astro.props;
+---
+<!-- Sticky mobile CTA -->
+<div class="heva-sticky-cta lg:hidden" aria-label="Quick actions">
+  <a href={`tel:${site.phoneTel}`} class="heva-sticky-call">
+    <i class="ph-bold ph-phone"></i> Call now
+  </a>
+  <a href={contactHref} class="heva-sticky-lead">
+    Get a free consultation <i class="ph-bold ph-arrow-right"></i>
+  </a>
+</div>

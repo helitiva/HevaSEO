@@ -1,0 +1,14 @@
+{
+  "name": "@heva/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared HevaSEO design tokens: Tailwind preset + CSS variables. Used by apps/web (Astro) and apps/app (Next).",
+  "exports": {
+    "./tailwind-preset": "./tailwind-preset.cjs",
+    "./tokens.css": "./styles/tokens.css"
+  },
+  "files": [
+    "tailwind-preset.cjs",
+    "styles"
+  ]
+}

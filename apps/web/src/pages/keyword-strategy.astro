@@ -1,0 +1,993 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="Keyword Research & SEO Strategy | HevaSEO"
+  description="HevaSEO's keyword research & SEO strategy service: a keyword map by intent, topic clusters (topical map), competitor analysis, and a content roadmap. 3 plans: Basic, Advanced, Comprehensive."
+  keywords="keyword research, seo strategy, topical map, content cluster, search intent, keyword gap, seo roadmap"
+  ogDescription="A keyword map by intent, topic clusters, and a content roadmap — know exactly what to write, where to link, and in what order."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "Keyword Research & SEO Strategy",
+        "serviceType": "Keyword research & SEO strategy",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "A keyword map by intent, topic clusters (topical map), competitor analysis, and a content roadmap that show businesses exactly what to write and where to link.",
+        "offers": [
+          { "@type": "Offer", "name": "Basic", "price": "20", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Advanced", "price": "40", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Comprehensive", "price": "79", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Keyword Research & SEO Strategy", "item": "https://hevaseo.com/keyword-strategy" }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ---- decorative background layers ---- */
+    .kw-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .kw-dots-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(hsl(var(--primary) / 0.22) 1.4px, transparent 1.4px);
+      background-size: 24px 24px;
+      -webkit-mask-image: radial-gradient(circle at 85% 25%, #000, transparent 60%);
+      mask-image: radial-gradient(circle at 85% 25%, #000, transparent 60%);
+      opacity: 0.6;
+    }
+    .kw-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    /* ---- scroll-reveal stagger (reuses base [data-reveal] transition) ---- */
+    .kw-stagger > [data-reveal]:nth-child(2) { transition-delay: 0.07s; }
+    .kw-stagger > [data-reveal]:nth-child(3) { transition-delay: 0.14s; }
+    .kw-stagger > [data-reveal]:nth-child(4) { transition-delay: 0.21s; }
+    .kw-stagger > [data-reveal]:nth-child(5) { transition-delay: 0.28s; }
+    .kw-stagger > [data-reveal]:nth-child(6) { transition-delay: 0.35s; }
+
+    /* ---- card: lift + icon spring + top sheen on hover (feedback) ---- */
+    .kw-card { position: relative; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, border-color 0.4s ease; }
+    .kw-card:hover { transform: translateY(-5px); border-color: hsl(var(--primary) / 0.45); box-shadow: 0 20px 45px hsl(var(--primary) / 0.13); }
+    .kw-card::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      opacity: 0; transition: opacity 0.4s ease;
+      background: radial-gradient(130% 80% at 50% 0%, hsl(var(--primary) / 0.10), transparent 58%);
+    }
+    .kw-card:hover::after { opacity: 1; }
+    .kw-ic { transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    .kw-card:hover .kw-ic { transform: scale(1.12) rotate(-5deg); }
+
+    /* ============ PROCESS — bespoke mini-graphic per step ============ */
+    .proc-art {
+      position: relative; height: 116px; overflow: hidden;
+      border-radius: 14px; border: 1px solid hsl(var(--border));
+      background: hsl(var(--muted) / 0.5); padding: 0.8rem;
+    }
+    .dark .proc-art { background: hsl(var(--background) / 0.6); }
+    @keyframes pa-grow { to { transform: scaleX(1); } }
+    @keyframes pa-rise { to { transform: scaleY(1); } }
+    @keyframes pa-pop  { to { opacity: 1; transform: translateX(-50%) scale(1); } }
+    @keyframes pa-draw { to { stroke-dashoffset: 0; } }
+
+    /* 01 — scan rows (collecting keywords + volume + KD) */
+    .pa-rows { display: flex; flex-direction: column; gap: 0.46rem; }
+    .pa-row { display: flex; align-items: center; gap: 0.4rem; }
+    .pa-kw { width: 5.2rem; font-size: 0.62rem; font-weight: 600; color: hsl(var(--foreground)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pa-vol { flex: 1; height: 0.34rem; border-radius: 9999px; background: hsl(var(--border)); position: relative; overflow: hidden; }
+    .pa-vol::before { content: ""; position: absolute; inset: 0; width: var(--w, 60%); border-radius: inherit; background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.5)); transform: scaleX(0); transform-origin: left; }
+    [data-reveal].is-visible .pa-vol::before { animation: pa-grow 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+    [data-reveal].is-visible .pa-row:nth-child(2) .pa-vol::before { animation-delay: 0.12s; }
+    [data-reveal].is-visible .pa-row:nth-child(3) .pa-vol::before { animation-delay: 0.24s; }
+    .pa-kd { font-family: ui-monospace, monospace; font-size: 0.55rem; font-weight: 700; padding: 0.05rem 0.32rem; border-radius: 5px; background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
+    .pa-kd.ok { background: hsl(152 55% 45% / 0.16); color: hsl(152 52% 40%); }
+
+    /* 02 — intent buckets (3 columns) */
+    .pa-intent { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; align-items: end; height: 100%; }
+    .pa-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 0.28rem; height: 100%; }
+    .pa-bar { width: 100%; border-radius: 7px 7px 4px 4px; transform: scaleY(0); transform-origin: bottom; }
+    .pa-bar.b-info { height: 80%; background: linear-gradient(hsl(214 90% 60%), hsl(214 90% 60% / 0.45)); }
+    .pa-bar.b-comm { height: 56%; background: linear-gradient(hsl(38 92% 55%), hsl(38 92% 55% / 0.45)); }
+    .pa-bar.b-tran { height: 40%; background: linear-gradient(hsl(152 60% 45%), hsl(152 60% 45% / 0.45)); }
+    [data-reveal].is-visible .pa-bar { animation: pa-rise 0.7s cubic-bezier(0.34,1.4,0.6,1) forwards; }
+    [data-reveal].is-visible .pa-col:nth-child(2) .pa-bar { animation-delay: 0.1s; }
+    [data-reveal].is-visible .pa-col:nth-child(3) .pa-bar { animation-delay: 0.2s; }
+    .pa-tag { font-size: 0.56rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+
+    /* 03 — topical map (pillar + cluster nodes) */
+    .pa-map-lines { position: absolute; inset: 8px 10px; width: calc(100% - 20px); height: calc(100% - 16px); overflow: visible; }
+    .pa-map-lines path { fill: none; stroke: hsl(var(--primary) / 0.5); stroke-width: 1.6; stroke-dasharray: 130; stroke-dashoffset: 130; }
+    [data-reveal].is-visible .pa-map-lines path { animation: pa-draw 0.8s ease forwards 0.15s; }
+    [data-reveal].is-visible .pa-map-lines path:nth-child(2) { animation-delay: 0.28s; }
+    [data-reveal].is-visible .pa-map-lines path:nth-child(3) { animation-delay: 0.41s; }
+    .pa-node { position: absolute; transform: translateX(-50%) scale(0.6); opacity: 0; font-size: 0.55rem; font-weight: 700; white-space: nowrap; padding: 0.13rem 0.42rem; border-radius: 6px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); }
+    .pa-node.pillar { background: hsl(var(--primary)); border-color: transparent; color: hsl(var(--primary-foreground)); box-shadow: 0 4px 12px hsl(var(--primary) / 0.3); }
+    [data-reveal].is-visible .pa-node { animation: pa-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    [data-reveal].is-visible .pa-node:nth-child(3) { animation-delay: 0.3s; }
+    [data-reveal].is-visible .pa-node:nth-child(4) { animation-delay: 0.4s; }
+    [data-reveal].is-visible .pa-node:nth-child(5) { animation-delay: 0.5s; }
+
+    /* 04 — prioritized roadmap rows */
+    .proc-road { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; height: 100%; }
+    .pa-prow { display: flex; align-items: center; gap: 0.45rem; }
+    .pa-rank { font-family: ui-monospace, monospace; font-size: 0.55rem; font-weight: 800; padding: 0.1rem 0.34rem; border-radius: 5px; color: hsl(var(--primary-foreground)); background: hsl(var(--primary)); }
+    .pa-rank.r2 { background: hsl(var(--primary) / 0.7); }
+    .pa-rank.r3 { background: hsl(var(--primary) / 0.45); }
+    .pa-task { flex: 1; height: 0.5rem; border-radius: 9999px; background: hsl(var(--border)); overflow: hidden; }
+    .pa-task b { display: block; height: 100%; width: var(--w, 60%); border-radius: inherit; background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.5)); transform: scaleX(0); transform-origin: left; }
+    [data-reveal].is-visible .pa-task b { animation: pa-grow 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+    [data-reveal].is-visible .pa-prow:nth-child(2) .pa-task b { animation-delay: 0.12s; }
+    [data-reveal].is-visible .pa-prow:nth-child(3) .pa-task b { animation-delay: 0.24s; }
+    .pa-mo { font-size: 0.55rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+
+    /* ============ DELIVERABLES — mini-graphic per card ============ */
+    .dl-art { position: relative; height: 90px; overflow: hidden; border-radius: 12px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); padding: 0.65rem; }
+    .dark .dl-art { background: hsl(var(--background) / 0.45); }
+
+    /* 1 — spreadsheet */
+    .dl-sheet { display: flex; flex-direction: column; gap: 4px; height: 100%; }
+    .dl-srow { flex: 1; display: grid; grid-template-columns: 1.6fr 1.1fr 0.6fr; gap: 4px; }
+    .dl-cell { border-radius: 3px; background: hsl(var(--muted)); }
+    .dl-srow.head .dl-cell { background: hsl(var(--primary) / 0.6); }
+    .dl-cell.vol { background: hsl(var(--primary) / 0.16); }
+    .dl-cell.kd { background: hsl(152 55% 45% / 0.18); }
+
+    /* 2 & 6 — node networks */
+    .dl-net { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .dl-net line { stroke: hsl(var(--primary) / 0.4); stroke-width: 1.4; stroke-dasharray: 150; stroke-dashoffset: 150; }
+    [data-reveal].is-visible .dl-net line { animation: pa-draw 0.7s ease forwards 0.1s; }
+    [data-reveal].is-visible .dl-net line:nth-child(2) { animation-delay: 0.18s; }
+    [data-reveal].is-visible .dl-net line:nth-child(3) { animation-delay: 0.26s; }
+    [data-reveal].is-visible .dl-net line:nth-child(4) { animation-delay: 0.34s; }
+    [data-reveal].is-visible .dl-net line:nth-child(5) { animation-delay: 0.42s; }
+    .dl-dot { position: absolute; transform: translate(-50%,-50%) scale(0); width: 0.66rem; height: 0.66rem; border-radius: 50%; background: hsl(var(--primary) / 0.55); }
+    .dl-dot.hub { width: 1.7rem; height: 1.7rem; display: grid; place-items: center; font-size: 0.56rem; font-weight: 700; color: hsl(var(--primary-foreground)); background: hsl(var(--primary)); box-shadow: 0 3px 11px hsl(var(--primary) / 0.35); }
+    .dl-dot.lk { width: 1.45rem; height: 1.45rem; border-radius: 7px; display: grid; place-items: center; font-size: 0.7rem; color: hsl(var(--primary)); background: hsl(var(--primary) / 0.15); border: 1px solid hsl(var(--primary) / 0.3); }
+    [data-reveal].is-visible .dl-dot { animation: dl-pop 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    [data-reveal].is-visible .dl-dot:nth-child(3) { animation-delay: 0.1s; }
+    [data-reveal].is-visible .dl-dot:nth-child(4) { animation-delay: 0.18s; }
+    [data-reveal].is-visible .dl-dot:nth-child(5) { animation-delay: 0.26s; }
+    [data-reveal].is-visible .dl-dot:nth-child(6) { animation-delay: 0.34s; }
+    @keyframes dl-pop { to { transform: translate(-50%,-50%) scale(1); } }
+
+    /* 3 — intent donut */
+    .dl-pie { display: flex; align-items: center; gap: 0.75rem; height: 100%; }
+    .dl-donut { width: 56px; height: 56px; border-radius: 50%; position: relative; flex-shrink: 0; background: conic-gradient(hsl(214 90% 60%) 0 45%, hsl(38 92% 55%) 45% 75%, hsl(152 60% 45%) 75% 100%); }
+    .dl-donut::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: hsl(var(--card)); }
+    .dark .dl-donut::after { background: hsl(var(--background)); }
+    .dl-legend { display: flex; flex-direction: column; gap: 0.32rem; font-size: 0.6rem; color: hsl(var(--muted-foreground)); }
+    .dl-legend span { display: flex; align-items: center; gap: 0.34rem; }
+    .dl-legend i { width: 0.5rem; height: 0.5rem; border-radius: 2px; flex-shrink: 0; }
+
+    /* 4 — competitor gap */
+    .dl-vs { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; height: 100%; }
+    .dl-vrow { display: flex; align-items: center; gap: 0.45rem; }
+    .dl-vlabel { width: 3rem; font-size: 0.6rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+    .dl-vtrack { flex: 1; display: flex; height: 0.5rem; border-radius: 9999px; background: hsl(var(--border)); overflow: hidden; }
+    .dl-vseg { height: 100%; transform: scaleX(0); transform-origin: left; }
+    .dl-vseg.me { background: hsl(var(--primary)); border-radius: 9999px; }
+    .dl-vseg.comp { background: hsl(var(--muted-foreground) / 0.4); }
+    .dl-vseg.gap { background: repeating-linear-gradient(45deg, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.55) 3px, transparent 3px, transparent 6px); }
+    [data-reveal].is-visible .dl-vseg { animation: pa-grow 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+    [data-reveal].is-visible .dl-vrow:nth-child(2) .dl-vseg { animation-delay: 0.12s; }
+    .dl-gaptag { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; font-size: 0.55rem; font-weight: 700; color: hsl(var(--primary)); }
+
+    /* 5 — roadmap months */
+    .dl-months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.4rem; align-items: end; height: 100%; }
+    .dl-mcol { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 0.22rem; height: 100%; }
+    .dl-mbar { width: 100%; border-radius: 4px 4px 2px 2px; background: linear-gradient(hsl(var(--primary)), hsl(var(--primary) / 0.45)); transform: scaleY(0); transform-origin: bottom; }
+    [data-reveal].is-visible .dl-mbar { animation: pa-rise 0.6s cubic-bezier(0.34,1.4,0.6,1) forwards; }
+    [data-reveal].is-visible .dl-mcol:nth-child(2) .dl-mbar { animation-delay: 0.06s; }
+    [data-reveal].is-visible .dl-mcol:nth-child(3) .dl-mbar { animation-delay: 0.12s; }
+    [data-reveal].is-visible .dl-mcol:nth-child(4) .dl-mbar { animation-delay: 0.18s; }
+    [data-reveal].is-visible .dl-mcol:nth-child(5) .dl-mbar { animation-delay: 0.24s; }
+    [data-reveal].is-visible .dl-mcol:nth-child(6) .dl-mbar { animation-delay: 0.3s; }
+    .dl-mlabel { font-size: 0.5rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+
+    .kw-step-num { transition: color 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    .kw-card:hover .kw-step-num { color: hsl(var(--primary) / 0.45); transform: translateY(-2px); }
+
+    /* ---- shimmer sweep on the "popular" badge (hierarchy cue) ---- */
+    .kw-shine { position: relative; overflow: hidden; }
+    .kw-shine::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 32%, hsl(0 0% 100% / 0.55) 50%, transparent 68%);
+      transform: translateX(-130%);
+      animation: kw-sweep 3.4s ease-in-out infinite;
+    }
+    @keyframes kw-sweep { 0% { transform: translateX(-130%); } 55%, 100% { transform: translateX(240%); } }
+
+    /* ---- comparison table: check marks pop in on reveal ---- */
+    .kw-table.is-visible .ph-check { animation: kw-check-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .kw-table.is-visible tbody tr:nth-child(2) .ph-check { animation-delay: 0.06s; }
+    .kw-table.is-visible tbody tr:nth-child(3) .ph-check { animation-delay: 0.12s; }
+    .kw-table.is-visible tbody tr:nth-child(4) .ph-check { animation-delay: 0.18s; }
+    .kw-table.is-visible tbody tr:nth-child(5) .ph-check { animation-delay: 0.24s; }
+    .kw-table.is-visible tbody tr:nth-child(6) .ph-check { animation-delay: 0.30s; }
+    @keyframes kw-check-pop { 0% { opacity: 0; transform: scale(0.4); } 100% { opacity: 1; transform: scale(1); } }
+
+    /* ---- gentle idle float for the price tier icons ---- */
+    .kw-float { animation: kw-bob 4.5s ease-in-out infinite; }
+    @keyframes kw-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+    /* ---- pulsing ring on the primary CTA (draws the eye) ---- */
+    .kw-pulse { position: relative; }
+    .kw-pulse::before {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45);
+      animation: kw-cta-ping 2.6s cubic-bezier(0.4,0,0.2,1) infinite;
+    }
+    @keyframes kw-cta-ping { 0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); } 70%, 100% { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); } }
+
+    /* ---- accessibility: collapse looping/heavy motion ---- */
+    @media (prefers-reduced-motion: reduce) {
+      .kw-shine::after, .kw-float, .kw-pulse::before { animation: none !important; }
+      .pa-vol::before, .pa-task b { transform: scaleX(1); }
+      .pa-bar { transform: scaleY(1); }
+      .pa-node { opacity: 1; transform: translateX(-50%) scale(1); }
+      .pa-map-lines path, .dl-net line { stroke-dashoffset: 0; }
+      .dl-dot { transform: translate(-50%,-50%) scale(1); }
+      .dl-vseg, .dl-mbar { transform: none; }
+      .kw-card:hover { transform: none; }
+      .kw-card:hover .kw-ic { transform: none; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-8 pb-16 lg:pt-12 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="kw-grid-bg" aria-hidden="true"></div>
+      <div class="kw-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <i class="ph-fill ph-target"></i> The foundation for every SEO campaign
+            </span>
+            <h1 class="mt-5 font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Don't burn your budget<br class="hidden sm:block" /> on <span class="text-primary">the wrong keywords</span>.
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              A keyword map by intent, topic clusters, and a content roadmap — you'll know exactly <b class="font-semibold text-foreground">what to write, where to link, and in what order</b> before spending a dollar on content or backlinks.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#cac-goi" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                View 3 plans <i class="ph-bold ph-arrow-down"></i>
+              </a>
+              <a href="#lienhe" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                Get a free consultation
+              </a>
+            </div>
+            <!-- deliverable chips -->
+            <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm">
+              <span class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.07] px-3.5 py-1.5 font-medium text-foreground shadow-sm shadow-primary/5"><i class="ph-fill ph-cursor-click text-primary"></i> Interactive web report</span>
+              <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 font-medium text-foreground shadow-sm"><i class="ph-fill ph-table text-emerald-500"></i> File Google Sheet</span>
+              <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 font-medium text-foreground shadow-sm"><i class="ph-fill ph-gift text-primary"></i> Free Basic plan included</span>
+            </div>
+            <!-- offer promo bar -->
+            <div class="mt-6 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/[0.10] via-primary/[0.05] to-transparent shadow-sm shadow-primary/5">
+              <div class="flex flex-col divide-y divide-primary/15 sm:flex-row sm:divide-x sm:divide-y-0">
+                <div class="flex items-center gap-3 px-4 py-3.5">
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/30"><i class="ph-fill ph-gift text-lg"></i></span>
+                  <div class="leading-tight">
+                    <p class="text-sm font-bold tracking-tight text-foreground">20% off</p>
+                    <p class="text-xs text-muted-foreground">on your first order</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 px-4 py-3.5">
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-fill ph-tag text-lg"></i></span>
+                  <div class="leading-tight">
+                    <p class="text-sm font-bold tracking-tight text-foreground">Bundle saves up to $120</p>
+                    <a href="#combo" class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Learn more <i class="ph-bold ph-arrow-down text-[10px]"></i></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- reuse keyword visual -->
+          <div data-reveal class="relative">
+            <div class="addon-visual keyword-visual relative rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-8" aria-hidden="true">
+              <div class="keyword-root">
+                <span class="keyword-root-icon"><i class="ph-bold ph-tree-structure"></i></span>
+                <div>
+                  <b>dental</b>
+                  <em>165k searches / mo</em>
+                </div>
+                <span class="keyword-pill">Pillar</span>
+              </div>
+              <div class="keyword-branches">
+                <div class="keyword-branch">
+                  <span class="keyword-line"></span>
+                  <span class="keyword-name">affordable braces</span>
+                  <span class="keyword-vol">22k</span>
+                  <span class="kw-diff kw-medium">KD 38</span>
+                </div>
+                <div class="keyword-branch">
+                  <span class="keyword-line"></span>
+                  <span class="keyword-name">at-home teeth whitening</span>
+                  <span class="keyword-vol">14k</span>
+                  <span class="kw-diff kw-easy">KD 22</span>
+                </div>
+                <div class="keyword-branch">
+                  <span class="keyword-line"></span>
+                  <span class="keyword-name">pediatric dentistry</span>
+                  <span class="keyword-vol">18k</span>
+                  <span class="kw-diff kw-easy">KD 18</span>
+                </div>
+              </div>
+              <div class="keyword-intent">
+                <span class="ki-label">Search intent</span>
+                <div class="ki-bar">
+                  <span class="ki-seg ki-info" style="flex:45"></span>
+                  <span class="ki-seg ki-comm" style="flex:30"></span>
+                  <span class="ki-seg ki-trans" style="flex:25"></span>
+                </div>
+                <div class="ki-legend">
+                  <span><i class="ki-dot info"></i>Info 45%</span>
+                  <span><i class="ki-dot comm"></i>Commercial 30%</span>
+                  <span><i class="ki-dot trans"></i>Trans 25%</span>
+                </div>
+              </div>
+              <div class="keyword-roadmap">
+                <span class="kr-label">Roadmap</span>
+                <div class="kr-track">
+                  <span class="kr-step done"></span>
+                  <span class="kr-step done"></span>
+                  <span class="kr-step active"></span>
+                  <span class="kr-step"></span>
+                  <span class="kr-step"></span>
+                  <span class="kr-step"></span>
+                </div>
+                <span class="kr-meta">M3 · Running</span>
+              </div>
+              <div class="keyword-summary">
+                <span><b data-count="184">0</b>keywords</span>
+                <span><b data-count="12">0</b>topic clusters</span>
+                <span><b>6 months</b>roadmap</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="relative overflow-hidden border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="kw-dots-bg" aria-hidden="true"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">Doing SEO like walking through fog</h2>
+          <p class="mt-3 text-muted-foreground">Most SEO budget is wasted not from poor execution, but from targeting the wrong keywords in the wrong order.</p>
+        </div>
+        <div class="kw-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-destructive/10 text-destructive"><i class="ph-bold ph-file-dashed text-xl"></i></span>
+            <h3 class="mt-4 font-semibold">Lots of content, but no rankings</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You publish regularly but the articles are scattered, not grouped into clusters, so Google doesn't see you as an industry expert.</p>
+          </div>
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-destructive/10 text-destructive"><i class="ph-bold ph-compass text-xl"></i></span>
+            <h3 class="mt-4 font-semibold">Don't know where to start</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Hundreds of potential keywords but no clarity on which to tackle first and which can wait.</p>
+          </div>
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-destructive/10 text-destructive"><i class="ph-bold ph-users-three text-xl"></i></span>
+            <h3 class="mt-4 font-semibold">Competitors cover every keyword</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">They've claimed the important queries, and you don't know what gaps are left to break into.</p>
+          </div>
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-destructive/10 text-destructive"><i class="ph-bold ph-coins text-xl"></i></span>
+            <h3 class="mt-4 font-semibold">Spending backlinks on the wrong pages</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Linking to pages with no ranking potential wastes budget without creating leverage.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESS ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Process</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">4 steps to turn research into an action map</h2>
+          <p class="mt-3 text-muted-foreground">Not a dry Excel file, but a clear order of work for a full year of SEO.</p>
+        </div>
+        <div class="kw-stagger mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <!-- 01 -->
+          <div data-reveal class="kw-card relative rounded-2xl border border-border bg-card p-5">
+            <div class="flex items-center justify-between">
+              <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-magnifying-glass text-2xl"></i></span>
+              <span class="kw-step-num font-display text-4xl font-bold text-primary/15">01</span>
+            </div>
+            <div class="proc-art mt-4" aria-hidden="true">
+              <div class="pa-rows">
+                <div class="pa-row"><span class="pa-kw">braces</span><span class="pa-vol" style="--w:74%"></span><span class="pa-kd">KD38</span></div>
+                <div class="pa-row"><span class="pa-kw">teeth whitening</span><span class="pa-vol" style="--w:48%"></span><span class="pa-kd ok">KD22</span></div>
+                <div class="pa-row"><span class="pa-kw">pediatric dentistry</span><span class="pa-vol" style="--w:60%"></span><span class="pa-kd ok">KD18</span></div>
+              </div>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold">Audit &amp; collect keywords</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Scan every query in your industry, with volume and difficulty (KD) from specialized tools.</p>
+          </div>
+          <!-- 02 -->
+          <div data-reveal class="kw-card relative rounded-2xl border border-border bg-card p-5">
+            <div class="flex items-center justify-between">
+              <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-funnel text-2xl"></i></span>
+              <span class="kw-step-num font-display text-4xl font-bold text-primary/15">02</span>
+            </div>
+            <div class="proc-art mt-4" aria-hidden="true">
+              <div class="pa-intent">
+                <div class="pa-col"><span class="pa-bar b-info"></span><span class="pa-tag">Info</span></div>
+                <div class="pa-col"><span class="pa-bar b-comm"></span><span class="pa-tag">Comm</span></div>
+                <div class="pa-col"><span class="pa-bar b-tran"></span><span class="pa-tag">Trans</span></div>
+              </div>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold">Cluster by intent</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Group keywords by search intent (info / commercial / transactional) and by topic.</p>
+          </div>
+          <!-- 03 -->
+          <div data-reveal class="kw-card relative rounded-2xl border border-border bg-card p-5">
+            <div class="flex items-center justify-between">
+              <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-tree-structure text-2xl"></i></span>
+              <span class="kw-step-num font-display text-4xl font-bold text-primary/15">03</span>
+            </div>
+            <div class="proc-art mt-4" aria-hidden="true">
+              <svg class="pa-map-lines" viewBox="0 0 200 92" preserveAspectRatio="none">
+                <path d="M100 16 C100 48, 36 46, 36 78" />
+                <path d="M100 16 C100 50, 100 50, 100 78" />
+                <path d="M100 16 C100 48, 164 46, 164 78" />
+              </svg>
+              <span class="pa-node pillar" style="left:50%; top:6px;">Pillar</span>
+              <span class="pa-node" style="left:18%; bottom:8px;">Cluster A</span>
+              <span class="pa-node" style="left:50%; bottom:8px;">Cluster B</span>
+              <span class="pa-node" style="left:82%; bottom:8px;">Cluster C</span>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold">Build the topical map</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">A pillar-cluster structure to build topical authority instead of standalone articles.</p>
+          </div>
+          <!-- 04 -->
+          <div data-reveal class="kw-card relative rounded-2xl border border-border bg-card p-5">
+            <div class="flex items-center justify-between">
+              <span class="kw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-map-trifold text-2xl"></i></span>
+              <span class="kw-step-num font-display text-4xl font-bold text-primary/15">04</span>
+            </div>
+            <div class="proc-art mt-4" aria-hidden="true">
+              <div class="proc-road">
+                <div class="pa-prow"><span class="pa-rank">P1</span><span class="pa-task"><b style="--w:90%"></b></span><span class="pa-mo">T1</span></div>
+                <div class="pa-prow"><span class="pa-rank r2">P2</span><span class="pa-task"><b style="--w:64%"></b></span><span class="pa-mo">T2</span></div>
+                <div class="pa-prow"><span class="pa-rank r3">P3</span><span class="pa-task"><b style="--w:42%"></b></span><span class="pa-mo">T3</span></div>
+              </div>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold">Prioritized roadmap</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Sequence the work by value &amp; difficulty: know what to do each month and where to link first.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DELIVERABLES ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">What you get</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Tangible deliverables, not promises</h2>
+          <p class="mt-3 text-muted-foreground">Everything is delivered as documents you can use right away or hand to any SEO team.</p>
+        </div>
+        <div class="kw-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- File keywords -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/[0.07] to-transparent p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-cursor-click text-xl"></i></span>
+              <h3 class="font-semibold">Interactive report + Sheet</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <div class="dl-sheet">
+                <div class="dl-srow head"><span class="dl-cell"></span><span class="dl-cell"></span><span class="dl-cell"></span></div>
+                <div class="dl-srow"><span class="dl-cell"></span><span class="dl-cell vol"></span><span class="dl-cell kd"></span></div>
+                <div class="dl-srow"><span class="dl-cell"></span><span class="dl-cell vol"></span><span class="dl-cell kd"></span></div>
+                <div class="dl-srow"><span class="dl-cell"></span><span class="dl-cell vol"></span><span class="dl-cell kd"></span></div>
+              </div>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">View it as an interactive web page (filter, sort) or download a Google Sheet: primary and secondary keywords with volume, difficulty, and intent.</p>
+          </div>
+          <!-- Topical map -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-tree-structure text-xl"></i></span>
+              <h3 class="font-semibold">Topical map</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <svg class="dl-net" viewBox="0 0 200 90" preserveAspectRatio="none">
+                <line x1="100" y1="45" x2="40" y2="22" />
+                <line x1="100" y1="45" x2="160" y2="22" />
+                <line x1="100" y1="45" x2="40" y2="68" />
+                <line x1="100" y1="45" x2="160" y2="68" />
+              </svg>
+              <span class="dl-dot hub" style="left:50%; top:50%;">Hub</span>
+              <span class="dl-dot" style="left:20%; top:24%;"></span>
+              <span class="dl-dot" style="left:80%; top:24%;"></span>
+              <span class="dl-dot" style="left:20%; top:76%;"></span>
+              <span class="dl-dot" style="left:80%; top:76%;"></span>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">A pillar-cluster diagram: which topic clusters to cover and how they link together.</p>
+          </div>
+          <!-- Search intent distribution -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/[0.07] to-transparent p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-chart-pie-slice text-xl"></i></span>
+              <h3 class="font-semibold">Search intent distribution</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <div class="dl-pie">
+                <div class="dl-donut"></div>
+                <div class="dl-legend">
+                  <span><i style="background:hsl(214 90% 60%)"></i>Info 45%</span>
+                  <span><i style="background:hsl(38 92% 55%)"></i>Commercial 30%</span>
+                  <span><i style="background:hsl(152 60% 45%)"></i>Transactional 25%</span>
+                </div>
+              </div>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The info / commercial / transactional split to balance content and sales pages.</p>
+          </div>
+          <!-- Competitor analysis -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-users-three text-xl"></i></span>
+              <h3 class="font-semibold">Competitor &amp; gap analysis</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <div class="dl-vs">
+                <div class="dl-vrow"><span class="dl-vlabel">You</span><div class="dl-vtrack"><span class="dl-vseg me" style="flex-basis:52%"></span></div></div>
+                <div class="dl-vrow"><span class="dl-vlabel">Competitor</span><div class="dl-vtrack"><span class="dl-vseg comp" style="flex-basis:52%"></span><span class="dl-vseg gap" style="flex-basis:33%"></span></div></div>
+                <span class="dl-gaptag"><i class="ph-bold ph-arrow-fat-right"></i> Gaps to break into</span>
+              </div>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Keywords your competitors rank for but you don't — gaps to break into.</p>
+          </div>
+          <!-- Month-by-month roadmap -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-list-checks text-xl"></i></span>
+              <h3 class="font-semibold">Month-by-month content roadmap</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <div class="dl-months">
+                <div class="dl-mcol"><span class="dl-mbar" style="height:42%"></span><span class="dl-mlabel">T1</span></div>
+                <div class="dl-mcol"><span class="dl-mbar" style="height:68%"></span><span class="dl-mlabel">T2</span></div>
+                <div class="dl-mcol"><span class="dl-mbar" style="height:54%"></span><span class="dl-mlabel">T3</span></div>
+                <div class="dl-mcol"><span class="dl-mbar" style="height:84%"></span><span class="dl-mlabel">T4</span></div>
+                <div class="dl-mcol"><span class="dl-mbar" style="height:64%"></span><span class="dl-mlabel">T5</span></div>
+                <div class="dl-mcol"><span class="dl-mbar" style="height:96%"></span><span class="dl-mlabel">T6</span></div>
+              </div>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">A clear priority order: what to do first and next, by value and difficulty.</p>
+          </div>
+          <!-- Internal linking blueprint -->
+          <div data-reveal class="kw-card overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/[0.09] to-transparent p-6">
+            <div class="flex items-center gap-3">
+              <span class="kw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i class="ph-bold ph-arrows-merge text-xl"></i></span>
+              <h3 class="font-semibold">Internal linking blueprint</h3>
+            </div>
+            <div class="dl-art mt-4" aria-hidden="true">
+              <svg class="dl-net" viewBox="0 0 200 90" preserveAspectRatio="none">
+                <line x1="44" y1="26" x2="156" y2="26" />
+                <line x1="44" y1="26" x2="100" y2="70" />
+                <line x1="156" y1="26" x2="100" y2="70" />
+              </svg>
+              <span class="dl-dot lk" style="left:22%; top:29%;"><i class="ph-bold ph-article"></i></span>
+              <span class="dl-dot lk" style="left:78%; top:29%;"><i class="ph-bold ph-article"></i></span>
+              <span class="dl-dot lk" style="left:50%; top:78%;"><i class="ph-bold ph-article"></i></span>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">An internal linking diagram between articles to focus authority on the right pages. <span class="font-medium text-primary">(Comprehensive plan)</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREVIEW (sample deliverable images) ============ -->
+    <!-- TODO: replace with 2 real images at logo/sample-report.png (web report) and logo/sample-topical-map.png.
+         If no images yet, the frame shows a guidance placeholder. -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-5xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">Preview the deliverables</h2>
+          <p class="mt-3 text-muted-foreground">Not just a dry file: you get <b class="font-semibold text-foreground">an interactive web-page report</b> (filter, sort, clickable) plus a Google Sheet and a topical map diagram.</p>
+        </div>
+        <div data-reveal class="kw-stagger mt-10 grid gap-6 md:grid-cols-2">
+          <!-- Interactive webpage report -->
+          <figure data-reveal class="kw-card overflow-hidden rounded-2xl border-2 border-primary/30 bg-card shadow-lg shadow-primary/10">
+            <div class="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2.5">
+              <span class="flex flex-1 items-center gap-1.5 truncate rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-lock-simple text-[11px] text-emerald-500"></i> bao-cao.hevaseo.com</span>
+              <span class="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Interactive</span>
+            </div>
+            <img src="logo/sample-report.png" alt="Sample of HevaSEO's interactive web-page keyword research report" loading="lazy" class="block aspect-[16/10] w-full object-cover object-top" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <div class="aspect-[16/10] w-full flex-col items-center justify-center gap-2 bg-muted/30 px-6 text-center" style="display:none;">
+              <i class="ph-bold ph-cursor-click text-3xl text-primary/50"></i>
+              <p class="text-xs text-muted-foreground">Add a screenshot of the web report here <code class="rounded bg-muted px-1 py-0.5">logo/sample-report.png</code></p>
+            </div>
+          </figure>
+          <!-- Topical map -->
+          <figure data-reveal class="kw-card overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
+              <i class="ph-bold ph-tree-structure text-primary"></i>
+              <span class="truncate text-xs font-medium text-muted-foreground">topical-map.png</span>
+            </div>
+            <img src="logo/sample-topical-map.png" alt="Sample of HevaSEO's topical map (pillar-cluster) diagram" loading="lazy" class="block aspect-[16/10] w-full object-cover object-top" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <div class="aspect-[16/10] w-full flex-col items-center justify-center gap-2 bg-muted/30 px-6 text-center" style="display:none;">
+              <i class="ph-bold ph-image-square text-3xl text-muted-foreground/50"></i>
+              <p class="text-xs text-muted-foreground">Add a screenshot of the real diagram here <code class="rounded bg-muted px-1 py-0.5">logo/sample-topical-map.png</code></p>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SOCIAL PROOF ============ -->
+    <!-- TODO: replace the 2 testimonials below with real customer feedback -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-6xl px-5 lg:px-8">
+        <div data-reveal class="grid gap-8 rounded-2xl border border-border bg-card p-8 text-center sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-border">
+          <div class="sm:px-4">
+            <div class="font-display text-4xl font-bold text-primary">112+</div>
+            <p class="mt-1 text-sm text-muted-foreground">businesses have ordered</p>
+          </div>
+          <div class="sm:px-4">
+            <div class="font-display text-4xl font-bold text-primary">30+</div>
+            <p class="mt-1 text-sm text-muted-foreground">industries served</p>
+          </div>
+          <div class="sm:px-4">
+            <div class="font-display text-4xl font-bold text-primary">4.9/5</div>
+            <p class="mt-1 text-sm text-muted-foreground">customer satisfaction</p>
+          </div>
+        </div>
+
+        <div data-reveal class="mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
+          <div class="flex gap-0.5 text-amber-400">
+            <i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i>
+          </div>
+          <p class="text-sm font-semibold">4.9/5 <span class="font-normal text-muted-foreground">from 80+ customer reviews</span></p>
+        </div>
+
+        <div class="kw-stagger mt-6 grid gap-6 md:grid-cols-2">
+          <figure data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <div class="flex gap-0.5 text-amber-400">
+              <i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i>
+            </div>
+            <blockquote class="mt-3 text-sm leading-relaxed text-foreground">“Our team used to publish all over the place without ranking. With a clear keyword map, I know what to write first and where to link. A few months later, blog traffic was visibly up.”</blockquote>
+            <figcaption class="mt-5 flex items-center gap-3">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary/15 text-sm font-bold text-primary">TH</span>
+              <div>
+                <div class="text-sm font-semibold">Hannah Nguyen</div>
+                <div class="text-xs text-muted-foreground">Founder, Medora dental chain</div>
+              </div>
+            </figcaption>
+          </figure>
+          <figure data-reveal class="kw-card rounded-2xl border border-border bg-card p-6">
+            <div class="flex gap-0.5 text-amber-400">
+              <i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i>
+            </div>
+            <blockquote class="mt-3 text-sm leading-relaxed text-foreground">“The topical map was worth more than I expected. I handed it straight to our implementation team and they ran with it — no need to explain everything from scratch.”</blockquote>
+            <figcaption class="mt-5 flex items-center gap-3">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary/15 text-sm font-bold text-primary">QV</span>
+              <div>
+                <div class="text-sm font-semibold">Victor Tran</div>
+                <div class="text-xs text-muted-foreground">Marketing Lead, Wellness Pharmacy</div>
+              </div>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRICING - 3 PLANS ============ -->
+    <section id="cac-goi" class="relative overflow-hidden py-16 lg:py-24">
+      <div class="kw-grid-bg" aria-hidden="true"></div>
+      <div class="kw-blob" aria-hidden="true" style="bottom:-8rem;left:-6rem;width:28rem;height:28rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Choose the plan that fits your scale</h2>
+          <p class="mt-3 text-muted-foreground">Flat package pricing, delivered once. Large projects are quoted separately by industry scope.</p>
+        </div>
+
+        <div class="kw-stagger mt-12 grid items-start gap-6 lg:grid-cols-3">
+          <!-- BASIC -->
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-7">
+            <div class="flex items-center gap-2">
+              <span class="kw-ic grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500"><i class="ph-bold ph-seedling"></i></span>
+              <h3 class="text-lg font-bold">Basic</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$20</span><span class="text-sm text-muted-foreground">/package</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">New site, small budget, wanting to start in the right direction.</p>
+            <div class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-[13px] font-medium text-emerald-600 dark:text-emerald-400">
+              <i class="ph-fill ph-gift"></i> Free with a backlink order from $120 or &gt; 50 articles
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 50-80 primary &amp; secondary keywords (volume + KD)</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Basic intent grouping</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 8-10 priority article topic suggestions</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Delivered as a Google Sheet</li>
+            </ul>
+            <a href="#lienhe" data-goi="Basic · $20" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Basic</a>
+          </div>
+
+          <!-- ADVANCED (featured) -->
+          <div data-reveal class="kw-card relative rounded-2xl border-2 border-primary bg-card p-7 shadow-xl shadow-brand-500/10 lg:-mt-3">
+            <span class="kw-shine absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Most popular</span>
+            <div class="flex items-center gap-2">
+              <span class="kw-ic kw-float grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-bold ph-rocket-launch"></i></span>
+              <h3 class="text-lg font-bold">Advanced</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$40</span><span class="text-sm text-muted-foreground">/package</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">SMBs running SEO who want a structured system.</p>
+            <p class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><i class="ph-fill ph-fire"></i> 80+ customers chose this plan</p>
+            <div class="mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-[13px] font-medium text-primary">
+              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 200-300 keywords</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full topical map (pillar &amp; cluster)</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3-5 competitor analysis + keyword gap</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Detailed intent map</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3-month content roadmap</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Priority scoring (value × difficulty)</li>
+            </ul>
+            <a href="#lienhe" data-goi="Advanced · $40" class="mt-7 block rounded-lg bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]">Choose Advanced</a>
+          </div>
+
+          <!-- COMPREHENSIVE -->
+          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-7">
+            <div class="flex items-center gap-2">
+              <span class="kw-ic grid h-9 w-9 place-items-center rounded-lg bg-violet-500/10 text-violet-500"><i class="ph-bold ph-crown"></i></span>
+              <h3 class="text-lg font-bold">Comprehensive</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$79</span><span class="text-sm text-muted-foreground">/package</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">Scaling projects, agencies, highly competitive industries.</p>
+            <div class="mt-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2.5 text-[13px] font-medium text-violet-600 dark:text-violet-400">
+              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Advanced
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 500+ keywords</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full-industry topical authority map</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Deep competitor analysis: content + backlink gap</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Detailed 6-month, month-by-month roadmap</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Internal linking blueprint</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 1-on-1 consultation with an expert (45-60 min)</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> One review &amp; adjustment after 1 month</li>
+            </ul>
+            <a href="#lienhe" data-goi="Comprehensive · $79" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Comprehensive</a>
+          </div>
+        </div>
+
+        <!-- reassurance / risk-reversal strip -->
+        <div class="kw-stagger mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+            <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-chats-circle text-xl"></i></span>
+            <div><p class="text-sm font-semibold">1-on-1 consultation</p><p class="text-xs text-muted-foreground">No spam, no hard sell</p></div>
+          </div>
+          <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+            <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-lightning text-xl"></i></span>
+            <div><p class="text-sm font-semibold">Done within 24h</p><p class="text-xs text-muted-foreground">Fast, on-time delivery</p></div>
+          </div>
+          <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+            <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span>
+            <div><p class="text-sm font-semibold">3-month guarantee</p><p class="text-xs text-muted-foreground">Edit support for 3 months</p></div>
+          </div>
+          <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><i class="ph-bold ph-seal-percent text-xl"></i></span>
+            <div><p class="text-sm font-semibold">20% off your first order</p><p class="text-xs text-muted-foreground">On your first order</p></div>
+          </div>
+        </div>
+
+        <!-- combo teaser -->
+        <div data-reveal class="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-primary/[0.05] p-5 sm:flex-row sm:px-7">
+          <div class="flex items-center gap-3 text-center sm:text-left">
+            <span class="hidden h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground sm:grid"><i class="ph-bold ph-stack text-xl"></i></span>
+            <p class="text-sm leading-relaxed"><b class="font-semibold">Buy as a bundle</b> Keyword Research + Content + Backlinks, save up to <b class="font-semibold text-primary">$120</b> versus buying separately.</p>
+          </div>
+          <a href="#combo" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Learn more <i class="ph-bold ph-arrow-down"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMPARISON TABLE ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-5xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">How the 3 plans differ</h2>
+        </div>
+        <p data-reveal class="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground sm:hidden">
+          <i class="ph-bold ph-arrows-horizontal"></i> Swipe sideways to see all 3 plans
+        </p>
+        <div data-reveal class="kw-table mt-4 overflow-x-auto rounded-2xl border border-border bg-card sm:mt-10">
+          <table class="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr class="border-b border-border">
+                <th class="px-5 py-4 text-left font-semibold">Feature</th>
+                <th class="px-5 py-4 text-center font-semibold">Basic</th>
+                <th class="bg-primary/5 px-5 py-4 text-center font-semibold text-primary">Advanced</th>
+                <th class="px-5 py-4 text-center font-semibold">Comprehensive</th>
+              </tr>
+            </thead>
+            <tbody class="text-muted-foreground">
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Number of keywords</td>
+                <td class="px-5 py-3.5 text-center">50-80</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center font-medium text-foreground">200-300</td>
+                <td class="px-5 py-3.5 text-center">500+</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Intent grouping</td>
+                <td class="px-5 py-3.5 text-center">Basic</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center">Detailed</td>
+                <td class="px-5 py-3.5 text-center">Detailed</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Topical map (pillar - cluster)</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary">Full industry</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Competitor analysis</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center">3-5 competitors + gap</td>
+                <td class="px-5 py-3.5 text-center">In-depth + backlink gap</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Content roadmap</td>
+                <td class="px-5 py-3.5 text-center">Topic suggestions</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center">3 months</td>
+                <td class="px-5 py-3.5 text-center">6 months, month by month</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Internal linking blueprint</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">1-on-1 expert consultation</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr>
+                <td class="px-5 py-3.5">Review &amp; adjust after 1 month</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMBO / ADD-ON ============ -->
+    <!-- TODO: update the specific combo list & how the $120 savings is calculated -->
+    <section id="combo" class="scroll-mt-20 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="relative overflow-hidden rounded-3xl border border-primary/30 bg-card p-8 shadow-lg shadow-primary/10 lg:p-12">
+          <div aria-hidden="true" class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl"></div>
+          <div class="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+            <div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-gift"></i> Bundle offer</span>
+              <h2 class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">Full bundle, save up to <span class="text-primary">$120</span></h2>
+              <p class="mt-3 max-w-xl text-muted-foreground">Combine <b class="text-foreground">Keyword Research + Content + Backlinks</b> into one bundle: a coordinated roadmap, a single point of contact, and savings of up to $120 versus buying separately.</p>
+              <ul class="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+                <li class="flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-3.5"><i class="ph-fill ph-piggy-bank mt-0.5 shrink-0 text-primary"></i> <span>Save up to <b class="font-semibold text-foreground">$120</b> versus buying separately</span></li>
+                <li class="flex items-start gap-2.5 rounded-xl border border-border bg-background px-4 py-3.5"><i class="ph-fill ph-gift mt-0.5 shrink-0 text-primary"></i> <span>Free research plan included <b class="font-semibold text-foreground">Basic</b></span></li>
+                <li class="flex items-start gap-2.5 rounded-xl border border-border bg-background px-4 py-3.5"><i class="ph-fill ph-flow-arrow mt-0.5 shrink-0 text-primary"></i> <span>A coordinated keyword → content → backlink roadmap</span></li>
+                <li class="flex items-start gap-2.5 rounded-xl border border-border bg-background px-4 py-3.5"><i class="ph-fill ph-squares-four mt-0.5 shrink-0 text-primary"></i> <span>One point of contact, one dashboard</span></li>
+              </ul>
+            </div>
+            <div class="flex flex-col gap-3">
+              <a href="/#banggia" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">View backlink &amp; content plans <i class="ph-bold ph-arrow-right"></i></a>
+              <a href="#lienhe" class="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-6 py-3.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Ask about the bundle offer</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="scroll-mt-20 border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">Frequently Asked Questions</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Does this service guarantee top rankings?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">This is the <b class="text-foreground">strategy &amp; research</b>step, not an implementation package. We don't guarantee rankings at this stage, but we ensure you have the right map to deploy content and backlinks effectively and avoid wasting budget on the wrong keywords.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long until delivery?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Basic usually takes 2-3 business days; Advanced 4-6 days; Comprehensive 7-10 days, depending on the breadth of your industry and the number of competitors to analyze.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Do I need to buy content / backlinks too?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Not required. You can implement it yourself or hand the file to another SEO team. But if you use HevaSEO's content/backlink services, everything aligns with the roadmap and the Basic plan is included free under the offer terms.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What format are the deliverables in?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The keyword table and roadmap are delivered as a Google Sheet; the topical map and internal linking blueprint as visual diagrams. They're all yours and reusable for the long term.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="lienhe" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-target text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Start with the right map</h2>
+          <p class="mt-3 text-muted-foreground">Leave your contact details and a specialist will recommend the right plan for your industry and budget — free.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" onsubmit="return false;">
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <label for="lead-input" class="sr-only">Your email or phone number</label>
+            <input id="lead-input" type="text" inputmode="email" autocomplete="email" aria-label="Your email or phone number" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button type="submit" class="kw-pulse rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Get a consultation</button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+          <div class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <span class="flex items-center gap-1.5"><i class="ph-bold ph-chats-circle text-primary"></i> Free 1-on-1 consultation</span>
+            <span class="flex items-center gap-1.5"><i class="ph-bold ph-clock-countdown text-primary"></i> Reply within 24h</span>
+            <span class="flex items-center gap-1.5"><i class="ph-bold ph-hand-heart text-primary"></i> No pressure to buy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('lead-input');
+      var status = document.getElementById('lead-status');
+      var defaultStatus = status ? status.innerHTML : '';
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the "' + name + '" plan. Leave your contact details!';
+        });
+      });
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

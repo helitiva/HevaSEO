@@ -1,0 +1,19 @@
+---
+import { site } from '../data/site';
+---
+<!-- Floating contact (WhatsApp / Messenger / phone) -->
+<div class="heva-fab" role="complementary" aria-label="Quick contact">
+  <a href={site.whatsapp} target="_blank" rel="noopener" class="heva-fab-btn heva-fab-zalo" aria-label="Chat with HevaSEO on WhatsApp">
+    <i class="ph-fill ph-whatsapp-logo"></i>
+    <span class="heva-fab-tip">Chat on WhatsApp</span>
+  </a>
+  <a href={site.messenger} target="_blank" rel="noopener" class="heva-fab-btn heva-fab-mess" aria-label="Message us on Messenger">
+    <i class="ph-fill ph-messenger-logo"></i>
+    <span class="heva-fab-tip">Messenger</span>
+  </a>
+  <a href={`tel:${site.phoneTel}`} class="heva-fab-btn heva-fab-phone" aria-label={`Call ${site.phone}`}>
+    <span class="heva-fab-ping" aria-hidden="true"></span>
+    <i class="ph-fill ph-phone"></i>
+    <span class="heva-fab-tip">{site.phone}</span>
+  </a>
+</div>

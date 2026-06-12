@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HevaSEO — Settings</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%231d4ed8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='240' rx='56' fill='url(%23g)'/%3E%3Cpath d='M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z' fill='white'/%3E%3C/svg%3E" />
+  <script>(function(){try{if(localStorage.getItem('heva-theme-blue')==='dark')document.documentElement.classList.add('dark');}catch(e){}})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script>
+    (function () {
+      function reveal(){ document.documentElement.classList.add('ready'); }
+      if (document.readyState === 'complete') { reveal(); return; }
+      window.addEventListener('DOMContentLoaded', function(){ requestAnimationFrame(function(){ requestAnimationFrame(reveal); }); });
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 1000);
+    })();
+  </script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'], display: ['"Inter Tight"','Inter','system-ui','sans-serif'] },
+      colors: {
+        border:'hsl(var(--border))', input:'hsl(var(--input))', ring:'hsl(var(--ring))',
+        background:'hsl(var(--background))', foreground:'hsl(var(--foreground))',
+        primary:{DEFAULT:'hsl(var(--primary))',foreground:'hsl(var(--primary-foreground))'},
+        secondary:{DEFAULT:'hsl(var(--secondary))',foreground:'hsl(var(--secondary-foreground))'},
+        muted:{DEFAULT:'hsl(var(--muted))',foreground:'hsl(var(--muted-foreground))'},
+        accent:{DEFAULT:'hsl(var(--accent))',foreground:'hsl(var(--accent-foreground))'},
+        destructive:{DEFAULT:'hsl(var(--destructive))',foreground:'hsl(var(--destructive-foreground))'},
+        card:{DEFAULT:'hsl(var(--card))',foreground:'hsl(var(--card-foreground))'},
+        brand:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'},
+      },
+      borderRadius:{lg:'var(--radius)',md:'calc(var(--radius) - 2px)',sm:'calc(var(--radius) - 4px)'},
+    } } };
+  </script>
+  <style>
+    :root { --background:214 55% 97%; --foreground:222 47% 9%; --card:0 0% 100%; --card-foreground:240 10% 8%;
+      --primary:213 90% 50%; --primary-foreground:0 0% 100%; --secondary:214 45% 92%; --secondary-foreground:222 47% 14%;
+      --muted:214 45% 92%; --muted-foreground:215 18% 42%; --accent:211 100% 94%; --accent-foreground:213 90% 30%;
+      --destructive:0 72% 51%; --destructive-foreground:0 0% 100%; --border:214 30% 86%; --input:214 30% 86%; --ring:213 90% 50%; --radius:0.75rem; }
+    .dark { --background:222 60% 5%; --foreground:0 0% 96%; --card:220 45% 10%; --card-foreground:0 0% 96%;
+      --primary:210 100% 62%; --primary-foreground:222 60% 6%; --secondary:220 35% 16%; --secondary-foreground:0 0% 96%;
+      --muted:220 30% 14%; --muted-foreground:215 25% 72%; --accent:212 70% 24%; --accent-foreground:205 100% 85%;
+      --destructive:0 70% 58%; --destructive-foreground:0 0% 96%; --border:211 50% 44%; --input:216 38% 28%; --ring:205 100% 60%; }
+    .dark body { background:
+      radial-gradient(1000px 540px at 50% -14%, hsl(208 100% 34% / .55), transparent 60%),
+      radial-gradient(820px 460px at 2% 104%, hsl(214 100% 26% / .5), transparent 55%),
+      radial-gradient(820px 460px at 100% 104%, hsl(202 100% 28% / .5), transparent 55%),
+      linear-gradient(180deg, hsl(222 60% 6%), hsl(223 58% 4%)); background-attachment: fixed; }
+    * { border-color: hsl(var(--border)); }
+    .display { font-family: "Inter Tight", Inter, sans-serif; }
+    html:not(.ready) body { opacity: 0; }
+    body { transition: opacity .2s ease; }
+    html.ready main { animation: pageIn .32s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce){ body{opacity:1 !important;} html.ready main{animation:none;} }
+    .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500; color:hsl(var(--muted-foreground)); transition:all .15s; cursor:pointer; }
+    .nav-item:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .nav-item.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); box-shadow:0 6px 16px -6px hsl(var(--primary)/.5); }
+    .nav-item i { font-size:1rem; }
+    .pill { display:inline-flex; align-items:center; gap:.35rem; border-radius:9999px; padding:.2rem .6rem; font-size:.7rem; font-weight:700; }
+    .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
+    .field { width:100%; border:1px solid hsl(var(--border)); background:hsl(var(--background)); border-radius:.6rem; padding:.6rem .8rem; font-size:.875rem; outline:none; transition:.15s; }
+    .field:focus { border-color:hsl(var(--ring)); box-shadow:0 0 0 3px hsl(var(--ring)/.25); }
+    .lbl { font-size:.8125rem; font-weight:600; margin-bottom:.4rem; display:block; }
+    /* settings tab */
+    .set-tab { display:flex; align-items:center; gap:.6rem; width:100%; text-align:left; padding:.6rem .7rem; border-radius:.6rem; font-size:.875rem; font-weight:500; color:hsl(var(--muted-foreground)); transition:.15s; cursor:pointer; }
+    .set-tab:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .set-tab.active { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); font-weight:600; }
+    .set-tab i { font-size:1.1rem; }
+    /* toggle switch */
+    .switch { position:relative; width:42px; height:24px; border-radius:9999px; background:hsl(var(--muted)); transition:.2s; cursor:pointer; flex:none; border:1px solid hsl(var(--border)); }
+    .switch::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+    .switch.on { background:hsl(var(--primary)); border-color:hsl(var(--primary)); }
+    .switch.on::after { transform:translateX(18px); }
+    .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background:hsl(var(--border)); border-radius:9999px; }
+    .ticker::before,.ticker::after { content:''; position:absolute; top:0; bottom:0; width:2.5rem; z-index:1; pointer-events:none; }
+    .ticker::before { left:0; background:linear-gradient(to right, hsl(var(--background)), transparent); }
+    .ticker::after { right:0; background:linear-gradient(to left, hsl(var(--background)), transparent); }
+    .ticker-track { animation: ticker 15s linear infinite; will-change:transform; }
+    .ticker:hover .ticker-track { animation-play-state:paused; }
+    @keyframes ticker { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+    .ticker-item { display:inline-flex; align-items:center; gap:.45rem; font-size:.8125rem; color:hsl(var(--muted-foreground)); }
+    .ticker-item i { font-size:.95rem; } .ticker-item b { color:hsl(var(--foreground)); font-weight:600; }
+    @media (prefers-reduced-motion: reduce){ .ticker-track{ animation:none; } }
+    @media (max-width:1023px){ #sidebar{ position:fixed; inset:0 auto 0 0; z-index:60; transform:translateX(-100%); transition:.25s; } #sidebar.open{ transform:none; } }
+  </style>
+</head>
+<body class="bg-background text-foreground font-sans antialiased">
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-40 left-1/3 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-brand-400/12 blur-[120px] dark:bg-brand-500/10"></div>
+  </div>
+
+  <div class="flex min-h-screen">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="flex w-52 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl">
+      <div class="flex h-[68px] items-center gap-2 border-b border-border px-4">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30"><svg viewBox="0 0 240 240" class="h-[88%] w-[88%]" fill="currentColor" aria-hidden="true"><path d="M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z"/></svg></span>
+        <span class="text-base font-semibold tracking-tight">Heva<span class="text-primary">SEO</span></span>
+        <button id="sb-close" aria-label="Close menu" class="ml-auto grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent lg:hidden"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <div class="px-2.5 pt-3">
+        <a href="dashboard.html" class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[13px] font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]"><i class="ph-bold ph-plus"></i> Order service</a>
+      </div>
+      <nav class="flex-1 space-y-0.5 overflow-y-auto scrollbar-thin px-2.5 pb-4 pt-3">
+        <p class="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Overview</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-squares-four"></i> Overview</a>
+        <a href="projects.html" class="nav-item"><i class="ph-bold ph-globe-hemisphere-west"></i> Projects</a>
+        <a href="orders.html" class="nav-item"><i class="ph-bold ph-kanban"></i> Orders <span class="ml-auto rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">9</span></a>
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Services</p>
+        <a href="dashboard.html?svc=backlink" class="nav-item"><i class="ph-bold ph-share-network"></i> Backlink</a>
+        <a href="dashboard.html?svc=content" class="nav-item"><i class="ph-bold ph-pen-nib"></i> Content SEO/GEO</a>
+        <a href="dashboard.html?svc=indexer" class="nav-item"><i class="ph-bold ph-magnifying-glass"></i> Indexer</a>
+        <a href="dashboard.html?svc=audit" class="nav-item"><i class="ph-bold ph-stethoscope"></i> Audit & Optimization</a>
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Analytics</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-chart-line-up"></i> Reports</a>
+        <a href="credit.html" class="nav-item"><i class="ph-bold ph-wallet"></i> Credit & Invoices</a>
+        <a class="nav-item active"><i class="ph-bold ph-gear-six"></i> Settings</a>
+        <a href="support.html" class="nav-item"><i class="ph-bold ph-headset"></i> Support</a>
+        <a href="faq.html" class="nav-item"><i class="ph-bold ph-question"></i> FAQ</a>
+      </nav>
+      <div class="border-t border-border p-2.5">
+        <div class="rounded-xl border border-primary/25 bg-primary/5 p-3">
+          <div class="flex items-center justify-between"><p class="text-[11px] font-bold uppercase tracking-wide text-primary">Credit</p><span class="pill pill-good">Pro</span></div>
+          <p id="credit-amount" class="mt-1 text-lg font-semibold tracking-tight">$179</p>
+          <a href="credit.html#topup" class="mt-2.5 block w-full rounded-lg bg-primary py-2 text-center text-xs font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Top up</a>
+        </div>
+      </div>
+    </aside>
+    <div id="backdrop" class="fixed inset-0 z-50 hidden bg-foreground/40 backdrop-blur-sm lg:hidden"></div>
+
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- topbar -->
+      <header class="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
+        <button id="sb-open" aria-label="Open menu" class="grid h-10 w-10 place-items-center rounded-lg border border-border text-foreground lg:hidden"><i class="ph-bold ph-list text-lg"></i></button>
+        <div class="hidden w-1/3 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:flex">
+          <i class="ph-bold ph-magnifying-glass"></i>
+          <input id="global-search" aria-label="Search" class="w-full bg-transparent outline-none placeholder:text-muted-foreground" placeholder="Search…" />
+          <kbd class="rounded border border-border bg-muted px-1.5 text-[10px] font-semibold">⌘K</kbd>
+        </div>
+        <div id="notif-ticker" class="ticker relative hidden min-w-0 flex-1 overflow-hidden md:block"><div class="ticker-track flex items-center gap-10 whitespace-nowrap"></div></div>
+        <div class="flex-1 md:hidden"></div>
+        <span class="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold sm:flex"><i class="ph-bold ph-wallet text-primary"></i> <span id="credit-topbar">$179</span></span>
+        <button id="theme-toggle" aria-label="Toggle light/dark theme" class="grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent hover:text-accent-foreground">
+          <i class="ph-bold ph-sun-dim hidden text-lg dark:block"></i><i class="ph-bold ph-moon-stars block text-lg dark:hidden"></i>
+        </button>
+        <button aria-label="Notifications" class="relative grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent"><i class="ph-bold ph-bell text-lg"></i><span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card"></span></button>
+        <span class="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-md">HV</span>
+      </header>
+
+      <!-- content -->
+      <main class="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 lg:px-7">
+        <div>
+          <h1 class="display text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
+          <p class="mt-1 text-sm text-muted-foreground">Manage your profile, security, notifications, billing, and team.</p>
+        </div>
+
+        <div class="mt-6 grid gap-5 lg:grid-cols-[220px_1fr]">
+          <!-- settings tab nav -->
+          <aside class="lg:sticky lg:top-[84px] h-fit rounded-2xl border border-border bg-card p-2">
+            <button class="set-tab active" data-target="profile"><i class="ph-bold ph-user"></i> Profile</button>
+            <button class="set-tab" data-target="security"><i class="ph-bold ph-shield-check"></i> Account & Security</button>
+            <button class="set-tab" data-target="notif"><i class="ph-bold ph-bell"></i> Notifications</button>
+            <button class="set-tab" data-target="billing"><i class="ph-bold ph-wallet"></i> Billing & Credit</button>
+            <button class="set-tab" data-target="team"><i class="ph-bold ph-users-three"></i> Team</button>
+            <button class="set-tab" data-target="api"><i class="ph-bold ph-plugs-connected"></i> API & Webhook</button>
+            <button class="set-tab" data-target="appearance"><i class="ph-bold ph-palette"></i> Appearance & Language</button>
+          </aside>
+
+          <!-- panels -->
+          <div>
+            <!-- PROFILE -->
+            <section data-panel="profile" class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+              <h2 class="display text-lg font-semibold tracking-tight">Profile</h2>
+              <p class="text-xs text-muted-foreground">Information shown to advisors and on invoices.</p>
+              <div class="mt-5 flex items-center gap-4">
+                <span class="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-bold text-white">HV</span>
+                <div class="flex gap-2">
+                  <button class="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent">Change photo</button>
+                  <button class="rounded-lg px-3 py-2 text-xs font-semibold text-destructive transition hover:bg-destructive/10">Remove</button>
+                </div>
+              </div>
+              <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                <div><label class="lbl">Full name</label><input class="field" value="Huy Nguyen" /></div>
+                <div><label class="lbl">Email</label><input class="field" value="huy@hevashop.com" /></div>
+                <div><label class="lbl">Phone number</label><input class="field" value="+1 (415) 555-0142" /></div>
+                <div><label class="lbl">Company</label><input class="field" value="HevaShop JSC" /></div>
+                <div>
+                  <label class="lbl">Industry</label>
+                  <select id="profile-industry" class="field">
+                    <option>E-commerce</option>
+                    <option>Retail / Supermarket</option>
+                    <option>Healthcare / Dental / Clinics</option>
+                    <option>Aesthetics / Spa / Beauty</option>
+                    <option>Real estate</option>
+                    <option>Education / Training</option>
+                    <option>Travel / Hospitality</option>
+                    <option>Restaurants / F&amp;B</option>
+                    <option>Finance / Insurance</option>
+                    <option>Technology / Software / SaaS</option>
+                    <option>Construction / Interiors</option>
+                    <option>Automotive</option>
+                    <option>Fashion / Cosmetics</option>
+                    <option>Legal / Business consulting</option>
+                    <option>Manufacturing / Industrial</option>
+                    <option>Logistics / Transportation</option>
+                    <option>Agriculture / Food</option>
+                    <option>Events / Entertainment</option>
+                    <option value="__other">Other…</option>
+                  </select>
+                  <input id="profile-industry-other" style="display:none" class="field mt-2" placeholder="Enter your industry" />
+                </div>
+                <div><label class="lbl">Default website</label><input class="field" value="hevashop.com" /></div>
+              </div>
+              <div class="mt-5 flex justify-end gap-2">
+                <button class="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+                <button class="save-btn rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save changes</button>
+              </div>
+            </section>
+
+            <!-- SECURITY -->
+            <section data-panel="security" hidden class="space-y-4">
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <h2 class="display text-lg font-semibold tracking-tight">Change password</h2>
+                <div class="mt-4 grid gap-4 sm:max-w-md">
+                  <div><label class="lbl">Current password</label><input type="password" class="field" placeholder="Enter your current password" autocomplete="current-password" /></div>
+                  <div><label class="lbl">New password</label><input type="password" class="field" placeholder="At least 8 characters" autocomplete="new-password" /></div>
+                  <div><label class="lbl">Confirm new password</label><input type="password" class="field" autocomplete="new-password" /></div>
+                </div>
+                <div class="mt-4"><button class="save-btn rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Update password</button></div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <div class="flex items-center justify-between gap-4">
+                  <div><h2 class="display text-base font-semibold tracking-tight">Two-factor authentication (2FA)</h2><p class="text-xs text-muted-foreground">Add security with an OTP code at login.</p></div>
+                  <div class="switch on" data-switch></div>
+                </div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <h2 class="display text-base font-semibold tracking-tight">Login sessions</h2>
+                <div class="mt-3 space-y-2.5 text-sm">
+                  <div class="flex items-center gap-3"><i class="ph-bold ph-desktop text-muted-foreground"></i><div class="flex-1"><p class="font-medium">Chrome · macOS</p><p class="text-[11px] text-muted-foreground">San Francisco · This device</p></div><span class="pill pill-good">Current</span></div>
+                  <div class="flex items-center gap-3"><i class="ph-bold ph-device-mobile text-muted-foreground"></i><div class="flex-1"><p class="font-medium">Safari · iPhone</p><p class="text-[11px] text-muted-foreground">San Francisco · 2 days ago</p></div><button class="text-xs font-semibold text-destructive hover:underline">Sign out</button></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- NOTIFICATIONS -->
+            <section data-panel="notif" hidden class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+              <h2 class="display text-lg font-semibold tracking-tight">Notifications</h2>
+              <p class="text-xs text-muted-foreground">Choose the channels and event types you want to receive.</p>
+              <p class="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Channels</p>
+              <div class="divide-y divide-border">
+                <div class="flex items-center justify-between py-3"><div><p class="text-sm font-medium">Email</p><p class="text-[11px] text-muted-foreground">huy@hevashop.com</p></div><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><div><p class="text-sm font-medium">In-app</p><p class="text-[11px] text-muted-foreground">Bell & notification center</p></div><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><div><p class="text-sm font-medium">Header ticker</p><p class="text-[11px] text-muted-foreground">Scrolling notification bar</p></div><div class="switch on" data-switch></div></div>
+              </div>
+              <p class="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Event types</p>
+              <div class="divide-y divide-border">
+                <div class="flex items-center justify-between py-3"><p class="text-sm font-medium">Order status changes</p><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><p class="text-sm font-medium">Links got indexed</p><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><p class="text-sm font-medium">Weekly report</p><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><p class="text-sm font-medium">Low credit alerts</p><div class="switch on" data-switch></div></div>
+                <div class="flex items-center justify-between py-3"><p class="text-sm font-medium">Promotional emails</p><div class="switch" data-switch></div></div>
+              </div>
+            </section>
+
+            <!-- BILLING -->
+            <section data-panel="billing" hidden class="space-y-4">
+              <div class="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 lg:p-6">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="grid h-11 w-11 place-items-center rounded-xl bg-amber-400/20 text-amber-500"><i class="ph-fill ph-crown text-xl"></i></span>
+                    <div><p class="display text-lg font-semibold">VIP plan</p><p class="text-xs text-muted-foreground">15% off every order · priority support</p></div>
+                  </div>
+                  <button class="rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Manage plan</button>
+                </div>
+                <div class="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-primary/20 pt-4">
+                  <div><p class="text-xs text-muted-foreground">Credit balance</p><p class="display text-2xl font-semibold tracking-tight">$179</p></div>
+                  <button class="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i class="ph-bold ph-plus"></i> Top up credits</button>
+                </div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <div class="flex items-center justify-between gap-4">
+                  <div><h2 class="display text-base font-semibold tracking-tight">Auto top-up</h2><p class="text-xs text-muted-foreground">Automatically top up when your balance runs low so orders aren't interrupted.</p></div>
+                  <div class="switch" data-switch></div>
+                </div>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 sm:max-w-md">
+                  <div><label class="lbl">When balance falls below</label><input class="field" value="$40" /></div>
+                  <div><label class="lbl">Top up</label><input class="field" value="$199" /></div>
+                </div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <div class="flex items-center justify-between"><h2 class="display text-base font-semibold tracking-tight">Payment methods</h2><button class="text-xs font-semibold text-primary hover:underline">+ Add</button></div>
+                <div class="mt-3 flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <i class="ph-bold ph-credit-card text-xl text-primary"></i>
+                  <div class="flex-1 text-sm"><p class="font-medium">Visa •••• 4242</p><p class="text-[11px] text-muted-foreground">Expires 08/27</p></div>
+                  <span class="pill pill-good">Default</span>
+                </div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <h2 class="display text-base font-semibold tracking-tight">Billing information (VAT)</h2>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div><label class="lbl">Company name</label><input class="field" value="HevaShop Inc." /></div>
+                  <div><label class="lbl">Tax ID</label><input class="field" value="0312345678" /></div>
+                  <div class="sm:col-span-2"><label class="lbl">Address</label><input class="field" value="123 Market St, San Francisco, CA" /></div>
+                </div>
+                <div class="mt-4 flex justify-end"><button class="save-btn rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save details</button></div>
+              </div>
+            </section>
+
+            <!-- TEAM -->
+            <section data-panel="team" hidden class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div><h2 class="display text-lg font-semibold tracking-tight">Team</h2><p class="text-xs text-muted-foreground">Invite teammates to help manage projects &amp; orders.</p></div>
+                <button class="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i class="ph-bold ph-user-plus"></i> Invite member</button>
+              </div>
+              <div class="mt-5 space-y-2.5">
+                <div class="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">HV</span>
+                  <div class="flex-1 text-sm"><p class="font-medium">Huy Nguyen (you)</p><p class="text-[11px] text-muted-foreground">huy@hevashop.com</p></div>
+                  <span class="pill" style="background:#f59e0b1f;color:#d97706">Owner</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-secondary text-xs font-bold">NA</span>
+                  <div class="flex-1 text-sm"><p class="font-medium">Olivia Chen</p><p class="text-[11px] text-muted-foreground">ngocanh@hevaseo.com</p></div>
+                  <span class="pill pill-good">Admin</span>
+                  <button class="text-muted-foreground transition hover:text-destructive"><i class="ph-bold ph-dots-three-vertical"></i></button>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-secondary text-xs font-bold">TM</span>
+                  <div class="flex-1 text-sm"><p class="font-medium">Marcus Tran</p><p class="text-[11px] text-muted-foreground">minh@hevashop.com</p></div>
+                  <span class="pill" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))">Member</span>
+                  <button class="text-muted-foreground transition hover:text-destructive"><i class="ph-bold ph-dots-three-vertical"></i></button>
+                </div>
+              </div>
+              <p class="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">The Agency plan supports multiple sub-accounts &amp; per-project permissions.</p>
+            </section>
+
+            <!-- API -->
+            <section data-panel="api" hidden class="space-y-4">
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <h2 class="display text-lg font-semibold tracking-tight">API Key</h2>
+                <p class="text-xs text-muted-foreground">Use this to integrate HevaSEO into your systems.</p>
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                  <input id="api-key" class="field font-mono" style="max-width:24rem" value="sk_live_••••••••••••••••8f2a" readonly />
+                  <button id="api-copy" class="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:bg-accent"><i class="ph-bold ph-copy"></i> Copy</button>
+                  <button class="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold text-destructive transition hover:bg-destructive/10"><i class="ph-bold ph-arrows-clockwise"></i> Regenerate</button>
+                </div>
+              </div>
+              <div class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+                <h2 class="display text-base font-semibold tracking-tight">Webhook</h2>
+                <p class="text-xs text-muted-foreground">Receive real-time events sent to your URL.</p>
+                <div class="mt-4"><label class="lbl">Endpoint URL</label><input class="field" placeholder="https://yourapp.com/webhooks/hevaseo" /></div>
+                <p class="mt-4 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Outbound events</p>
+                <div class="grid gap-2 sm:grid-cols-2 text-sm">
+                  <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[hsl(var(--primary))]" /> order.created</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[hsl(var(--primary))]" /> order.completed</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[hsl(var(--primary))]" /> index.done</label>
+                  <label class="flex items-center gap-2"><input type="checkbox" class="accent-[hsl(var(--primary))]" /> credit.low</label>
+                </div>
+                <div class="mt-4 flex justify-end gap-2"><button class="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Send test</button><button class="save-btn rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save webhook</button></div>
+              </div>
+            </section>
+
+            <!-- APPEARANCE -->
+            <section data-panel="appearance" hidden class="rounded-2xl border border-border bg-card p-5 lg:p-6">
+              <h2 class="display text-lg font-semibold tracking-tight">Appearance & Language</h2>
+              <p class="text-xs text-muted-foreground">Customize how your workspace looks.</p>
+              <p class="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Display mode</p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <button class="theme-opt rounded-xl border-2 border-border bg-background p-4 text-left transition hover:border-primary/50" data-theme="light">
+                  <i class="ph-bold ph-sun text-xl text-amber-500"></i><p class="mt-2 text-sm font-semibold">Light</p>
+                </button>
+                <button class="theme-opt rounded-xl border-2 border-border bg-background p-4 text-left transition hover:border-primary/50" data-theme="dark">
+                  <i class="ph-bold ph-moon-stars text-xl text-primary"></i><p class="mt-2 text-sm font-semibold">Dark</p>
+                </button>
+                <button class="theme-opt rounded-xl border-2 border-border bg-background p-4 text-left transition hover:border-primary/50" data-theme="system">
+                  <i class="ph-bold ph-desktop text-xl text-muted-foreground"></i><p class="mt-2 text-sm font-semibold">System</p>
+                </button>
+              </div>
+              <div class="mt-5 grid gap-4 sm:grid-cols-2 sm:max-w-lg">
+                <div><label class="lbl">Language</label><select class="field"><option>English</option><option>English</option></select></div>
+                <div><label class="lbl">Time zone</label><select class="field"><option>(GMT-8) Los Angeles</option><option>(GMT+0) UTC</option></select></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <p class="mt-8 text-center text-xs text-muted-foreground">HevaSEO Workspace · Settings · sample data</p>
+      </main>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="pointer-events-none fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 translate-y-4 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium opacity-0 shadow-2xl transition-all duration-300">
+    <span class="inline-flex items-center gap-2"><i class="ph-fill ph-check-circle text-emerald-500"></i> <span id="toast-msg"></span></span>
+  </div>
+
+  <script>
+    // theme toggle (topbar)
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      var d = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('heva-theme-blue', d ? 'dark' : 'light'); } catch (e) {}
+      syncThemeOpts();
+    });
+    // mobile sidebar
+    var sb = document.getElementById('sidebar'), bd = document.getElementById('backdrop');
+    document.getElementById('sb-open').addEventListener('click', function () { sb.classList.add('open'); bd.classList.remove('hidden'); });
+    function sbClose() { sb.classList.remove('open'); bd.classList.add('hidden'); }
+    document.getElementById('sb-close').addEventListener('click', sbClose);
+    bd.addEventListener('click', sbClose);
+    // ticker
+    (function () {
+      var track = document.querySelector('#notif-ticker .ticker-track');
+      var N = [
+        { icon:'ph-check-circle', cls:'text-emerald-500', html:'<b>1,284 links</b> indexed today' },
+        { icon:'ph-pen-nib', cls:'text-primary', html:'Article <b>“Affordable braces”</b> moved to Review' },
+        { icon:'ph-buildings', cls:'text-primary', html:'<b>12 entities</b> newly live on a directory' },
+        { icon:'ph-trend-up', cls:'text-emerald-500', html:'Main keyword <b>+11 spots</b> → Top 3' },
+        { icon:'ph-wallet', cls:'text-primary', html:'<b>$199</b> credit top-up successful' }
+      ];
+      var h = N.map(function(n){return '<span class="ticker-item"><i class="ph-fill '+n.icon+' '+n.cls+'"></i> '+n.html+'</span>';}).join('');
+      track.innerHTML = h + '<span style="display:contents" aria-hidden="true">' + h + '</span>';
+    })();
+
+    // ⌘K / Ctrl+K focuses the search box
+    document.addEventListener('keydown', function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); var s = document.getElementById('global-search'); if (s) s.focus(); }
+    });
+
+    // sync the credit balance shared with the dashboard (demo)
+    (function () {
+      try {
+        var b = parseInt(localStorage.getItem('heva-credit-balance'), 10);
+        if (isNaN(b) || b < 0) return;
+        document.getElementById('credit-amount').textContent = '$' + b.toLocaleString('en-US');
+        document.getElementById('credit-topbar').textContent = '$' + b.toLocaleString('en-US');
+      } catch (e) {}
+    })();
+
+    // toast
+    var toast = document.getElementById('toast'), toastMsg = document.getElementById('toast-msg'), tt;
+    function showToast(m){ toastMsg.textContent=m; toast.classList.remove('opacity-0','translate-y-4'); clearTimeout(tt); tt=setTimeout(function(){toast.classList.add('opacity-0','translate-y-4');},2400); }
+
+    // settings tab switching
+    var tabs = document.querySelectorAll('.set-tab'), panels = document.querySelectorAll('[data-panel]');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        panels.forEach(function (p) { p.hidden = p.dataset.panel !== t.dataset.target; });
+      });
+    });
+
+    // toggle switches (mouse + keyboard, with role/aria for screen readers)
+    document.querySelectorAll('[data-switch]').forEach(function (s) {
+      s.setAttribute('role', 'switch');
+      s.setAttribute('tabindex', '0');
+      s.setAttribute('aria-checked', s.classList.contains('on') ? 'true' : 'false');
+    });
+    function flipSwitch(s) {
+      s.classList.toggle('on');
+      s.setAttribute('aria-checked', s.classList.contains('on') ? 'true' : 'false');
+    }
+    document.addEventListener('click', function (e) {
+      var s = e.target.closest('[data-switch]');
+      if (s) flipSwitch(s);
+    });
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-switch]')) {
+        e.preventDefault(); flipSwitch(e.target);
+      }
+    });
+
+    // copy API key
+    document.getElementById('api-copy').addEventListener('click', function () {
+      var v = document.getElementById('api-key').value;
+      if (navigator.clipboard) navigator.clipboard.writeText(v);
+      showToast('API key copied.');
+    });
+
+    // save buttons -> toast
+    document.querySelectorAll('.save-btn').forEach(function (b) { b.addEventListener('click', function () { showToast('Changes saved.'); }); });
+
+    // industry "Other" -> reveal text input
+    var indSel = document.getElementById('profile-industry'), indOther = document.getElementById('profile-industry-other');
+    if (indSel) indSel.addEventListener('change', function () {
+      var other = indSel.value === '__other';
+      indOther.style.display = other ? 'block' : 'none';
+      if (other) indOther.focus();
+    });
+
+    // theme options
+    var themeOpts = document.querySelectorAll('.theme-opt');
+    var selCls = ['border-primary', 'bg-primary/5'];
+    function currentTheme() { try { return localStorage.getItem('heva-theme-blue') || 'system'; } catch (e) { return 'system'; } }
+    function syncThemeOpts() {
+      var isDark = document.documentElement.classList.contains('dark');
+      var cur = currentTheme();
+      themeOpts.forEach(function (o) {
+        var on = o.dataset.theme === cur || (cur !== 'light' && cur !== 'dark' && o.dataset.theme === 'system');
+        selCls.forEach(function (c) { o.classList.toggle(c, on); });
+        o.classList.toggle('border-border', !on);
+      });
+    }
+    themeOpts.forEach(function (o) {
+      o.addEventListener('click', function () {
+        var th = o.dataset.theme;
+        if (th === 'dark') { document.documentElement.classList.add('dark'); localStorage.setItem('heva-theme-blue', 'dark'); }
+        else if (th === 'light') { document.documentElement.classList.remove('dark'); localStorage.setItem('heva-theme-blue', 'light'); }
+        else { var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.classList.toggle('dark', sysDark); localStorage.setItem('heva-theme-blue', 'system'); }
+        syncThemeOpts();
+        showToast('Appearance updated.');
+      });
+    });
+    syncThemeOpts();
+  </script>
+</body>
+</html>

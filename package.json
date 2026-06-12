@@ -1,0 +1,10 @@
+{
+  "name": "hevaseo-platform",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @heva/web dev",
+    "build": "pnpm --filter @heva/web build",
+    "preview": "pnpm --filter @heva/web preview"
+  }
+}

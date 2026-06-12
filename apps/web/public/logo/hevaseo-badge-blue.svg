@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <!-- Smooth vertical gradient: black → dark navy → royal blue -->
+    <linearGradient id="bg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#030516"/>
+      <stop offset="25%" stop-color="#050b28"/>
+      <stop offset="50%" stop-color="#0b1840"/>
+      <stop offset="72%" stop-color="#142c6a"/>
+      <stop offset="88%" stop-color="#1d4094"/>
+      <stop offset="100%" stop-color="#2554b8"/>
+    </linearGradient>
+
+    <!-- Soft vignette: darken the four corners -->
+    <radialGradient id="vig" cx="0.5" cy="0.55" r="0.72">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.45"/>
+    </radialGradient>
+
+    <!-- Brighten bottom-center slightly -->
+    <radialGradient id="glow" cx="0.5" cy="0.95" r="0.55"
+                    gradientTransform="matrix(1.4 0 0 0.6 -0.2 0.38)">
+      <stop offset="0%" stop-color="#3068dd" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#1e44a0" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#030516" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Very faint top reflection -->
+    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6688cc" stop-opacity="0.04"/>
+      <stop offset="3%" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <clipPath id="c"><rect width="240" height="240" rx="50" ry="50"/></clipPath>
+  <g clip-path="url(#c)">
+    <rect width="240" height="240" fill="url(#bg)"/>
+    <rect width="240" height="240" fill="url(#glow)"/>
+    <rect width="240" height="240" fill="url(#vig)"/>
+    <rect width="240" height="240" fill="url(#top)"/>
+  </g>
+
+  <rect width="240" height="240" rx="50" ry="50" fill="none" stroke="#3366aa" stroke-opacity="0.08" stroke-width="0.8"/>
+
+  <!-- Logo 88% -->
+  <g transform="translate(14.4 14.4) scale(0.88)">
+    <path d="M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z" fill="#ffffff"/>
+  </g>
+</svg>

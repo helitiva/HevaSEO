@@ -1,0 +1,63 @@
+---
+import Logo from './Logo.astro';
+import { nav } from '../data/site';
+---
+<header class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+  <nav class="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
+    <Logo />
+
+    <div class="hidden items-center gap-8 lg:flex">
+      {nav.map((item) =>
+        item.highlight ? (
+          <a href={item.href} class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary/80"><i class="ph-fill ph-fire"></i> {item.label}</a>
+        ) : (
+          <a href={item.href} class="text-sm font-medium text-muted-foreground transition hover:text-foreground">{item.label}</a>
+        )
+      )}
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button id="theme-toggle" aria-label="Toggle light/dark theme"
+        class="grid h-10 w-10 place-items-center rounded-lg border border-border bg-background text-muted-foreground transition hover:bg-accent hover:text-accent-foreground">
+        <i class="ph-bold ph-sun-dim hidden text-lg dark:block"></i>
+        <i class="ph-bold ph-moon-stars block text-lg dark:hidden"></i>
+      </button>
+      <a href="/#lienhe" class="hidden whitespace-nowrap rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98] sm:inline-flex">Get a consultation</a>
+      <button id="mobile-toggle" aria-label="Open menu" class="grid h-10 w-10 place-items-center rounded-lg border border-border bg-background text-foreground lg:hidden">
+        <i class="ph-bold ph-list text-lg"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- mobile menu -->
+  <div id="mobile-menu" class="hidden border-t border-border px-5 pb-5 pt-2 lg:hidden">
+    <div class="flex flex-col gap-1">
+      {nav.map((item) =>
+        item.highlight ? (
+          <a href={item.href} class="inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-semibold text-primary hover:bg-accent"><i class="ph-fill ph-fire"></i> {item.label}</a>
+        ) : (
+          <a href={item.href} class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">{item.label}</a>
+        )
+      )}
+      <a href="/#lienhe" class="mt-2 rounded-lg bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground">Get a free consultation</a>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Shared chrome: theme toggle + mobile menu (runs on every page)
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('heva-theme-blue', isDark ? 'dark' : 'light'); } catch (e) {}
+  });
+
+  const mobileToggle = document.getElementById('mobile-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (mobileToggle && mobileMenu) {
+    mobileToggle.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+    mobileMenu.querySelectorAll('a').forEach((a) =>
+      a.addEventListener('click', () => mobileMenu.classList.add('hidden'))
+    );
+  }
+</script>

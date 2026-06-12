@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HevaSEO — Projects</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233b82f6'/%3E%3Cstop offset='1' stop-color='%231d4ed8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='240' rx='56' fill='url(%23g)'/%3E%3Cpath d='M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z' fill='white'/%3E%3C/svg%3E" />
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('heva-theme-blue');
+        if (t === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script>
+    (function () {
+      function reveal(){ document.documentElement.classList.add('ready'); }
+      if (document.readyState === 'complete') { reveal(); return; }
+      window.addEventListener('DOMContentLoaded', function(){ requestAnimationFrame(function(){ requestAnimationFrame(reveal); }); });
+      window.addEventListener('load', reveal);
+      setTimeout(reveal, 1000);
+    })();
+  </script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['"Inter Tight"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            border: 'hsl(var(--border))', input: 'hsl(var(--input))', ring: 'hsl(var(--ring))',
+            background: 'hsl(var(--background))', foreground: 'hsl(var(--foreground))',
+            primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+            secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+            muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+            accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+            destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+            card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+            brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
+          },
+          borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --background: 214 55% 97%; --foreground: 222 47% 9%;
+      --card: 0 0% 100%; --card-foreground: 240 10% 8%;
+      --primary: 213 90% 50%; --primary-foreground: 0 0% 100%;
+      --secondary: 214 45% 92%; --secondary-foreground: 222 47% 14%;
+      --muted: 214 45% 92%; --muted-foreground: 215 18% 42%;
+      --accent: 211 100% 94%; --accent-foreground: 213 90% 30%;
+      --destructive: 0 72% 51%; --destructive-foreground: 0 0% 100%;
+      --border: 214 30% 86%; --input: 214 30% 86%; --ring: 213 90% 50%;
+      --radius: 0.75rem;
+    }
+    .dark {
+      --background: 222 60% 5%; --foreground: 0 0% 96%;
+      --card: 220 45% 10%; --card-foreground: 0 0% 96%;
+      --primary: 210 100% 62%; --primary-foreground: 222 60% 6%;
+      --secondary: 220 35% 16%; --secondary-foreground: 0 0% 96%;
+      --muted: 220 30% 14%; --muted-foreground: 215 25% 72%;
+      --accent: 212 70% 24%; --accent-foreground: 205 100% 85%;
+      --destructive: 0 70% 58%; --destructive-foreground: 0 0% 96%;
+      --border: 211 50% 44%; --input: 216 38% 28%; --ring: 205 100% 60%;
+    }
+    .dark body { background:
+      radial-gradient(1000px 540px at 50% -14%, hsl(208 100% 34% / .55), transparent 60%),
+      radial-gradient(820px 460px at 2% 104%, hsl(214 100% 26% / .5), transparent 55%),
+      radial-gradient(820px 460px at 100% 104%, hsl(202 100% 28% / .5), transparent 55%),
+      linear-gradient(180deg, hsl(222 60% 6%), hsl(223 58% 4%)); background-attachment: fixed; }
+    * { border-color: hsl(var(--border)); }
+    body { font-feature-settings: "cv11", "ss01"; }
+    html:not(.ready) body { opacity: 0; }
+    body { transition: opacity .2s ease; }
+    html.ready main { animation: pageIn .32s cubic-bezier(.22,.61,.36,1) both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce){ body{opacity:1 !important;} html.ready main{animation:none;} }
+    .display { font-family: "Inter Tight", Inter, sans-serif; }
+
+    /* sidebar nav item */
+    .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500;
+      color:hsl(var(--muted-foreground)); transition:all .15s; cursor:pointer; }
+    .nav-item:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .nav-item.active { background:hsl(var(--primary)); color:hsl(var(--primary-foreground)); box-shadow:0 6px 16px -6px hsl(var(--primary)/.5); }
+    .nav-item i { font-size:1rem; }
+
+    /* status pills */
+    .pill { display:inline-flex; align-items:center; gap:.35rem; border-radius:9999px; padding:.2rem .6rem; font-size:.7rem; font-weight:700; white-space:nowrap; }
+    .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
+    .pill-warn { background:#f59e0b1f; color:#d97706; }
+
+    .bar { height:.4rem; border-radius:9999px; background:hsl(var(--muted)); overflow:hidden; }
+    .bar > i { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,#3b82f6,#2563eb); }
+
+    .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background:hsl(var(--border)); border-radius:9999px; }
+
+    /* folder rail */
+    .folder-item { display:flex; align-items:center; gap:.55rem; padding:.5rem .6rem; border-radius:.6rem; font-size:.8125rem; font-weight:500;
+      color:hsl(var(--foreground)); cursor:pointer; transition:.15s; border:1px solid transparent; }
+    .folder-item:hover { background:hsl(var(--accent)); }
+    .folder-item.active { background:hsl(var(--primary)/.1); border-color:hsl(var(--primary)/.35); color:hsl(var(--primary)); }
+    .folder-item.drop-hot { background:hsl(var(--primary)/.16); border-color:hsl(var(--primary)); box-shadow:0 0 0 2px hsl(var(--primary)/.25); }
+    .folder-count { margin-left:auto; font-size:.6875rem; font-weight:700; color:hsl(var(--muted-foreground)); background:hsl(var(--muted)); border-radius:9999px; padding:.05rem .45rem; }
+
+    /* project card */
+    .pcard { position:relative; border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.9rem; padding:.95rem 1rem; transition:.15s; cursor:pointer; }
+    .pcard:hover { border-color:hsl(var(--primary)/.45); transform:translateY(-2px); box-shadow:0 14px 28px -18px hsl(var(--foreground)/.35); }
+    .pcard.dragging { opacity:.45; cursor:grabbing; }
+    .drag-handle { cursor:grab; }
+    .drag-handle:active { cursor:grabbing; }
+    .fav { display:grid; place-items:center; height:2rem; width:2rem; border-radius:.6rem; font-size:.8rem; font-weight:800; color:#fff; flex-shrink:0; }
+    .chip { display:inline-flex; align-items:center; gap:.3rem; border-radius:9999px; padding:.12rem .5rem; font-size:.65rem; font-weight:700; }
+    .cbadge { display:inline-flex; align-items:center; gap:.3rem; font-size:.7rem; font-weight:700; }
+    .cdot { height:.5rem; width:.5rem; border-radius:9999px; }
+
+    /* service tags: (service  plan|run|done) */
+    .svc-tag { display:inline-flex; align-items:center; gap:.2rem; border:1px solid hsl(var(--border)); background:hsl(var(--muted)/.45);
+      border-radius:.4rem; padding:.1rem .3rem; font-size:.625rem; font-weight:600; line-height:1; white-space:nowrap; }
+    .svc-tag i { font-size:.72rem; color:hsl(var(--muted-foreground)); }
+    .svc-tag .n { font-weight:800; font-variant-numeric:tabular-nums; }
+    .svc-tag .sep { color:hsl(var(--border)); font-weight:400; }
+
+    /* card gear + dropdown menu */
+    .card-gear { display:grid; place-items:center; height:1.65rem; width:1.65rem; flex-shrink:0; margin-left:auto;
+      border-radius:.45rem; color:hsl(var(--muted-foreground)); transition:.15s; cursor:pointer; }
+    .card-gear:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .card-menu { position:fixed; z-index:80; width:198px; background:hsl(var(--card)); border:1px solid hsl(var(--border));
+      border-radius:.75rem; box-shadow:0 18px 44px -12px hsl(var(--foreground)/.45); padding:.3rem; }
+    .card-menu button { display:flex; align-items:center; gap:.6rem; width:100%; padding:.5rem .55rem; border-radius:.5rem;
+      font-size:.8125rem; font-weight:500; color:hsl(var(--foreground)); text-align:left; transition:.12s; }
+    .card-menu button i { font-size:1rem; color:hsl(var(--muted-foreground)); }
+    .card-menu button:hover { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+    .card-menu button:hover i { color:inherit; }
+    .card-menu button.danger { color:#dc2626; } .card-menu button.danger i { color:#dc2626; }
+    .card-menu button.danger:hover { background:#ef44441a; }
+    .card-menu .sepline { border:0; border-top:1px solid hsl(var(--border)); margin:.3rem .15rem; }
+    .fav-img { background-size:cover; background-position:center; }
+
+    /* order report: priority + kanban card */
+    .prio { font-size:.62rem; font-weight:800; padding:.1rem .45rem; border-radius:.4rem; letter-spacing:.03em; }
+    .prio-high { background:#ef44441f; color:#dc2626; }
+    .prio-med { background:#f59e0b1f; color:#d97706; }
+    .prio-low { background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); }
+    .kcard { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.8rem; padding:.8rem .85rem; transition:.15s; }
+    .kcard:hover { border-color:hsl(var(--primary)/.45); transform:translateY(-2px); box-shadow:0 14px 28px -18px hsl(var(--foreground)/.35); }
+    .fav-lg { height:2.6rem; width:2.6rem; border-radius:.7rem; font-size:1rem; }
+    .crumb-link { color:hsl(var(--muted-foreground)); font-weight:500; transition:.12s; }
+    .crumb-link:hover { color:hsl(var(--primary)); text-decoration:underline; }
+    /* toast */
+    #toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); z-index:90; display:flex; align-items:center; gap:.5rem;
+      background:hsl(var(--card)); color:hsl(var(--foreground)); border:1px solid hsl(var(--border)); border-radius:.75rem;
+      padding:.55rem .55rem .55rem .9rem; font-size:.8125rem; font-weight:500; box-shadow:0 18px 44px -12px hsl(var(--foreground)/.45); }
+    #toast .undo { font-weight:700; color:hsl(var(--primary)); padding:.35rem .7rem; border-radius:.5rem; transition:.12s; }
+    #toast .undo:hover { background:hsl(var(--accent)); }
+
+    /* kanban column */
+    .kcol { background:hsl(var(--muted)/.5); border:1px solid hsl(var(--border)); border-radius:1rem; padding:.7rem; flex:1 1 0; min-width:240px; }
+    .kcol.drop-hot { border-color:hsl(var(--primary)); box-shadow:0 0 0 2px hsl(var(--primary)/.2); background:hsl(var(--primary)/.06); }
+
+    @media (max-width:1023px){ #sidebar{ position:fixed; inset:0 auto 0 0; z-index:60; transform:translateX(-100%); transition:.25s; }
+      #sidebar.open{ transform:none; } }
+  </style>
+</head>
+
+<body class="bg-background text-foreground font-sans antialiased">
+
+  <!-- aurora -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-40 left-1/3 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-brand-400/12 blur-[120px] dark:bg-brand-500/10"></div>
+    <div class="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-teal-300/12 blur-[120px] dark:bg-teal-500/10"></div>
+  </div>
+
+  <div class="flex min-h-screen">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside id="sidebar" class="flex w-52 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl">
+      <div class="flex h-[68px] items-center gap-2 border-b border-border px-4">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/30">
+          <svg viewBox="0 0 240 240" class="h-[88%] w-[88%]" fill="currentColor" aria-hidden="true"><path d="M33.4 171.9L32.5 175.4L33.6 178.9L36.2 181.4L67.8 198.6L71.3 199.4L74.8 198.4L77.3 195.8L105 145.2L134.2 145L135.6 145.8L162.7 195.8L165.2 198.4L168.7 199.4L172.2 198.6L203.8 181.4L206.4 178.9L207.5 175.4L206.6 171.9L178.7 120L206.6 68.1L207.5 64.6L206.4 61.1L203.8 58.6L172.2 41.4L168.7 40.6L165.2 41.6L162.7 44.2L135 94.8L105.8 95L104.4 94.2L77.3 44.2L74.8 41.6L71.3 40.6L67.8 41.4L36.2 58.6L33.6 61.1L32.5 64.6L33.4 68.1L61.3 120Z"/></svg>
+        </span>
+        <span class="text-base font-semibold tracking-tight">Heva<span class="text-primary">SEO</span></span>
+        <button id="sb-close" aria-label="Close menu" class="ml-auto grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent lg:hidden"><i class="ph-bold ph-x"></i></button>
+      </div>
+
+      <div class="px-2.5 pt-3">
+        <a href="dashboard.html" class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[13px] font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
+          <i class="ph-bold ph-plus"></i> Order service
+        </a>
+      </div>
+
+      <nav class="flex-1 space-y-0.5 overflow-y-auto scrollbar-thin px-2.5 pb-4 pt-3">
+        <p class="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Overview</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-squares-four"></i> Overview</a>
+        <a class="nav-item active"><i class="ph-bold ph-globe-hemisphere-west"></i> Projects</a>
+        <a href="orders.html" class="nav-item"><i class="ph-bold ph-kanban"></i> Orders <span class="ml-auto rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">9</span></a>
+
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Services</p>
+        <a href="dashboard.html?svc=backlink" class="nav-item"><i class="ph-bold ph-share-network"></i> Backlink</a>
+        <a href="dashboard.html?svc=content" class="nav-item"><i class="ph-bold ph-pen-nib"></i> Content SEO/GEO</a>
+        <a href="dashboard.html?svc=indexer" class="nav-item"><i class="ph-bold ph-magnifying-glass"></i> Indexer</a>
+        <a href="dashboard.html?svc=audit" class="nav-item"><i class="ph-bold ph-stethoscope"></i> Audit & Optimization</a>
+
+        <p class="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Analytics</p>
+        <a href="dashboard.html" class="nav-item"><i class="ph-bold ph-chart-line-up"></i> Reports</a>
+        <a href="credit.html" class="nav-item"><i class="ph-bold ph-wallet"></i> Credit & Invoices</a>
+        <a href="settings.html" class="nav-item"><i class="ph-bold ph-gear-six"></i> Settings</a>
+        <a href="support.html" class="nav-item"><i class="ph-bold ph-headset"></i> Support</a>
+        <a href="faq.html" class="nav-item"><i class="ph-bold ph-question"></i> FAQ</a>
+      </nav>
+
+      <div class="border-t border-border p-2.5">
+        <div class="rounded-xl border border-primary/25 bg-primary/5 p-3">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-primary">Credit</p>
+            <span class="pill pill-good">Pro</span>
+          </div>
+          <p id="credit-amount" class="mt-1 text-lg font-semibold tracking-tight">$179</p>
+          <div class="mt-2 bar"><i id="credit-bar" style="width:62%"></i></div>
+          <a href="credit.html#topup" class="mt-2.5 block w-full rounded-lg bg-primary py-2 text-center text-xs font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Top up</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- backdrop mobile -->
+    <div id="backdrop" class="fixed inset-0 z-50 hidden bg-foreground/40 backdrop-blur-sm lg:hidden"></div>
+
+    <!-- ============ MAIN ============ -->
+    <div class="flex min-w-0 flex-1 flex-col">
+
+      <!-- topbar -->
+      <header class="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
+        <button id="sb-open" aria-label="Open menu" class="grid h-10 w-10 place-items-center rounded-lg border border-border text-foreground lg:hidden"><i class="ph-bold ph-list text-lg"></i></button>
+
+        <div class="hidden w-1/3 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:flex">
+          <i class="ph-bold ph-magnifying-glass"></i>
+          <input id="global-search" aria-label="Search" class="w-full bg-transparent outline-none placeholder:text-muted-foreground" placeholder="Search…" />
+          <kbd class="rounded border border-border bg-muted px-1.5 text-[10px] font-semibold">⌘K</kbd>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <span class="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold sm:flex">
+          <i class="ph-bold ph-wallet text-primary"></i> <span id="credit-topbar">$179</span>
+        </span>
+        <button id="theme-toggle" aria-label="Toggle light/dark theme" class="grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent hover:text-accent-foreground">
+          <i class="ph-bold ph-sun-dim hidden text-lg dark:block"></i>
+          <i class="ph-bold ph-moon-stars block text-lg dark:hidden"></i>
+        </button>
+        <button aria-label="Notifications" class="relative grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent">
+          <i class="ph-bold ph-bell text-lg"></i>
+          <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card"></span>
+        </button>
+        <span class="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-md">HV</span>
+      </header>
+
+      <!-- scroll area -->
+      <main class="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 lg:px-7">
+
+        <!-- page head -->
+        <div id="page-head" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="display text-2xl font-semibold tracking-tight md:text-3xl">Projects</h1>
+              <span id="hd-count" class="pill pill-good"></span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">Organize websites into folders · track campaigns & overall status</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-new-folder" class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold transition hover:bg-accent">
+              <i class="ph-bold ph-folder-plus"></i> Folder
+            </button>
+            <button id="btn-new-project" class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
+              <i class="ph-bold ph-plus"></i> Projects
+            </button>
+          </div>
+        </div>
+
+        <!-- body: folder rail + content -->
+        <div id="board-view" class="mt-5 flex flex-col gap-5 lg:flex-row">
+
+          <!-- folder rail -->
+          <aside class="w-full shrink-0 lg:w-60">
+            <div class="rounded-2xl border border-border bg-card/70 p-2.5 backdrop-blur">
+              <p class="px-2 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Folders</p>
+              <div id="folder-rail" class="space-y-0.5"></div>
+              <button id="btn-new-folder-2" class="mt-1.5 flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/50 hover:text-primary">
+                <i class="ph-bold ph-plus"></i> New folder
+              </button>
+              <p class="mt-2 px-2 text-[10px] leading-relaxed text-muted-foreground"><i class="ph-bold ph-hand-grabbing"></i> Drag a project card into a folder to move it.</p>
+            </div>
+          </aside>
+
+          <!-- content -->
+          <section class="min-w-0 flex-1">
+
+            <!-- toolbar -->
+            <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card/70 p-3 backdrop-blur md:flex-row md:items-center">
+              <!-- breadcrumb -->
+              <div class="flex min-w-0 shrink items-center gap-2 text-sm">
+                <i class="ph-bold ph-folder-open text-primary"></i>
+                <span class="truncate font-semibold" id="crumb">All projects</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 md:ml-auto md:flex-nowrap md:shrink-0">
+                <div class="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm">
+                  <i class="ph-bold ph-magnifying-glass text-muted-foreground"></i>
+                  <input id="search" placeholder="Filter by domain…" class="w-28 bg-transparent outline-none placeholder:text-muted-foreground sm:w-40" />
+                </div>
+                <select id="f-status" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
+                  <option value="all">All statuses</option>
+                  <option value="planned">Planning</option>
+                  <option value="active">In progress</option>
+                  <option value="done">Completed</option>
+                </select>
+                <select id="f-svc" class="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
+                  <option value="all">All services</option>
+                  <option value="backlink">Backlink</option>
+                  <option value="content">Content</option>
+                  <option value="indexer">Indexer</option>
+                  <option value="audit">Audit</option>
+                  <option value="optimize">Optimization</option>
+                  <option value="keyword">Keywords</option>
+                  <option value="design">Design</option>
+                </select>
+                <div class="flex items-center gap-1 rounded-lg bg-muted p-1 text-sm">
+                  <button id="btn-list" class="rounded-md bg-card px-2.5 py-1.5 shadow-sm"><i class="ph-bold ph-rows"></i> List</button>
+                  <button id="btn-kanban" class="rounded-md px-2.5 py-1.5 text-muted-foreground"><i class="ph-bold ph-kanban"></i> Kanban</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- label filter chips -->
+            <div id="label-bar" class="mt-3 flex flex-wrap items-center gap-2"></div>
+
+            <!-- legend for service tags -->
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+              <span class="font-semibold">Service tags <span class="font-mono">(planned|running|done)</span>:</span>
+              <span class="inline-flex items-center gap-1"><span class="cdot" style="background:#94a3b8"></span> ordered, not started</span>
+              <span class="inline-flex items-center gap-1"><span class="cdot" style="background:#f59e0b"></span> running</span>
+              <span class="inline-flex items-center gap-1"><span class="cdot" style="background:#10b981"></span> completed</span>
+            </div>
+
+            <!-- folder KPI strip -->
+            <div id="kpi-strip" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
+
+            <!-- LIST VIEW -->
+            <div id="view-list" class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
+
+            <!-- KANBAN VIEW -->
+            <div id="view-kanban" class="mt-4 hidden gap-3 overflow-x-auto pb-2" style="display:none"></div>
+
+            <!-- empty -->
+            <div id="empty" class="mt-6 hidden rounded-2xl border border-dashed border-border py-14 text-center">
+              <i id="empty-icon" class="ph-bold ph-folder-dashed text-3xl text-muted-foreground"></i>
+              <p id="empty-title" class="mt-2 text-sm font-semibold">No matching projects</p>
+              <p id="empty-sub" class="mt-1 text-xs text-muted-foreground">Try adjusting the filters, or create a new project.</p>
+            </div>
+
+          </section>
+        </div>
+
+        <!-- ===== PROJECT DETAIL (service order report) ===== -->
+        <div id="detail-view" class="mt-2 hidden">
+          <div class="mb-4 flex flex-wrap items-center gap-3">
+            <button id="detail-back" class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold transition hover:bg-accent" title="Back">
+              <i class="ph-bold ph-arrow-left"></i>
+            </button>
+            <nav id="detail-crumb" class="flex flex-wrap items-center gap-1.5 text-sm"></nav>
+          </div>
+          <div id="detail-head" class="rounded-2xl border border-border bg-card/70 p-4 backdrop-blur"></div>
+          <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+            <div id="d-svc-filter" class="flex flex-1 flex-wrap items-center gap-2"></div>
+            <div class="flex flex-wrap items-center gap-2 md:ml-auto md:shrink-0">
+              <button id="d-add-svc" class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]"><i class="ph-bold ph-plus"></i> Order more services</button>
+              <div class="flex items-center gap-1 rounded-lg bg-muted p-1 text-sm">
+                <button id="d-list" class="rounded-md bg-card px-2.5 py-1.5 shadow-sm"><i class="ph-bold ph-rows"></i> List</button>
+                <button id="d-kanban" class="rounded-md px-2.5 py-1.5 text-muted-foreground"><i class="ph-bold ph-kanban"></i> Kanban</button>
+              </div>
+            </div>
+          </div>
+          <div id="d-view-list" class="mt-4 overflow-x-auto rounded-2xl border border-border bg-card/70 backdrop-blur"></div>
+          <div id="d-view-kanban" class="mt-4 hidden gap-3 overflow-x-auto pb-2"></div>
+          <div id="d-empty" class="mt-6 hidden rounded-2xl border border-dashed border-border py-14 text-center text-sm text-muted-foreground">This project has no service orders yet.</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: New Folder ============ -->
+  <div id="m-folder" class="fixed inset-0 z-[70] hidden items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="display text-lg font-semibold">New folder</h3>
+        <button data-close class="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Folder name</label>
+      <input id="nf-name" placeholder="e.g. E-commerce client" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2" />
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Folder cha <span class="font-medium normal-case text-muted-foreground/70">· leave blank for a root folder</span></label>
+      <select id="nf-parent" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"></select>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Color</label>
+      <div id="nf-colors" class="mt-1.5 flex flex-wrap gap-2"></div>
+      <div class="mt-5 flex justify-end gap-2">
+        <button data-close class="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+        <button id="nf-save" class="rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90">Create folder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: New Project ============ -->
+  <div id="m-project" class="fixed inset-0 z-[70] hidden items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="display text-lg font-semibold">New project</h3>
+        <button data-close class="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Domain</label>
+      <input id="np-domain" placeholder="vd: hevashop.com" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2" />
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Folder</label>
+      <select id="np-folder" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"></select>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Label</label>
+      <div id="np-labels" class="mt-1.5 flex flex-wrap gap-2"></div>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Notes</label>
+      <textarea id="np-note" rows="2" placeholder="A quick note about this project…" class="mt-1.5 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2"></textarea>
+      <p class="mt-3 text-[11px] text-muted-foreground">New projects start in the <b>Planning</b>status. Attach services on the Order page to start a campaign.</p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button data-close class="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+        <button id="np-save" class="rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90">Create project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- ============ MODAL: Add service ============ -->
+  <div id="m-addsvc" class="fixed inset-0 z-[70] hidden items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="display text-lg font-semibold">Order more services</h3>
+        <button data-close class="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <p id="as-domain" class="mt-1 text-sm text-muted-foreground"></p>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Services</label>
+      <select id="as-svc" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"></select>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Number of orders</label>
+      <input id="as-qty" type="number" min="1" value="1" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-ring focus:ring-2" />
+      <p class="mt-3 text-[11px] text-muted-foreground">New orders start in the <b>Planning</b> status and are added to the project's service tags.</p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button data-close class="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+        <button id="as-save" class="rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90">Add to project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CARD CONTEXT MENU + LOGO INPUT ============ -->
+  <div id="card-menu" class="card-menu hidden"></div>
+  <input type="file" id="logo-input" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden" />
+
+  <!-- ============ MODAL: Move project ============ -->
+  <div id="m-move" class="fixed inset-0 z-[70] hidden items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="display text-lg font-semibold">Move to folder</h3>
+        <button data-close class="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent"><i class="ph-bold ph-x"></i></button>
+      </div>
+      <p id="mv-domain" class="mt-1 text-sm text-muted-foreground"></p>
+      <label class="mt-4 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Destination folder</label>
+      <select id="mv-folder" class="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none"></select>
+      <div class="mt-5 flex justify-end gap-2">
+        <button data-close class="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+        <button id="mv-save" class="rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90">Move</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- shared chrome: theme + mobile sidebar ---------- */
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      var dark = document.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('heva-theme-blue', dark ? 'dark' : 'light'); } catch (e) {}
+    });
+    var sb = document.getElementById('sidebar'), bd = document.getElementById('backdrop');
+    function openSb(){ sb.classList.add('open'); bd.classList.remove('hidden'); }
+    function closeSb(){ sb.classList.remove('open'); bd.classList.add('hidden'); }
+    document.getElementById('sb-open').addEventListener('click', openSb);
+    document.getElementById('sb-close').addEventListener('click', closeSb);
+    bd.addEventListener('click', closeSb);
+
+    // ⌘K / Ctrl+K focuses the search box
+    document.addEventListener('keydown', function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); var s = document.getElementById('global-search'); if (s) s.focus(); }
+    });
+
+    // sync the credit balance shared with the dashboard (demo)
+    (function () {
+      try {
+        var b = parseInt(localStorage.getItem('heva-credit-balance'), 10);
+        if (isNaN(b) || b < 0) return;
+        document.getElementById('credit-amount').textContent = '$' + b.toLocaleString('en-US');
+        document.getElementById('credit-topbar').textContent = '$' + b.toLocaleString('en-US');
+        document.getElementById('credit-bar').style.width = Math.max(0, Math.min(100, Math.round(b / 4500000 * 62))) + '%';
+      } catch (e) {}
+    })();
+
+    /* ============ PROJECTS APP ============ */
+    (function () {
+      var SVC = {
+        backlink: { label: 'Backlink', icon: 'ph-share-network' },
+        content:  { label: 'Content',  icon: 'ph-pen-nib' },
+        indexer:  { label: 'Indexer',  icon: 'ph-magnifying-glass' },
+        audit:    { label: 'Audit',    icon: 'ph-stethoscope' },
+        optimize: { label: 'Optimization',   icon: 'ph-gauge' },
+        keyword:  { label: 'Keywords',  icon: 'ph-tree-structure' },
+        design:   { label: 'Design', icon: 'ph-palette' }
+      };
+
+      var STATUS = {
+        planned: { label: 'Planned',    color: '#94a3b8', icon: 'ph-clipboard-text' },
+        active:  { label: 'In progress',  color: '#2563eb', icon: 'ph-play-circle' },
+        done:    { label: 'Completed',       color: '#10b981', icon: 'ph-check-circle' }
+      };
+      var STATUS_ORDER = ['planned', 'active', 'done'];
+
+      var PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#ec4899', '#14b8a6'];
+
+      var FOLDERS = [
+        { id: 'ecom',        name: 'E-commerce client', color: '#2563eb', parentId: null },
+        { id: 'ecom-fashion', name: 'Fashion',      color: '#6366f1', parentId: 'ecom' },
+        { id: 'noibo',       name: 'Internal project',     color: '#10b981', parentId: null },
+        { id: 'yte',         name: 'Client — Healthcare & Spa', color: '#f59e0b', parentId: null },
+        { id: 'yte-spa',     name: 'Spa & Aesthetics',    color: '#ec4899', parentId: 'yte' }
+      ];
+
+      var LABELS = [
+        { id: 'priority', name: 'Priority',  color: '#ef4444' },
+        { id: 'retainer', name: 'Retainer', color: '#0ea5e9' },
+        { id: 'new',      name: 'New',      color: '#8b5cf6' }
+      ];
+
+      var nextId = 1;
+      // services: { <service>: { plan: ordered not started, run: running, done: completed } } — only lists ordered services
+      var PROJECTS = [
+        { id: nextId++, domain: 'hevashop.com', folderId: 'ecom', labels: ['priority','retainer'], updated: '2 minutes ago',
+          note: 'Pushing entity in Q2, prioritizing the “authentic cosmetics” cluster. The client requests a report every 2 weeks.',
+          services: { backlink:{plan:1,run:1,done:5}, content:{plan:0,run:1,done:18}, indexer:{plan:0,run:1,done:3}, audit:{plan:0,run:0,done:2} } },
+        { id: nextId++, domain: 'anphat.com', folderId: 'ecom', labels: ['retainer'], updated: 'Today',
+          note: 'Press backlinks are in their second wave. Awaiting client approval of the June content brief.',
+          services: { backlink:{plan:0,run:1,done:3}, content:{plan:1,run:0,done:0}, audit:{plan:0,run:0,done:1} } },
+        { id: nextId++, domain: 'vietbeauty.com', folderId: 'ecom-fashion', labels: [], updated: '28/04',
+          note: 'Delivered 20 content articles. Awaiting the client’s response on renewing the plan.',
+          services: { content:{plan:0,run:0,done:20} } },
+        { id: nextId++, domain: 'techland.com', folderId: 'noibo', labels: [], updated: 'Yesterday',
+          note: 'Optimizing Core Web Vitals on the homepage + PDP. Monitoring LCP after deploy.',
+          services: { optimize:{plan:0,run:1,done:1}, indexer:{plan:0,run:0,done:1} } },
+        { id: nextId++, domain: 'newsite.com', folderId: 'noibo', labels: ['new'], updated: '04/06',
+          note: 'New site, awaiting audit kickoff. Need GSC access from the client.',
+          services: { audit:{plan:1,run:0,done:0} } },
+        { id: nextId++, domain: 'clinicpro.com', folderId: 'yte', labels: ['priority'], updated: 'Today',
+          note: 'Dermatology cluster content is in progress. Keyword map pending sign-off with the doctor.',
+          services: { keyword:{plan:1,run:0,done:0}, content:{plan:0,run:1,done:4} } },
+        { id: nextId++, domain: 'saigonhomes.com', folderId: 'yte', labels: [], updated: 'Today', alert: 'Audit found 12 critical issues',
+          note: 'Found mass indexing errors after the migration. Needs urgent attention before continuing.',
+          services: { audit:{plan:0,run:1,done:0}, optimize:{plan:0,run:0,done:1} } },
+        { id: nextId++, domain: 'beautyspa.com', folderId: 'yte-spa', labels: ['new'], updated: '03/06',
+          note: 'Landing brief is finalized; waiting on the design team to start.',
+          services: { design:{plan:1,run:0,done:0} } },
+        { id: nextId++, domain: 'demo-shop.com', folderId: null, labels: ['new'], updated: 'Just created',
+          note: '',
+          services: {} }
+      ];
+
+      function svcTotals(p) {
+        var t = { plan: 0, run: 0, done: 0 }, s = p.services || {};
+        Object.keys(s).forEach(function (k) { t.plan += s[k].plan || 0; t.run += s[k].run || 0; t.done += s[k].done || 0; });
+        return t;
+      }
+      function deriveStatus(p) {
+        var t = svcTotals(p);
+        if (t.plan + t.run + t.done === 0) return 'planned';
+        if (t.run > 0) return 'active';
+        if (t.plan > 0) return 'planned';
+        return 'done';
+      }
+      /* ---------- localStorage persistence ---------- */
+      var STORE_KEY = 'heva-projects-v2';
+      (function loadStore() {
+        try {
+          localStorage.removeItem('heva-projects-v1');   /* drop stale seed from older builds */
+          var raw = localStorage.getItem(STORE_KEY);
+          if (raw) {
+            var d = JSON.parse(raw);
+            if (Array.isArray(d.folders)) FOLDERS = d.folders;
+            if (Array.isArray(d.projects)) PROJECTS = d.projects;
+            if (d.nextId) nextId = d.nextId;
+          }
+        } catch (e) {}
+      })();
+      function persist() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify({ folders: FOLDERS, projects: PROJECTS, nextId: nextId })); } catch (e) {}
+      }
+      PROJECTS.forEach(function (p) { if (!p.status) p.status = deriveStatus(p); });
+
+      /* ---------- state ---------- */
+      var state = { folder: 'all', view: 'list', search: '', status: 'all', svc: 'all', labels: {} };
+
+      function folderById(id) { return FOLDERS.filter(function (f) { return f.id === id; })[0]; }
+      function childFolders(id) { return FOLDERS.filter(function (f) { return f.parentId === id; }); }
+      function folderScopeIds(id) { var ids = [id]; childFolders(id).forEach(function (c) { ids.push(c.id); }); return ids; }
+      function byId(id) { return PROJECTS.filter(function (p) { return p.id === id; })[0]; }
+      function isActive(p) { return (p.lifecycle || 'active') === 'active'; }
+      function trashDaysLeft(p) { return Math.max(0, 30 - Math.floor((Date.now() - (p.trashedAt || Date.now())) / 86400000)); }
+      function escapeHtml(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+      function labelById(id) { return LABELS.filter(function (l) { return l.id === id; })[0]; }
+      function initials(dom) { return dom.replace(/^www\./, '').slice(0, 2).toUpperCase(); }
+      function favColor(dom) { var h = 0; for (var i = 0; i < dom.length; i++) h = dom.charCodeAt(i) + ((h << 5) - h); return PALETTE[Math.abs(h) % PALETTE.length]; }
+
+      function scopeProjects() {
+        if (state.folder === 'archive') return PROJECTS.filter(function (p) { return p.lifecycle === 'archived'; });
+        if (state.folder === 'trash') return PROJECTS.filter(function (p) { return p.lifecycle === 'trashed'; });
+        var act = PROJECTS.filter(isActive);
+        if (state.folder === 'all') return act;
+        if (state.folder === 'unfiled') return act.filter(function (p) { return !p.folderId; });
+        return act.filter(function (p) { return folderScopeIds(state.folder).indexOf(p.folderId) !== -1; });
+      }
+      function visibleProjects() {
+        var activeLabels = Object.keys(state.labels).filter(function (k) { return state.labels[k]; });
+        return scopeProjects().filter(function (p) {
+          if (state.search && p.domain.toLowerCase().indexOf(state.search.toLowerCase()) === -1) return false;
+          if (state.status !== 'all' && p.status !== state.status) return false;
+          if (state.svc !== 'all' && !(p.services && p.services[state.svc])) return false;
+          if (activeLabels.length && !activeLabels.every(function (l) { return p.labels.indexOf(l) !== -1; })) return false;
+          return true;
+        });
+      }
+
+      /* ---------- folder rail ---------- */
+      function renderFolders() {
+        var rail = document.getElementById('folder-rail');
+        var active = PROJECTS.filter(isActive);
+        var direct = {}; var unfiled = 0;
+        active.forEach(function (p) { if (p.folderId) direct[p.folderId] = (direct[p.folderId] || 0) + 1; else unfiled++; });
+        function totalCount(f) { var n = direct[f.id] || 0; childFolders(f.id).forEach(function (c) { n += direct[c.id] || 0; }); return n; }
+        var archivedCount = PROJECTS.filter(function (p) { return p.lifecycle === 'archived'; }).length;
+        var trashedCount = PROJECTS.filter(function (p) { return p.lifecycle === 'trashed'; }).length;
+
+        var rows = [];
+        rows.push(railItem('all', 'ph-squares-four', 'All projects', active.length, 'hsl(var(--primary))', 0));
+        FOLDERS.filter(function (f) { return !f.parentId; }).forEach(function (f) {
+          rows.push(railItem(f.id, 'ph-folder', f.name, totalCount(f), f.color, 0));
+          childFolders(f.id).forEach(function (c) { rows.push(railItem(c.id, 'ph-folder', c.name, direct[c.id] || 0, c.color, 1)); });
+        });
+        rows.push(railItem('unfiled', 'ph-folder-dashed', 'Uncategorized', unfiled, '#94a3b8', 0));
+        rows.push('<hr class="my-1.5 border-border" />');
+        rows.push(railItem('archive', 'ph-archive-box', 'Archive', archivedCount, '#8b5cf6', 0));
+        rows.push(railItem('trash', 'ph-trash', 'Trash', trashedCount, '#ef4444', 0));
+        rail.innerHTML = rows.join('');
+
+        Array.prototype.forEach.call(rail.querySelectorAll('.folder-item'), function (el) {
+          el.addEventListener('click', function () { state.folder = el.dataset.id; renderAll(); });
+          // drop target (move project into folder)
+          el.addEventListener('dragover', function (e) {
+            if (el.dataset.id === 'all') return; // can't drop into "all"
+            e.preventDefault(); el.classList.add('drop-hot');
+          });
+          el.addEventListener('dragleave', function () { el.classList.remove('drop-hot'); });
+          el.addEventListener('drop', function (e) {
+            e.preventDefault(); el.classList.remove('drop-hot');
+            var id = +e.dataTransfer.getData('text/plain');
+            var p = byId(id);
+            if (!p) return;
+            var t = el.dataset.id;
+            if (t === 'archive') { p.lifecycle = 'archived'; delete p.trashedAt; }
+            else if (t === 'trash') { p.lifecycle = 'trashed'; p.trashedAt = Date.now(); }
+            else { p.folderId = t === 'unfiled' ? null : t; p.lifecycle = 'active'; delete p.trashedAt; }
+            renderAll();
+          });
+        });
+      }
+      function railItem(id, icon, name, count, color, depth) {
+        var active = state.folder === id ? ' active' : '';
+        var pad = depth ? ' style="padding-left:1.45rem"' : '';
+        var sub = depth ? '<i class="ph-bold ph-corner-down-right text-muted-foreground/50" style="font-size:.8rem"></i>' : '';
+        return '<div class="folder-item' + active + '" data-id="' + id + '"' + pad + '>'
+          + sub
+          + '<i class="ph-bold ' + icon + '" style="color:' + color + '"></i>'
+          + '<span class="truncate">' + escapeHtml(name) + '</span>'
+          + '<span class="folder-count">' + count + '</span></div>';
+      }
+
+      /* ---------- label filter bar ---------- */
+      function renderLabels() {
+        var bar = document.getElementById('label-bar');
+        if (!LABELS.length) { bar.innerHTML = ''; return; }
+        bar.innerHTML = '<span class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Label:</span>'
+          + LABELS.map(function (l) {
+              var on = state.labels[l.id];
+              return '<button class="lbtn chip" data-l="' + l.id + '" style="'
+                + (on ? 'background:' + l.color + ';color:#fff' : 'background:' + l.color + '1f;color:' + l.color) + '">'
+                + '<span class="cdot" style="background:' + (on ? '#fff' : l.color) + '"></span>' + l.name + '</button>';
+            }).join('');
+        Array.prototype.forEach.call(bar.querySelectorAll('.lbtn'), function (b) {
+          b.addEventListener('click', function () { state.labels[b.dataset.l] = !state.labels[b.dataset.l]; renderAll(); });
+        });
+      }
+
+      /* ---------- KPI strip (folder scope) ---------- */
+      function renderKPI() {
+        var sp = scopeProjects();
+        var running = sp.reduce(function (a, p) { return a + svcTotals(p).run; }, 0);
+        var attention = sp.filter(function (p) { return p.alert; }).length;
+        var done = sp.filter(function (p) { return p.status === 'done'; }).length;
+        var k = [
+          { ic: 'ph-globe-hemisphere-west', cl: 'text-primary',     v: sp.length,   t: 'Projects' },
+          { ic: 'ph-play-circle',           cl: 'text-blue-500',    v: running,     t: 'Active campaigns' },
+          { ic: 'ph-warning',               cl: 'text-amber-500',   v: attention,   t: 'Needs attention' },
+          { ic: 'ph-check-circle',          cl: 'text-emerald-500', v: done,        t: 'Completed' }
+        ];
+        document.getElementById('kpi-strip').innerHTML = k.map(function (x) {
+          return '<div class="rounded-xl border border-border bg-card px-3.5 py-3">'
+            + '<div class="flex items-center gap-1.5 text-xs text-muted-foreground"><i class="ph-bold ' + x.ic + ' ' + x.cl + '"></i> ' + x.t + '</div>'
+            + '<p class="mt-1 text-2xl font-bold tracking-tight">' + x.v + '</p></div>';
+        }).join('');
+      }
+
+      /* ---------- project card ---------- */
+      function serviceTags(p) {
+        var keys = Object.keys(p.services || {});
+        if (!keys.length) return '<span class="text-[11px] italic text-muted-foreground/60">No services ordered yet</span>';
+        return keys.map(function (k) {
+          var s = p.services[k];
+          return '<span class="svc-tag" title="' + SVC[k].label + ' · ' + s.plan + ' ordered · ' + s.run + ' running · ' + s.done + ' completed">'
+            + '<i class="ph-bold ' + SVC[k].icon + '"></i>' + SVC[k].label
+            + ' <span class="n" style="color:#94a3b8">' + s.plan + '</span>'
+            + '<span class="sep">|</span><span class="n" style="color:#f59e0b">' + s.run + '</span>'
+            + '<span class="sep">|</span><span class="n" style="color:#10b981">' + s.done + '</span>'
+            + '</span>';
+        }).join('');
+      }
+      function noteEl(p) {
+        var has = p.note && p.note.trim();
+        return '<p class="note mt-3 flex gap-1.5 text-[12px] leading-snug ' + (has ? 'text-muted-foreground' : 'italic text-muted-foreground/60') + '" '
+          + 'data-id="' + p.id + '" title="Click to edit the note" style="cursor:text">'
+          + '<i class="ph-bold ph-note-pencil mt-px shrink-0"></i>'
+          + '<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + (has ? escapeHtml(p.note) : 'Add a note…') + '</span></p>';
+      }
+      function labelDots(p) {
+        return p.labels.map(function (id) { var l = labelById(id); return l ? '<span class="chip" style="background:' + l.color + '1f;color:' + l.color + '"><span class="cdot" style="background:' + l.color + '"></span>' + l.name + '</span>' : ''; }).join('');
+      }
+      function folderChip(p) {
+        if (!p.folderId) return '<span class="chip" style="background:hsl(var(--muted));color:hsl(var(--muted-foreground))"><i class="ph-bold ph-folder-dashed"></i> Uncategorized</span>';
+        var f = folderById(p.folderId);
+        return '<span class="chip" style="background:' + f.color + '1a;color:' + f.color + '"><i class="ph-bold ph-folder"></i> ' + escapeHtml(f.name) + '</span>';
+      }
+
+      function favEl(p) {
+        return p.logo
+          ? '<span class="fav fav-img" style="background-image:url(' + p.logo + ')"></span>'
+          : '<span class="fav" style="background:' + favColor(p.domain) + '">' + initials(p.domain) + '</span>';
+      }
+      function projectCard(p, hideStatus) {
+        var life = p.lifecycle || 'active';
+        var alertBox = (life === 'active' && p.alert)
+          ? '<p class="mt-2.5 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400"><i class="ph-bold ph-warning"></i> ' + p.alert + '</p>'
+          : '';
+        var sps = STATUS[p.status];
+        var statusPill = (!hideStatus && life === 'active' && sps)
+          ? '<span class="chip" style="background:' + sps.color + '1f;color:' + sps.color + '"><i class="ph-bold ' + sps.icon + '"></i> ' + sps.label + '</span>' : '';
+        var stateBadge = life === 'archived'
+          ? '<span class="chip" style="background:#8b5cf61f;color:#8b5cf6"><i class="ph-bold ph-archive-box"></i> Archive</span>' : '';
+        var bottom = life === 'trashed'
+          ? '<p class="mt-3 flex items-center gap-1.5 border-t border-border pt-2.5 text-[11px] font-semibold text-rose-600"><i class="ph-bold ph-trash"></i> Auto-deletes in ' + trashDaysLeft(p) + ' days</p>'
+          : '<div class="mt-3 flex flex-wrap items-center gap-1 border-t border-border pt-2.5">' + serviceTags(p) + '</div>';
+        return '<article class="pcard" draggable="true" data-id="' + p.id + '">'
+          + '<div class="flex items-start gap-2.5">'
+            + favEl(p)
+            + '<div class="min-w-0 flex-1">'
+              + '<div class="flex items-center gap-1.5"><h3 class="truncate text-sm font-semibold">' + escapeHtml(p.domain) + '</h3>'
+                + '<button class="card-gear" data-id="' + p.id + '" title="Project settings"><i class="ph-bold ph-gear-six"></i></button></div>'
+              + '<div class="mt-1 flex flex-wrap items-center gap-1">' + folderChip(p) + statusPill + stateBadge + labelDots(p) + '</div>'
+            + '</div>'
+          + '</div>'
+          + noteEl(p)
+          + alertBox
+          + bottom
+        + '</article>';
+      }
+
+      /* ---------- views ---------- */
+      function renderList(data) {
+        var box = document.getElementById('view-list');
+        box.innerHTML = data.map(projectCard).join('');
+        wireCards(box);
+      }
+      function renderKanban(data) {
+        var box = document.getElementById('view-kanban');
+        box.style.gridTemplateColumns = '';
+        var cols = STATUS_ORDER.map(function (st) {
+          var s = STATUS[st];
+          var items = data.filter(function (p) { return p.status === st; });
+          var cards = items.map(function (p) { return projectCard(p, true); }).join('') || '<p class="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[11px] text-muted-foreground">Drag projects here</p>';
+          return '<div class="kcol" data-st="' + st + '">'
+            + '<div class="mb-2.5 flex items-center gap-2 px-1">'
+              + '<span class="cdot" style="background:' + s.color + '"></span>'
+              + '<h4 class="text-sm font-semibold">' + s.label + '</h4>'
+              + '<span class="folder-count">' + items.length + '</span></div>'
+            + '<div class="kcol-body space-y-2.5">' + cards + '</div></div>';
+        }).join('');
+        box.innerHTML = cols;
+        wireCards(box);
+        // status drop targets
+        Array.prototype.forEach.call(box.querySelectorAll('.kcol'), function (col) {
+          col.addEventListener('dragover', function (e) { e.preventDefault(); col.classList.add('drop-hot'); });
+          col.addEventListener('dragleave', function () { col.classList.remove('drop-hot'); });
+          col.addEventListener('drop', function (e) {
+            e.preventDefault(); col.classList.remove('drop-hot');
+            var id = +e.dataTransfer.getData('text/plain');
+            var p = PROJECTS.filter(function (x) { return x.id === id; })[0];
+            if (p) { p.status = col.dataset.st; renderAll(); }
+          });
+        });
+      }
+      function wireCards(scope) {
+        Array.prototype.forEach.call(scope.querySelectorAll('.pcard'), function (card) {
+          card.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', card.dataset.id);
+            e.dataTransfer.effectAllowed = 'move';
+            card.classList.add('dragging');
+          });
+          card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
+          card.addEventListener('click', function () {
+            if (card.getAttribute('draggable') === 'false') return; // editing note/name
+            openProject(+card.dataset.id);
+          });
+        });
+        Array.prototype.forEach.call(scope.querySelectorAll('.note'), function (el) {
+          el.addEventListener('click', function (e) { e.stopPropagation(); startNoteEdit(el); });
+        });
+        Array.prototype.forEach.call(scope.querySelectorAll('.card-gear'), function (g) {
+          g.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+          g.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); openCardMenu(g); });
+        });
+      }
+      function startNoteEdit(el) {
+        var id = +el.dataset.id;
+        var p = PROJECTS.filter(function (x) { return x.id === id; })[0];
+        if (!p) return;
+        var card = el.closest('.pcard');
+        if (card) card.setAttribute('draggable', 'false');
+        var ta = document.createElement('textarea');
+        ta.value = p.note || '';
+        ta.rows = 2;
+        ta.placeholder = 'A quick note about this project…';
+        ta.className = 'mt-3 w-full resize-none rounded-lg border border-primary/40 bg-background px-2 py-1.5 text-[12px] leading-snug outline-none ring-ring focus:ring-2';
+        el.replaceWith(ta);
+        ta.focus(); ta.select();
+        var done = false;
+        function save() { if (done) return; done = true; p.note = ta.value.trim(); renderAll(); }
+        function cancel() { if (done) return; done = true; renderAll(); }
+        ta.addEventListener('blur', save);
+        ta.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); ta.blur(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        });
+      }
+
+      /* ---------- card gear menu ---------- */
+      var pendingLogoId = null, pendingMoveId = null;
+      function mi(act, icon, label, danger) {
+        return '<button data-act="' + act + '"' + (danger ? ' class="danger"' : '') + '><i class="ph-bold ' + icon + '"></i>' + label + '</button>';
+      }
+      function openCardMenu(gear) {
+        var id = +gear.dataset.id, p = byId(id); if (!p) return;
+        var menu = document.getElementById('card-menu'), life = p.lifecycle || 'active', items = [];
+        if (life === 'trashed') {
+          items.push(mi('restore', 'ph-arrow-counter-clockwise', 'Restore'));
+          items.push('<hr class="sepline" />');
+          items.push(mi('purge', 'ph-trash', 'Delete permanently', true));
+        } else {
+          items.push(mi('rename', 'ph-pencil-simple', 'Rename'));
+          items.push(mi('logo', 'ph-image', 'Upload logo'));
+          items.push(mi('move', 'ph-folder-open', 'Move folder'));
+          items.push(life === 'archived' ? mi('unarchive', 'ph-arrow-counter-clockwise', 'Unarchive') : mi('archive', 'ph-archive-box', 'Archive'));
+          items.push('<hr class="sepline" />');
+          items.push(mi('trash', 'ph-trash', 'Delete', true));
+        }
+        menu.innerHTML = items.join('');
+        menu.dataset.id = id;
+        menu.classList.remove('hidden');
+        var r = gear.getBoundingClientRect(), mw = 198;
+        var left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+        var top = r.bottom + 6;
+        if (top + menu.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 6);
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+      }
+      function closeCardMenu() { document.getElementById('card-menu').classList.add('hidden'); }
+      document.getElementById('card-menu').addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        var id = +this.dataset.id, p = byId(id), act = b.dataset.act;
+        closeCardMenu(); if (!p) return;
+        if (act === 'rename') startRename(id);
+        else if (act === 'logo') { pendingLogoId = id; document.getElementById('logo-input').click(); }
+        else if (act === 'move') openMoveModal(id);
+        else if (act === 'archive') {
+          var aPrev = p.lifecycle || 'active'; p.lifecycle = 'archived'; delete p.trashedAt; renderAll();
+          showToast('Archived "' + p.domain + '"', function () { p.lifecycle = aPrev; renderAll(); });
+        }
+        else if (act === 'unarchive') { p.lifecycle = 'active'; renderAll(); }
+        else if (act === 'trash') {
+          var tPrev = p.lifecycle || 'active'; p.lifecycle = 'trashed'; p.trashedAt = Date.now(); renderAll();
+          showToast('Moved "' + p.domain + '" to trash', function () { p.lifecycle = tPrev; delete p.trashedAt; renderAll(); });
+        }
+        else if (act === 'restore') { p.lifecycle = 'active'; delete p.trashedAt; renderAll(); }
+        else if (act === 'purge') {
+          if (!window.confirm('Permanently delete project "' + p.domain + '"?\nThis action cannot be undone.')) return;
+          PROJECTS = PROJECTS.filter(function (x) { return x.id !== id; }); renderAll();
+        }
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('#card-menu') && !e.target.closest('.card-gear')) closeCardMenu();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCardMenu(); });
+      document.querySelector('main').addEventListener('scroll', closeCardMenu, true);
+      window.addEventListener('resize', closeCardMenu);
+
+      /* ---------- rename inline ---------- */
+      function startRename(id) {
+        var p = byId(id); if (!p) return;
+        var h = document.querySelector('#view-' + state.view + ' .pcard[data-id="' + id + '"] h3');
+        if (!h) return;
+        var card = h.closest('.pcard'); if (card) card.setAttribute('draggable', 'false');
+        var inp = document.createElement('input');
+        inp.value = p.domain;
+        inp.className = 'min-w-0 flex-1 rounded border border-primary/40 bg-background px-1.5 py-0.5 text-sm font-semibold outline-none ring-ring focus:ring-2';
+        h.replaceWith(inp); inp.focus(); inp.select();
+        var done = false;
+        function save() { if (done) return; done = true; var v = inp.value.trim(); if (v) p.domain = v; renderAll(); }
+        inp.addEventListener('blur', save);
+        inp.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+        inp.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+          else if (e.key === 'Escape') { done = true; renderAll(); }
+        });
+      }
+
+      /* ---------- logo upload ---------- */
+      document.getElementById('logo-input').addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0];
+        if (f && pendingLogoId) {
+          var rd = new FileReader();
+          rd.onload = function () { var p = byId(pendingLogoId); if (p) { p.logo = rd.result; renderAll(); } pendingLogoId = null; };
+          rd.readAsDataURL(f);
+        }
+        e.target.value = '';
+      });
+
+      /* ---------- move modal ---------- */
+      function openMoveModal(id) {
+        var p = byId(id); if (!p) return;
+        pendingMoveId = id;
+        document.getElementById('mv-domain').textContent = p.domain;
+        var sel = document.getElementById('mv-folder'), opts = '<option value="">Uncategorized</option>';
+        FOLDERS.filter(function (f) { return !f.parentId; }).forEach(function (f) {
+          opts += '<option value="' + f.id + '">' + escapeHtml(f.name) + '</option>';
+          childFolders(f.id).forEach(function (c) { opts += '<option value="' + c.id + '">  — ' + escapeHtml(c.name) + '</option>'; });
+        });
+        sel.innerHTML = opts;
+        sel.value = p.folderId || '';
+        openModal('m-move');
+      }
+      document.getElementById('mv-save').addEventListener('click', function () {
+        var p = byId(pendingMoveId); if (!p) return;
+        p.folderId = document.getElementById('mv-folder').value || null;
+        p.lifecycle = 'active'; delete p.trashedAt;
+        closeModal(document.getElementById('m-move'));
+        renderAll();
+      });
+
+      /* ====================== PROJECT DETAIL (report) ====================== */
+      var detailId = null, detailView = 'list', detailSvc = 'all';
+      var ORDST = {
+        planned:  { label: 'Planned',   color: '#94a3b8' },
+        progress: { label: 'In progress', color: '#2563eb' },
+        review:   { label: 'In review',       color: '#f59e0b' },
+        completed:{ label: 'Completed',      color: '#10b981' }
+      };
+      var ORDST_ORDER = ['planned', 'progress', 'review', 'completed'];
+      var ORDEF = {
+        backlink: { t: 'Backlink Entity',  sub: '80 profile · NAP, citations' },
+        content:  { t: 'Content SEO/GEO',  sub: '~1,500 words · E-E-A-T' },
+        indexer:  { t: 'Indexer Pro',      sub: '10k URL · retry' },
+        audit:    { t: 'Website audit',    sub: '200+ criteria' },
+        optimize: { t: 'Speed optimization',    sub: 'LCP · INP · CLS' },
+        keyword:  { t: 'Keyword map',      sub: 'keyword cluster' },
+        design:   { t: 'Design landing', sub: '1 landing page' }
+      };
+      var ORPRE = { backlink:'BL', content:'CT', indexer:'IDX', audit:'AD', optimize:'OP', keyword:'KW', design:'WD' };
+      var TEAM = ['Sophie Lane', 'Daniel Brooks', 'Emily Hart', 'Ryan Cole', 'Grace Lee'];
+      var SVC_COST = { backlink:3900000, content:6500000, indexer:1500000, audit:2900000, optimize:4500000, keyword:2500000, design:5000000 };
+      function fmtVND(n) { return '$' + Math.round((n||0)/25000).toLocaleString('en-US'); }
+      function picAvatar(name) {
+        var ini = name.split(' ').slice(-1)[0].slice(0,1) + name.split(' ')[0].slice(0,1);
+        var pal = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ec4899'];
+        var h = 0; for (var i=0;i<name.length;i++) h = name.charCodeAt(i) + ((h<<5)-h);
+        return '<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white" style="background:' + pal[Math.abs(h)%pal.length] + '">' + ini.toUpperCase() + '</span>';
+      }
+      function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+      function ordersForProject(p) {
+        var rows = [], seq = 0, prios = ['high','med','low'];
+        Object.keys(p.services || {}).forEach(function (k) {
+          var s = p.services[k], d = ORDEF[k];
+          function push(st, n) {
+            for (var i = 0; i < n; i++) { seq++;
+              rows.push({ id: ORPRE[k]+'-'+(1000+seq), code: k, t: d.t, sub: d.sub, dom: p.domain, st: st,
+                prog: st === 'progress' ? 20 + ((seq*23) % 70) : (st === 'completed' ? 100 : null),
+                prio: prios[seq % 3], date: daysAgo((seq*3) % 40), pic: TEAM[seq % TEAM.length], cost: SVC_COST[k] || 0,
+                eta: st === 'completed' ? 'Delivered' : (st === 'progress' ? ((seq%6)+1)+' days' : ((seq%7)+2)+' days') });
+            }
+          }
+          push('planned', s.plan); push('progress', s.run); push('completed', s.done);
+        });
+        // move some "in progress" orders to the In review state
+        var pi = 0;
+        rows.forEach(function (o) { if (o.st === 'progress') { if (pi % 3 === 1) { o.st = 'review'; o.prog = 100; o.eta = 'In review'; } pi++; } });
+        return rows;
+      }
+
+      function openProject(id) {
+        if (!byId(id)) return;
+        detailId = id; detailSvc = 'all';
+        document.getElementById('page-head').classList.add('hidden');
+        document.getElementById('board-view').classList.add('hidden');
+        document.getElementById('detail-view').classList.remove('hidden');
+        dSetView('list');
+        renderDetail();
+        var m = document.querySelector('main'); if (m) m.scrollTop = 0;
+      }
+      function closeDetail() {
+        detailId = null;
+        document.getElementById('detail-view').classList.add('hidden');
+        document.getElementById('page-head').classList.remove('hidden');
+        document.getElementById('board-view').classList.remove('hidden');
+      }
+      document.getElementById('detail-back').addEventListener('click', closeDetail);
+
+      var dL = document.getElementById('d-list'), dK = document.getElementById('d-kanban');
+      function dSetView(v) {
+        detailView = v;
+        if (v === 'list') { dL.className = onCls; dK.className = offCls; }
+        else { dK.className = onCls; dL.className = offCls; }
+      }
+      dL.addEventListener('click', function () { dSetView('list'); renderDetail(); });
+      dK.addEventListener('click', function () { dSetView('kanban'); renderDetail(); });
+
+      function crumbLink(folder, label) {
+        return '<button class="crumb-link" data-folder="' + folder + '">' + escapeHtml(label) + '</button>';
+      }
+      function detailBreadcrumb(p) {
+        var sep = '<i class="ph-bold ph-caret-right text-muted-foreground/40" style="font-size:.7rem"></i>';
+        var parts = [crumbLink('all', 'Projects')];
+        if (p.lifecycle === 'archived') parts.push(crumbLink('archive', 'Archive'));
+        else if (p.lifecycle === 'trashed') parts.push(crumbLink('trash', 'Trash'));
+        else if (p.folderId) {
+          var f = folderById(p.folderId);
+          if (f) {
+            if (f.parentId) { var par = folderById(f.parentId); if (par) parts.push(crumbLink(par.id, par.name)); }
+            parts.push(crumbLink(f.id, f.name));
+          }
+        } else parts.push(crumbLink('unfiled', 'Uncategorized'));
+        parts.push('<span class="font-semibold text-foreground">' + escapeHtml(p.domain) + '</span>');
+        return parts.join(sep);
+      }
+      function miniStat(ic, label, v, cl) {
+        return '<div class="rounded-xl border border-border bg-card px-3 py-2"><div class="flex items-center gap-1 text-[11px] text-muted-foreground"><i class="ph-bold ' + ic + ' ' + cl + '"></i> ' + label + '</div><p class="mt-0.5 text-lg font-bold">' + v + '</p></div>';
+      }
+      function statChip(color, label, v) {
+        return '<span class="inline-flex items-center gap-1.5"><span class="cdot" style="background:' + color + '"></span>' + label + ' <b class="font-bold tabular-nums">' + v + '</b></span>';
+      }
+      function detailHeadHtml(p, orders) {
+        var st = STATUS[p.status];
+        var plan = orders.filter(function (o){return o.st==='planned';}).length;
+        var run = orders.filter(function (o){return o.st==='progress';}).length;
+        var review = orders.filter(function (o){return o.st==='review';}).length;
+        var done = orders.filter(function (o){return o.st==='completed';}).length;
+        var cost = orders.reduce(function (a, o){ return a + (o.cost || 0); }, 0);
+        return '<div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">'
+          + favEl(p)
+          + '<h2 class="display text-lg font-semibold tracking-tight">' + escapeHtml(p.domain) + '</h2>'
+          + '<span class="pill" style="background:' + st.color + '1f;color:' + st.color + '"><i class="ph-bold ' + st.icon + '"></i> ' + st.label + '</span>'
+          + labelDots(p)
+          + '</div>'
+          + (p.note ? '<p class="mt-1.5 truncate text-[13px] text-muted-foreground">' + escapeHtml(p.note) + '</p>' : '')
+          + '<div class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border pt-2.5 text-sm">'
+            + '<span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-stack text-primary"></i> Total orders <b class="font-bold tabular-nums">' + orders.length + '</b></span>'
+            + statChip('#94a3b8', 'Planned', plan)
+            + statChip('#2563eb', 'In progress', run)
+            + statChip('#f59e0b', 'In review', review)
+            + statChip('#10b981', 'Completed', done)
+            + '<span class="inline-flex items-center gap-1.5 lg:ml-auto"><i class="ph-bold ph-wallet text-primary"></i> Total cost <b class="font-bold tabular-nums">' + fmtVND(cost) + '</b></span>'
+          + '</div>';
+      }
+      function pillBtn(f, label, icon) {
+        var act = detailSvc === f;
+        return '<button data-f="' + f + '" class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition '
+          + (act ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent') + '">'
+          + '<i class="ph-bold ' + icon + '"></i> ' + label + '</button>';
+      }
+      function orderRow(o, idx) {
+        var s = ORDST[o.st];
+        var prog = o.st === 'review'
+          ? '<span class="text-[11px] font-semibold text-amber-600">Awaiting your review</span>'
+          : (o.prog != null
+            ? '<div class="flex items-center gap-2"><span class="bar w-24"><i style="width:' + o.prog + '%"></i></span><span class="text-[11px] font-semibold" style="color:' + (o.st === 'completed' ? '#059669' : '#2563eb') + '">' + o.prog + '%</span></div>'
+            : '<span class="text-[11px] text-muted-foreground">Awaiting kickoff</span>');
+        return '<tr class="border-b border-border/60 transition hover:bg-accent/40">'
+          + '<td class="px-4 py-3 text-center text-xs font-semibold text-muted-foreground">' + idx + '</td>'
+          + '<td class="px-3 py-3"><span class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#' + o.id + '</span><div class="mt-1 text-[11px] text-muted-foreground">' + o.date + '</div></td>'
+          + '<td class="px-3 py-3"><div class="flex items-center gap-2.5"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ' + SVC[o.code].icon + '"></i></span><div><p class="font-semibold leading-tight">' + o.t + '</p><p class="text-[11px] text-muted-foreground">' + o.sub + '</p><a href="https://' + encodeURI(o.dom) + '" target="_blank" rel="noopener" class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"><i class="ph-bold ph-link"></i>' + escapeHtml(o.dom) + '</a></div></div></td>'
+          + '<td class="px-3 py-3"><span class="inline-flex items-center gap-1.5 whitespace-nowrap">' + picAvatar(o.pic) + '<span class="text-[13px]">' + o.pic + '</span></span></td>'
+          + '<td class="px-3 py-3"><span class="pill" style="background:' + s.color + '1f;color:' + s.color + '">● ' + s.label + '</span></td>'
+          + '<td class="px-3 py-3">' + prog + '</td>'
+          + '<td class="px-3 py-3"><span class="prio prio-' + o.prio + '">' + o.prio.toUpperCase() + '</span></td>'
+          + '<td class="px-3 py-3 whitespace-nowrap font-semibold tabular-nums">' + fmtVND(o.cost) + '</td>'
+          + '<td class="px-4 py-3 text-right font-semibold' + (o.st === 'completed' ? ' text-emerald-600' : '') + '">' + o.eta + '</td>'
+          + '</tr>';
+      }
+      function renderDetailList(orders) {
+        var total = orders.reduce(function (a, o) { return a + (o.cost || 0); }, 0);
+        var tfoot = orders.length
+          ? '<tfoot><tr class="border-t-2 border-border font-semibold"><td colspan="7" class="px-3 py-3 text-right text-muted-foreground">Total cost</td><td class="px-3 py-3 whitespace-nowrap tabular-nums text-primary">' + fmtVND(total) + '</td><td></td></tr></tfoot>'
+          : '';
+        var t = '<table class="w-full min-w-[920px] text-left text-sm"><thead><tr class="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">'
+          + '<th class="px-4 py-3 text-center">STT</th><th class="px-3 py-3">Code</th><th class="px-3 py-3">Order / service</th><th class="px-3 py-3">Owner</th><th class="px-3 py-3">Status</th><th class="px-3 py-3">Progress</th><th class="px-3 py-3">Priority</th><th class="px-3 py-3">Cost</th><th class="px-4 py-3 text-right">ETA</th></tr></thead><tbody>'
+          + orders.map(function (o, i) { return orderRow(o, i + 1); }).join('') + '</tbody>' + tfoot + '</table>';
+        document.getElementById('d-view-list').innerHTML = t;
+      }
+      function orderCard(o) {
+        var foot = o.st === 'review'
+          ? '<p class="mt-2 text-right text-[11px] font-bold text-amber-600">Awaiting your review</p>'
+          : (o.prog != null
+            ? '<div class="mt-2 bar"><i style="width:' + o.prog + '%"></i></div><p class="mt-1 text-right text-[11px] font-bold" style="color:' + (o.st === 'completed' ? '#059669' : '#2563eb') + '">' + o.prog + '%</p>'
+            : '<p class="mt-2 text-right text-[11px] font-semibold text-muted-foreground">' + o.eta + '</p>');
+        return '<article class="kcard"><div class="flex items-start justify-between gap-2"><h4 class="text-sm font-semibold">' + o.t + '</h4><span class="prio prio-' + o.prio + '">' + o.prio.toUpperCase() + '</span></div>'
+          + '<p class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><i class="ph-bold ' + SVC[o.code].icon + '"></i> ' + o.sub + '</p>'
+          + '<a href="https://' + encodeURI(o.dom) + '" target="_blank" rel="noopener" class="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"><i class="ph-bold ph-link"></i>' + escapeHtml(o.dom) + '</a>'
+          + '<div class="mt-1.5 flex items-center justify-between"><span class="inline-flex items-center gap-1.5">' + picAvatar(o.pic) + '<span class="text-[11px] text-muted-foreground">' + o.pic + '</span></span><span class="text-[11px] font-semibold tabular-nums">' + fmtVND(o.cost) + '</span></div>'
+          + '<p class="mt-1.5"><span class="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#' + o.id + '</span></p>'
+          + foot + '</article>';
+      }
+      function renderDetailKanban(orders) {
+        document.getElementById('d-view-kanban').innerHTML = ORDST_ORDER.map(function (st) {
+          var s = ORDST[st], items = orders.filter(function (o) { return o.st === st; });
+          var cards = items.map(orderCard).join('') || '<p class="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[11px] text-muted-foreground">Empty</p>';
+          return '<div class="kcol"><div class="mb-2.5 flex items-center gap-2 px-1"><span class="cdot" style="background:' + s.color + '"></span><h4 class="text-sm font-semibold">' + s.label + '</h4><span class="folder-count">' + items.length + '</span></div><div class="space-y-2.5">' + cards + '</div></div>';
+        }).join('');
+      }
+      function renderDetail() {
+        var p = byId(detailId); if (!p) return;
+        var all = ordersForProject(p);
+        document.getElementById('detail-head').innerHTML = detailHeadHtml(p, all);
+        var cb = document.getElementById('detail-crumb');
+        cb.innerHTML = detailBreadcrumb(p);
+        Array.prototype.forEach.call(cb.querySelectorAll('.crumb-link'), function (b) {
+          b.addEventListener('click', function () { state.folder = b.dataset.folder; closeDetail(); renderAll(); });
+        });
+        var fb = document.getElementById('d-svc-filter');
+        var svcKeys = Object.keys(p.services || {});
+        fb.innerHTML = pillBtn('all', 'All', 'ph-squares-four') + svcKeys.map(function (k) { return pillBtn(k, SVC[k].label, SVC[k].icon); }).join('');
+        Array.prototype.forEach.call(fb.querySelectorAll('[data-f]'), function (b) {
+          b.addEventListener('click', function () { detailSvc = b.dataset.f; renderDetail(); });
+        });
+        var orders = all.filter(function (o) { return detailSvc === 'all' || o.code === detailSvc; });
+        document.getElementById('d-empty').classList.toggle('hidden', orders.length > 0);
+        var vL = document.getElementById('d-view-list'), vK = document.getElementById('d-view-kanban');
+        if (!orders.length) { vL.style.display = 'none'; vK.style.display = 'none'; }
+        else if (detailView === 'list') { vL.style.display = ''; vK.style.display = 'none'; renderDetailList(orders); }
+        else { vL.style.display = 'none'; vK.style.display = 'flex'; renderDetailKanban(orders); }
+      }
+
+      /* ---------- toast (undo) ---------- */
+      var toastTimer = null;
+      function hideToast() { document.getElementById('toast').classList.add('hidden'); }
+      function showToast(msg, undoFn) {
+        var t = document.getElementById('toast');
+        t.innerHTML = '<span></span>' + (undoFn ? '<button class="undo">Undo</button>' : '');
+        t.firstChild.textContent = msg;
+        t.classList.remove('hidden');
+        if (undoFn) t.querySelector('.undo').onclick = function () { undoFn(); hideToast(); };
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 5000);
+      }
+
+      /* ---------- order more services ---------- */
+      var pendingAddId = null;
+      document.getElementById('d-add-svc').addEventListener('click', function () {
+        var p = byId(detailId); if (!p) return;
+        pendingAddId = detailId;
+        document.getElementById('as-domain').textContent = p.domain;
+        document.getElementById('as-svc').innerHTML = Object.keys(SVC).map(function (k) { return '<option value="' + k + '">' + SVC[k].label + '</option>'; }).join('');
+        document.getElementById('as-qty').value = '1';
+        openModal('m-addsvc');
+      });
+      document.getElementById('as-save').addEventListener('click', function () {
+        var p = byId(pendingAddId); if (!p) return;
+        var k = document.getElementById('as-svc').value;
+        var qty = Math.max(1, parseInt(document.getElementById('as-qty').value, 10) || 1);
+        if (!p.services) p.services = {};
+        if (!p.services[k]) p.services[k] = { plan: 0, run: 0, done: 0 };
+        p.services[k].plan += qty;
+        p.status = deriveStatus(p);
+        closeModal(document.getElementById('m-addsvc'));
+        renderDetail(); renderAll();
+        showToast('Added ' + qty + ' ' + SVC[k].label + ' order(s) to "' + p.domain + '"');
+      });
+
+      /* ---------- master render ---------- */
+      function renderAll() {
+        renderFolders();
+        renderLabels();
+        renderKPI();
+        // breadcrumb + count
+        var crumb = state.folder === 'all' ? 'All projects'
+          : state.folder === 'unfiled' ? 'Uncategorized'
+          : state.folder === 'archive' ? 'Archive'
+          : state.folder === 'trash' ? 'Trash'
+          : (folderById(state.folder) ? folderById(state.folder).name : 'Folder');
+        document.getElementById('crumb').textContent = crumb;
+        document.getElementById('hd-count').textContent = PROJECTS.filter(isActive).length + ' projects';
+
+        var data = visibleProjects();
+        document.getElementById('empty').classList.toggle('hidden', data.length > 0);
+        if (data.length === 0) {
+          var ei = document.getElementById('empty-icon'), et = document.getElementById('empty-title'), es = document.getElementById('empty-sub');
+          if (state.folder === 'trash') { ei.className = 'ph-bold ph-trash text-3xl text-muted-foreground'; et.textContent = 'Trash is empty'; es.textContent = 'Deleted projects stay here for 30 days before being auto-deleted.'; }
+          else if (state.folder === 'archive') { ei.className = 'ph-bold ph-archive-box text-3xl text-muted-foreground'; et.textContent = 'No archived projects'; es.textContent = 'Archive to tuck projects away without deleting them.'; }
+          else { ei.className = 'ph-bold ph-folder-dashed text-3xl text-muted-foreground'; et.textContent = 'No matching projects'; es.textContent = 'Try adjusting the filters, or create a new project.'; }
+        }
+
+        var vList = document.getElementById('view-list'), vKan = document.getElementById('view-kanban');
+        if (state.view === 'list') {
+          vList.style.display = ''; vKan.style.display = 'none';
+          renderList(data);
+        } else {
+          vList.style.display = 'none'; vKan.style.display = 'flex';
+          renderKanban(data);
+        }
+        persist();
+      }
+
+      /* ---------- toolbar wiring ---------- */
+      document.getElementById('search').addEventListener('input', function (e) { state.search = e.target.value; renderAll(); });
+      document.getElementById('f-status').addEventListener('change', function (e) { state.status = e.target.value; renderAll(); });
+      document.getElementById('f-svc').addEventListener('change', function (e) { state.svc = e.target.value; renderAll(); });
+
+      var bList = document.getElementById('btn-list'), bKan = document.getElementById('btn-kanban');
+      var onCls = 'rounded-md bg-card px-2.5 py-1.5 shadow-sm';
+      var offCls = 'rounded-md px-2.5 py-1.5 text-muted-foreground';
+      bList.addEventListener('click', function () { state.view = 'list'; bList.className = onCls; bKan.className = offCls; renderAll(); });
+      bKan.addEventListener('click', function () { state.view = 'kanban'; bKan.className = onCls; bList.className = offCls; renderAll(); });
+
+      /* ---------- modal helpers ---------- */
+      function openModal(id) { var m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+      function closeModal(m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+      document.querySelectorAll('[data-close]').forEach(function (b) {
+        b.addEventListener('click', function () { closeModal(b.closest('.fixed')); });
+      });
+      [document.getElementById('m-folder'), document.getElementById('m-project'), document.getElementById('m-move'), document.getElementById('m-addsvc')].forEach(function (m) {
+        m.addEventListener('click', function (e) { if (e.target === m) closeModal(m); });
+      });
+
+      /* ---------- new folder ---------- */
+      var pickedColor = PALETTE[0];
+      function renderColorSwatches() {
+        document.getElementById('nf-colors').innerHTML = PALETTE.map(function (c) {
+          return '<button class="sw h-7 w-7 rounded-full transition" data-c="' + c + '" style="background:' + c + (c === pickedColor ? ';box-shadow:0 0 0 2px hsl(var(--card)),0 0 0 4px ' + c : '') + '"></button>';
+        }).join('');
+        Array.prototype.forEach.call(document.querySelectorAll('#nf-colors .sw'), function (s) {
+          s.addEventListener('click', function () { pickedColor = s.dataset.c; renderColorSwatches(); });
+        });
+      }
+      function openFolderModal() {
+        pickedColor = PALETTE[FOLDERS.length % PALETTE.length];
+        renderColorSwatches();
+        document.getElementById('nf-name').value = '';
+        var psel = document.getElementById('nf-parent');
+        psel.innerHTML = '<option value="">— None (root folder)</option>'
+          + FOLDERS.filter(function (f) { return !f.parentId; }).map(function (f) { return '<option value="' + f.id + '">' + escapeHtml(f.name) + '</option>'; }).join('');
+        var cur = folderById(state.folder);
+        if (cur) psel.value = cur.parentId || cur.id; // suggest the parent folder based on current selection
+        openModal('m-folder');
+        document.getElementById('nf-name').focus();
+      }
+      document.getElementById('btn-new-folder').addEventListener('click', openFolderModal);
+      document.getElementById('btn-new-folder-2').addEventListener('click', openFolderModal);
+      document.getElementById('nf-save').addEventListener('click', function () {
+        var name = document.getElementById('nf-name').value.trim();
+        if (!name) { document.getElementById('nf-name').focus(); return; }
+        var id = 'f' + Date.now();
+        FOLDERS.push({ id: id, name: name, color: pickedColor, parentId: document.getElementById('nf-parent').value || null });
+        state.folder = id;
+        closeModal(document.getElementById('m-folder'));
+        renderAll();
+      });
+
+      /* ---------- new project ---------- */
+      var npLabels = {};
+      function openProjectModal() {
+        var sel = document.getElementById('np-folder');
+        var opts = '<option value="">Uncategorized</option>';
+        FOLDERS.filter(function (f) { return !f.parentId; }).forEach(function (f) {
+          opts += '<option value="' + f.id + '">' + escapeHtml(f.name) + '</option>';
+          childFolders(f.id).forEach(function (c) { opts += '<option value="' + c.id + '">  — ' + escapeHtml(c.name) + '</option>'; });
+        });
+        sel.innerHTML = opts;
+        if (state.folder !== 'all' && state.folder !== 'unfiled') sel.value = state.folder;
+        npLabels = {};
+        document.getElementById('np-labels').innerHTML = LABELS.map(function (l) {
+          return '<button class="nplbl chip" data-l="' + l.id + '" style="background:' + l.color + '1f;color:' + l.color + '"><span class="cdot" style="background:' + l.color + '"></span>' + l.name + '</button>';
+        }).join('');
+        Array.prototype.forEach.call(document.querySelectorAll('#np-labels .nplbl'), function (b) {
+          b.addEventListener('click', function () {
+            var id = b.dataset.l, l = labelById(id);
+            npLabels[id] = !npLabels[id];
+            b.style.background = npLabels[id] ? l.color : l.color + '1f';
+            b.style.color = npLabels[id] ? '#fff' : l.color;
+            b.querySelector('.cdot').style.background = npLabels[id] ? '#fff' : l.color;
+          });
+        });
+        document.getElementById('np-domain').value = '';
+        document.getElementById('np-note').value = '';
+        openModal('m-project');
+        document.getElementById('np-domain').focus();
+      }
+      document.getElementById('btn-new-project').addEventListener('click', openProjectModal);
+      document.getElementById('np-save').addEventListener('click', function () {
+        var dom = document.getElementById('np-domain').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (!dom) { document.getElementById('np-domain').focus(); return; }
+        var fid = document.getElementById('np-folder').value || null;
+        PROJECTS.unshift({ id: nextId++, domain: dom, folderId: fid, labels: Object.keys(npLabels).filter(function (k) { return npLabels[k]; }),
+          note: document.getElementById('np-note').value.trim(), updated: 'Just created', services: {}, status: 'planned' });
+        state.folder = fid || 'unfiled';
+        closeModal(document.getElementById('m-project'));
+        renderAll();
+      });
+
+      /* keyboard: ESC closes modals */
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { ['m-folder', 'm-project', 'm-move', 'm-addsvc'].forEach(function (id) { closeModal(document.getElementById(id)); }); }
+      });
+
+      renderAll();
+
+      // open a project directly when navigating from the dashboard: projects.html?p=domain
+      (function () {
+        try {
+          var pd = new URLSearchParams(location.search).get('p');
+          if (pd) {
+            var m = PROJECTS.filter(function (x) { return x.domain === pd; })[0];
+            if (m) openProject(m.id);
+          }
+        } catch (e) {}
+      })();
+    })();
+  </script>
+</body>
+</html>

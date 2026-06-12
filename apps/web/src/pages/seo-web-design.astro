@@ -1,0 +1,1089 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="SEO Web Design — Rank Sustainably | HevaSEO"
+  description="HevaSEO's SEO web design service: fast loads, green Core Web Vitals, clean on-page, mobile-first responsive, schema, and Search Console integration. 4 plans from $18."
+  keywords="seo web design, seo-friendly web design, seo website design service, seo-ready website, build seo website, landing page design"
+  ogDescription="A website that loads fast, hits Core Web Vitals, is on-page clean, and ready to rank on Google. 4 transparent plans from $18."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "SEO-ready web design",
+        "serviceType": "SEO-friendly web design",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "SEO-ready web design: speed optimization, Core Web Vitals, clean on-page, mobile-first responsive, schema markup, and Google Search Console integration.",
+        "offers": [
+          { "@type": "Offer", "name": "Basic", "price": "18", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Advanced", "price": "54", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Comprehensive", "price": "240", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Premium", "price": "360", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "SEO Web Design", "item": "https://hevaseo.com/seo-web-design" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "How is an SEO-ready site different from a regular one?", "acceptedAnswer": { "@type": "Answer", "text": "An SEO-ready site is optimized from the source code up: fast loads, green Core Web Vitals, a sensible heading and URL structure, schema markup, and readiness for Google to crawl and index. A regular site usually only focuses on appearance." } },
+          { "@type": "Question", "name": "How long does SEO web design take?", "acceptedAnswer": { "@type": "Answer", "text": "Depends on the plan: a 1-page landing page about 3–5 days, a multi-page website 7–15 days, a comprehensive project 15–30 business days." } },
+          { "@type": "Question", "name": "Will the site rank on Google right after it's built?", "acceptedAnswer": { "@type": "Answer", "text": "SEO-ready design builds a strong technical foundation that makes ranking easier. However, rankings also depend on content and backlinks — that's the SEO work that comes after the site is finished." } },
+          { "@type": "Question", "name": "Does the price include domain and hosting?", "acceptedAnswer": { "@type": "Answer", "text": "The design price covers building the website. Domain and hosting are billed separately by the provider; HevaSEO advises and sets them up for free." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ===== Page flourishes — SEO web design ===== */
+    /* shared hero background (synced across service pages) */
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .hero-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    @property --tkwv { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    /* animated score gauges (conic ring fills on reveal) */
+    .tkw-gauge { position: relative; width: 84px; height: 84px; border-radius: 50%;
+      display: grid; place-items: center; --tkwv: 0;
+      background: conic-gradient(var(--gc, hsl(var(--primary))) calc(var(--tkwv) * 1%), hsl(var(--muted)) 0); }
+    .tkw-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: hsl(var(--card)); }
+    .tkw-gauge b { position: relative; font-family: '"Inter Tight"', Inter, sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1; }
+    [data-reveal].is-visible .tkw-gauge { transition: --tkwv 1.5s cubic-bezier(.16,1,.3,1); transition-delay: var(--gd, .2s); --tkwv: var(--to, 0); }
+
+    /* animated metric bars */
+    .tkw-bar { position: relative; height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .tkw-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+    [data-reveal].is-visible .tkw-bar > i { animation: tkwBar 1.4s cubic-bezier(.16,1,.3,1) forwards; animation-delay: var(--bd, .3s); }
+    @keyframes tkwBar { to { width: var(--bw, 100%); } }
+
+    /* scanning sheen across the scorecard */
+    .tkw-scan { position: relative; overflow: hidden; }
+    .tkw-scan::after { content: ""; position: absolute; left: 0; right: 0; top: -42%; height: 36%; pointer-events: none; z-index: 5;
+      background: linear-gradient(180deg, hsl(var(--primary) / .16), transparent);
+      animation: tkwScan 3.6s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tkwScan { 0% { transform: translateY(0); } 100% { transform: translateY(380%); } }
+
+    /* floating glass chips around hero card */
+    .tkw-chip { position: absolute; z-index: 30; display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .92);
+      padding: .45rem .8rem; font-size: .78rem; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 10px 28px hsl(213 50% 20% / .14); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      animation: tkwFloat 6s ease-in-out infinite; }
+    .dark .tkw-chip { box-shadow: 0 10px 28px hsl(0 0% 0% / .4); }
+    .tkw-chip.d2 { animation-duration: 7.4s; animation-delay: -2.2s; }
+    .tkw-chip.d3 { animation-duration: 8.6s; animation-delay: -4.1s; }
+    @keyframes tkwFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+
+    /* card hover lift + icon pop */
+    .tkw-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .tkw-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .tkw-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+    .tkw-ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .tkw-card:hover .tkw-ic, .tkw-step:hover .tkw-ic { transform: scale(1.14) rotate(-7deg); }
+
+    /* feature-card graphics */
+    .tkw-figure { position: relative; height: 10.5rem; overflow: hidden;
+      background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .14), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .13) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .2), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure svg { position: relative; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .tkw-figure svg { transform: scale(1.04); }
+    .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(213 50% 25% / .15)); }
+    .dark .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(0 0% 0% / .5)); }
+    .tkw-figure .glow { filter: drop-shadow(0 0 5px hsl(var(--primary) / .5)); }
+    /* hero guarantee pills */
+    .tkw-guar { transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+    .tkw-guar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px hsl(213 60% 30% / .18); }
+    /* warning (pain-point) variant — red tint */
+    .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .13), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .12) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .22), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure .glow-warn { filter: drop-shadow(0 0 5px hsl(var(--destructive) / .45)); }
+    .tkw-arc { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-arc { animation: tkwArc 1.5s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    @keyframes tkwArc { to { stroke-dashoffset: var(--arc, 10); } }
+    .tkw-draw { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-draw { animation: tkwDraw 1.6s cubic-bezier(.16,1,.3,1) .25s forwards; }
+    @keyframes tkwDraw { to { stroke-dashoffset: 0; } }
+    .tkw-pop { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: center; }
+    [data-reveal].is-visible .tkw-pop { animation: tkwPop .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .tkw-pop.p1 { animation-delay: .25s; } .tkw-pop.p2 { animation-delay: .4s; }
+    .tkw-pop.p3 { animation-delay: .55s; } .tkw-pop.p4 { animation-delay: .7s; } .tkw-pop.p5 { animation-delay: .85s; }
+    @keyframes tkwPop { to { opacity: 1; transform: scale(1); } }
+
+    /* staggered reveal inside grids */
+    .tkw-grid > [data-reveal]:nth-child(2) { transition-delay: .07s; }
+    .tkw-grid > [data-reveal]:nth-child(3) { transition-delay: .14s; }
+    .tkw-grid > [data-reveal]:nth-child(4) { transition-delay: .21s; }
+    .tkw-grid > [data-reveal]:nth-child(5) { transition-delay: .28s; }
+    .tkw-grid > [data-reveal]:nth-child(6) { transition-delay: .35s; }
+
+    /* gradient number */
+    .tkw-num { background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 95% 62%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* shimmer sweep on featured badge */
+    .tkw-shine { position: relative; overflow: hidden; }
+    .tkw-shine::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(105deg, transparent 30%, hsl(0 0% 100% / .55) 50%, transparent 70%);
+      transform: translateX(-130%); animation: tkwShine 3.4s ease-in-out infinite; }
+    @keyframes tkwShine { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+    /* pulsing live ring */
+    .tkw-live { position: relative; }
+    .tkw-live::before { content: ""; position: absolute; inset: -5px; border-radius: 999px; border: 2px solid hsl(142 70% 45% / .6); animation: tkwPing 1.8s ease-out infinite; }
+    @keyframes tkwPing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tkw-scan::after, .tkw-chip, .tkw-shine::after, .tkw-live::before { animation: none !important; }
+      .tkw-chip { transform: none !important; }
+      [data-reveal].is-visible .tkw-gauge { transition: none; --tkwv: var(--to,0); }
+      [data-reveal].is-visible .tkw-bar > i { animation: none; width: var(--bw,100%); }
+      .tkw-arc, .tkw-draw { stroke-dashoffset: 0 !important; animation: none !important; }
+      .tkw-pop { opacity: 1 !important; transform: none !important; animation: none !important; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-6 pb-16 lg:pt-8 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <!-- breadcrumb -->
+        <nav data-reveal class="mb-8 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <a href="/#top" class="transition hover:text-primary">Home</a>
+          <i class="ph-bold ph-caret-right text-xs"></i>
+          <span class="text-foreground">SEO Web Design</span>
+        </nav>
+
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <h1 class="font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Beautiful websites are everywhere,<br class="hidden sm:block" /> web <span class="text-primary">ranking</span> is the rare part.
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              Not just beautiful — your website is optimized from the source code up: <b class="font-semibold text-foreground">fast loads, green Core Web Vitals, clean on-page</b> and ready for Google to crawl and rank. A solid foundation for your SEO campaign to take off.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#cac-goi" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                View 4 plans <i class="ph-bold ph-arrow-down"></i>
+              </a>
+              <a href="#lienhe" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                Get a free consultation
+              </a>
+            </div>
+            <div class="mt-7 flex flex-wrap gap-2.5">
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-shield-check text-sm"></i></span> 12-month warranty</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-headset text-sm"></i></span> 24/7 support</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-clock-countdown text-sm"></i></span> On time or your money back</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-seal-percent text-sm"></i></span> 10% off your next order</span>
+            </div>
+
+            <!-- SAMPLE FIGURES: replace with real numbers -->
+            <div data-reveal class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-border bg-card/70 p-3 pr-5 shadow-sm backdrop-blur">
+              <div class="flex items-center gap-3">
+                <div class="flex -space-x-2.5">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white ring-2 ring-card">M</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white ring-2 ring-card">H</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-xs font-bold text-white ring-2 ring-card">T</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-xs font-bold text-white ring-2 ring-card">L</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-card">+1k</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex text-amber-400"><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i></span>
+                    <span class="text-sm font-bold text-foreground">4.9/5</span>
+                  </div>
+                  <p class="text-xs text-muted-foreground"><b class="font-bold text-foreground"><span data-count="1200">0</span>+</b> customers have ordered</p>
+                </div>
+              </div>
+              <span class="hidden h-10 w-px bg-border sm:block"></span>
+              <div class="flex items-center gap-5">
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="500">0</span>+</p><p class="text-[11px] text-muted-foreground">Projects delivered</p></div>
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="98">0</span>%</p><p class="text-[11px] text-muted-foreground">On time</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- hero visual: animated PageSpeed / SEO scorecard -->
+          <div data-reveal class="relative">
+            <!-- floating glass chips -->
+            <span class="tkw-chip -left-3 top-6 text-primary"><i class="ph-fill ph-gauge"></i> Speed 90+</span>
+            <span class="tkw-chip d2 -right-2 top-1/3 text-emerald-500"><i class="ph-fill ph-device-mobile"></i> Mobile-first</span>
+            <span class="tkw-chip d3 -left-2 bottom-8 text-violet-500"><i class="ph-fill ph-code"></i> Schema ✓</span>
+
+            <div class="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+              <div class="flex items-center gap-2 pb-4">
+                <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-red-400"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400"></i><i class="h-2.5 w-2.5 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-lock-simple"></i> www.your-website.com</span>
+                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500"><span class="tkw-live grid h-2 w-2 place-items-center rounded-full bg-emerald-500"></span> Live</span>
+              </div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Speed &amp; SEO report</p>
+
+              <div class="mt-5 grid grid-cols-4 gap-2 text-center">
+                <div><div class="tkw-gauge mx-auto" style="--to:98;--gc:#22c55e;--gd:.15s"><b class="text-green-500"><span data-count="98" data-decimals="0">0</span></b></div><p class="mt-2 text-[10px] text-muted-foreground">Speed</p></div>
+                <div><div class="tkw-gauge mx-auto" style="--to:100;--gc:#22c55e;--gd:.3s"><b class="text-green-500"><span data-count="100">0</span></b></div><p class="mt-2 text-[10px] text-muted-foreground">SEO</p></div>
+                <div><div class="tkw-gauge mx-auto" style="--to:96;--gc:#22c55e;--gd:.45s"><b class="text-green-500"><span data-count="96">0</span></b></div><p class="mt-2 text-[10px] text-muted-foreground">A11y</p></div>
+                <div><div class="tkw-gauge mx-auto" style="--to:100;--gc:#22c55e;--gd:.6s"><b class="text-green-500"><span data-count="100">0</span></b></div><p class="mt-2 text-[10px] text-muted-foreground">Best</p></div>
+              </div>
+
+              <div class="mt-6 space-y-3 text-sm">
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">LCP — Largest Contentful Paint</span><span class="font-medium text-green-500">1.2s</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:92%;--bd:.4s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">CLS — Layout stability</span><span class="font-medium text-green-500">0.02</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:97%;--bd:.55s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">Mobile-friendly</span><span class="font-medium text-green-500">Pass</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:100%;--bd:.7s"><i></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Sound familiar?</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">A beautiful site that still doesn't bring customers</h2>
+          <p class="mt-3 text-muted-foreground">Most websites fail not because they're ugly, but because they skip the technical foundation that makes Google struggle to read them and visitors leave.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- 1. Slow loading -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Low speed gauge">
+                <defs><linearGradient id="slowArc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient></defs>
+                <g stroke="hsl(var(--muted-foreground) / .3)" stroke-width="2.4" stroke-linecap="round">
+                  <line x1="32" y1="106" x2="40" y2="106"/><line x1="43.8" y1="62" x2="50.7" y2="66"/><line x1="76" y1="29.8" x2="80" y2="36.7"/><line x1="120" y1="18" x2="120" y2="26"/><line x1="164" y1="29.8" x2="160" y2="36.7"/><line x1="196.2" y1="62" x2="189.3" y2="66"/><line x1="208" y1="106" x2="200" y2="106"/>
+                </g>
+                <path d="M44 106 A76 76 0 0 1 196 106" fill="none" stroke="hsl(var(--muted))" stroke-width="15" stroke-linecap="round"/>
+                <path class="tkw-arc glow-warn" style="--arc:66" pathLength="100" d="M44 106 A76 76 0 0 1 196 106" fill="none" stroke="url(#slowArc)" stroke-width="15" stroke-linecap="round"/>
+                <circle class="tkw-pop p3" cx="83" cy="39" r="6.5" fill="#dc2626" stroke="hsl(var(--card))" stroke-width="3"/>
+                <text x="120" y="100" text-anchor="middle" font-size="40" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">34</text>
+                <text x="120" y="126" text-anchor="middle" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="hsl(var(--muted-foreground))">SPEED</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-spinner-gap"></i></span><h3 class="font-semibold">Slow loads, lost customers</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Every extra second raises bounce rate — visitors leave before the page even appears.</p>
+            </div>
+          </article>
+
+          <!-- 2. Google can't understand the site -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Google can't read the content">
+                <g class="lift"><rect x="42" y="20" width="116" height="100" rx="12" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="56" y="36" width="58" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p1" x="56" y="52" width="30" height="6" rx="3" fill="hsl(var(--destructive) / .5)"/>
+                <rect class="tkw-pop p1" x="92" y="52" width="16" height="6" rx="3" fill="hsl(var(--destructive) / .5)"/>
+                <rect x="56" y="68" width="78" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="56" y="80" width="60" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g class="lift">
+                  <circle cx="150" cy="88" r="27" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="5"/>
+                  <line x1="169" y1="107" x2="187" y2="125" stroke="hsl(var(--destructive))" stroke-width="6" stroke-linecap="round"/>
+                  <text x="150" y="99" text-anchor="middle" font-size="30" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">?</text>
+                </g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-magnifying-glass-minus"></i></span><h3 class="font-semibold">Google can't understand the site</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Missing clear headings, schema, and a sitemap, so Google can't index and rank it properly.</p>
+            </div>
+          </article>
+
+          <!-- 3. Broken on mobile -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Broken layout on mobile">
+                <g class="lift">
+                  <rect x="80" y="14" width="62" height="112" rx="13" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="2"/>
+                  <rect x="80" y="14" width="62" height="15" rx="13" fill="hsl(var(--destructive) / .1)"/>
+                  <rect x="100" y="20" width="22" height="3" rx="1.5" fill="hsl(var(--destructive) / .4)"/>
+                </g>
+                <rect class="tkw-pop p1" x="92" y="40" width="80" height="20" rx="4" fill="hsl(var(--destructive) / .18)"/>
+                <rect class="tkw-pop p2" x="92" y="66" width="38" height="8" rx="3" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p2" x="92" y="79" width="68" height="8" rx="3" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p3" x="92" y="92" width="28" height="8" rx="3" fill="hsl(var(--muted))"/>
+                <g class="lift tkw-pop p3">
+                  <path d="M176 92 l19 33 a3 3 0 0 1 -2.6 4.5 h-32.8 a3 3 0 0 1 -2.6 -4.5 z" fill="hsl(var(--destructive))"/>
+                  <rect x="174" y="108" width="4" height="11" rx="2" fill="#fff"/>
+                  <circle cx="176" cy="123" r="2.2" fill="#fff"/>
+                </g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-device-mobile-slash"></i></span><h3 class="font-semibold">Broken on mobile</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Broken layouts, tiny text, hard-to-tap buttons on mobile — while Google judges mobile-first.</p>
+            </div>
+          </article>
+
+          <!-- 4. Costly rebuilds -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Costly website rebuild">
+                <g class="lift" opacity=".9">
+                  <rect x="30" y="30" width="106" height="74" rx="11" fill="hsl(var(--card))" stroke="hsl(var(--border))"/>
+                  <rect x="30" y="30" width="106" height="14" rx="11" fill="hsl(var(--muted) / .5)"/>
+                  <rect x="42" y="54" width="60" height="6" rx="3" fill="hsl(var(--muted))"/>
+                  <rect x="42" y="66" width="82" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                  <rect x="42" y="77" width="50" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                </g>
+                <g class="tkw-pop p1">
+                  <path d="M150 36 A20 20 0 1 1 131 49" fill="none" stroke="hsl(var(--destructive))" stroke-width="5" stroke-linecap="round"/>
+                  <path d="M150 27 l3 13 -12 -3 z" fill="hsl(var(--destructive))"/>
+                </g>
+                <g class="lift tkw-pop p2">
+                  <ellipse cx="172" cy="112" rx="20" ry="6.5" fill="#dc2626"/>
+                  <ellipse cx="172" cy="103" rx="20" ry="6.5" fill="#f87171"/>
+                  <ellipse cx="172" cy="94" rx="20" ry="6.5" fill="#fca5a5" stroke="#dc2626" stroke-width="1.4"/>
+                  <text x="172" y="98" text-anchor="middle" font-size="11" font-weight="800" fill="#dc2626" font-family="Inter Tight, sans-serif">$</text>
+                </g>
+                <path class="tkw-pop p3" d="M132 92 v22 M126 108 l6 7 6 -7" fill="none" stroke="hsl(var(--destructive))" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-arrows-counter-clockwise"></i></span><h3 class="font-semibold">Costly rebuilds</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">A site that wasn't SEO-ready from the start has to be rebuilt when you launch a campaign — a waste.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESS ============ -->
+    <section id="quytrinh" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Process</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">4 steps from idea to launch</h2>
+          <p class="mt-3 text-muted-foreground">You always know where the project stands and what's next.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="tkw-card flex items-start gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-col sm:gap-0">
+            <div class="relative shrink-0">
+              <span class="tkw-ic grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-chats-circle text-2xl"></i></span>
+              <span class="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-primary font-display text-xs font-bold text-primary-foreground shadow-sm shadow-primary/40">1</span>
+            </div>
+            <div class="sm:mt-4">
+              <h3 class="font-semibold">Consult &amp; research</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Understand your industry, competitors, goals, and target keywords before designing.</p>
+            </div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-col sm:gap-0">
+            <div class="relative shrink-0">
+              <span class="tkw-ic grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-layout text-2xl"></i></span>
+              <span class="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-primary font-display text-xs font-bold text-primary-foreground shadow-sm shadow-primary/40">2</span>
+            </div>
+            <div class="sm:mt-4">
+              <h3 class="font-semibold">Structure &amp; design</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Build the sitemap, wireframes, and on-brand UI, approved before coding.</p>
+            </div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-col sm:gap-0">
+            <div class="relative shrink-0">
+              <span class="tkw-ic grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-code text-2xl"></i></span>
+              <span class="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-primary font-display text-xs font-bold text-primary-foreground shadow-sm shadow-primary/40">3</span>
+            </div>
+            <div class="sm:mt-4">
+              <h3 class="font-semibold">Build &amp; optimize SEO</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Clean code, speed optimization, schema, and testing across devices and browsers.</p>
+            </div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-col sm:gap-0">
+            <div class="relative shrink-0">
+              <span class="tkw-ic grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-rocket-launch text-2xl"></i></span>
+              <span class="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-primary font-display text-xs font-bold text-primary-foreground shadow-sm shadow-primary/40">4</span>
+            </div>
+            <div class="sm:mt-4">
+              <h3 class="font-semibold">Handover &amp; training</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Go live on your domain, set up Analytics/Search Console, hand over the source code &amp; admin training.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DELIVERABLES ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">What you get</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">SEO standards in every line of code</h2>
+          <p class="mt-3 text-muted-foreground">Every design plan applies the technical standards below.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+          <!-- 1. Speed & Core Web Vitals -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="Speed gauge">
+                <defs><linearGradient id="tkwSpeed" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fb923c"/><stop offset=".5" stop-color="#facc15"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs>
+                <g stroke="hsl(var(--muted-foreground) / .35)" stroke-width="2.4" stroke-linecap="round">
+                  <line x1="38" y1="116" x2="46" y2="116"/><line x1="48.7" y1="78.2" x2="56.1" y2="81.3"/><line x1="78.2" y1="48.7" x2="81.3" y2="56.1"/><line x1="120" y1="36" x2="120" y2="44"/><line x1="161.8" y1="48.7" x2="158.7" y2="56.1"/><line x1="191.3" y1="78.2" x2="183.9" y2="81.3"/><line x1="202" y1="116" x2="194" y2="116"/>
+                </g>
+                <path d="M42 116 A78 78 0 0 1 198 116" fill="none" stroke="hsl(var(--muted))" stroke-width="15" stroke-linecap="round"/>
+                <path class="tkw-arc glow" style="--arc:3" pathLength="100" d="M42 116 A78 78 0 0 1 198 116" fill="none" stroke="url(#tkwSpeed)" stroke-width="15" stroke-linecap="round"/>
+                <circle class="tkw-pop p3" cx="198" cy="113" r="6.5" fill="#22c55e" stroke="hsl(var(--card))" stroke-width="3"/>
+                <text x="120" y="108" text-anchor="middle" font-size="40" font-weight="800" fill="hsl(var(--foreground))" font-family="Inter Tight, sans-serif">98</text>
+                <text x="120" y="132" text-anchor="middle" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="hsl(var(--muted-foreground))">PERFORMANCE</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-gauge"></i></span><h3 class="font-semibold">Speed &amp; Core Web Vitals optimization</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Image compression, lazy-load, CSS/JS optimization, caching — LCP, CLS, INP in the green.</p>
+            </div>
+          </article>
+
+          <!-- 2. On-page SEO -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="SEO-optimized search result">
+                <g class="lift">
+                  <rect x="30" y="24" width="180" height="102" rx="13" fill="hsl(var(--card))" stroke="hsl(var(--border))"/>
+                </g>
+                <circle cx="50" cy="46" r="9" fill="hsl(var(--primary) / .14)"/>
+                <path d="M50 41 a5 5 0 1 0 .01 0 M45.5 46 h9 M50 41.2 q3 4.8 0 9.6 q-3 -4.8 0 -9.6" fill="none" stroke="hsl(var(--primary))" stroke-width="1.4"/>
+                <rect x="66" y="40" width="56" height="5.5" rx="2.75" fill="hsl(var(--foreground) / .55)"/>
+                <rect x="66" y="49.5" width="84" height="4.5" rx="2.25" fill="#16a34a"/>
+                <rect class="tkw-pop p1" x="42" y="68" width="114" height="9" rx="4.5" fill="#2563eb"/>
+                <rect class="tkw-pop p1" x="42" y="82" width="92" height="9" rx="4.5" fill="#2563eb"/>
+                <rect class="tkw-pop p2" x="42" y="101" width="150" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / .4)"/>
+                <rect class="tkw-pop p2" x="42" y="111" width="124" height="5" rx="2.5" fill="hsl(var(--muted-foreground) / .4)"/>
+                <g class="tkw-pop p3"><rect x="166" y="65" width="30" height="16" rx="5" fill="#2563eb"/><text x="181" y="77.5" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Inter Tight, sans-serif">H1</text></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-text-aa"></i></span><h3 class="font-semibold">On-page SEO</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Proper title tags, meta descriptions, H1–H3 headings, image alt text, and canonicals.</p>
+            </div>
+          </article>
+
+          <!-- 3. Responsive mobile-first -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="Responsive desktop and mobile">
+                <g class="lift">
+                  <rect x="26" y="26" width="146" height="90" rx="11" fill="hsl(var(--card))" stroke="hsl(var(--border))"/>
+                  <rect x="26" y="26" width="146" height="17" rx="11" fill="hsl(var(--primary) / .1)"/>
+                  <circle cx="37" cy="34.5" r="2.2" fill="hsl(var(--primary) / .55)"/><circle cx="45" cy="34.5" r="2.2" fill="hsl(var(--primary) / .3)"/>
+                  <rect class="tkw-pop p1" x="36" y="52" width="126" height="28" rx="6" fill="hsl(var(--primary) / .16)"/>
+                  <rect class="tkw-pop p2" x="36" y="86" width="38" height="22" rx="5" fill="hsl(var(--muted))"/>
+                  <rect class="tkw-pop p2" x="80" y="86" width="38" height="22" rx="5" fill="hsl(var(--muted))"/>
+                  <rect class="tkw-pop p3" x="124" y="86" width="38" height="22" rx="5" fill="hsl(var(--muted))"/>
+                </g>
+                <rect x="84" y="116" width="30" height="5" rx="2.5" fill="hsl(var(--border))"/>
+                <rect x="70" y="122" width="58" height="5" rx="2.5" fill="hsl(var(--border))"/>
+                <g class="lift tkw-pop p2">
+                  <rect x="170" y="46" width="52" height="84" rx="12" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2"/>
+                  <rect x="170" y="46" width="52" height="15" rx="12" fill="hsl(var(--primary) / .12)"/>
+                  <rect x="188" y="51.5" width="16" height="3" rx="1.5" fill="hsl(var(--primary) / .45)"/>
+                  <rect x="178" y="68" width="36" height="24" rx="5" fill="hsl(var(--primary) / .18)"/>
+                  <rect x="178" y="98" width="36" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                  <rect x="178" y="107" width="26" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                  <rect x="178" y="116" width="32" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                </g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-devices"></i></span><h3 class="font-semibold">Responsive mobile-first</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Smooth on phone, tablet, and desktop — matching Google's mobile-first standard.</p>
+            </div>
+          </article>
+
+          <!-- 4. URL structure & internal links -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="Internal linking diagram">
+                <path class="tkw-draw" pathLength="100" d="M120 50 L120 70 M46 96 L46 80 L194 80 L194 96 M120 80 L120 96" fill="none" stroke="hsl(var(--primary) / .5)" stroke-width="2.6" stroke-linecap="round"/>
+                <circle cx="120" cy="80" r="3" fill="hsl(var(--primary))"/>
+                <g class="lift tkw-pop p1">
+                  <rect x="82" y="24" width="76" height="28" rx="9" fill="hsl(var(--primary))"/>
+                  <path d="M97 39 l6-5.5 6 5.5 v6.5 h-12 z" fill="#fff"/>
+                  <rect x="114" y="34" width="32" height="5.5" rx="2.75" fill="#fff" opacity=".92"/>
+                  <rect x="114" y="42.5" width="22" height="4.5" rx="2.25" fill="#fff" opacity=".55"/>
+                </g>
+                <g class="lift tkw-pop p2"><rect x="22" y="96" width="56" height="26" rx="9" fill="hsl(var(--card))" stroke="hsl(var(--border))"/><circle cx="34" cy="109" r="3.4" fill="hsl(var(--primary) / .55)"/><rect x="42" y="106.5" width="28" height="5.5" rx="2.75" fill="hsl(var(--muted-foreground) / .45)"/></g>
+                <g class="lift tkw-pop p3"><rect x="92" y="96" width="56" height="26" rx="9" fill="hsl(var(--card))" stroke="hsl(var(--border))"/><circle cx="104" cy="109" r="3.4" fill="hsl(var(--primary) / .55)"/><rect x="112" y="106.5" width="28" height="5.5" rx="2.75" fill="hsl(var(--muted-foreground) / .45)"/></g>
+                <g class="lift tkw-pop p4"><rect x="162" y="96" width="56" height="26" rx="9" fill="hsl(var(--card))" stroke="hsl(var(--border))"/><circle cx="174" cy="109" r="3.4" fill="hsl(var(--primary) / .55)"/><rect x="182" y="106.5" width="28" height="5.5" rx="2.75" fill="hsl(var(--muted-foreground) / .45)"/></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-tree-structure"></i></span><h3 class="font-semibold">URL structure &amp; internal links</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Friendly URLs, clear hierarchy, internal links that aid navigation and pass page authority.</p>
+            </div>
+          </article>
+
+          <!-- 5. Schema & structured data -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="JSON-LD schema and rich result">
+                <g class="lift">
+                  <rect x="38" y="20" width="164" height="108" rx="13" fill="hsl(var(--card))" stroke="hsl(var(--border))"/>
+                  <rect x="38" y="20" width="164" height="18" rx="13" fill="hsl(var(--muted) / .5)"/>
+                  <circle cx="51" cy="29" r="2.6" fill="#ef4444"/><circle cx="60" cy="29" r="2.6" fill="#f59e0b"/><circle cx="69" cy="29" r="2.6" fill="#22c55e"/>
+                </g>
+                <rect class="tkw-pop p1" x="54" y="50" width="36" height="6.5" rx="3.25" fill="#2563eb"/>
+                <rect class="tkw-pop p1" x="96" y="50" width="52" height="6.5" rx="3.25" fill="#f59e0b"/>
+                <rect class="tkw-pop p1" x="54" y="64" width="30" height="6.5" rx="3.25" fill="#2563eb"/>
+                <rect class="tkw-pop p1" x="90" y="64" width="60" height="6.5" rx="3.25" fill="#16a34a"/>
+                <rect class="tkw-pop p2" x="54" y="78" width="40" height="6.5" rx="3.25" fill="#2563eb"/>
+                <rect class="tkw-pop p2" x="100" y="78" width="34" height="6.5" rx="3.25" fill="#f59e0b"/>
+                <line x1="54" y1="97" x2="186" y2="97" stroke="hsl(var(--border))" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <g class="tkw-pop p3">
+                  <g transform="translate(54 105) scale(.66)" fill="#f59e0b">
+                    <path d="M0 6 l3 6 6.5 .8 -4.8 4.6 1.2 6.6 -5.9-3.1 -5.9 3.1 1.2-6.6 -4.8-4.6 6.5-.8Z"/>
+                    <path d="M0 6 l3 6 6.5 .8 -4.8 4.6 1.2 6.6 -5.9-3.1 -5.9 3.1 1.2-6.6 -4.8-4.6 6.5-.8Z" transform="translate(17 0)"/>
+                    <path d="M0 6 l3 6 6.5 .8 -4.8 4.6 1.2 6.6 -5.9-3.1 -5.9 3.1 1.2-6.6 -4.8-4.6 6.5-.8Z" transform="translate(34 0)"/>
+                    <path d="M0 6 l3 6 6.5 .8 -4.8 4.6 1.2 6.6 -5.9-3.1 -5.9 3.1 1.2-6.6 -4.8-4.6 6.5-.8Z" transform="translate(51 0)"/>
+                    <path d="M0 6 l3 6 6.5 .8 -4.8 4.6 1.2 6.6 -5.9-3.1 -5.9 3.1 1.2-6.6 -4.8-4.6 6.5-.8Z" transform="translate(68 0)"/>
+                  </g>
+                  <text x="116" y="116" font-size="12" font-weight="800" fill="hsl(var(--foreground))" font-family="Inter Tight, sans-serif">4.9 · 1.2k</text>
+                </g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-code-block"></i></span><h3 class="font-semibold">Schema &amp; structured data</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Organization, Breadcrumb, Product/Article markup… for rich search results.</p>
+            </div>
+          </article>
+
+          <!-- 6. Analytics & Search Console -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border">
+              <svg viewBox="0 0 240 150" class="h-32" role="img" aria-label="Analytics growth chart">
+                <defs><linearGradient id="tkwArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(var(--primary))" stop-opacity=".32"/><stop offset="1" stop-color="hsl(var(--primary))" stop-opacity="0"/></linearGradient></defs>
+                <g class="lift"><rect x="22" y="22" width="196" height="106" rx="11" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="36" y="34" width="46" height="6" rx="3" fill="hsl(var(--muted-foreground) / .4)"/>
+                <g class="tkw-pop p1"><rect x="96" y="30" width="50" height="17" rx="8.5" fill="hsl(142 70% 45% / .15)"/><path d="M106 42 l4.5-5.5 4.5 5.5" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><text x="128" y="42.5" text-anchor="middle" font-size="10" font-weight="800" fill="#16a34a" font-family="Inter Tight, sans-serif">+128%</text></g>
+                <g stroke="hsl(var(--border))" stroke-width="1" stroke-dasharray="2 4">
+                  <line x1="36" y1="62" x2="204" y2="62"/><line x1="36" y1="84" x2="204" y2="84"/><line x1="36" y1="106" x2="204" y2="106"/>
+                </g>
+                <path d="M40 100 L72 92 L104 96 L136 70 L168 56 L200 46 L200 116 L40 116 Z" fill="url(#tkwArea)"/>
+                <path class="tkw-draw glow" pathLength="100" d="M40 100 L72 92 L104 96 L136 70 L168 56 L200 46" fill="none" stroke="hsl(var(--primary))" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle class="tkw-pop p3" cx="136" cy="70" r="4.5" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.5"/>
+                <circle class="tkw-pop p4" cx="200" cy="46" r="5.5" fill="hsl(var(--primary))" stroke="hsl(var(--card))" stroke-width="2.5"/>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-chart-line-up"></i></span><h3 class="font-semibold">Analytics &amp; Search Console integration</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Google Analytics 4, Search Console, sitemap.xml, and robots.txt set up and ready to track.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PORTFOLIO / PROJECTS ============ -->
+    <!-- SAMPLE PROJECTS: replace names, real images (swap the .preview block for <img>), domain and figures for each card -->
+    <section id="duan" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Featured projects</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">A few websites we've built</h2>
+          <p class="mt-3 text-muted-foreground">Every project ships with a high speed score and an SEO-ready foundation built to rank.</p>
+        </div>
+
+        <div class="tkw-grid mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+          <!-- Project 1 -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="border-b border-border">
+              <div class="flex items-center gap-1.5 bg-muted/60 px-3 py-2">
+                <span class="flex gap-1.5"><i class="h-2 w-2 rounded-full bg-red-400"></i><i class="h-2 w-2 rounded-full bg-amber-400"></i><i class="h-2 w-2 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 truncate rounded bg-card px-2 py-0.5 text-[10px] text-muted-foreground">fashion-store.com</span>
+              </div>
+              <!-- .preview — replace with: <img src="..." alt="Project image" class="h-44 w-full object-cover"> -->
+              <div class="preview relative h-44 overflow-hidden bg-gradient-to-br from-brand-100/80 to-sky-50 p-4 dark:from-brand-900/50 dark:to-slate-900/40">
+                <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground shadow"><i class="ph-fill ph-shopping-bag"></i> E-commerce</span>
+                <div class="mt-9 rounded-lg bg-card p-2.5 shadow-lg shadow-foreground/10">
+                  <div class="flex items-center gap-1.5"><div class="h-2 w-10 rounded-full bg-primary/40"></div><div class="ml-auto h-2 w-2 rounded-full bg-foreground/15"></div><div class="h-2 w-2 rounded-full bg-foreground/15"></div><div class="h-2 w-2 rounded-full bg-foreground/15"></div></div>
+                  <div class="mt-2 grid grid-cols-4 gap-1.5"><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div></div>
+                  <div class="mt-1.5 grid grid-cols-4 gap-1.5"><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div><div class="aspect-square rounded bg-muted"></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="p-5">
+              <h3 class="font-semibold">Fashion store</h3>
+              <p class="mt-1 text-sm text-muted-foreground">A speed-optimized, on-page-SEO e-commerce site.</p>
+              <span class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-gauge"></i> PageSpeed 96 · LCP 1.4s</span>
+            </div>
+          </article>
+
+          <!-- Project 2 -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="border-b border-border">
+              <div class="flex items-center gap-1.5 bg-muted/60 px-3 py-2">
+                <span class="flex gap-1.5"><i class="h-2 w-2 rounded-full bg-red-400"></i><i class="h-2 w-2 rounded-full bg-amber-400"></i><i class="h-2 w-2 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 truncate rounded bg-card px-2 py-0.5 text-[10px] text-muted-foreground">dental-clinic.com</span>
+              </div>
+              <div class="preview relative h-44 overflow-hidden bg-gradient-to-br from-teal-100/80 to-brand-50 p-4 dark:from-teal-900/40 dark:to-slate-900/40">
+                <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground shadow"><i class="ph-fill ph-buildings"></i> Business</span>
+                <div class="mt-9 rounded-lg bg-card p-2.5 shadow-lg shadow-foreground/10">
+                  <div class="flex items-center gap-1.5"><div class="h-2 w-10 rounded-full bg-primary/40"></div><div class="ml-auto h-2 w-6 rounded-full bg-foreground/10"></div><div class="h-2 w-6 rounded-full bg-foreground/10"></div></div>
+                  <div class="mt-2.5 flex gap-2">
+                    <div class="flex-1 space-y-1.5"><div class="h-2.5 w-4/5 rounded bg-primary/40"></div><div class="h-2 w-full rounded bg-muted"></div><div class="h-2 w-3/4 rounded bg-muted"></div><div class="mt-1.5 h-3.5 w-12 rounded bg-primary"></div></div>
+                    <div class="h-[68px] w-16 shrink-0 rounded bg-muted"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="p-5">
+              <h3 class="font-semibold">Dental clinic</h3>
+              <p class="mt-1 text-sm text-muted-foreground">A multi-page business site with booking &amp; local SEO.</p>
+              <span class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-trend-up"></i> Top 3 for local keywords</span>
+            </div>
+          </article>
+
+          <!-- Project 3 -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="border-b border-border">
+              <div class="flex items-center gap-1.5 bg-muted/60 px-3 py-2">
+                <span class="flex gap-1.5"><i class="h-2 w-2 rounded-full bg-red-400"></i><i class="h-2 w-2 rounded-full bg-amber-400"></i><i class="h-2 w-2 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 truncate rounded bg-card px-2 py-0.5 text-[10px] text-muted-foreground">product-launch.com</span>
+              </div>
+              <div class="preview relative h-44 overflow-hidden bg-gradient-to-br from-violet-100/80 to-brand-50 p-4 dark:from-violet-900/40 dark:to-slate-900/40">
+                <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground shadow"><i class="ph-fill ph-rocket-launch"></i> Landing page</span>
+                <div class="mt-9 rounded-lg bg-card p-3 text-center shadow-lg shadow-foreground/10">
+                  <div class="mx-auto h-2 w-8 rounded-full bg-primary/40"></div>
+                  <div class="mx-auto mt-2.5 h-2.5 w-3/5 rounded bg-primary/40"></div>
+                  <div class="mx-auto mt-1.5 h-2 w-4/5 rounded bg-muted"></div>
+                  <div class="mx-auto mt-1 h-2 w-2/3 rounded bg-muted"></div>
+                  <div class="mx-auto mt-2.5 h-4 w-20 rounded-full bg-primary"></div>
+                </div>
+              </div>
+            </div>
+            <div class="p-5">
+              <h3 class="font-semibold">Product launch landing page</h3>
+              <p class="mt-1 text-sm text-muted-foreground">A single-goal landing page, conversion-optimized &amp; lightning fast.</p>
+              <span class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-cursor-click"></i> 8.5% conversion rate</span>
+            </div>
+          </article>
+        </div>
+
+        <p data-reveal class="mt-8 text-center text-sm text-muted-foreground">Want to see more projects in your industry? <a href="#lienhe" class="font-medium text-primary hover:underline">Contact us for the full portfolio</a>.</p>
+      </div>
+    </section>
+
+    <!-- ============ COMMITMENT / WARRANTY ============ -->
+    <section id="camket" class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Our commitment</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Buy once, peace of mind for the long run</h2>
+          <p class="mt-3 text-muted-foreground">We stand behind every project we deliver — not just build and disappear.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-headset text-xl"></i></span>
+            <div><h3 class="font-semibold">24/7 Support</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">WhatsApp &amp; hotline available anytime, with fast replies even after hours and on weekends.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span>
+            <div><h3 class="font-semibold">12-month warranty</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Free technical fixes &amp; minor edits for 12 months after handover.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-user-focus text-xl"></i></span>
+            <div><h3 class="font-semibold">1-on-1 consulting &amp; design</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">A dedicated specialist throughout, who understands your industry and goals.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-clock-countdown text-xl"></i></span>
+            <div><h3 class="font-semibold">On time or your money back</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">A written timeline commitment; if we're late, you get a proportional refund.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-seal-percent text-xl"></i></span>
+            <div><h3 class="font-semibold">10% off your next order</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Returning customers get 10% off any future service (web, content, backlinks…).</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex gap-4 rounded-2xl border border-border bg-card p-6">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-gift text-xl"></i></span>
+            <div><h3 class="font-semibold">Savings bundle</h3><p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Bundle Web + Content + Backlinks to save more than buying separately <span class="text-foreground/70">(details coming soon)</span>.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRICING — 4 PLANS ============ -->
+    <section id="cac-goi" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Choose the plan that fits your scale</h2>
+          <p class="mt-3 text-muted-foreground">Prices are for reference; real projects are quoted by scope. Domain &amp; hosting not included.</p>
+          <p class="mt-4 inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-medium">
+            <span class="inline-flex items-center gap-1 text-amber-500"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+            <span class="text-foreground">4.9/5</span>
+            <span class="text-muted-foreground">· 500+ projects delivered · 12-month warranty</span>
+          </p>
+        </div>
+
+        <div class="tkw-grid mt-12 grid items-start gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <!-- BASIC -->
+          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
+            <div class="flex items-center gap-2">
+              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500"><i class="ph-bold ph-file-html"></i></span>
+              <h3 class="text-lg font-bold">Basic</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$18</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">A 1-page landing page, launched fast.</p>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 1 landing page</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Responsive mobile-first</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Basic speed optimization</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> On-page SEO</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Contact form / WhatsApp button</li>
+            </ul>
+            <a href="#lienhe" data-goi="Basic · $18" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Basic</a>
+          </div>
+
+          <!-- ADVANCED -->
+          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
+            <div class="flex items-center gap-2">
+              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-sky-500/10 text-sky-500"><i class="ph-bold ph-browsers"></i></span>
+              <h3 class="text-lg font-bold">Advanced</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$54</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">A multi-page brochure website.</p>
+            <div class="mt-4 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2.5 text-[13px] font-medium text-sky-600 dark:text-sky-400">
+              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Up to 5–7 pages</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Home, services, news, contact</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Article admin (CMS)</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full schema &amp; sitemap</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Analytics &amp; Search Console integration</li>
+            </ul>
+            <a href="#lienhe" data-goi="Advanced · $54" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Advanced</a>
+          </div>
+
+          <!-- COMPREHENSIVE (featured) -->
+          <div data-reveal class="tkw-card relative rounded-2xl border-2 border-primary bg-card p-7 shadow-xl shadow-brand-500/10 lg:-mt-3">
+            <span class="tkw-shine absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Most popular</span>
+            <div class="flex items-center gap-2">
+              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-bold ph-storefront"></i></span>
+              <h3 class="text-lg font-bold">Comprehensive</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$240</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">A full business / e-commerce website.</p>
+            <div class="mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-[13px] font-medium text-primary">
+              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Advanced
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Unlimited pages</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Product / cart module</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Advanced speed optimization</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Silo structure &amp; internal links</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Post-handover SEO audit</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3 months of technical support</li>
+            </ul>
+            <a href="#lienhe" data-goi="Comprehensive · $240" class="mt-7 block rounded-lg bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]">Choose Comprehensive</a>
+          </div>
+
+          <!-- PREMIUM -->
+          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
+            <div class="flex items-center gap-2">
+              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-violet-500/10 text-violet-500"><i class="ph-bold ph-crown"></i></span>
+              <h3 class="text-lg font-bold">Premium</h3>
+            </div>
+            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$360</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">Fully custom design to your requirements.</p>
+            <div class="mt-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2.5 text-[13px] font-medium text-violet-600 dark:text-violet-400">
+              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Comprehensive
+            </div>
+            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Exclusive UI/UX design</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Custom features for your business</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Conversion optimization (CRO)</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> A dedicated 1-on-1 specialist</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 6 months of technical support</li>
+            </ul>
+            <a href="#lienhe" data-goi="Premium · $360" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Premium</a>
+          </div>
+        </div>
+
+        <div data-reveal class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+          <span class="inline-flex items-center gap-2"><i class="ph-bold ph-shield-check text-primary"></i> 12-month warranty</span>
+          <span class="inline-flex items-center gap-2"><i class="ph-bold ph-headset text-primary"></i> 24/7 support</span>
+          <span class="inline-flex items-center gap-2"><i class="ph-bold ph-clock-countdown text-primary"></i> On time or your money back</span>
+          <span class="inline-flex items-center gap-2"><i class="ph-bold ph-code text-primary"></i> Source code handover</span>
+          <span class="inline-flex items-center gap-2"><i class="ph-bold ph-seal-percent text-primary"></i> 10% off your next order</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMPARISON TABLE ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-6xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Detailed comparison</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">How the 4 plans differ</h2>
+        </div>
+        <div data-reveal class="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
+          <table class="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr class="border-b border-border">
+                <th class="px-5 py-4 text-left font-semibold">Feature</th>
+                <th class="px-5 py-4 text-center font-semibold">Basic</th>
+                <th class="px-5 py-4 text-center font-semibold">Advanced</th>
+                <th class="bg-primary/5 px-5 py-4 text-center font-semibold text-primary">Comprehensive</th>
+                <th class="px-5 py-4 text-center font-semibold">Premium</th>
+              </tr>
+            </thead>
+            <tbody class="text-muted-foreground">
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Pages</td>
+                <td class="px-5 py-3.5 text-center">1</td>
+                <td class="px-5 py-3.5 text-center">5–7</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center font-medium text-foreground">Unlimited</td>
+                <td class="px-5 py-3.5 text-center">Unlimited</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Responsive mobile-first</td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">On-page SEO</td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Speed optimization</td>
+                <td class="px-5 py-3.5 text-center">Basic</td>
+                <td class="px-5 py-3.5 text-center">Basic</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center">Advanced</td>
+                <td class="px-5 py-3.5 text-center">Advanced</td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Schema &amp; sitemap</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Content management (CMS)</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Sales / cart module</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr class="border-b border-border/60">
+                <td class="px-5 py-3.5">Custom UI/UX design &amp; CRO</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
+              </tr>
+              <tr>
+                <td class="px-5 py-3.5">Post-handover support</td>
+                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
+                <td class="px-5 py-3.5 text-center">1 month</td>
+                <td class="bg-primary/5 px-5 py-3.5 text-center">3 months</td>
+                <td class="px-5 py-3.5 text-center">6 months</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIALS ============ -->
+    <!-- SAMPLE REVIEWS: replace names, roles, and content with real reviews -->
+    <section id="danhgia" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Reviews</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">What customers say about HevaSEO</h2>
+          <p class="mt-3 inline-flex items-center gap-2 text-muted-foreground"><span class="inline-flex text-amber-400"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span> <span class="font-medium text-foreground">4.9/5</span> from over 1,200 customers</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-6 md:grid-cols-3">
+          <figure data-reveal class="tkw-card flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span class="inline-flex text-amber-400"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+            <blockquote class="mt-4 flex-1 text-sm leading-relaxed text-foreground">“The new site is noticeably faster, and within 2 months it ranked for many keywords. The support team is dedicated and quick with any fix.”</blockquote>
+            <figcaption class="mt-5 flex items-center gap-3 border-t border-border pt-4">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary/10 font-display font-bold text-primary">M</span>
+              <span><span class="block text-sm font-semibold">Anh Minh</span><span class="block text-xs text-muted-foreground">Fashion store owner</span></span>
+            </figcaption>
+          </figure>
+          <figure data-reveal class="tkw-card flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span class="inline-flex text-amber-400"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+            <blockquote class="mt-4 flex-1 text-sm leading-relaxed text-foreground">“Very professional to work with, with a dedicated 1-on-1 advisor. Delivered on time, complete with source code and admin training.”</blockquote>
+            <figcaption class="mt-5 flex items-center gap-3 border-t border-border pt-4">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary/10 font-display font-bold text-primary">H</span>
+              <span><span class="block text-sm font-semibold">Hannah Le</span><span class="block text-xs text-muted-foreground">Clinic manager</span></span>
+            </figcaption>
+          </figure>
+          <figure data-reveal class="tkw-card flex flex-col rounded-2xl border border-border bg-card p-6">
+            <span class="inline-flex text-amber-400"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
+            <blockquote class="mt-4 flex-1 text-sm leading-relaxed text-foreground">“The landing page converts much better than the old one. The price was reasonable, and the discount on my next order led me to add a content plan.”</blockquote>
+            <figcaption class="mt-5 flex items-center gap-3 border-t border-border pt-4">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-primary/10 font-display font-bold text-primary">T</span>
+              <span><span class="block text-sm font-semibold">Tyler Nguyen</span><span class="block text-xs text-muted-foreground">Founder startup</span></span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMBO / UPSELL ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="relative overflow-hidden rounded-3xl border border-primary/30 bg-card p-8 shadow-lg shadow-primary/10 lg:p-12">
+          <div aria-hidden="true" class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl"></div>
+          <div class="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+            <div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-lightning"></i> Ranking bundle</span>
+              <h2 class="mt-4 text-2xl font-bold tracking-tight md:text-3xl">An SEO-ready site is only the first step</h2>
+              <p class="mt-3 max-w-xl text-muted-foreground">An SEO-ready website builds a solid foundation, but to <b class="text-foreground">rank and win customers</b> you also need content and backlinks. HevaSEO delivers Web + Content + Backlinks as one coordinated package along a single roadmap.</p>
+              <ul class="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+                <li class="flex items-center gap-2.5 rounded-lg border border-border bg-background px-4 py-3"><i class="ph-bold ph-check-circle text-primary"></i> Keyword Research &amp; Strategy</li>
+                <li class="flex items-center gap-2.5 rounded-lg border border-border bg-background px-4 py-3"><i class="ph-bold ph-check-circle text-primary"></i> SEO Content Writing</li>
+                <li class="flex items-center gap-2.5 rounded-lg border border-border bg-background px-4 py-3"><i class="ph-bold ph-check-circle text-primary"></i> Backlink entity &amp; indexer</li>
+                <li class="flex items-center gap-2.5 rounded-lg border border-border bg-background px-4 py-3"><i class="ph-bold ph-check-circle text-primary"></i> Track rankings on the dashboard</li>
+              </ul>
+            </div>
+            <div class="flex flex-col gap-3">
+              <a href="/#banggia" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">View content &amp; backlink plans <i class="ph-bold ph-arrow-right"></i></a>
+              <a href="#lienhe" class="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-6 py-3.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Ask about the full bundle</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">FAQ</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Frequently Asked Questions</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How is an SEO-ready site different from a regular one?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">An SEO-ready site is optimized from the source code up: fast loads, green Core Web Vitals, a sensible heading and URL structure, schema markup, and readiness for Google to crawl and index. A regular site usually only focuses on appearance.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long does web design take?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Depends on the plan: a 1-page landing page about 3–5 days; a multi-page website 7–15 days; a comprehensive project 15–30 business days.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Will the site rank on Google right after it's built?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">SEO-ready design builds a strong technical foundation that makes ranking easier. However, rankings also depend on content and backlinks — that's the SEO work that comes after the site is finished.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Does the price include domain and hosting?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The design price covers building the website. Domain and hosting are billed separately by the provider; HevaSEO advises and sets them up for free.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Do I get the source code?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes. You own all the source code and admin accounts once payment is complete, along with operating instructions.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="lienhe" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-rocket-launch text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Ready for an SEO-ready website?</h2>
+          <p class="mt-3 text-muted-foreground">Leave your contact details and a specialist will recommend the right plan for your industry and budget — free.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" novalidate>
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden" />
+            <label for="cta-email" class="sr-only">Email or phone number</label>
+            <input id="cta-email" name="contact" type="text" inputmode="email" autocomplete="email" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button id="lead-submit" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+              <span class="lead-spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span class="lead-submit-label">Get a consultation</span>
+            </button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('cta-email');
+      var status = document.getElementById('lead-status');
+      var defaultStatus = status ? status.innerHTML : '';
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the "' + name + '" plan. Leave your contact details!';
+        });
+      });
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

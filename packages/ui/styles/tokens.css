@@ -1,0 +1,49 @@
+/**
+ * HevaSEO design tokens — shared CSS variables (light + dark).
+ * Single source of truth for both apps/web (Astro) and apps/app (Next).
+ * Pairs with tailwind-preset.cjs which maps Tailwind colors to these vars.
+ */
+:root {
+  --background: 214 55% 97%;         /* soft light blue page bg */
+  --foreground: 222 47% 9%;
+  --card: 0 0% 100%;                 /* white cards pop on gray */
+  --card-foreground: 240 10% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 8%;
+  --primary: 213 90% 50%;            /* light blue */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 214 45% 92%;
+  --secondary-foreground: 222 47% 14%;
+  --muted: 214 45% 92%;
+  --muted-foreground: 215 18% 42%;
+  --accent: 211 100% 94%;            /* faint blue tint */
+  --accent-foreground: 213 90% 30%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 30% 86%;
+  --input: 214 30% 86%;
+  --ring: 213 90% 50%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 240 10% 4%;          /* near-black */
+  --foreground: 0 0% 98%;
+  --card: 240 7% 10%;                /* more elevated vs. background */
+  --card-foreground: 0 0% 98%;
+  --popover: 240 7% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 213 92% 64%;            /* light blue, brighter for dark */
+  --primary-foreground: 222 47% 8%;
+  --secondary: 240 5% 17%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 5% 16%;
+  --muted-foreground: 240 6% 72%;    /* lighter secondary text, easier to read */
+  --accent: 213 45% 21%;
+  --accent-foreground: 213 92% 82%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 6% 23%;              /* card border stands out on dark bg */
+  --input: 240 6% 25%;
+  --ring: 213 92% 64%;
+}
