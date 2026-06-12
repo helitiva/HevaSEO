@@ -1,11 +1,16 @@
-export const metadata = { title: 'usettings' };
+import { SettingsView } from '@/components/SettingsView';
 
-export default function Page() {
+export const metadata = { title: 'Settings' };
+
+export default function SettingsPage() {
   return (
-    <div className="grid place-items-center py-24 text-center">
-      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-accent-foreground"><i className="ph-bold ph-wrench text-2xl" /></span>
-      <h1 className="display mt-4 text-2xl font-semibold tracking-tight capitalize">settings</h1>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">This page is being ported from the demo. Coming next.</p>
-    </div>
+    <>
+      <div>
+        <h1 className="display text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your profile, security, notifications, billing, and team.</p>
+      </div>
+      <SettingsView />
+      <p className="mt-8 text-center text-xs text-muted-foreground">HevaSEO Workspace · Settings · sample data</p>
+    </>
   );
 }

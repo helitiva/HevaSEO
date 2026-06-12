@@ -117,6 +117,19 @@ export const TRANSACTIONS: CreditTx[] = [
   { date: '05/08/2026', description: 'Bank transfer · Chase', type: 'topup', amount: 399, status: 'success' },
 ];
 
+export interface Invoice {
+  no: string;
+  date: string;
+  amount: number;
+  status: 'issued' | 'processing';
+}
+
+export const INVOICES: Invoice[] = [
+  { no: 'HD-2026-061', date: '06/07/2026', amount: 199, status: 'issued' },
+  { no: 'HD-2026-055', date: '05/28/2026', amount: 399, status: 'issued' },
+  { no: 'HD-2026-048', date: '05/12/2026', amount: 60, status: 'processing' },
+];
+
 export const ACTIVITY = [
   { icon: 'ph-check-circle', cls: 'text-emerald-500', html: '<b>1,284 links</b> indexed today', meta: '2 minutes ago · Indexer Pro' },
   { icon: 'ph-pen-nib', cls: 'text-primary', html: 'Article <b>“Affordable braces”</b> moved to In review', meta: '1 hour ago · Content' },
