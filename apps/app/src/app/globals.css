@@ -1,0 +1,9 @@
+/* Shared design tokens (light + dark base) — single source of truth.
+   Retheme BOTH apps by editing packages/ui/styles/tokens.css. */
+@import "@heva/ui/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dashboard component styles live in ./dashboard.css (imported in layout.tsx). */

@@ -22,4 +22,4 @@ When entity signals are combined with articles that answer your customers' quest
 
 > A strong entity is the difference between "a website that exists" and "a brand Google and AI can confidently recommend."
 
-Ready to build your foundation? [Get a free consultation](/#lienhe).
+Ready to build your foundation? [Get a free consultation](/#contact).

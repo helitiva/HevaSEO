@@ -18,12 +18,12 @@ export const site = {
 
 /** Primary nav. Links are absolute (`/#…`) so they work from any page. */
 export const nav = [
-  { label: 'Offers', href: '/#uudai', highlight: true },
-  { label: 'Services', href: '/#dichvu' },
-  { label: 'Process', href: '/#quytrinh' },
-  { label: 'Pricing', href: '/#banggia' },
+  { label: 'Offers', href: '/#offers', highlight: true },
+  { label: 'Services', href: '/#services' },
+  { label: 'Process', href: '/#process' },
+  { label: 'Pricing', href: '/#pricing' },
   { label: 'Dashboard', href: '/#dashboard' },
-  { label: 'Customers', href: '/#khachhang' },
+  { label: 'Customers', href: '/#customers' },
   { label: 'FAQ', href: '/#faq' },
 ];
 
@@ -32,13 +32,13 @@ export const footerLinks = {
     { label: 'Audit website', href: '/audit' },
     { label: 'SEO Web Design', href: '/seo-web-design' },
     { label: 'Keyword Research & Strategy', href: '/keyword-strategy' },
-    { label: 'Backlink Entity', href: '/#dichvu' },
-    { label: 'SEO Content Writing', href: '/#dichvu' },
-    { label: 'Backlink Indexer', href: '/#dichvu' },
+    { label: 'Backlink Entity', href: '/#services' },
+    { label: 'SEO Content Writing', href: '/#services' },
+    { label: 'Backlink Indexer', href: '/#services' },
   ],
   company: [
-    { label: 'Customers', href: '/#khachhang' },
-    { label: 'Pricing', href: '/#banggia' },
+    { label: 'Customers', href: '/#customers' },
+    { label: 'Pricing', href: '/#pricing' },
     { label: 'Blog', href: '/blog' },
     { label: 'FAQ', href: '/faq' },
     { label: 'Privacy Policy', href: '/privacy' },

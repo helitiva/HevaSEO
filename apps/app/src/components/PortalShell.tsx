@@ -1,0 +1,25 @@
+'use client';
+
+import { useState } from 'react';
+import { Sidebar } from './Sidebar';
+import { Topbar } from './Topbar';
+
+export function PortalShell({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar open={open} onClose={() => setOpen(false)} />
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm lg:hidden"
+        />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar onMenu={() => setOpen(true)} />
+        <main className="scrollbar-thin flex-1 overflow-y-auto px-4 py-6 lg:px-7">{children}</main>
+      </div>
+    </div>
+  );
+}

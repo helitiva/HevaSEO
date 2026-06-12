@@ -4382,7 +4382,7 @@ h2 { letter-spacing: -0.025em; }
 .dashboard-showcase > div { position: relative; z-index: 2; }
 
 /* ============================================================
-   Floating contact (Zalo / Messenger / Hotline) + sticky mobile CTA
+   Floating contact (WhatsApp / Messenger / Hotline) + sticky mobile CTA
    ============================================================ */
 .heva-fab {
   position: fixed;
@@ -4407,7 +4407,7 @@ h2 { letter-spacing: -0.025em; }
 }
 .heva-fab-btn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 14px 32px hsl(213 70% 20% / 0.36); }
 .heva-fab-btn:active { transform: scale(0.97); }
-.heva-fab-zalo { background: #25d366; }
+.heva-fab-whatsapp { background: #25d366; }
 .heva-fab-text { font-size: 0.92rem; font-weight: 800; letter-spacing: -0.01em; }
 .heva-fab-mess { background: linear-gradient(135deg, #00b2ff, #006aff); }
 .heva-fab-phone { background: linear-gradient(135deg, #16a34a, #059669); }
