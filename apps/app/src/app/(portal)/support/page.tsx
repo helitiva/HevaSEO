@@ -21,7 +21,7 @@ export default function SupportPage() {
       </div>
 
       {/* quick channels */}
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <button className="channel flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 text-left">
           <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary"><i className="ph-bold ph-chats-circle text-xl" /></span>
           <div><p className="font-semibold">Live chat</p><p className="text-xs text-muted-foreground">Fastest response · real time</p></div>

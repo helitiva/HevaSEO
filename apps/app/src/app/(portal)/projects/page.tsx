@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { FOLDERS, PROJECTS, SERVICES, type ServiceKey, type Project } from '@/data/mock';
 
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -24,11 +26,22 @@ const STATUS_PILL: Record<Project['status'], { label: string; color: string }> =
 const folderName = (id: string) => FOLDERS.find((f) => f.id === id)?.name;
 const folderColor = (id: string) => FOLDERS.find((f) => f.id === id)?.color ?? '#94a3b8';
 
-export default function ProjectsPage() {
+function ProjectsInner() {
+  const focusDomain = useSearchParams().get('p');
   const [folder, setFolder] = useState<string>('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(focusDomain ?? '');
   const [status, setStatus] = useState<string>('all');
   const [svc, setSvc] = useState<string>('all');
+
+  // Focus the project opened from an order card link (/projects?p=<domain>).
+  useEffect(() => {
+    if (focusDomain) {
+      setSearch(focusDomain);
+      setFolder('all');
+      setStatus('all');
+      setSvc('all');
+    }
+  }, [focusDomain]);
 
   const filtered = useMemo(
     () =>
@@ -133,13 +146,13 @@ export default function ProjectsPage() {
                 const sp = STATUS_PILL[p.status];
                 const tags = Object.keys(p.tags) as ServiceKey[];
                 return (
-                  <article key={p.id} className="pcard">
+                  <Link key={p.id} href={`/projects/${p.id}`} className="pcard block">
                     <div className="flex items-start gap-2.5">
                       <span className="fav" style={{ background: favColor(p.domain) }}>{initials(p.domain)}</span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <h3 className="truncate text-sm font-semibold">{p.domain}</h3>
-                          <button className="card-gear ml-auto" title="Project settings"><i className="ph-bold ph-gear-six" /></button>
+                          <span className="card-gear ml-auto" title="Project settings"><i className="ph-bold ph-gear-six" /></span>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">
                           <span className="chip" style={{ background: `${folderColor(p.folder)}1a`, color: folderColor(p.folder) }}>
@@ -173,7 +186,7 @@ export default function ProjectsPage() {
                         })
                       )}
                     </div>
-                  </article>
+                  </Link>
                 );
               })}
             </div>
@@ -181,5 +194,13 @@ export default function ProjectsPage() {
         </section>
       </div>
     </>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectsInner />
+    </Suspense>
   );
 }

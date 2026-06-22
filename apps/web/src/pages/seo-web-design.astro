@@ -3,9 +3,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 <BaseLayout
   title="SEO Web Design — Rank Sustainably | HevaSEO"
-  description="HevaSEO's SEO web design service: fast loads, green Core Web Vitals, clean on-page, mobile-first responsive, schema, and Search Console integration. 4 plans from $18."
+  description="HevaSEO's SEO web design service: fast loads, green Core Web Vitals, clean on-page, mobile-first responsive, schema, and Search Console integration. 5 website types from $79 — landing, statistic, blog, e-commerce, webapp."
   keywords="seo web design, seo-friendly web design, seo website design service, seo-ready website, build seo website, landing page design"
-  ogDescription="A website that loads fast, hits Core Web Vitals, is on-page clean, and ready to rank on Google. 4 transparent plans from $18."
+  ogDescription="A website that loads fast, hits Core Web Vitals, is on-page clean, and ready to rank on Google. 5 website types from $79."
 >
   <script type="application/ld+json" slot="head" is:inline>
 {
@@ -23,10 +23,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         "areaServed": "US",
         "description": "SEO-ready web design: speed optimization, Core Web Vitals, clean on-page, mobile-first responsive, schema markup, and Google Search Console integration.",
         "offers": [
-          { "@type": "Offer", "name": "Basic", "price": "18", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Advanced", "price": "54", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Comprehensive", "price": "240", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Premium", "price": "360", "priceCurrency": "USD" }
+          { "@type": "Offer", "name": "Landing page", "price": "79", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Statistic web", "price": "119", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Blog", "price": "159", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "E-commerce", "price": "279", "priceCurrency": "USD" }
         ]
       },
       {
@@ -40,7 +40,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         "@type": "FAQPage",
         "mainEntity": [
           { "@type": "Question", "name": "How is an SEO-ready site different from a regular one?", "acceptedAnswer": { "@type": "Answer", "text": "An SEO-ready site is optimized from the source code up: fast loads, green Core Web Vitals, a sensible heading and URL structure, schema markup, and readiness for Google to crawl and index. A regular site usually only focuses on appearance." } },
-          { "@type": "Question", "name": "How long does SEO web design take?", "acceptedAnswer": { "@type": "Answer", "text": "Depends on the plan: a 1-page landing page about 3–5 days, a multi-page website 7–15 days, a comprehensive project 15–30 business days." } },
+          { "@type": "Question", "name": "How long does SEO web design take?", "acceptedAnswer": { "@type": "Answer", "text": "We send a draft in about 2 days. Full delivery: a landing page ~1 week, a statistic or blog site 1–2 weeks, an e-commerce site 3–4 weeks; webapps are quoted by scope." } },
           { "@type": "Question", "name": "Will the site rank on Google right after it's built?", "acceptedAnswer": { "@type": "Answer", "text": "SEO-ready design builds a strong technical foundation that makes ranking easier. However, rankings also depend on content and backlinks — that's the SEO work that comes after the site is finished." } },
           { "@type": "Question", "name": "Does the price include domain and hosting?", "acceptedAnswer": { "@type": "Answer", "text": "The design price covers building the website. Domain and hosting are billed separately by the provider; HevaSEO advises and sets them up for free." } }
         ]
@@ -205,7 +205,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-3">
               <a href="#plans" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
-                View 4 plans <i class="ph-bold ph-arrow-down"></i>
+                View website types <i class="ph-bold ph-arrow-down"></i>
               </a>
               <a href="#contact" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
                 Get a free consultation
@@ -755,8 +755,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal class="mx-auto max-w-2xl text-center">
           <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Pricing</span>
-          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Choose the plan that fits your scale</h2>
-          <p class="mt-3 text-muted-foreground">Prices are for reference; real projects are quoted by scope. Domain &amp; hosting not included.</p>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Pick your website type</h2>
+          <p class="mt-3 text-muted-foreground">Starting prices below. Send your brief and we deliver a <b class="font-medium text-foreground">draft in ~2 days</b>, then quote the full site (revisions included per package). Domain &amp; hosting not included.</p>
           <p class="mt-4 inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-medium">
             <span class="inline-flex items-center gap-1 text-amber-500"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span>
             <span class="text-foreground">4.9/5</span>
@@ -764,88 +764,111 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </p>
         </div>
 
-        <div class="tkw-grid mt-12 grid items-start gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <!-- BASIC -->
-          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500"><i class="ph-bold ph-file-html"></i></span>
-              <h3 class="text-lg font-bold">Basic</h3>
+        <div class="tkw-grid mt-12 grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- LANDING PAGE -->
+          <div data-reveal class="tkw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-emerald-100 via-emerald-50 to-teal-100 p-5 dark:from-emerald-950/60 dark:via-card dark:to-teal-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30"><i class="ph-bold ph-file-html text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Landing page</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">A 1-page site for a campaign — launched fast.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="text-sm text-muted-foreground">from </span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$79</span></span><span class="pb-1 text-xs text-muted-foreground">Draft 2d · ~1wk</span></p>
+              <a href="#contact" data-goi="Landing page · from $79" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Landing</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$18</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">A 1-page landing page, launched fast.</p>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 1 landing page</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Responsive mobile-first</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Basic speed optimization</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> On-page SEO</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Contact form / WhatsApp button</li>
+            <ul class="flex-1 space-y-3 p-7 text-sm text-muted-foreground">
+              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 1 landing page</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Responsive mobile-first</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Speed optimization + on-page SEO</li>
+              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Contact form / WhatsApp button</li>
             </ul>
-            <a href="#contact" data-goi="Basic · $18" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Basic</a>
           </div>
 
-          <!-- ADVANCED -->
-          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-sky-500/10 text-sky-500"><i class="ph-bold ph-browsers"></i></span>
-              <h3 class="text-lg font-bold">Advanced</h3>
+          <!-- STATISTIC WEB -->
+          <div data-reveal class="tkw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-sky-100 via-sky-50 to-blue-100 p-5 dark:from-sky-950/60 dark:via-card dark:to-blue-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/30"><i class="ph-bold ph-browsers text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Statistic web</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">A multi-page company / brochure website.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="text-sm text-muted-foreground">from </span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$119</span></span><span class="pb-1 text-xs text-muted-foreground">~1–2 weeks</span></p>
+              <a href="#contact" data-goi="Statistic web · from $119" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Statistic</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$54</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">A multi-page brochure website.</p>
-            <div class="mt-4 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2.5 text-[13px] font-medium text-sky-600 dark:text-sky-400">
-              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-[13px] font-medium text-sky-600 dark:text-sky-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Landing, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Home · Services · About · Contact (5–7 pages)</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Full schema &amp; sitemap</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Analytics &amp; Search Console integration</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Up to 5–7 pages</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Home, services, news, contact</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Article admin (CMS)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full schema &amp; sitemap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Analytics &amp; Search Console integration</li>
-            </ul>
-            <a href="#contact" data-goi="Advanced · $54" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Advanced</a>
           </div>
 
-          <!-- COMPREHENSIVE (featured) -->
-          <div data-reveal class="tkw-card relative rounded-2xl border-2 border-primary bg-card p-7 shadow-xl shadow-brand-500/10 lg:-mt-3">
-            <span class="tkw-shine absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Most popular</span>
-            <div class="flex items-center gap-2">
-              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-bold ph-storefront"></i></span>
-              <h3 class="text-lg font-bold">Comprehensive</h3>
+          <!-- BLOG -->
+          <div data-reveal class="tkw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-amber-100 via-amber-50 to-orange-100 p-5 dark:from-amber-950/60 dark:via-card dark:to-orange-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/30"><i class="ph-bold ph-newspaper text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Blog</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">A content site built to rank &amp; publish at scale.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="text-sm text-muted-foreground">from </span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$159</span></span><span class="pb-1 text-xs text-muted-foreground">~2 weeks</span></p>
+              <a href="#contact" data-goi="Blog · from $159" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Blog</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$240</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">A full business / e-commerce website.</p>
-            <div class="mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-[13px] font-medium text-primary">
-              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Advanced
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[13px] font-medium text-amber-600 dark:text-amber-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Statistic, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Article admin (CMS) + categories</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Topic-cluster / silo structure &amp; internal links</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Author / E-E-A-T markup</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Unlimited pages</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Product / cart module</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Advanced speed optimization</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Silo structure &amp; internal links</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Post-handover SEO audit</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3 months of technical support</li>
-            </ul>
-            <a href="#contact" data-goi="Comprehensive · $240" class="mt-7 block rounded-lg bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]">Choose Comprehensive</a>
           </div>
 
-          <!-- PREMIUM -->
-          <div data-reveal class="tkw-card rounded-2xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="tkw-ic grid h-9 w-9 place-items-center rounded-lg bg-violet-500/10 text-violet-500"><i class="ph-bold ph-crown"></i></span>
-              <h3 class="text-lg font-bold">Premium</h3>
+          <!-- E-COMMERCE (featured) -->
+          <div data-reveal class="tkw-card relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-violet-500/15 ring-1 ring-violet-300/50 dark:ring-violet-500/30">
+            <div class="relative bg-gradient-to-br from-violet-200 via-violet-100 to-fuchsia-100 p-5 dark:from-violet-900/60 dark:via-card dark:to-fuchsia-900/40">
+              <span class="absolute right-5 top-5 rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow-md shadow-violet-600/30">Most popular</span>
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500 text-white shadow-md shadow-violet-500/30"><i class="ph-bold ph-storefront text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">E-commerce</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] max-w-[13rem] text-sm text-muted-foreground">A full online store, built to convert.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="text-sm text-muted-foreground">from </span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$279</span></span><span class="pb-1 text-xs text-muted-foreground">~3–4 weeks</span></p>
+              <a href="#contact" data-goi="E-commerce · from $279" class="mt-4 block rounded-xl bg-zinc-900 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">Choose E-commerce</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$360</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">Fully custom design to your requirements.</p>
-            <div class="mt-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2.5 text-[13px] font-medium text-violet-600 dark:text-violet-400">
-              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Comprehensive
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[13px] font-medium text-violet-600 dark:text-violet-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Blog, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Product catalog / cart / checkout</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Advanced speed optimization</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Post-handover SEO audit</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 3 months of technical support</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Exclusive UI/UX design</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Custom features for your business</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Conversion optimization (CRO)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> A dedicated 1-on-1 specialist</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 6 months of technical support</li>
-            </ul>
-            <a href="#contact" data-goi="Premium · $360" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Premium</a>
+          </div>
+
+          <!-- WEBAPP -->
+          <div data-reveal class="tkw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-rose-100 via-rose-50 to-pink-100 p-5 dark:from-rose-950/60 dark:via-card dark:to-pink-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500 text-white shadow-md shadow-rose-500/30"><i class="ph-bold ph-app-window text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Webapp</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">App-style logic &amp; custom features for your business.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span class="font-display text-3xl font-bold tracking-tight">Custom quote</span><span class="pb-1 text-xs text-muted-foreground">By scope</span></p>
+              <a href="#contact" data-goi="Webapp · custom quote" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Request a quote</a>
+            </div>
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-[13px] font-medium text-rose-600 dark:text-rose-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in E-commerce, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Exclusive UI/UX + custom features / logic</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Conversion optimization (CRO)</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> A dedicated 1-on-1 specialist</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 6 months of technical support</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -864,85 +887,90 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="mx-auto max-w-6xl px-5 lg:px-8">
         <div data-reveal class="mx-auto max-w-2xl text-center">
           <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Detailed comparison</span>
-          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">How the 4 plans differ</h2>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">How the website types compare</h2>
+          <p class="mt-3 text-muted-foreground">Five build types, one SEO-ready foundation — here's what each one includes at a glance.</p>
         </div>
-        <div data-reveal class="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
-          <table class="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr class="border-b border-border">
-                <th class="px-5 py-4 text-left font-semibold">Feature</th>
-                <th class="px-5 py-4 text-center font-semibold">Basic</th>
-                <th class="px-5 py-4 text-center font-semibold">Advanced</th>
-                <th class="bg-primary/5 px-5 py-4 text-center font-semibold text-primary">Comprehensive</th>
-                <th class="px-5 py-4 text-center font-semibold">Premium</th>
-              </tr>
-            </thead>
-            <tbody class="text-muted-foreground">
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Pages</td>
-                <td class="px-5 py-3.5 text-center">1</td>
-                <td class="px-5 py-3.5 text-center">5–7</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center font-medium text-foreground">Unlimited</td>
-                <td class="px-5 py-3.5 text-center">Unlimited</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Responsive mobile-first</td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">On-page SEO</td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Speed optimization</td>
-                <td class="px-5 py-3.5 text-center">Basic</td>
-                <td class="px-5 py-3.5 text-center">Basic</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center">Advanced</td>
-                <td class="px-5 py-3.5 text-center">Advanced</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Schema &amp; sitemap</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Content management (CMS)</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Sales / cart module</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Custom UI/UX design &amp; CRO</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr>
-                <td class="px-5 py-3.5">Post-handover support</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center">1 month</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center">3 months</td>
-                <td class="px-5 py-3.5 text-center">6 months</td>
-              </tr>
-            </tbody>
-          </table>
+        <div data-reveal class="mx-auto mt-10 max-w-5xl overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-border">
+                  <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-cursor-click text-base text-primary"></i> Landing</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-chart-bar text-base text-primary"></i> Statistic</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-article text-base text-primary"></i> Blog</span></th>
+                  <th class="border-x border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold text-primary"><i class="ph-bold ph-shopping-cart text-base"></i> E-commerce</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-app-window text-base text-primary"></i> Webapp</span></th>
+                </tr>
+              </thead>
+              <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-4 [&_td]:py-2.5 text-muted-foreground">
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Pages</td>
+                  <td class="text-center">1</td>
+                  <td class="text-center">5–7</td>
+                  <td class="text-center">5–7+</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-foreground">Unlimited</td>
+                  <td class="text-center">Custom</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Responsive · on-page SEO</td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Speed optimization</td>
+                  <td class="text-center text-xs">Basic</td>
+                  <td class="text-center text-xs">Standard</td>
+                  <td class="text-center text-xs">Standard</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-bold text-foreground">Advanced</td>
+                  <td class="text-center text-xs">Advanced</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Schema &amp; sitemap</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Blog / CMS</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Sales / cart module</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Custom features / CRO</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Post-handover support</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-bold text-foreground">3 months</td>
+                  <td class="text-center text-xs">6 months</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -1025,7 +1053,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </details>
           <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
             <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long does web design take?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
-            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Depends on the plan: a 1-page landing page about 3–5 days; a multi-page website 7–15 days; a comprehensive project 15–30 business days.</p>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">We send a draft in about 2 days. Full delivery: a landing page ~1 week; a statistic or blog site 1–2 weeks; an e-commerce site 3–4 weeks; webapps are quoted by scope.</p>
           </details>
           <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
             <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Will the site rank on Google right after it's built?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>

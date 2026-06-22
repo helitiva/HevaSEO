@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 <BaseLayout
   title="Keyword Research & SEO Strategy | HevaSEO"
-  description="HevaSEO's keyword research & SEO strategy service: a keyword map by intent, topic clusters (topical map), competitor analysis, and a content roadmap. 3 plans: Basic, Advanced, Comprehensive."
+  description="HevaSEO's keyword research & SEO strategy service: keyword clusters with volume & difficulty, competitor analysis with a spider chart & SWOT, and a content roadmap. 3 plans: Basic, Standard, Pro."
   keywords="keyword research, seo strategy, topical map, content cluster, search intent, keyword gap, seo roadmap"
   ogDescription="A keyword map by intent, topic clusters, and a content roadmap — know exactly what to write, where to link, and in what order."
 >
@@ -21,11 +21,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           "url": "https://hevaseo.com/"
         },
         "areaServed": "US",
-        "description": "A keyword map by intent, topic clusters (topical map), competitor analysis, and a content roadmap that show businesses exactly what to write and where to link.",
+        "description": "Keyword clusters with search volume, difficulty and intent; competitor analysis with a spider chart and SWOT; and a prioritized content roadmap that shows businesses exactly what to write and where to link.",
         "offers": [
-          { "@type": "Offer", "name": "Basic", "price": "20", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Advanced", "price": "40", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Comprehensive", "price": "79", "priceCurrency": "USD" }
+          { "@type": "Offer", "name": "Basic", "price": "19", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Standard", "price": "39", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pro", "price": "79", "priceCurrency": "USD" }
         ]
       },
       {
@@ -223,12 +223,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     @keyframes kw-sweep { 0% { transform: translateX(-130%); } 55%, 100% { transform: translateX(240%); } }
 
     /* ---- comparison table: check marks pop in on reveal ---- */
-    .kw-table.is-visible .ph-check { animation: kw-check-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
-    .kw-table.is-visible tbody tr:nth-child(2) .ph-check { animation-delay: 0.06s; }
-    .kw-table.is-visible tbody tr:nth-child(3) .ph-check { animation-delay: 0.12s; }
-    .kw-table.is-visible tbody tr:nth-child(4) .ph-check { animation-delay: 0.18s; }
-    .kw-table.is-visible tbody tr:nth-child(5) .ph-check { animation-delay: 0.24s; }
-    .kw-table.is-visible tbody tr:nth-child(6) .ph-check { animation-delay: 0.30s; }
+    .kw-table.is-visible .ph-check-circle { animation: kw-check-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .kw-table.is-visible tbody tr:nth-child(2) .ph-check-circle { animation-delay: 0.06s; }
+    .kw-table.is-visible tbody tr:nth-child(3) .ph-check-circle { animation-delay: 0.12s; }
+    .kw-table.is-visible tbody tr:nth-child(4) .ph-check-circle { animation-delay: 0.18s; }
+    .kw-table.is-visible tbody tr:nth-child(5) .ph-check-circle { animation-delay: 0.24s; }
+    .kw-table.is-visible tbody tr:nth-child(6) .ph-check-circle { animation-delay: 0.30s; }
     @keyframes kw-check-pop { 0% { opacity: 0; transform: scale(0.4); } 100% { opacity: 1; transform: scale(1); } }
 
     /* ---- gentle idle float for the price tier icons ---- */
@@ -718,72 +718,75 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <p class="mt-3 text-muted-foreground">Flat package pricing, delivered once. Large projects are quoted separately by industry scope.</p>
         </div>
 
-        <div class="kw-stagger mt-12 grid items-start gap-6 lg:grid-cols-3">
+        <div class="kw-stagger mt-12 grid items-stretch gap-6 lg:grid-cols-3">
           <!-- BASIC -->
-          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="kw-ic grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500"><i class="ph-bold ph-seedling"></i></span>
-              <h3 class="text-lg font-bold">Basic</h3>
+          <div data-reveal class="kw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-sky-100 via-sky-50 to-blue-100 p-5 dark:from-sky-950/60 dark:via-card dark:to-blue-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/30"><i class="ph-bold ph-plant text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Basic</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">New or small sites that want to start in the right direction.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$19</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~5 days</span></p>
+              <a href="#contact" data-goi="Basic · $19" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Basic</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$20</span><span class="text-sm text-muted-foreground">/package</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">New site, small budget, wanting to start in the right direction.</p>
-            <div class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-[13px] font-medium text-emerald-600 dark:text-emerald-400">
-              <i class="ph-fill ph-gift"></i> Free with a backlink order from $120 or &gt; 50 articles
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[13px] font-medium text-emerald-600 dark:text-emerald-400"><i class="ph-fill ph-gift"></i> Free with a backlink order from $120 or &gt;50 articles</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 1 main keyword cluster · ~50 keywords</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Search volume + difficulty (KD)</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Priority topic suggestions</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Web report + Google Sheet</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 50-80 primary &amp; secondary keywords (volume + KD)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Basic intent grouping</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 8-10 priority article topic suggestions</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Delivered as a Google Sheet</li>
-            </ul>
-            <a href="#contact" data-goi="Basic · $20" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Basic</a>
           </div>
 
-          <!-- ADVANCED (featured) -->
-          <div data-reveal class="kw-card relative rounded-2xl border-2 border-primary bg-card p-7 shadow-xl shadow-brand-500/10 lg:-mt-3">
-            <span class="kw-shine absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Most popular</span>
-            <div class="flex items-center gap-2">
-              <span class="kw-ic kw-float grid h-9 w-9 place-items-center rounded-lg bg-primary/15 text-primary"><i class="ph-bold ph-rocket-launch"></i></span>
-              <h3 class="text-lg font-bold">Advanced</h3>
+          <!-- STANDARD (featured) -->
+          <div data-reveal class="kw-card relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-violet-500/15 ring-1 ring-violet-300/50 dark:ring-violet-500/30">
+            <div class="relative bg-gradient-to-br from-violet-200 via-violet-100 to-fuchsia-100 p-5 dark:from-violet-900/60 dark:via-card dark:to-fuchsia-900/40">
+              <span class="kw-shine absolute right-5 top-5 rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow-md shadow-violet-600/30">Most popular</span>
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500 text-white shadow-md shadow-violet-500/30"><i class="ph-bold ph-rocket-launch text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Standard</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">SMBs running SEO who want a structured system.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$39</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~4 days</span></p>
+              <a href="#contact" data-goi="Standard · $39" class="mt-4 block rounded-xl bg-zinc-900 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">Choose Standard</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$40</span><span class="text-sm text-muted-foreground">/package</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">SMBs running SEO who want a structured system.</p>
-            <p class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary"><i class="ph-fill ph-fire"></i> 80+ customers chose this plan</p>
-            <div class="mt-4 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-[13px] font-medium text-primary">
-              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[13px] font-medium text-violet-600 dark:text-violet-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 3-5 keyword clusters · ~150 keywords</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Volume + difficulty + search intent</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 3 competitors on a spider chart + keyword gap</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Topical map (pillar &amp; cluster)</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> SEO strategy guidance</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 200-300 keywords</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full topical map (pillar &amp; cluster)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3-5 competitor analysis + keyword gap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Detailed intent map</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 3-month content roadmap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Priority scoring (value × difficulty)</li>
-            </ul>
-            <a href="#contact" data-goi="Advanced · $40" class="mt-7 block rounded-lg bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]">Choose Advanced</a>
           </div>
 
-          <!-- COMPREHENSIVE -->
-          <div data-reveal class="kw-card rounded-2xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="kw-ic grid h-9 w-9 place-items-center rounded-lg bg-violet-500/10 text-violet-500"><i class="ph-bold ph-crown"></i></span>
-              <h3 class="text-lg font-bold">Comprehensive</h3>
+          <!-- PRO -->
+          <div data-reveal class="kw-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-amber-100 via-amber-50 to-orange-100 p-5 dark:from-amber-950/60 dark:via-card dark:to-orange-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/30"><i class="ph-bold ph-crown text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Pro</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">Scaling projects, agencies, highly competitive industries.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$79</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">Priority · ~3 days</span></p>
+              <a href="#contact" data-goi="Pro · $79" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Pro</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$79</span><span class="text-sm text-muted-foreground">/package</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">Scaling projects, agencies, highly competitive industries.</p>
-            <div class="mt-4 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2.5 text-[13px] font-medium text-violet-600 dark:text-violet-400">
-              <i class="ph-fill ph-arrow-fat-up"></i> Everything in Advanced
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[13px] font-medium text-amber-600 dark:text-amber-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Standard, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Unlimited clusters · ~300+ keywords</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 5 competitors benchmarked + content/backlink gap</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Full SWOT vs the market</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 3-6 month, month-by-month SEO roadmap</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Internal linking blueprint</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Pre-filled brief — we skip the back-and-forth</li>
+              </ul>
             </div>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 500+ keywords</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Full-industry topical authority map</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Deep competitor analysis: content + backlink gap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Detailed 6-month, month-by-month roadmap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> Internal linking blueprint</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> 1-on-1 consultation with an expert (45-60 min)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check text-primary"></i> One review &amp; adjustment after 1 month</li>
-            </ul>
-            <a href="#contact" data-goi="Comprehensive · $79" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Comprehensive</a>
           </div>
         </div>
 
@@ -795,7 +798,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
           <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
             <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-lightning text-xl"></i></span>
-            <div><p class="text-sm font-semibold">Done within 24h</p><p class="text-xs text-muted-foreground">Fast, on-time delivery</p></div>
+            <div><p class="text-sm font-semibold">Delivered in 3–5 days</p><p class="text-xs text-muted-foreground">Fast, on-time delivery</p></div>
           </div>
           <div data-reveal class="kw-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
             <span class="kw-ic grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span>
@@ -822,72 +825,88 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
       <div class="mx-auto max-w-5xl px-5 lg:px-8">
         <div data-reveal class="mx-auto max-w-2xl text-center">
-          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">How the 3 plans differ</h2>
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Compare plans</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">How the 3 plans differ</h2>
+          <p class="mt-3 text-muted-foreground">From a single cluster to a full industry strategy — here's what each plan includes.</p>
         </div>
-        <p data-reveal class="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground sm:hidden">
+        <p data-reveal class="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground sm:hidden">
           <i class="ph-bold ph-arrows-horizontal"></i> Swipe sideways to see all 3 plans
         </p>
-        <div data-reveal class="kw-table mt-4 overflow-x-auto rounded-2xl border border-border bg-card sm:mt-10">
-          <table class="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr class="border-b border-border">
-                <th class="px-5 py-4 text-left font-semibold">Feature</th>
-                <th class="px-5 py-4 text-center font-semibold">Basic</th>
-                <th class="bg-primary/5 px-5 py-4 text-center font-semibold text-primary">Advanced</th>
-                <th class="px-5 py-4 text-center font-semibold">Comprehensive</th>
-              </tr>
-            </thead>
-            <tbody class="text-muted-foreground">
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Number of keywords</td>
-                <td class="px-5 py-3.5 text-center">50-80</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center font-medium text-foreground">200-300</td>
-                <td class="px-5 py-3.5 text-center">500+</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Intent grouping</td>
-                <td class="px-5 py-3.5 text-center">Basic</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center">Detailed</td>
-                <td class="px-5 py-3.5 text-center">Detailed</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Topical map (pillar - cluster)</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary">Full industry</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Competitor analysis</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center">3-5 competitors + gap</td>
-                <td class="px-5 py-3.5 text-center">In-depth + backlink gap</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Content roadmap</td>
-                <td class="px-5 py-3.5 text-center">Topic suggestions</td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center">3 months</td>
-                <td class="px-5 py-3.5 text-center">6 months, month by month</td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">Internal linking blueprint</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr class="border-b border-border/60">
-                <td class="px-5 py-3.5">1-on-1 expert consultation</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-              <tr>
-                <td class="px-5 py-3.5">Review &amp; adjust after 1 month</td>
-                <td class="px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="bg-primary/5 px-5 py-3.5 text-center text-muted-foreground/40"><i class="ph-bold ph-minus"></i></td>
-                <td class="px-5 py-3.5 text-center text-primary"><i class="ph-bold ph-check"></i></td>
-              </tr>
-            </tbody>
-          </table>
+        <div data-reveal class="kw-table mx-auto mt-4 max-w-4xl overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5 sm:mt-8">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[680px] border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-border">
+                  <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-circle text-base text-primary"></i> Basic</span></th>
+                  <th class="border-x border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold text-primary"><i class="ph-fill ph-star text-base"></i> Standard</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-crown text-base text-primary"></i> Pro</span></th>
+                </tr>
+              </thead>
+              <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-4 [&_td]:py-2.5 text-muted-foreground">
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Keyword clusters</td>
+                  <td class="text-center">1</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-foreground">3–5</td>
+                  <td class="text-center">Unlimited</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Number of keywords</td>
+                  <td class="text-center">~50</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-foreground">~150</td>
+                  <td class="text-center">~300+</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Volume + difficulty</td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Search intent</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Competitor analysis (spider chart)</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">3 competitors + gap</td>
+                  <td class="text-center text-xs">5 competitors + backlink gap</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">SWOT vs the market</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Topical map (pillar → cluster)</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center text-xs font-medium text-foreground">Full industry</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">SEO strategy &amp; roadmap</td>
+                  <td class="text-center text-xs">Topic suggestions</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">Strategy guidance</td>
+                  <td class="text-center text-xs">3–6 months, month by month</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Internal linking blueprint</td>
+                  <td class="text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-muted-foreground/30"><i class="ph-bold ph-minus"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium text-foreground">Delivery time</td>
+                  <td class="text-center text-xs">~5 days</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">~4 days</td>
+                  <td class="text-center text-xs font-bold text-foreground">~3 days · priority</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -932,7 +951,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </details>
           <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
             <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long until delivery?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
-            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Basic usually takes 2-3 business days; Advanced 4-6 days; Comprehensive 7-10 days, depending on the breadth of your industry and the number of competitors to analyze.</p>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Basic in about 5 days, Standard about 4 days, and Pro a priority ~3 days (its pre-filled brief lets us skip the back-and-forth). Times can vary slightly with the breadth of your industry and the number of competitors to analyze.</p>
           </details>
           <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
             <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Do I need to buy content / backlinks too?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
@@ -940,7 +959,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </details>
           <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
             <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What format are the deliverables in?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
-            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The keyword table and roadmap are delivered as a Google Sheet; the topical map and internal linking blueprint as visual diagrams. They're all yours and reusable for the long term.</p>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Keyword clusters come as an interactive web report (filter/sort) plus a Google Sheet; the competitor comparison as a spider chart with a SWOT; the topical map and internal linking blueprint as visual diagrams. They're all yours and reusable for the long term.</p>
           </details>
         </div>
       </div>

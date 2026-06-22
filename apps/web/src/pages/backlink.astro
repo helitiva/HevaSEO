@@ -1,0 +1,1154 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PricingGrid from '../components/PricingGrid.astro';
+
+const IDX_BADGE = 'Indexer included';
+
+const entityTiers = [
+  { name: 'Entity 300', subtitle: '300 links', icon: 'ph-buildings', hue: 'sky', price: '$52', strike: '$130', delivery: '7–10 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 300', goi: 'Entity 300 · $52', features: ['300 authority links', 'Business profile links', 'NAP citations (name · address · phone)', 'Social profile citations', 'Safe, diversified anchors', '80–95% indexed · live per-link report'] },
+  { name: 'Entity 500', subtitle: '500 links', icon: 'ph-buildings', hue: 'sky', price: '$79', strike: '$197', delivery: '10–14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Entity 500', goi: 'Entity 500 · $79', features: ['500 authority links', 'Profiles · NAP · social citations', '<b class="font-semibold text-foreground">Trusted directory</b> listings', 'Diversified anchor profile', 'White-hat, Google-safe placements', '80–95% indexed · live per-link report'] },
+  { name: 'Entity 1000', subtitle: '1000 links', icon: 'ph-buildings', hue: 'sky', price: '$139', strike: '$347', delivery: '14–21 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 1000', goi: 'Entity 1000 · $139', features: ['1,000 authority links', 'Profiles · NAP · social · directory', '<b class="font-semibold text-foreground">Web 2.0 / extended entity</b> links', 'Widest brand footprint', 'Natural, diversified anchors', '80–95% indexed · live per-link report'] },
+];
+
+const pyramidTiers = [
+  { name: 'Pyramid Starter', subtitle: 'Tier-1 → Tier-2', icon: 'ph-stack', hue: 'violet', price: '$36', strike: '$90', delivery: '10 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Starter · $36', features: ['Tier-1 contextual links', 'Tier-2 support layer', 'Power funneled to 1 target URL', 'Safe, white-hat tiers', '~70% indexed · live report'] },
+  { name: 'Pyramid Growth', subtitle: 'Denser Tier-1', icon: 'ph-stack', hue: 'violet', price: '$64', strike: '$160', delivery: '14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Growth · $64', features: ['<b class="font-semibold text-foreground">Denser Tier-1</b> contextual links', 'Tier-2 support layer', 'Stronger power to your URL', 'Safe anchor distribution', '~70% indexed · live report'] },
+  { name: 'Pyramid Power', subtitle: '3 tiers (T1–T3)', icon: 'ph-stack', hue: 'violet', price: '$104', strike: '$260', delivery: '18 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Power · $104', features: ['<b class="font-semibold text-foreground">3 tiers</b> (T1 → T2 → T3)', 'Deeper power flow', 'Boost a competitive URL / category', 'Safe, white-hat structure', '~70% indexed · live report'] },
+  { name: 'Pyramid Max', subtitle: 'Full 3 tiers', icon: 'ph-stack', hue: 'violet', price: '$159', strike: '$397', delivery: '21 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Max · $159', features: ['Full 3 tiers + extra strong links', 'Maximum power funnel', 'For your most competitive targets', '<b class="font-semibold text-foreground">Advanced Indexer</b> push', '~70%+ indexed · live report'] },
+];
+
+const guestTiers = [
+  { name: 'Guest 3', subtitle: 'DR30+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$104', strike: '$260', delivery: '2–3 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 3', goi: 'Guest 3 (DR30+) · $104', features: ['3 guest posts on DR30+ blogs', 'SEO article written for each', 'Manual outreach + placement', 'Contextual, in-content links', '~100% indexed · live report'] },
+  { name: 'Guest 5', subtitle: 'DR40+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$180', strike: '$450', delivery: '~3 weeks', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Guest 5', goi: 'Guest 5 (DR40+) · $180', features: ['<b class="font-semibold text-foreground">5 guest posts on DR40+ blogs</b>', 'SEO article written for each', 'Manual outreach + placement', 'Higher-authority, real-traffic sites', '~100% indexed · live report'] },
+  { name: 'Guest 5 Pro', subtitle: 'DR50+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$280', strike: '$700', delivery: '3–4 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 5 Pro', goi: 'Guest 5 Pro (DR50+) · $280', features: ['5 guest posts on DR50+ blogs', '<b class="font-semibold text-foreground">+ Pyramid boost per post</b>', 'SEO article written for each', 'Premium, high-traffic publications', '~100% indexed · live report'] },
+];
+---
+<BaseLayout
+  title="Backlinks — Authority That Lasts, Every Link Indexed | HevaSEO"
+  description="White-hat backlinks across the 4 systems Google trusts: Entity, Pyramid, Guest Post and PR. Every package includes our Indexer free — Entity 80–95%, Pyramid ~70%, Guest & PR ~100% indexed in 2 weeks. Live per-link report, dead-link replacement. Plans from $36."
+  keywords="backlinks, white hat backlinks, entity backlinks, link pyramid, guest posts, PR backlinks, backlink indexer, link building service, DR40 guest post"
+  ogDescription="Safe links that actually count — every backlink package ships with our Indexer free, with a 2-week index-rate guarantee and a live per-link report. From $36."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "Backlinks",
+        "serviceType": "White-hat link building (Entity, Pyramid, Guest Post, PR) with free indexing",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "White-hat backlink building across four systems — Entity, Pyramid, Guest Post and PR. Every package includes our Indexer free, with a 2-week index-rate guarantee, a live per-link report and dead-link replacement.",
+        "offers": [
+          { "@type": "Offer", "name": "Entity 300", "price": "52", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Entity 500", "price": "79", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Entity 1000", "price": "139", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pyramid Starter", "price": "36", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pyramid Growth", "price": "64", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pyramid Power", "price": "104", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pyramid Max", "price": "159", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Guest 3 (DR30+)", "price": "104", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Guest 5 (DR40+)", "price": "180", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Guest 5 Pro (DR50+)", "price": "280", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Backlinks", "item": "https://hevaseo.com/backlink" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "Is our Indexer really included free with every backlink package?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every Backlink package — Entity, Pyramid, Guest Post and PR — runs through our Indexer at no extra cost. Typical 2-week index rates: Entity 80–95%, Pyramid ~70%, Guest Post ~100%, PR ~100%. A link Google never indexes can't pass authority, so we index by default." } },
+          { "@type": "Question", "name": "Are the links safe / white-hat?", "acceptedAnswer": { "@type": "Answer", "text": "100% white-hat. We follow Google's guidelines, diversify anchors at safe ratios, and build a natural link profile across trusted platforms. No PBNs, no spam, no black-box tactics." } },
+          { "@type": "Question", "name": "What DR / DA do the links have?", "acceptedAnswer": { "@type": "Answer", "text": "It depends on the package. Entity builds authoritative profile and citation links; Guest Post placements start at DR30+, DR40+ and DR50+; PR lands on international news outlets. Every live link's DR/DA is shown in your report." } },
+          { "@type": "Question", "name": "What index rate can I expect?", "acceptedAnswer": { "@type": "Answer", "text": "Within the first two weeks: Entity 80–95%, Pyramid ~70%, Guest Post ~100% and PR ~100%. Your live report shows the exact percentage indexed, updated as links are crawled." } },
+          { "@type": "Question", "name": "How long until I see results?", "acceptedAnswer": { "@type": "Answer", "text": "Links are delivered within each package's SLA (from ~10 days to 3–4 weeks). Ranking impact builds over the following weeks as the links index and Google recalculates authority — backlinks compound over time." } },
+          { "@type": "Question", "name": "What if a link goes down?", "acceptedAnswer": { "@type": "Answer", "text": "Dead links are replaced for free. We QA every link before delivery and monitor them after — if one drops, we rebuild it at no charge." } },
+          { "@type": "Question", "name": "What do I receive?", "acceptedAnswer": { "@type": "Answer", "text": "A live report page plus an Excel sheet listing every link: live URL, target URL, anchor, type, DR/DA, date and status (Live / Indexed / Pending), with a summary of total live links, average DR and percentage indexed. PR delivers the published article links." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ===== Page flourishes — Backlinks ===== */
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .hero-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    @property --tkwv { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    /* animated score / index gauges */
+    .tkw-gauge { position: relative; width: 84px; height: 84px; border-radius: 50%;
+      display: grid; place-items: center; --tkwv: 0;
+      background: conic-gradient(var(--gc, hsl(var(--primary))) calc(var(--tkwv) * 1%), hsl(var(--muted)) 0); }
+    .tkw-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: hsl(var(--card)); }
+    .tkw-gauge b { position: relative; font-family: '"Inter Tight"', Inter, sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1; }
+    [data-reveal].is-visible .tkw-gauge { transition: --tkwv 1.5s cubic-bezier(.16,1,.3,1); transition-delay: var(--gd, .2s); --tkwv: var(--to, 0); }
+    .tkw-gauge.sm { width: 70px; height: 70px; }
+    .tkw-gauge.sm::before { inset: 5px; }
+    .tkw-gauge.sm b { font-size: 1.1rem; }
+
+    /* animated metric bars */
+    .tkw-bar { position: relative; height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .tkw-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+    [data-reveal].is-visible .tkw-bar > i { animation: tkwBar 1.4s cubic-bezier(.16,1,.3,1) forwards; animation-delay: var(--bd, .3s); }
+    @keyframes tkwBar { to { width: var(--bw, 100%); } }
+
+    /* scanning sheen across the report card */
+    .tkw-scan { position: relative; overflow: hidden; }
+    .tkw-scan::after { content: ""; position: absolute; left: 0; right: 0; top: -42%; height: 36%; pointer-events: none; z-index: 5;
+      background: linear-gradient(180deg, hsl(var(--primary) / .16), transparent);
+      animation: tkwScan 3.6s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tkwScan { 0% { transform: translateY(0); } 100% { transform: translateY(380%); } }
+
+    /* floating glass chips around hero card */
+    .tkw-chip { position: absolute; z-index: 30; display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .92);
+      padding: .45rem .8rem; font-size: .78rem; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 10px 28px hsl(213 50% 20% / .14); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      animation: tkwFloat 6s ease-in-out infinite; }
+    .dark .tkw-chip { box-shadow: 0 10px 28px hsl(0 0% 0% / .4); }
+    .tkw-chip.d2 { animation-duration: 7.4s; animation-delay: -2.2s; }
+    .tkw-chip.d3 { animation-duration: 8.6s; animation-delay: -4.1s; }
+    @keyframes tkwFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+
+    /* card hover lift + icon pop */
+    .tkw-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .tkw-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .tkw-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+    .tkw-ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .tkw-card:hover .tkw-ic, .tkw-step:hover .tkw-ic { transform: scale(1.14) rotate(-7deg); }
+
+    /* feature-card graphics */
+    .tkw-figure { position: relative; height: 10.5rem; overflow: hidden;
+      background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .14), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .13) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .2), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure svg { position: relative; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .tkw-figure svg { transform: scale(1.04); }
+    .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(213 50% 25% / .15)); }
+    .dark .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(0 0% 0% / .5)); }
+    .tkw-figure .glow { filter: drop-shadow(0 0 5px hsl(var(--primary) / .5)); }
+    .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .13), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .12) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .22), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure .glow-warn { filter: drop-shadow(0 0 5px hsl(var(--destructive) / .45)); }
+    .tkw-guar { transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+    .tkw-guar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px hsl(213 60% 30% / .18); }
+    .tkw-arc { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-arc { animation: tkwArc 1.5s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    @keyframes tkwArc { to { stroke-dashoffset: var(--arc, 10); } }
+    .tkw-draw { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-draw { animation: tkwDraw 1.6s cubic-bezier(.16,1,.3,1) .25s forwards; }
+    @keyframes tkwDraw { to { stroke-dashoffset: 0; } }
+    .tkw-pop { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: center; }
+    [data-reveal].is-visible .tkw-pop { animation: tkwPop .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .tkw-pop.p1 { animation-delay: .25s; } .tkw-pop.p2 { animation-delay: .4s; }
+    .tkw-pop.p3 { animation-delay: .55s; } .tkw-pop.p4 { animation-delay: .7s; } .tkw-pop.p5 { animation-delay: .85s; }
+    @keyframes tkwPop { to { opacity: 1; transform: scale(1); } }
+
+    /* staggered reveal inside grids */
+    .tkw-grid > [data-reveal]:nth-child(2) { transition-delay: .07s; }
+    .tkw-grid > [data-reveal]:nth-child(3) { transition-delay: .14s; }
+    .tkw-grid > [data-reveal]:nth-child(4) { transition-delay: .21s; }
+    .tkw-grid > [data-reveal]:nth-child(5) { transition-delay: .28s; }
+    .tkw-grid > [data-reveal]:nth-child(6) { transition-delay: .35s; }
+
+    .tkw-num { background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 95% 62%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    .tkw-shine { position: relative; overflow: hidden; }
+    .tkw-shine::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(105deg, transparent 30%, hsl(0 0% 100% / .55) 50%, transparent 70%);
+      transform: translateX(-130%); animation: tkwShine 3.4s ease-in-out infinite; }
+    @keyframes tkwShine { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+    .tkw-live { position: relative; }
+    .tkw-live::before { content: ""; position: absolute; inset: -5px; border-radius: 999px; border: 2px solid hsl(142 70% 45% / .6); animation: tkwPing 1.8s ease-out infinite; }
+    @keyframes tkwPing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    /* === backlink-specific === */
+    /* "Indexer included" badge — the hallmark, green */
+    .bl-idx { display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; padding: .3rem .7rem; font-size: .72rem; font-weight: 700; letter-spacing: .01em;
+      background: linear-gradient(120deg, hsl(142 72% 45% / .16), hsl(142 72% 45% / .06));
+      color: hsl(142 64% 32%); border: 1px solid hsl(142 64% 42% / .35); }
+    .dark .bl-idx { color: hsl(142 70% 62%); border-color: hsl(142 64% 50% / .4); }
+
+    /* link status pills */
+    .bl-pill { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px;
+      padding: .12rem .5rem; font-size: .66rem; font-weight: 700; white-space: nowrap; }
+    .bl-pill.live { background: hsl(142 64% 45% / .14); color: hsl(142 60% 34%); }
+    .bl-pill.idx  { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
+    .bl-pill.pend { background: hsl(38 92% 50% / .15); color: hsl(32 80% 42%); }
+    .dark .bl-pill.live { color: hsl(142 65% 60%); } .dark .bl-pill.pend { color: hsl(38 92% 62%); }
+    /* DR badge */
+    .bl-dr { display: inline-flex; align-items: center; border-radius: 6px; padding: .1rem .4rem;
+      font-size: .66rem; font-weight: 800; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: '"Inter Tight"', Inter, sans-serif; }
+
+    /* connecting line for the process timeline */
+    .bl-flow { position: relative; }
+    @media (min-width: 1024px) {
+      .bl-flow::before { content: ""; position: absolute; top: 2.25rem; left: 10%; right: 10%; height: 2px; z-index: 0;
+        background: repeating-linear-gradient(90deg, hsl(var(--primary) / .45) 0 10px, transparent 10px 20px); }
+    }
+    .bl-step-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .bl-step-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .bl-step-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+
+    /* package card hover */
+    .bl-pkg { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .bl-pkg:hover { transform: translateY(-5px); border-color: hsl(var(--primary) / .45); box-shadow: 0 18px 40px hsl(213 60% 28% / .14); }
+    .dark .bl-pkg:hover { box-shadow: 0 18px 40px hsl(0 0% 0% / .45); }
+
+    /* === looping decorative motion === */
+    @keyframes blPulseRing { 0% { transform: scale(.5); opacity: .6; } 100% { transform: scale(2); opacity: 0; } }
+    @keyframes blFloatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes blBlink { 0%,100% { opacity: 1; } 50% { opacity: .18; } }
+    @keyframes blDissolve { 0%,100% { opacity: 1; } 48% { opacity: .1; } }
+    @keyframes blRiseFade { 0% { transform: translateY(5px); opacity: 0; } 30% { opacity: .85; } 100% { transform: translateY(-13px); opacity: 0; } }
+    @keyframes blGlow { 0%,100% { opacity: .18; } 50% { opacity: .8; } }
+    @keyframes blShineX { 0% { transform: translateX(-70px); } 55%,100% { transform: translateX(210px); } }
+    .bl-pulsering { animation: blPulseRing 2.2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    .bl-floaty { animation: blFloatY 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .bl-blink { animation: blBlink 1.7s ease-in-out infinite; }
+    .bl-dissolve { animation: blDissolve 2.6s ease-in-out infinite; }
+    .bl-rise { animation: blRiseFade 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .bl-glow { animation: blGlow 2.4s ease-in-out infinite; }
+    .bl-shine { animation: blShineX 3.6s ease-in-out infinite; }
+    .bl-mover { fill: hsl(var(--primary)); }
+    .bl-mover.warn { fill: hsl(var(--destructive)); }
+    .bl-grow-fill { opacity: 0; transition: opacity .9s ease .5s; }
+    [data-reveal].is-visible .bl-grow-fill { opacity: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tkw-scan::after, .tkw-chip, .tkw-shine::after, .tkw-live::before { animation: none !important; }
+      .bl-pulsering, .bl-floaty, .bl-blink, .bl-dissolve, .bl-rise, .bl-glow, .bl-shine, .bl-mover { animation: none !important; }
+      .bl-mover, .bl-glow { opacity: 0 !important; }
+      .bl-grow-fill { opacity: 1 !important; transition: none !important; }
+      .tkw-chip { transform: none !important; }
+      [data-reveal].is-visible .tkw-gauge { transition: none; --tkwv: var(--to,0); }
+      [data-reveal].is-visible .tkw-bar > i { animation: none; width: var(--bw,100%); }
+      .tkw-arc, .tkw-draw { stroke-dashoffset: 0 !important; animation: none !important; }
+      .tkw-pop { opacity: 1 !important; transform: none !important; animation: none !important; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-6 pb-16 lg:pt-8 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <nav data-reveal class="mb-8 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <a href="/#top" class="transition hover:text-primary">Home</a>
+          <i class="ph-bold ph-caret-right text-xs"></i>
+          <span class="text-foreground">Backlinks</span>
+        </nav>
+
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary shadow-sm"><i class="ph-fill ph-share-network"></i> Entity · Pyramid · Guest · PR</span>
+            <h1 class="mt-4 font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Authority that lasts — and <span class="text-primary">every link indexed.</span>
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              White-hat links across the four systems Google trusts. <b class="font-semibold text-foreground">Every package includes our Indexer free</b> — because a link Google never indexes can't pass authority. No black box: you get a live, per-link report.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#plans" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                See packages &amp; pricing <i class="ph-bold ph-arrow-down"></i>
+              </a>
+              <a href="#types" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                Which link type fits?
+              </a>
+            </div>
+            <div class="mt-7 flex flex-wrap gap-2.5">
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-magnifying-glass text-sm"></i></span> Indexer included free</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-shield-check text-sm"></i></span> 100% white-hat</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-arrows-clockwise text-sm"></i></span> Dead-link replacement</span>
+            </div>
+
+            <!-- SAMPLE FIGURES: replace with real numbers -->
+            <div data-reveal class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-border bg-card/70 p-3 pr-5 shadow-sm backdrop-blur">
+              <div class="flex items-center gap-3">
+                <div class="flex -space-x-2.5">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white ring-2 ring-card">M</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white ring-2 ring-card">H</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-xs font-bold text-white ring-2 ring-card">T</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-card">+1k</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex text-amber-400"><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i></span>
+                    <span class="text-sm font-bold text-foreground">4.9/5</span>
+                  </div>
+                  <p class="text-xs text-muted-foreground"><b class="font-bold text-foreground"><span data-count="1200">0</span>+</b> link campaigns</p>
+                </div>
+              </div>
+              <span class="hidden h-10 w-px bg-border sm:block"></span>
+              <div class="flex items-center gap-5">
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="92">0</span>%</p><p class="text-[11px] text-muted-foreground">Avg indexed in 2 wks</p></div>
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="100">0</span>%</p><p class="text-[11px] text-muted-foreground">Links reported</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- hero visual: live backlink report -->
+          <div data-reveal class="relative">
+            <span class="tkw-chip -left-3 top-6 text-emerald-500"><i class="ph-fill ph-link"></i> 428 live</span>
+            <span class="tkw-chip d2 -right-2 top-1/3 text-primary"><i class="ph-fill ph-magnifying-glass"></i> 92% indexed</span>
+            <span class="tkw-chip d3 -left-2 bottom-10 text-violet-500"><i class="ph-fill ph-shield-check"></i> White-hat</span>
+
+            <div class="tkw-scan rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+              <div class="flex items-center gap-2 pb-4">
+                <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-red-400"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400"></i><i class="h-2.5 w-2.5 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-table"></i> Live backlink report</span>
+                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500"><span class="tkw-live grid h-2 w-2 place-items-center rounded-full bg-emerald-500"></span> Live</span>
+              </div>
+
+              <div class="mb-4 flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-4">
+                <div class="tkw-gauge sm shrink-0" style="--to:92;--gc:#22c55e;--gd:.2s"><b class="text-green-500"><span data-count="92">0</span>%</b></div>
+                <div class="grid flex-1 grid-cols-2 gap-x-3 gap-y-2 text-center">
+                  <div><p class="font-display text-lg font-bold text-foreground"><span data-count="428">0</span></p><p class="text-[10px] text-muted-foreground">Links live</p></div>
+                  <div><p class="font-display text-lg font-bold text-foreground"><span data-count="394">0</span></p><p class="text-[10px] text-muted-foreground">Indexed</p></div>
+                  <div><p class="font-display text-lg font-bold text-foreground">38</p><p class="text-[10px] text-muted-foreground">Avg DR</p></div>
+                  <div><p class="font-display text-lg font-bold text-foreground">0</p><p class="text-[10px] text-muted-foreground">Dead</p></div>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <span class="bl-dr">DR52</span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">techblog.com/post · <span class="text-foreground">"seo tools"</span></span>
+                  <span class="bl-pill idx"><i class="ph-fill ph-check-circle"></i> Indexed</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <span class="bl-dr">DR41</span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">guildreview.net · <span class="text-foreground">"best crm"</span></span>
+                  <span class="bl-pill idx"><i class="ph-fill ph-check-circle"></i> Indexed</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <span class="bl-dr">DR34</span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">citystartups.io · <span class="text-foreground">brand</span></span>
+                  <span class="bl-pill live"><i class="ph-fill ph-link"></i> Live</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <span class="bl-dr">DR29</span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">profilehub.org · <span class="text-foreground">naked url</span></span>
+                  <span class="bl-pill pend"><i class="ph-fill ph-clock"></i> Pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INDEXER-INCLUDED CALLOUT ============ -->
+    <section class="relative -mt-4 pb-4">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/[0.07] via-card to-emerald-500/[0.06] p-6 shadow-sm lg:p-7">
+          <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-fill ph-magnifying-glass-plus text-2xl"></i></span>
+            <div class="sm:flex-1">
+              <h2 class="text-lg font-bold tracking-tight sm:text-xl">Every package includes our Indexer — free</h2>
+              <p class="mt-1 text-sm leading-relaxed text-muted-foreground">A link that never enters Google's index passes zero authority. So we index by default and show you the exact percentage. Typical rates within the first <b class="font-semibold text-foreground">2 weeks</b>:</p>
+            </div>
+          </div>
+          <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="rounded-xl border border-border bg-card px-4 py-3 text-center"><p class="font-display text-2xl font-bold text-primary">80–95%</p><p class="mt-0.5 text-xs font-medium text-muted-foreground">Entity</p></div>
+            <div class="rounded-xl border border-border bg-card px-4 py-3 text-center"><p class="font-display text-2xl font-bold text-primary">~70%</p><p class="mt-0.5 text-xs font-medium text-muted-foreground">Pyramid</p></div>
+            <div class="rounded-xl border border-border bg-card px-4 py-3 text-center"><p class="font-display text-2xl font-bold text-primary">~100%</p><p class="mt-0.5 text-xs font-medium text-muted-foreground">Guest Post</p></div>
+            <div class="rounded-xl border border-border bg-card px-4 py-3 text-center"><p class="font-display text-2xl font-bold text-primary">~100%</p><p class="mt-0.5 text-xs font-medium text-muted-foreground">PR</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Why most link building fails</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">You paid for links — but did they actually count?</h2>
+          <p class="mt-3 text-muted-foreground">Most backlink money is wasted on links Google never sees, risky tactics, or services that hand you a spreadsheet you can't verify.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- 1. Not indexed -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Links not indexed by Google">
+                <g class="lift"><rect x="40" y="32" width="150" height="74" rx="12" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <line x1="40" y1="52" x2="190" y2="52" stroke="hsl(var(--border))"/>
+                <circle cx="53" cy="42" r="2.4" fill="hsl(var(--muted-foreground) / .5)"/><circle cx="61" cy="42" r="2.4" fill="hsl(var(--muted-foreground) / .5)"/>
+                <rect x="54" y="64" width="74" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="54" y="78" width="58" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="54" y="92" width="40" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <circle class="bl-pulsering" cx="162" cy="84" r="26" fill="none" stroke="hsl(var(--destructive))" stroke-width="3"/>
+                <g class="bl-floaty">
+                  <circle cx="162" cy="84" r="25" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="5"/>
+                  <line x1="180" y1="102" x2="196" y2="118" stroke="hsl(var(--destructive))" stroke-width="6" stroke-linecap="round"/>
+                  <text class="bl-blink" x="162" y="92" text-anchor="middle" font-size="24" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">0</text>
+                </g>
+                <text x="120" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">not in index</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-magnifying-glass-minus"></i></span><h3 class="font-semibold">Links Google never sees</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">An unindexed link passes no authority. Many providers build links and never check if they're in the index.</p>
+            </div>
+          </article>
+
+          <!-- 2. Toxic links -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Toxic spammy links risk a penalty">
+                <g fill="none" stroke="hsl(var(--destructive) / .55)" stroke-width="5" stroke-linecap="round">
+                  <rect x="50" y="92" width="36" height="20" rx="10"/>
+                  <line x1="86" y1="102" x2="100" y2="102"/>
+                  <rect x="100" y="92" width="36" height="20" rx="10"/>
+                  <line x1="136" y1="102" x2="150" y2="102"/>
+                  <rect x="150" y="92" width="36" height="20" rx="10"/>
+                </g>
+                <circle class="bl-pulsering" cx="118" cy="54" r="23" fill="none" stroke="hsl(var(--destructive))" stroke-width="3"/>
+                <g class="bl-floaty lift">
+                  <circle cx="118" cy="54" r="22" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="4"/>
+                  <circle cx="118" cy="50" r="12" fill="hsl(var(--destructive))"/>
+                  <rect x="110" y="58" width="16" height="9" rx="3" fill="hsl(var(--destructive))"/>
+                  <circle class="bl-blink" cx="113" cy="49" r="3.4" fill="hsl(var(--card))"/>
+                  <circle class="bl-blink" cx="123" cy="49" r="3.4" fill="hsl(var(--card))"/>
+                  <line x1="115" y1="60" x2="115" y2="66" stroke="hsl(var(--card))" stroke-width="2"/>
+                  <line x1="118" y1="60" x2="118" y2="66" stroke="hsl(var(--card))" stroke-width="2"/>
+                  <line x1="121" y1="60" x2="121" y2="66" stroke="hsl(var(--card))" stroke-width="2"/>
+                </g>
+                <text x="120" y="130" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">penalty risk</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-warning-octagon"></i></span><h3 class="font-semibold">Toxic, spammy links</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Cheap PBNs and link farms can trigger a Google penalty that's far costlier than the links ever were.</p>
+            </div>
+          </article>
+
+          <!-- 3. Black box -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Black-box service with no proof">
+                <text class="bl-rise" x="150" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="hsl(var(--destructive) / .55)" font-family="Inter Tight, sans-serif" style="animation-delay:.4s">?</text>
+                <text class="bl-rise" x="90" y="52" text-anchor="middle" font-size="11" font-weight="800" fill="hsl(var(--destructive) / .4)" font-family="Inter Tight, sans-serif" style="animation-delay:1.5s">?</text>
+                <g class="lift">
+                  <path d="M120 30 L172 50 L172 96 L120 116 L68 96 L68 50 Z" fill="hsl(var(--muted))" stroke="hsl(var(--border))" stroke-width="2"/>
+                  <path d="M120 30 L172 50 L120 70 L68 50 Z" fill="hsl(var(--card))" stroke="hsl(var(--border))" stroke-width="2"/>
+                  <path d="M120 70 L120 116" stroke="hsl(var(--border))" stroke-width="2"/>
+                </g>
+                <text class="bl-floaty" x="120" y="103" text-anchor="middle" font-size="36" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">?</text>
+                <text x="120" y="132" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">no report</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-eye-slash"></i></span><h3 class="font-semibold">Black-box services</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">"Trust us, the links are there." No live URLs, no DR, no index proof — you can't verify what you paid for.</p>
+            </div>
+          </article>
+
+          <!-- 4. Disappearing links -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Links that disappear over time">
+                <g fill="none" stroke-width="6" stroke-linecap="round">
+                  <rect x="46" y="58" width="40" height="24" rx="12" stroke="hsl(var(--destructive))"/>
+                  <line x1="82" y1="70" x2="100" y2="70" stroke="hsl(var(--destructive))"/>
+                  <rect x="96" y="58" width="40" height="24" rx="12" stroke="hsl(var(--destructive))"/>
+                  <line x1="132" y1="70" x2="150" y2="70" stroke="hsl(var(--destructive) / .5)" stroke-dasharray="3 5"/>
+                  <rect class="bl-dissolve" x="146" y="58" width="40" height="24" rx="12" stroke="hsl(var(--destructive))"/>
+                </g>
+                <circle class="bl-rise warn" cx="176" cy="52" r="2.6" fill="hsl(var(--destructive) / .6)" style="animation-delay:.3s"/>
+                <circle class="bl-rise warn" cx="187" cy="60" r="2.2" fill="hsl(var(--destructive) / .5)" style="animation-delay:1.1s"/>
+                <circle class="bl-rise warn" cx="164" cy="48" r="2.2" fill="hsl(var(--destructive) / .45)" style="animation-delay:1.7s"/>
+                <text x="120" y="120" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">link dropped</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-link-break"></i></span><h3 class="font-semibold">Links that vanish</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Links removed weeks later quietly erase the authority you paid for — with no replacement offered.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OUR BACKLINKS ARE DIFFERENT ============ -->
+    <section id="different" class="relative overflow-hidden border-b border-border bg-gradient-to-b from-primary/[0.06] via-background to-background py-16 lg:py-24">
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-4rem;left:-6rem;width:24rem;height:24rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary"><i class="ph-fill ph-seal-check"></i> The HevaSEO difference</span>
+          <h2 class="mt-4 text-3xl font-bold tracking-tight md:text-5xl">Backlinks built to <span class="text-primary">actually count</span></h2>
+          <p class="mt-3 text-muted-foreground">Most providers stop at "links delivered." We engineered ours to be safe, indexed, transparent and permanent — and we prove every one of those claims.</p>
+        </div>
+
+        <div class="tkw-grid mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- FLAGSHIP: Indexed fast (tall, spans 2 rows) -->
+          <article data-reveal class="tkw-card group relative flex flex-col justify-between gap-6 overflow-hidden rounded-2xl border-2 border-primary/30 bg-card p-6 sm:col-span-2 lg:row-span-2 lg:p-7">
+            <div class="flex flex-wrap items-center gap-2.5">
+              <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-fill ph-magnifying-glass-plus text-xl"></i></span>
+              <span class="bl-idx"><i class="ph-fill ph-check-circle"></i> Indexer included free</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold tracking-tight">Indexed fast — and proven</h3>
+              <p class="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">A link Google never indexes is worth nothing. Ours go in — and you see the exact percentage, updated as links are crawled.</p>
+              <div class="mt-5 grid items-center gap-5 sm:grid-cols-[auto_1fr]">
+                <div class="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-border bg-muted/40 p-4 sm:w-36">
+                  <div class="tkw-gauge" style="--to:92;--gc:#22c55e;--gd:.2s"><b class="text-green-500"><span data-count="92">0</span>%</b></div>
+                  <p class="mt-2 text-center text-[11px] font-medium leading-tight text-muted-foreground">indexed within<br>2 weeks</p>
+                </div>
+                <div class="space-y-2.5">
+                  <div><div class="flex items-center justify-between text-xs"><span class="font-medium">Entity</span><span class="font-semibold text-primary">80–95%</span></div><div class="tkw-bar mt-1" style="--bw:88%;--bd:.3s"><i></i></div></div>
+                  <div><div class="flex items-center justify-between text-xs"><span class="font-medium">Pyramid</span><span class="font-semibold text-primary">~70%</span></div><div class="tkw-bar mt-1" style="--bw:70%;--bd:.45s"><i></i></div></div>
+                  <div><div class="flex items-center justify-between text-xs"><span class="font-medium">Guest Post</span><span class="font-semibold text-primary">~100%</span></div><div class="tkw-bar mt-1" style="--bw:100%;--bd:.6s"><i></i></div></div>
+                  <div><div class="flex items-center justify-between text-xs"><span class="font-medium">PR</span><span class="font-semibold text-primary">~100%</span></div><div class="tkw-bar mt-1" style="--bw:100%;--bd:.75s"><i></i></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 rounded-2xl border border-border bg-muted/30 px-3 py-4 text-center">
+              <div><p class="font-display text-xl font-bold text-foreground"><span data-count="428">0</span></p><p class="text-[10px] text-muted-foreground">Links live</p></div>
+              <div class="border-x border-border"><p class="font-display text-xl font-bold text-foreground">38</p><p class="text-[10px] text-muted-foreground">Avg DR</p></div>
+              <div><p class="font-display text-xl font-bold text-foreground">0</p><p class="text-[10px] text-muted-foreground">Dead links</p></div>
+            </div>
+          </article>
+
+          <!-- White-hat safe -->
+          <article data-reveal class="tkw-card group flex flex-col rounded-2xl border border-border bg-card p-6">
+            <div class="flex h-20 items-center justify-center rounded-xl border border-border bg-muted/30">
+              <svg viewBox="0 0 120 70" class="h-14" role="img" aria-label="White-hat shield">
+                <circle class="bl-pulsering" cx="60" cy="34" r="20" fill="none" stroke="hsl(var(--primary))" stroke-width="2"/>
+                <g class="bl-floaty">
+                  <path d="M60 14 l18 6 v12 c0 12 -8 20 -18 24 c-10 -4 -18 -12 -18 -24 v-12 z" fill="hsl(var(--primary) / .12)" stroke="hsl(var(--primary))" stroke-width="2.4"/>
+                  <path d="M52 34 l5 5 l11 -12" fill="none" stroke="hsl(var(--primary))" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold tracking-tight">100% white-hat &amp; safe</h3>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">Safe anchor ratios, real platforms, zero PBNs — built the way Google wants.</p>
+            <span class="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-shield-check"></i> Penalty-safe</span>
+          </article>
+
+          <!-- Total transparency -->
+          <article data-reveal class="tkw-card group flex flex-col rounded-2xl border border-border bg-card p-6">
+            <div class="flex h-20 flex-col justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-3">
+              <div class="flex items-center gap-2"><span class="bl-dr">52</span><span class="h-1.5 flex-1 rounded-full bg-muted"></span><span class="bl-pill idx"><i class="ph-fill ph-check-circle"></i> Idx</span></div>
+              <div class="flex items-center gap-2"><span class="bl-dr">41</span><span class="h-1.5 flex-1 rounded-full bg-muted"></span><span class="bl-pill live"><i class="ph-fill ph-link"></i> Live</span></div>
+              <div class="flex items-center gap-2"><span class="bl-dr">29</span><span class="h-1.5 flex-1 rounded-full bg-muted"></span><span class="bl-pill pend"><i class="ph-fill ph-clock"></i> Pend</span></div>
+            </div>
+            <h3 class="mt-4 text-base font-semibold tracking-tight">Total transparency</h3>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">Every link on the record — URL, DR, anchor &amp; index status you can verify yourself.</p>
+            <span class="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-eye"></i> Live report</span>
+          </article>
+
+          <!-- Permanent -->
+          <article data-reveal class="tkw-card group flex flex-col rounded-2xl border border-border bg-card p-6">
+            <div class="flex h-20 items-center justify-center rounded-xl border border-border bg-muted/30">
+              <svg viewBox="0 0 120 70" class="h-12" role="img" aria-label="Dead link rebuilt free">
+                <g fill="none" stroke-width="5" stroke-linecap="round">
+                  <rect x="26" y="28" width="30" height="18" rx="9" stroke="hsl(var(--primary))"/>
+                  <line x1="52" y1="37" x2="64" y2="37" stroke="hsl(var(--primary))"/>
+                  <rect x="60" y="28" width="30" height="18" rx="9" stroke="hsl(var(--primary))"/>
+                </g>
+                <circle class="bl-pulsering" cx="92" cy="24" r="10" fill="none" stroke="#16a34a" stroke-width="1.8"/>
+                <g class="bl-floaty"><circle cx="92" cy="24" r="10" fill="hsl(142 64% 45% / .15)" stroke="#16a34a" stroke-width="2.6"/><path d="M87.5 24 l3 3 L98 20" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold tracking-tight">Permanent — or replaced</h3>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">QA'd, monitored, and rebuilt free if a link ever drops. Your authority stays intact.</p>
+            <span class="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-arrows-clockwise"></i> Dead-link guarantee</span>
+          </article>
+
+          <!-- Natural diverse profile -->
+          <article data-reveal class="tkw-card group flex flex-col rounded-2xl border border-border bg-card p-6">
+            <div class="flex h-20 items-center justify-center rounded-xl border border-border bg-muted/30">
+              <svg viewBox="0 0 120 70" class="h-14" role="img" aria-label="Diverse link network">
+                <path class="tkw-draw" pathLength="100" d="M60 35 L30 18 M60 35 L30 52 M60 35 L90 18 M60 35 L90 52" fill="none" stroke="hsl(var(--primary) / .45)" stroke-width="2"/>
+                <circle class="tkw-pop p2" cx="30" cy="18" r="6" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.4"/>
+                <circle class="tkw-pop p2" cx="30" cy="52" r="6" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.4"/>
+                <circle class="tkw-pop p3" cx="90" cy="18" r="6" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.4"/>
+                <circle class="tkw-pop p3" cx="90" cy="52" r="6" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.4"/>
+                <circle class="bl-pulsering" cx="60" cy="35" r="10" fill="none" stroke="hsl(var(--primary))" stroke-width="1.8"/>
+                <circle class="tkw-pop p1" cx="60" cy="35" r="10" fill="hsl(var(--primary))"/>
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold tracking-tight">Natural, diverse profile</h3>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">Entity, Pyramid, Guest &amp; PR — a profile that looks earned, not bought.</p>
+            <span class="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-share-network"></i> 4 trusted systems</span>
+          </article>
+
+          <!-- WIDE BANNER: Results compound (full width) -->
+          <article data-reveal class="tkw-card group relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:col-span-2 lg:col-span-4 lg:p-7">
+            <div class="grid items-center gap-6 lg:grid-cols-2">
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-trend-up text-xl"></i></span>
+                  <h3 class="text-xl font-bold tracking-tight">Results that compound</h3>
+                </div>
+                <p class="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">Authority that keeps working. Rankings climb in the weeks after delivery as links settle and Google recalculates trust — not a one-time spike that fades.</p>
+                <span class="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"><i class="ph-fill ph-chart-line-up"></i> Compounding authority</span>
+              </div>
+              <div class="rounded-2xl border border-border bg-muted/40 p-4">
+                <svg viewBox="0 0 300 120" class="w-full" role="img" aria-label="Rankings climbing over eight weeks">
+                  <defs>
+                    <linearGradient id="blGrow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(var(--primary) / .35)"/><stop offset="1" stop-color="hsl(var(--primary) / 0)"/></linearGradient>
+                    <path id="blGrowLine" d="M16 94 L60 82 L104 86 L148 64 L192 50 L236 34 L286 18" fill="none"/>
+                  </defs>
+                  <line x1="16" y1="40" x2="290" y2="40" stroke="hsl(var(--border) / .6)" stroke-dasharray="3 5"/>
+                  <line x1="16" y1="70" x2="290" y2="70" stroke="hsl(var(--border) / .6)" stroke-dasharray="3 5"/>
+                  <line x1="16" y1="100" x2="290" y2="100" stroke="hsl(var(--border))"/>
+                  <path class="bl-grow-fill" d="M16 94 L60 82 L104 86 L148 64 L192 50 L236 34 L286 18 L286 100 L16 100 Z" fill="url(#blGrow)"/>
+                  <path class="tkw-draw" pathLength="100" d="M16 94 L60 82 L104 86 L148 64 L192 50 L236 34 L286 18" fill="none" stroke="hsl(var(--primary))" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle class="tkw-pop p2" cx="148" cy="64" r="3.6" fill="hsl(var(--primary))"/>
+                  <circle class="tkw-pop p3" cx="236" cy="34" r="3.6" fill="hsl(var(--primary))"/>
+                  <circle class="tkw-pop p4" cx="286" cy="18" r="4.6" fill="hsl(var(--primary))"/>
+                  <circle r="3" class="bl-mover"><animateMotion dur="3.4s" repeatCount="indefinite"><mpath href="#blGrowLine"/></animateMotion></circle>
+                  <text x="16" y="114" font-size="8" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">wk 1</text>
+                  <text x="286" y="114" text-anchor="end" font-size="8" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">wk 8</text>
+                </svg>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ THE 4 LINK TYPES ============ -->
+    <section id="types" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Four systems Google trusts</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Pick the link type your site needs</h2>
+          <p class="mt-3 text-muted-foreground">Each system plays a different role. Combine them for a natural profile — and every one ships with the Indexer included.</p>
+        </div>
+
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- Entity -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Entity backlinks: brand profiles and citations">
+                <path class="tkw-draw" pathLength="100" d="M120 70 L62 38 M120 70 L62 102 M120 70 L178 38 M120 70 L178 102 M120 70 L120 26 M120 70 L120 114" fill="none" stroke="hsl(var(--primary) / .45)" stroke-width="2.2"/>
+                <circle class="tkw-pop p2" cx="62" cy="38" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <circle class="tkw-pop p2" cx="62" cy="102" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <circle class="tkw-pop p3" cx="178" cy="38" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <circle class="tkw-pop p3" cx="178" cy="102" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <circle class="tkw-pop p4" cx="120" cy="26" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <circle class="tkw-pop p4" cx="120" cy="114" r="9" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.6"/>
+                <path id="bse1" d="M62 38 L120 70" fill="none" stroke="none"/>
+                <path id="bse2" d="M178 102 L120 70" fill="none" stroke="none"/>
+                <path id="bse3" d="M120 26 L120 70" fill="none" stroke="none"/>
+                <path id="bse4" d="M62 102 L120 70" fill="none" stroke="none"/>
+                <circle r="3" class="bl-mover"><animateMotion dur="2.1s" repeatCount="indefinite"><mpath href="#bse1"/></animateMotion></circle>
+                <circle r="3" class="bl-mover"><animateMotion dur="2.6s" begin="0.7s" repeatCount="indefinite"><mpath href="#bse2"/></animateMotion></circle>
+                <circle r="2.6" class="bl-mover"><animateMotion dur="2.3s" begin="1.2s" repeatCount="indefinite"><mpath href="#bse3"/></animateMotion></circle>
+                <circle r="2.6" class="bl-mover"><animateMotion dur="2.8s" begin="0.3s" repeatCount="indefinite"><mpath href="#bse4"/></animateMotion></circle>
+                <circle class="bl-pulsering" cx="120" cy="70" r="16" fill="none" stroke="hsl(var(--primary))" stroke-width="2.5"/>
+                <g class="tkw-pop p1 lift"><circle cx="120" cy="70" r="16" fill="hsl(var(--primary))"/><text x="120" y="75" text-anchor="middle" font-size="11" font-weight="800" fill="hsl(var(--primary-foreground))" font-family="Inter Tight, sans-serif">YOU</text></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-buildings"></i></span><h3 class="font-semibold">Entity</h3></div>
+                <span class="bl-idx">80–95%</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Business profiles, NAP &amp; social citations that build brand trust and a real entity footprint.</p>
+              <a href="#entity" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:gap-2">See 3 packages <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+          <!-- Pyramid -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Pyramid backlinks: tiered link structure">
+                <rect class="bl-glow" x="92" y="26" width="56" height="24" rx="9" fill="hsl(var(--primary) / .4)"/>
+                <g class="tkw-pop p1 lift"><rect x="98" y="28" width="44" height="20" rx="6" fill="hsl(var(--primary))"/><text x="120" y="42" text-anchor="middle" font-size="9.5" font-weight="800" fill="hsl(var(--primary-foreground))" font-family="Inter Tight, sans-serif">URL</text></g>
+                <path class="tkw-draw" pathLength="100" d="M120 48 L84 64 M120 48 L156 64 M84 72 L60 90 M84 72 L108 90 M156 72 L132 90 M156 72 L180 90" fill="none" stroke="hsl(var(--primary) / .45)" stroke-width="2.2"/>
+                <path id="bsp1" d="M60 90 L84 66 L120 46" fill="none" stroke="none"/>
+                <path id="bsp2" d="M180 90 L156 66 L120 46" fill="none" stroke="none"/>
+                <circle r="2.8" class="bl-mover"><animateMotion dur="2.5s" repeatCount="indefinite"><mpath href="#bsp1"/></animateMotion></circle>
+                <circle r="2.8" class="bl-mover"><animateMotion dur="2.5s" begin="1.25s" repeatCount="indefinite"><mpath href="#bsp2"/></animateMotion></circle>
+                <g class="tkw-pop p2"><rect x="66" y="62" width="36" height="16" rx="5" fill="hsl(var(--card))" stroke="hsl(var(--primary) / .7)" stroke-width="2"/><text x="84" y="74" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">T1</text></g>
+                <g class="tkw-pop p2"><rect x="138" y="62" width="36" height="16" rx="5" fill="hsl(var(--card))" stroke="hsl(var(--primary) / .7)" stroke-width="2"/><text x="156" y="74" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">T1</text></g>
+                <g class="tkw-pop p3" fill="hsl(var(--primary) / .5)">
+                  <rect x="48" y="90" width="24" height="12" rx="4"/><rect x="96" y="90" width="24" height="12" rx="4"/><rect x="120" y="90" width="24" height="12" rx="4"/><rect x="168" y="90" width="24" height="12" rx="4"/>
+                </g>
+                <text x="120" y="124" text-anchor="middle" font-size="9.5" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">Tier 1 · 2 · 3</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-stack"></i></span><h3 class="font-semibold">Pyramid</h3></div>
+                <span class="bl-idx">~70%</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Tiered links that funnel power to one URL, category or service. For sites with a solid base.</p>
+              <a href="#pyramid" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:gap-2">See 4 packages <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+          <!-- Guest Post -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Guest posts on real blogs">
+                <defs><clipPath id="bsgClip"><rect x="58" y="26" width="124" height="92" rx="11"/></clipPath></defs>
+                <g class="lift"><rect x="58" y="26" width="124" height="92" rx="11" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="72" y="40" width="64" height="8" rx="4" fill="hsl(var(--foreground) / .8)"/>
+                <rect x="72" y="56" width="96" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="72" y="67" width="84" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect class="bl-glow" x="68" y="78" width="68" height="17" rx="5" fill="hsl(var(--primary) / .45)"/>
+                <g class="tkw-pop p2"><rect x="72" y="80" width="60" height="13" rx="4" fill="hsl(var(--primary) / .12)" stroke="hsl(var(--primary) / .5)"/><text x="102" y="89.5" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">your-site.com</text></g>
+                <rect x="72" y="100" width="74" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g clip-path="url(#bsgClip)"><g transform="skewX(-18)"><rect class="bl-shine" x="0" y="14" width="18" height="116" fill="hsl(0 0% 100% / .35)"/></g></g>
+                <g class="bl-floaty"><g class="tkw-pop p3"><rect x="150" y="32" width="26" height="15" rx="5" fill="hsl(142 64% 45% / .14)" stroke="hsl(142 60% 45% / .5)"/><text x="163" y="42.5" text-anchor="middle" font-size="8" font-weight="800" fill="hsl(142 60% 34%)" font-family="Inter Tight, sans-serif">DR40</text></g></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-newspaper-clipping"></i></span><h3 class="font-semibold">Guest Post</h3></div>
+                <span class="bl-idx">~100%</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">SEO articles written and placed on real DR30–50+ blogs with genuine in-industry traffic.</p>
+              <a href="#guest" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:gap-2">See 3 packages <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+          <!-- PR -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="PR backlinks on international news outlets">
+                <defs><clipPath id="bsrClip"><rect x="56" y="34" width="118" height="80" rx="9"/></clipPath></defs>
+                <g class="lift"><rect x="56" y="34" width="118" height="80" rx="9" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="56" y="34" width="118" height="18" rx="9" fill="hsl(var(--primary) / .1)"/>
+                <text x="115" y="47" text-anchor="middle" font-size="9.5" font-weight="800" letter-spacing="1.5" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">THE PRESS</text>
+                <rect x="68" y="62" width="44" height="34" rx="5" fill="hsl(var(--muted))"/>
+                <rect x="120" y="62" width="44" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="120" y="74" width="44" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="120" y="84" width="34" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g clip-path="url(#bsrClip)"><g transform="skewX(-18)"><rect class="bl-shine" x="0" y="18" width="16" height="112" fill="hsl(0 0% 100% / .3)"/></g></g>
+                <circle class="bl-pulsering" cx="178" cy="96" r="17" fill="none" stroke="hsl(38 92% 50%)" stroke-width="2.5"/>
+                <g class="bl-floaty"><g class="tkw-pop p3 lift"><circle cx="178" cy="96" r="17" fill="hsl(var(--card))" stroke="hsl(38 92% 50%)" stroke-width="3"/><path d="M178 88 l2.2 4.6 l5 .7 l-3.6 3.5 l.9 5 l-4.5 -2.4 l-4.5 2.4 l.9 -5 l-3.6 -3.5 l5 -.7 z" fill="hsl(38 92% 50%)"/></g></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-medal"></i></span><h3 class="font-semibold">PR</h3></div>
+                <span class="bl-idx">~100%</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Featured articles on international news outlets — maximum authority and brand credibility.</p>
+              <a href="#pr" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary transition hover:gap-2">Request a consult <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PACKAGES ============ -->
+    <section id="plans" class="border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Packages &amp; pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">14 packages, one promise: every link indexed</h2>
+          <p class="mt-3 text-muted-foreground">Launch pricing — 60% off. Every package ships with our Indexer free, a live per-link report, and dead-link replacement.</p>
+        </div>
+
+        <!-- ENTITY -->
+        <div id="entity" class="mt-14 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-buildings text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">Backlink Entity</h3>
+            <span class="bl-idx"><i class="ph-fill ph-magnifying-glass"></i> Indexer free · index 80–95%</span>
+            <span class="ml-auto text-sm text-muted-foreground">Branding &amp; social footprint</span>
+          </div>
+          <div class="mt-6">
+            <PricingGrid cols={3} tiers={entityTiers} />
+          </div>
+        </div>
+
+        <!-- PYRAMID -->
+        <div id="pyramid" class="mt-16 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-stack text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">Backlink Pyramid</h3>
+            <span class="bl-idx"><i class="ph-fill ph-magnifying-glass"></i> Indexer free · index ~70%</span>
+            <span class="ml-auto text-sm text-muted-foreground">Funnel power to one URL / category / service</span>
+          </div>
+          <div class="mt-6">
+            <PricingGrid cols={4} tiers={pyramidTiers} />
+          </div>
+        </div>
+
+        <!-- GUEST POST -->
+        <div id="guest" class="mt-16 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-newspaper-clipping text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">Guest Post</h3>
+            <span class="bl-idx"><i class="ph-fill ph-magnifying-glass"></i> Indexer free · index ~100%</span>
+            <span class="ml-auto text-sm text-muted-foreground">Write + outreach + place on real blogs</span>
+          </div>
+          <div class="mt-6">
+            <PricingGrid cols={3} tiers={guestTiers} />
+          </div>
+        </div>
+
+        <!-- PR -->
+        <div id="pr" class="mt-16 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-medal text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">PR — international press</h3>
+            <span class="bl-idx"><i class="ph-fill ph-magnifying-glass"></i> index ~100%</span>
+            <span class="ml-auto text-sm text-muted-foreground">Consult — by budget &amp; industry</span>
+          </div>
+          <div data-reveal class="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="grid items-center gap-6 p-7 md:grid-cols-[1.4fr_1fr] lg:p-9">
+              <div>
+                <div class="flex items-end gap-2">
+                  <span class="font-display text-3xl font-bold">From ~$120</span>
+                  <span class="mb-1 text-sm text-muted-foreground">/ article</span>
+                </div>
+                <p class="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Written and published on <b class="font-semibold text-foreground">international news outlets</b>. Outlets and pricing are recommended by your consultant based on your budget and industry. The published article links are delivered in your report.</p>
+                <ul class="mt-5 grid gap-2.5 text-sm sm:grid-cols-2">
+                  <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Professional press writing</span></li>
+                  <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Placement on trusted outlets</span></li>
+                  <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>~100% indexed</span></li>
+                  <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Maximum brand authority</span></li>
+                </ul>
+                <a href="#contact" data-goi="PR · consult" class="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Request a PR consult <i class="ph-bold ph-arrow-right"></i></a>
+              </div>
+              <div class="rounded-xl border border-border bg-muted/40 p-5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sample placements</p>
+                <div class="mt-3 grid grid-cols-2 gap-2.5 text-center">
+                  <span class="rounded-lg border border-border bg-card py-3 text-xs font-bold text-muted-foreground">Outlet A</span>
+                  <span class="rounded-lg border border-border bg-card py-3 text-xs font-bold text-muted-foreground">Outlet B</span>
+                  <span class="rounded-lg border border-border bg-card py-3 text-xs font-bold text-muted-foreground">Outlet C</span>
+                  <span class="rounded-lg border border-border bg-card py-3 text-xs font-bold text-muted-foreground">Outlet D</span>
+                </div>
+                <p class="mt-3 text-center text-[11px] text-muted-foreground">Recommended to fit your budget</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p data-reveal class="mt-10 text-center text-sm text-muted-foreground">Not sure which to combine? <a href="#contact" class="font-semibold text-primary hover:underline">Tell us your goal</a> and we'll design a safe link mix for you.</p>
+      </div>
+    </section>
+
+    <!-- ============ COMPARISON TABLE ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Compare link types</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Which one is right for you?</h2>
+          <p class="mt-3 text-muted-foreground">Each system plays a different role — here's how the four stack up at a glance.</p>
+        </div>
+        <div data-reveal class="mx-auto mt-10 max-w-4xl overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-border">
+                  <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-buildings text-base text-primary"></i> Entity</span></th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-stack text-base text-primary"></i> Pyramid</span></th>
+                  <th class="border-x border-border bg-primary/[0.05] px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold text-primary"><i class="ph-bold ph-newspaper-clipping text-base"></i> Guest Post</span></th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-medal text-base text-primary"></i> PR</span></th>
+                </tr>
+              </thead>
+              <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-3 [&_td]:py-2.5">
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">Best for</td>
+                  <td class="text-center text-xs text-muted-foreground">Brand trust</td>
+                  <td class="text-center text-xs text-muted-foreground">Boost one URL</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">Topical authority</td>
+                  <td class="text-center text-xs text-muted-foreground">Max credibility</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">Index rate (2 wks)</td>
+                  <td class="text-center font-semibold text-primary">80–95%</td>
+                  <td class="text-center font-semibold text-primary">~70%</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-primary">~100%</td>
+                  <td class="text-center font-semibold text-primary">~100%</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">Link style</td>
+                  <td class="text-center text-xs text-muted-foreground">Profiles &amp; citations</td>
+                  <td class="text-center text-xs text-muted-foreground">Tiered (T1–T3)</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">Editorial articles</td>
+                  <td class="text-center text-xs text-muted-foreground">News features</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">Authority (DR)</td>
+                  <td class="text-center text-xs text-muted-foreground">Varied</td>
+                  <td class="text-center text-xs text-muted-foreground">Varied</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-bold text-foreground">DR30–50+</td>
+                  <td class="text-center text-xs text-muted-foreground">Very high</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">From</td>
+                  <td class="text-center font-bold">$52</td>
+                  <td class="text-center font-bold">$36</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-primary">$104</td>
+                  <td class="text-center font-bold">~$120/post</td>
+                </tr>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="!px-5 font-medium">Indexer included</td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                  <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section id="process" class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">How it works</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">From target to indexed — in five steps</h2>
+          <p class="mt-3 text-muted-foreground">Anchors confirmed up front, links QA'd before delivery, and the Indexer running alongside the whole time.</p>
+        </div>
+
+        <div class="bl-flow tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+
+          <article data-reveal class="bl-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">01</span><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-target text-lg"></i></span></div>
+            <h3 class="mt-4 font-semibold">Confirm target &amp; anchor</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You send target URL(s), niche and anchors. We confirm a safe anchor ratio (~24–48h).</p>
+          </article>
+
+          <article data-reveal class="bl-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">02</span><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-link text-lg"></i></span></div>
+            <h3 class="mt-4 font-semibold">Build + outreach</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">We build the links (Guest Pro adds a pyramid per post). The Indexer runs alongside.</p>
+          </article>
+
+          <article data-reveal class="bl-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">03</span><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-lg"></i></span></div>
+            <h3 class="mt-4 font-semibold">QA live &amp; anchors</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Internal review checks every link is live, anchors are correct and placements are clean.</p>
+          </article>
+
+          <article data-reveal class="bl-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">04</span><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-table text-lg"></i></span></div>
+            <h3 class="mt-4 font-semibold">Live report</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You get a per-link report + Excel: live URL, target, anchor, DR/DA, date, status &amp; % indexed.</p>
+          </article>
+
+          <article data-reveal class="bl-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">05</span><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-arrows-clockwise text-lg"></i></span></div>
+            <h3 class="mt-4 font-semibold">Monitor &amp; replace</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">We keep watching — any dead link is rebuilt free so your authority stays intact.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REPORT PREVIEW ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">No black box</span>
+            <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Every link, on the record</h2>
+            <p class="mt-4 text-muted-foreground">You get a live report page and an Excel sheet — every link listed with its status and index state, so you can verify exactly what you paid for.</p>
+            <ul class="mt-6 space-y-3 text-sm">
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground"># · Live URL · Target · Anchor · Type</b> for every link.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">DR/DA · date · status</b> — Live / Indexed / Pending.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">Summary</b> — total live, average DR and % indexed.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span>Delivered as a <b class="font-semibold text-foreground">live page + Excel</b>; PR delivers article links.</span></li>
+            </ul>
+            <p class="mt-6 text-xs text-muted-foreground">Figures shown are an illustrative example.</p>
+          </div>
+
+          <!-- report card -->
+          <div data-reveal class="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+            <div class="flex items-center justify-between pb-4">
+              <p class="text-sm font-semibold">Backlink report — campaign #1042</p>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600"><i class="ph-fill ph-check-circle"></i> 92% indexed</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2.5 pb-4">
+              <div class="rounded-xl border border-border bg-muted/40 p-3 text-center"><p class="font-display text-xl font-bold text-foreground"><span data-count="428">0</span></p><p class="text-[10px] text-muted-foreground">Live</p></div>
+              <div class="rounded-xl border border-border bg-muted/40 p-3 text-center"><p class="font-display text-xl font-bold text-foreground">38</p><p class="text-[10px] text-muted-foreground">Avg DR</p></div>
+              <div class="rounded-xl border border-border bg-muted/40 p-3 text-center"><p class="font-display text-xl font-bold text-foreground"><span data-count="394">0</span></p><p class="text-[10px] text-muted-foreground">Indexed</p></div>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-border">
+              <div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>DR</span><span>Live URL · anchor</span><span>Type</span><span>Status</span>
+              </div>
+              <div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs">
+                <span class="bl-dr">52</span><span class="min-w-0 truncate text-muted-foreground">techblog.com · "seo tools"</span><span class="text-[10px] text-muted-foreground">Guest</span><span class="bl-pill idx"><i class="ph-fill ph-check-circle"></i> Indexed</span>
+              </div>
+              <div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs">
+                <span class="bl-dr">44</span><span class="min-w-0 truncate text-muted-foreground">guildreview.net · "best crm"</span><span class="text-[10px] text-muted-foreground">Guest</span><span class="bl-pill idx"><i class="ph-fill ph-check-circle"></i> Indexed</span>
+              </div>
+              <div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs">
+                <span class="bl-dr">31</span><span class="min-w-0 truncate text-muted-foreground">citystartups.io · brand</span><span class="text-[10px] text-muted-foreground">Entity</span><span class="bl-pill live"><i class="ph-fill ph-link"></i> Live</span>
+              </div>
+              <div class="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-3 py-2.5 text-xs">
+                <span class="bl-dr">28</span><span class="min-w-0 truncate text-muted-foreground">profilehub.org · naked url</span><span class="text-[10px] text-muted-foreground">Entity</span><span class="bl-pill pend"><i class="ph-fill ph-clock"></i> Pending</span>
+              </div>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-file-xls text-emerald-600"></i> Excel export</span>
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-globe text-primary"></i> Live report page</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GUARANTEE BAND ============ -->
+    <section class="border-y border-border bg-muted/40 py-14 lg:py-20">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="tkw-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">100% white-hat</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Google-guideline compliant, safe anchors.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-magnifying-glass-plus text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Indexer included</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Free with every package, % shown.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-eye text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">No black box</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Full per-link report, real-time progress.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-arrows-clockwise text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Dead-link replacement</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">If a link drops, we rebuild it free.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">FAQ</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Questions, answered</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5" open>
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Is the Indexer really included free with every package?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes — every Backlink package runs through our Indexer at no extra cost. Typical 2-week index rates: Entity 80–95%, Pyramid ~70%, Guest Post ~100%, PR ~100%. A link Google never indexes can't pass authority, so we index by default and show you the exact percentage.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Are the links safe / white-hat?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">100% white-hat. We follow Google's guidelines, diversify anchors at safe ratios and build a natural profile across trusted platforms. No PBNs, no spam, no black-box tactics.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What DR / DA do the links have?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">It depends on the package. Entity builds authoritative profiles and citations; Guest Post placements start at DR30+, DR40+ and DR50+; PR lands on international news outlets. Every live link's DR/DA is shown in your report.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long until I see results?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Links are delivered within each package's SLA (from ~10 days to 3–4 weeks). Ranking impact builds over the following weeks as links index and Google recalculates authority — backlinks compound over time.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What if a link goes down?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Dead links are replaced for free. We QA every link before delivery and keep monitoring after — if one drops, we rebuild it at no charge.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Can I combine link types?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Absolutely — the most natural profiles mix Entity (foundation), Guest Post (topical authority) and a Pyramid boost on key URLs, with PR for credibility. Tell us your goal and we'll design a safe mix.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="contact" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-share-network text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Build links that actually count</h2>
+          <p class="mt-3 text-muted-foreground">Leave your details and a specialist will recommend a safe link mix for your goal and budget — every link indexed and reported.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" novalidate>
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden" />
+            <label for="cta-email" class="sr-only">Email or phone number</label>
+            <input id="cta-email" name="contact" type="text" inputmode="email" autocomplete="email" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button id="lead-submit" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+              <span class="lead-spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span class="lead-submit-label">Get a link plan</span>
+            </button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('cta-email');
+      var status = document.getElementById('lead-status');
+      var defaultStatus = status ? status.innerHTML : '';
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the "' + name + '" package. Leave your contact details!';
+        });
+      });
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

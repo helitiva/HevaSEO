@@ -1,0 +1,866 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PricingGrid from '../components/PricingGrid.astro';
+import ComparisonTable from '../components/ComparisonTable.astro';
+
+const optimizationTiers = [
+  { name: 'Basic', subtitle: 'Make a slow site fast.', icon: 'ph-lightning', hue: 'sky', price: '$40', strike: '$100', delivery: '~3–5 days', footerBadge: 'Website audit included', cta: 'Choose Basic', goi: 'Basic · $40', features: ['Full website audit', 'Speed optimization — compression, caching, minify, lazy-load', 'Mobile &amp; responsive fixes', 'Source backup + deploy', 'Before/after report'] },
+  { name: 'Standard', subtitle: 'Fast, clean & AI-ready.', icon: 'ph-sparkle', hue: 'violet', price: '$79', strike: '$197', delivery: '~5–7 days', popular: true, everythingIn: 'Everything in Basic, plus', footerBadge: 'Website audit included', cta: 'Choose Standard', goi: 'Standard · $79', features: ['On-page SEO + schema markup', 'Core Web Vitals into the green', '<b class="font-semibold text-foreground">AI-ready / GEO</b> — structured, entity optimization', '1 month of support'] },
+  { name: 'Ultra', subtitle: 'Deep technical + advanced GEO.', icon: 'ph-crown', hue: 'amber', price: 'Consult', delivery: '~7–10 days', everythingIn: 'Everything in Standard, plus', footerBadge: 'Website audit included', cta: 'Request a consult', goi: 'Ultra · consult', features: ['Deep technical SEO', 'JavaScript / render optimization', 'Internal linking architecture', 'Advanced GEO + 3 months support'] },
+  { name: 'Custom', subtitle: 'Large or complex sites.', icon: 'ph-sliders-horizontal', hue: 'emerald', price: 'Consult', delivery: 'By scope', footerBadge: 'Website audit included', cta: 'Talk to us', goi: 'Custom · consult', features: ['Tailored to your codebase &amp; scale', 'Large catalogs, headless &amp; webapps', 'Phased rollout &amp; staging', 'Dedicated specialist', 'SLA &amp; support by agreement'] },
+];
+
+const optimizationCompareColumns = [
+  { label: 'Basic', icon: 'ph-lightning', sub: '$40' },
+  { label: 'Standard', icon: 'ph-sparkle', sub: '$79', highlight: true },
+  { label: 'Ultra', icon: 'ph-crown', sub: 'Consult' },
+  { label: 'Custom', icon: 'ph-sliders-horizontal', sub: 'Consult' },
+];
+
+const optimizationCompareRows = [
+  { label: 'Full website audit', cells: [true, true, true, true] },
+  { label: 'Speed optimization', cells: ['Core', 'Core', 'Advanced', 'Advanced'] },
+  { label: 'Mobile & responsive fixes', cells: [true, true, true, true] },
+  { label: 'On-page SEO', cells: [false, true, true, true] },
+  { label: 'Schema markup', cells: [false, true, true, true] },
+  { label: 'Core Web Vitals', cells: [false, true, true, true] },
+  { label: 'AI-ready / GEO', cells: [false, 'Yes', 'Advanced', 'Advanced'] },
+  { label: 'Deep technical SEO', cells: [false, false, true, true] },
+  { label: 'JS / render optimization', cells: [false, false, true, true] },
+  { label: 'Internal linking', cells: [false, false, true, true] },
+  { label: 'Source backup + deploy', cells: [true, true, true, true] },
+  { label: 'Before/after report', cells: [true, true, true, true] },
+  { label: 'Support', cells: [false, '1 month', '3 months', 'By agreement'] },
+];
+---
+<BaseLayout
+  title="Website Optimization — Faster, Cleaner, AI-Ready | HevaSEO"
+  description="HevaSEO website optimization: speed & Core Web Vitals, technical & on-page SEO, schema, and AI-ready (GEO) optimization. Every plan starts with a full website audit, your source is backed up, and we deploy the optimized site. Plans from $40."
+  keywords="website optimization, website speed optimization, core web vitals optimization, technical seo service, ai-ready website, generative engine optimization, geo seo, pagespeed optimization"
+  ogDescription="Make your website fast, technically clean and AI-ready — measured before and after, deployed for you. Every plan includes a full website audit. From $40."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "Website Optimization",
+        "serviceType": "Website speed, technical SEO & AI-readiness optimization",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "Website optimization: speed and Core Web Vitals, technical and on-page SEO, schema markup, and AI-ready (GEO) optimization. Every plan starts with a full website audit, your source code is backed up before any change, and the optimized site is deployed for you.",
+        "offers": [
+          { "@type": "Offer", "name": "Basic", "price": "40", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Standard", "price": "79", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Website Optimization", "item": "https://hevaseo.com/website-optimization" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "Is the website audit really included in every plan?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every plan — Basic, Standard, Ultra and Custom — starts with a full website audit. We measure speed, Core Web Vitals, technical and on-page SEO, and AI-readiness first, so the work is targeted and you get a clear before-and-after report at delivery." } },
+          { "@type": "Question", "name": "Will optimizing break my live website?", "acceptedAnswer": { "@type": "Answer", "text": "No. We back up your full source code before making any change. We optimize on a copy, verify everything works, then deploy. If anything looks off, we can roll back to the backup immediately." } },
+          { "@type": "Question", "name": "What access do you need?", "acceptedAnswer": { "@type": "Answer", "text": "We only need your website URL to start and to run the audit. Once you approve the plan, we request access to your source code or CMS (hosting, admin or repository) so we can apply the optimizations and deploy." } },
+          { "@type": "Question", "name": "How much improvement can I expect?", "acceptedAnswer": { "@type": "Answer", "text": "After the audit we predict the realistic lift for your site and show it before we start. Typical results include large PageSpeed gains, passing Core Web Vitals, and a higher technical SEO score — all documented in the before-and-after report." } },
+          { "@type": "Question", "name": "What does AI-ready / GEO optimization mean?", "acceptedAnswer": { "@type": "Answer", "text": "GEO (Generative Engine Optimization) makes your content readable, citable and surfaceable by AI search and generative engines. We add structured data, strengthen entity and answer-ready content, and clean up markup so AI systems can understand and quote your pages. It is included from the Standard plan up." } },
+          { "@type": "Question", "name": "Which platforms do you support?", "acceptedAnswer": { "@type": "Answer", "text": "WordPress, custom-coded sites, headless and most common stacks. For large or unusual sites we run a Custom plan scoped to your codebase after the audit." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ===== Page flourishes — Website Optimization ===== */
+    /* shared hero background (synced across service pages) */
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .hero-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    @property --tkwv { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    /* animated score gauges (conic ring fills on reveal) */
+    .tkw-gauge { position: relative; width: 84px; height: 84px; border-radius: 50%;
+      display: grid; place-items: center; --tkwv: 0;
+      background: conic-gradient(var(--gc, hsl(var(--primary))) calc(var(--tkwv) * 1%), hsl(var(--muted)) 0); }
+    .tkw-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: hsl(var(--card)); }
+    .tkw-gauge b { position: relative; font-family: '"Inter Tight"', Inter, sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1; }
+    [data-reveal].is-visible .tkw-gauge { transition: --tkwv 1.5s cubic-bezier(.16,1,.3,1); transition-delay: var(--gd, .2s); --tkwv: var(--to, 0); }
+    .tkw-gauge.sm { width: 64px; height: 64px; }
+    .tkw-gauge.sm::before { inset: 5px; }
+    .tkw-gauge.sm b { font-size: 1.05rem; }
+
+    /* animated metric bars */
+    .tkw-bar { position: relative; height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .tkw-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+    [data-reveal].is-visible .tkw-bar > i { animation: tkwBar 1.4s cubic-bezier(.16,1,.3,1) forwards; animation-delay: var(--bd, .3s); }
+    @keyframes tkwBar { to { width: var(--bw, 100%); } }
+    .tkw-bar.red > i { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+    /* scanning sheen across the scorecard */
+    .tkw-scan { position: relative; overflow: hidden; }
+    .tkw-scan::after { content: ""; position: absolute; left: 0; right: 0; top: -42%; height: 36%; pointer-events: none; z-index: 5;
+      background: linear-gradient(180deg, hsl(var(--primary) / .16), transparent);
+      animation: tkwScan 3.6s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tkwScan { 0% { transform: translateY(0); } 100% { transform: translateY(380%); } }
+
+    /* floating glass chips around hero card */
+    .tkw-chip { position: absolute; z-index: 30; display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .92);
+      padding: .45rem .8rem; font-size: .78rem; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 10px 28px hsl(213 50% 20% / .14); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      animation: tkwFloat 6s ease-in-out infinite; }
+    .dark .tkw-chip { box-shadow: 0 10px 28px hsl(0 0% 0% / .4); }
+    .tkw-chip.d2 { animation-duration: 7.4s; animation-delay: -2.2s; }
+    .tkw-chip.d3 { animation-duration: 8.6s; animation-delay: -4.1s; }
+    @keyframes tkwFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+
+    /* card hover lift + icon pop */
+    .tkw-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .tkw-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .tkw-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+    .tkw-ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .tkw-card:hover .tkw-ic, .tkw-step:hover .tkw-ic { transform: scale(1.14) rotate(-7deg); }
+
+    /* feature-card graphics */
+    .tkw-figure { position: relative; height: 10.5rem; overflow: hidden;
+      background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .14), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .13) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .2), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure svg { position: relative; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .tkw-figure svg { transform: scale(1.04); }
+    .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(213 50% 25% / .15)); }
+    .dark .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(0 0% 0% / .5)); }
+    .tkw-figure .glow { filter: drop-shadow(0 0 5px hsl(var(--primary) / .5)); }
+    /* hero guarantee pills */
+    .tkw-guar { transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+    .tkw-guar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px hsl(213 60% 30% / .18); }
+    /* warning (pain-point) variant — red tint */
+    .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .13), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .12) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .22), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure .glow-warn { filter: drop-shadow(0 0 5px hsl(var(--destructive) / .45)); }
+    .tkw-arc { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-arc { animation: tkwArc 1.5s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    @keyframes tkwArc { to { stroke-dashoffset: var(--arc, 10); } }
+    .tkw-draw { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-draw { animation: tkwDraw 1.6s cubic-bezier(.16,1,.3,1) .25s forwards; }
+    @keyframes tkwDraw { to { stroke-dashoffset: 0; } }
+    .tkw-pop { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: center; }
+    [data-reveal].is-visible .tkw-pop { animation: tkwPop .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .tkw-pop.p1 { animation-delay: .25s; } .tkw-pop.p2 { animation-delay: .4s; }
+    .tkw-pop.p3 { animation-delay: .55s; } .tkw-pop.p4 { animation-delay: .7s; } .tkw-pop.p5 { animation-delay: .85s; }
+    @keyframes tkwPop { to { opacity: 1; transform: scale(1); } }
+
+    /* staggered reveal inside grids */
+    .tkw-grid > [data-reveal]:nth-child(2) { transition-delay: .07s; }
+    .tkw-grid > [data-reveal]:nth-child(3) { transition-delay: .14s; }
+    .tkw-grid > [data-reveal]:nth-child(4) { transition-delay: .21s; }
+    .tkw-grid > [data-reveal]:nth-child(5) { transition-delay: .28s; }
+    .tkw-grid > [data-reveal]:nth-child(6) { transition-delay: .35s; }
+
+    /* gradient number */
+    .tkw-num { background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 95% 62%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* shimmer sweep on featured badge */
+    .tkw-shine { position: relative; overflow: hidden; }
+    .tkw-shine::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(105deg, transparent 30%, hsl(0 0% 100% / .55) 50%, transparent 70%);
+      transform: translateX(-130%); animation: tkwShine 3.4s ease-in-out infinite; }
+    @keyframes tkwShine { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+    /* pulsing live ring */
+    .tkw-live { position: relative; }
+    .tkw-live::before { content: ""; position: absolute; inset: -5px; border-radius: 999px; border: 2px solid hsl(142 70% 45% / .6); animation: tkwPing 1.8s ease-out infinite; }
+    @keyframes tkwPing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    /* === before/after compare bars (improvement section) === */
+    .wo-cmp { position: relative; height: 8px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .wo-cmp > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; }
+    .wo-cmp > .b { background: linear-gradient(90deg, #fca5a5, #ef4444); z-index: 1; }
+    .wo-cmp > .a { background: linear-gradient(90deg, #34d399, #16a34a); z-index: 2; box-shadow: 0 0 12px hsl(142 70% 45% / .5); }
+    [data-reveal].is-visible .wo-cmp > .b { animation: tkwBar 1.1s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    [data-reveal].is-visible .wo-cmp > .a { animation: tkwBar 1.5s cubic-bezier(.16,1,.3,1) .55s forwards; }
+
+    /* audit-included ribbon on every pricing card */
+    .wo-audit { display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; padding: .3rem .7rem; font-size: .72rem; font-weight: 700; letter-spacing: .01em;
+      background: linear-gradient(120deg, hsl(142 72% 45% / .16), hsl(142 72% 45% / .06));
+      color: hsl(142 64% 32%); border: 1px solid hsl(142 64% 42% / .35); }
+    .dark .wo-audit { color: hsl(142 70% 62%); border-color: hsl(142 64% 50% / .4); }
+
+    /* connecting line for the process timeline */
+    .wo-flow { position: relative; }
+    @media (min-width: 1024px) {
+      .wo-flow::before { content: ""; position: absolute; top: 2.25rem; left: 12%; right: 12%; height: 2px; z-index: 0;
+        background: repeating-linear-gradient(90deg, hsl(var(--primary) / .45) 0 10px, transparent 10px 20px); }
+    }
+    .wo-step-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .wo-step-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .wo-step-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tkw-scan::after, .tkw-chip, .tkw-shine::after, .tkw-live::before { animation: none !important; }
+      .tkw-chip { transform: none !important; }
+      [data-reveal].is-visible .tkw-gauge { transition: none; --tkwv: var(--to,0); }
+      [data-reveal].is-visible .tkw-bar > i { animation: none; width: var(--bw,100%); }
+      [data-reveal].is-visible .wo-cmp > i { animation: none; width: var(--bw,100%); }
+      .tkw-arc, .tkw-draw { stroke-dashoffset: 0 !important; animation: none !important; }
+      .tkw-pop { opacity: 1 !important; transform: none !important; animation: none !important; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-6 pb-16 lg:pt-8 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <!-- breadcrumb -->
+        <nav data-reveal class="mb-8 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <a href="/#top" class="transition hover:text-primary">Home</a>
+          <i class="ph-bold ph-caret-right text-xs"></i>
+          <span class="text-foreground">Website Optimization</span>
+        </nav>
+
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary shadow-sm"><i class="ph-fill ph-magic-wand"></i> Speed · Technical SEO · AI-ready</span>
+            <h1 class="mt-4 font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Same website.<br class="hidden sm:block" /> <span class="text-primary">Faster, cleaner,</span> and ready for AI search.
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              We tune your existing site from the source code up — <b class="font-semibold text-foreground">speed, Core Web Vitals, technical &amp; on-page SEO, and AI-readiness (GEO)</b>. Measured before and after, your source backed up, and the optimized site deployed for you.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#plans" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                See plans &amp; pricing <i class="ph-bold ph-arrow-down"></i>
+              </a>
+              <a href="#contact" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                Get a free audit
+              </a>
+            </div>
+            <div class="mt-7 flex flex-wrap gap-2.5">
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-magnifying-glass text-sm"></i></span> Free audit on every plan</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-floppy-disk text-sm"></i></span> Source backed up first</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-rocket-launch text-sm"></i></span> We deploy it for you</span>
+            </div>
+
+            <!-- SAMPLE FIGURES: replace with real numbers -->
+            <div data-reveal class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-border bg-card/70 p-3 pr-5 shadow-sm backdrop-blur">
+              <div class="flex items-center gap-3">
+                <div class="flex -space-x-2.5">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white ring-2 ring-card">M</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white ring-2 ring-card">H</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-xs font-bold text-white ring-2 ring-card">T</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-card">+1k</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex text-amber-400"><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i></span>
+                    <span class="text-sm font-bold text-foreground">4.9/5</span>
+                  </div>
+                  <p class="text-xs text-muted-foreground"><b class="font-bold text-foreground"><span data-count="1200">0</span>+</b> sites optimized</p>
+                </div>
+              </div>
+              <span class="hidden h-10 w-px bg-border sm:block"></span>
+              <div class="flex items-center gap-5">
+                <div><p class="font-display text-xl font-bold text-primary">+<span data-count="61">0</span></p><p class="text-[11px] text-muted-foreground">Avg PageSpeed lift</p></div>
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="94">0</span>%</p><p class="text-[11px] text-muted-foreground">Pass Core Web Vitals</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- hero visual: before → after scorecard -->
+          <div data-reveal class="relative">
+            <!-- floating glass chips -->
+            <span class="tkw-chip -left-3 top-6 text-emerald-500"><i class="ph-fill ph-gauge"></i> Speed 96</span>
+            <span class="tkw-chip d2 -right-2 top-1/3 text-primary"><i class="ph-fill ph-robot"></i> AI-ready ✓</span>
+            <span class="tkw-chip d3 -left-2 bottom-10 text-violet-500"><i class="ph-fill ph-floppy-disk"></i> Source backed up</span>
+
+            <div class="tkw-scan rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+              <div class="flex items-center gap-2 pb-4">
+                <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-red-400"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400"></i><i class="h-2.5 w-2.5 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-lock-simple"></i> www.your-website.com</span>
+                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500"><span class="tkw-live grid h-2 w-2 place-items-center rounded-full bg-emerald-500"></span> Optimized</span>
+              </div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Before → After report</p>
+
+              <div class="mt-5 grid grid-cols-2 gap-4">
+                <div class="rounded-xl border border-border bg-muted/40 p-4 text-center">
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-destructive">Before</p>
+                  <div class="tkw-gauge sm mx-auto mt-3" style="--to:42;--gc:#ef4444;--gd:.1s"><b class="text-red-500"><span data-count="42">0</span></b></div>
+                  <p class="mt-2 text-[10px] text-muted-foreground">PageSpeed</p>
+                </div>
+                <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 text-center">
+                  <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">After</p>
+                  <div class="tkw-gauge sm mx-auto mt-3" style="--to:96;--gc:#22c55e;--gd:.5s"><b class="text-green-500"><span data-count="96">0</span></b></div>
+                  <p class="mt-2 text-[10px] text-muted-foreground">PageSpeed</p>
+                </div>
+              </div>
+
+              <div class="mt-5 space-y-3 text-sm">
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">LCP — Largest Contentful Paint</span><span class="font-medium text-green-500">4.8s → 1.3s</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:91%;--bd:.5s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">SEO score</span><span class="font-medium text-green-500">61 → 98</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:98%;--bd:.65s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">AI-readiness (GEO)</span><span class="font-medium text-green-500">Pass</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:95%;--bd:.8s"><i></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AUDIT-INCLUDED CALLOUT ============ -->
+    <section class="relative -mt-4 pb-4">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/[0.07] via-card to-emerald-500/[0.06] p-6 text-center shadow-sm sm:flex-row sm:text-left lg:p-7">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-fill ph-magnifying-glass-plus text-2xl"></i></span>
+          <div class="sm:flex-1">
+            <h2 class="text-lg font-bold tracking-tight sm:text-xl">Every plan starts with a full website audit</h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted-foreground">No guesswork. We measure speed, Core Web Vitals, technical &amp; on-page SEO and AI-readiness first — then optimize what actually moves the needle and hand you a clear before-and-after report. <b class="font-semibold text-foreground">Included in Basic, Standard, Ultra and Custom.</b></p>
+          </div>
+          <a href="#plans" class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">View plans <i class="ph-bold ph-arrow-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Why optimize?</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Your site works — but it's leaving results on the table</h2>
+          <p class="mt-3 text-muted-foreground">Slow pages, failing vitals, technical debt and zero AI visibility quietly cost you rankings, conversions and trust. Here's what we find most often.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- 1. Slow loading -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Low speed gauge">
+                <defs><linearGradient id="woSlowArc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dc2626"/><stop offset="1" stop-color="#f87171"/></linearGradient></defs>
+                <g stroke="hsl(var(--muted-foreground) / .3)" stroke-width="2.4" stroke-linecap="round">
+                  <line x1="32" y1="106" x2="40" y2="106"/><line x1="43.8" y1="62" x2="50.7" y2="66"/><line x1="76" y1="29.8" x2="80" y2="36.7"/><line x1="120" y1="18" x2="120" y2="26"/><line x1="164" y1="29.8" x2="160" y2="36.7"/><line x1="196.2" y1="62" x2="189.3" y2="66"/><line x1="208" y1="106" x2="200" y2="106"/>
+                </g>
+                <path d="M44 106 A76 76 0 0 1 196 106" fill="none" stroke="hsl(var(--muted))" stroke-width="15" stroke-linecap="round"/>
+                <path class="tkw-arc glow-warn" style="--arc:70" pathLength="100" d="M44 106 A76 76 0 0 1 196 106" fill="none" stroke="url(#woSlowArc)" stroke-width="15" stroke-linecap="round"/>
+                <circle class="tkw-pop p3" cx="76" cy="44" r="6.5" fill="#dc2626" stroke="hsl(var(--card))" stroke-width="3"/>
+                <text x="120" y="100" text-anchor="middle" font-size="40" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">42</text>
+                <text x="120" y="126" text-anchor="middle" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="hsl(var(--muted-foreground))">SPEED</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-spinner-gap"></i></span><h3 class="font-semibold">Slow pages, lost visitors</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Heavy images, no caching and render-blocking code add seconds — and every second pushes bounce rate up.</p>
+            </div>
+          </article>
+
+          <!-- 2. Failing Core Web Vitals -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Failing Core Web Vitals">
+                <g class="lift"><rect x="34" y="86" width="34" height="34" rx="7" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="2.4"/></g>
+                <text x="51" y="109" text-anchor="middle" font-size="15" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">!</text>
+                <text x="51" y="80" text-anchor="middle" font-size="9.5" font-weight="700" fill="hsl(var(--muted-foreground))">LCP</text>
+                <g class="lift"><rect x="103" y="86" width="34" height="34" rx="7" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="2.4"/></g>
+                <text x="120" y="109" text-anchor="middle" font-size="15" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">!</text>
+                <text x="120" y="80" text-anchor="middle" font-size="9.5" font-weight="700" fill="hsl(var(--muted-foreground))">CLS</text>
+                <g class="lift"><rect x="172" y="86" width="34" height="34" rx="7" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="2.4"/></g>
+                <text x="189" y="109" text-anchor="middle" font-size="15" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">!</text>
+                <text x="189" y="80" text-anchor="middle" font-size="9.5" font-weight="700" fill="hsl(var(--muted-foreground))">INP</text>
+                <path class="tkw-draw" pathLength="100" d="M34 52 H206" fill="none" stroke="hsl(var(--destructive) / .5)" stroke-width="3" stroke-dasharray="6 6"/>
+                <text x="120" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">3 / 3 failing</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-heartbeat"></i></span><h3 class="font-semibold">Core Web Vitals in the red</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Failing LCP, CLS or INP is a ranking signal Google can see — and a frustrating experience users feel.</p>
+            </div>
+          </article>
+
+          <!-- 3. Technical SEO debt -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Technical SEO issues">
+                <g class="lift"><rect x="48" y="26" width="104" height="88" rx="10" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="62" y="40" width="50" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p1" x="62" y="56" width="76" height="5" rx="2.5" fill="hsl(var(--destructive) / .45)"/>
+                <rect x="62" y="70" width="60" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p2" x="62" y="84" width="68" height="5" rx="2.5" fill="hsl(var(--destructive) / .45)"/>
+                <g class="lift">
+                  <circle cx="160" cy="92" r="26" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="5"/>
+                  <path d="M160 80 v15" stroke="hsl(var(--destructive))" stroke-width="5.5" stroke-linecap="round"/>
+                  <circle cx="160" cy="104" r="3.2" fill="hsl(var(--destructive))"/>
+                </g>
+                <text x="120" y="20" text-anchor="middle" font-size="11.5" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">crawl errors</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-wrench"></i></span><h3 class="font-semibold">Technical SEO debt</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Broken markup, thin schema, messy internal links and render issues quietly cap how high you can rank.</p>
+            </div>
+          </article>
+
+          <!-- 4. Invisible to AI search -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Invisible to AI search">
+                <g class="lift">
+                  <rect x="80" y="40" width="80" height="58" rx="14" fill="hsl(var(--card))" stroke="hsl(var(--border))"/>
+                  <circle cx="104" cy="68" r="6" fill="hsl(var(--destructive) / .55)"/>
+                  <circle cx="136" cy="68" r="6" fill="hsl(var(--destructive) / .55)"/>
+                  <path d="M100 84 q20 -12 40 0" fill="none" stroke="hsl(var(--muted-foreground) / .6)" stroke-width="3.4" stroke-linecap="round"/>
+                  <line x1="120" y1="40" x2="120" y2="28" stroke="hsl(var(--border))" stroke-width="3"/>
+                  <circle cx="120" cy="24" r="4.5" fill="hsl(var(--destructive))"/>
+                </g>
+                <g class="tkw-pop p3"><circle cx="190" cy="44" r="13" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3.4"/><line x1="181" y1="35" x2="199" y2="53" stroke="hsl(var(--destructive))" stroke-width="3.4" stroke-linecap="round"/></g>
+                <text x="120" y="120" text-anchor="middle" font-size="11.5" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">not cited by AI</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-robot"></i></span><h3 class="font-semibold">Invisible to AI search</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Without structured, answer-ready content and entities, AI engines can't read or cite you — so you vanish from generative results.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ WHAT WE OPTIMIZE ============ -->
+    <section id="what" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">What we optimize</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Six layers, one fast and rank-ready site</h2>
+          <p class="mt-3 text-muted-foreground">Every engagement starts with the audit, then we work through the layers your site needs — from raw load speed to how AI engines read you.</p>
+        </div>
+
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+          <!-- Speed & loading -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Speed score 96 out of 100">
+                <defs><linearGradient id="woFastArc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#16a34a"/></linearGradient></defs>
+                <g stroke="hsl(var(--muted-foreground) / .3)" stroke-width="2.2" stroke-linecap="round">
+                  <line x1="38" y1="110" x2="46" y2="110"/><line x1="48" y1="73" x2="55.4" y2="76.6"/><line x1="78" y1="45" x2="83" y2="51.6"/><line x1="120" y1="33" x2="120" y2="41"/><line x1="162" y1="45" x2="157" y2="51.6"/><line x1="192" y1="73" x2="184.6" y2="76.6"/><line x1="202" y1="110" x2="194" y2="110"/>
+                </g>
+                <path d="M40 110 A80 80 0 0 1 200 110" fill="none" stroke="hsl(var(--muted))" stroke-width="13" stroke-linecap="round"/>
+                <path class="tkw-arc glow" style="--arc:6" pathLength="100" d="M40 110 A80 80 0 0 1 200 110" fill="none" stroke="url(#woFastArc)" stroke-width="13" stroke-linecap="round"/>
+                <g class="tkw-pop p3">
+                  <line x1="120" y1="110" x2="182" y2="78" stroke="hsl(142 64% 33%)" stroke-width="3.6" stroke-linecap="round"/>
+                  <circle cx="120" cy="110" r="6" fill="hsl(var(--card))" stroke="hsl(142 64% 33%)" stroke-width="3.6"/>
+                </g>
+                <text x="120" y="96" text-anchor="middle" font-size="30" font-weight="800" fill="hsl(142 64% 35%)" font-family="Inter Tight, sans-serif">96</text>
+                <text x="120" y="128" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="2" fill="hsl(var(--muted-foreground))">SPEED</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-lightning"></i></span><h3 class="font-semibold">Speed &amp; loading</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Image compression, caching, minify, lazy-load and asset cleanup so pages paint in a fraction of the time.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">All plans</p>
+            </div>
+          </article>
+
+          <!-- Core Web Vitals -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Core Web Vitals passing 3 of 3">
+                <text x="120" y="28" text-anchor="middle" font-size="12" font-weight="800" fill="hsl(142 64% 35%)" font-family="Inter Tight, sans-serif">3 / 3 passing</text>
+                <g class="lift"><rect x="30" y="42" width="56" height="66" rx="12" fill="hsl(var(--card))" stroke="hsl(142 60% 45% / .5)" stroke-width="2"/></g>
+                <circle class="tkw-pop p1" cx="58" cy="64" r="11" fill="hsl(142 64% 45% / .12)" stroke="#16a34a" stroke-width="2.8"/><path class="tkw-pop p1" d="M52.5 64 l3.5 3.5 L64 59.5" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="58" y="90" text-anchor="middle" font-size="11" font-weight="800" fill="hsl(var(--foreground))" font-family="Inter Tight, sans-serif">1.2s</text>
+                <text x="58" y="102" text-anchor="middle" font-size="8" font-weight="700" letter-spacing=".5" fill="hsl(var(--muted-foreground))">LCP</text>
+                <g class="lift"><rect x="92" y="42" width="56" height="66" rx="12" fill="hsl(var(--card))" stroke="hsl(142 60% 45% / .5)" stroke-width="2"/></g>
+                <circle class="tkw-pop p2" cx="120" cy="64" r="11" fill="hsl(142 64% 45% / .12)" stroke="#16a34a" stroke-width="2.8"/><path class="tkw-pop p2" d="M114.5 64 l3.5 3.5 L126 59.5" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="120" y="90" text-anchor="middle" font-size="11" font-weight="800" fill="hsl(var(--foreground))" font-family="Inter Tight, sans-serif">0.05</text>
+                <text x="120" y="102" text-anchor="middle" font-size="8" font-weight="700" letter-spacing=".5" fill="hsl(var(--muted-foreground))">CLS</text>
+                <g class="lift"><rect x="154" y="42" width="56" height="66" rx="12" fill="hsl(var(--card))" stroke="hsl(142 60% 45% / .5)" stroke-width="2"/></g>
+                <circle class="tkw-pop p3" cx="182" cy="64" r="11" fill="hsl(142 64% 45% / .12)" stroke="#16a34a" stroke-width="2.8"/><path class="tkw-pop p3" d="M176.5 64 l3.5 3.5 L188 59.5" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="182" y="90" text-anchor="middle" font-size="10.5" font-weight="800" fill="hsl(var(--foreground))" font-family="Inter Tight, sans-serif">180ms</text>
+                <text x="182" y="102" text-anchor="middle" font-size="8" font-weight="700" letter-spacing=".5" fill="hsl(var(--muted-foreground))">INP</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-heartbeat"></i></span><h3 class="font-semibold">Core Web Vitals</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">We drive LCP, CLS and INP into the green on both mobile and desktop — the experience Google rewards.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">Standard, Ultra, Custom</p>
+            </div>
+          </article>
+
+          <!-- On-page & schema -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="On-page SEO and schema markup">
+                <g class="lift"><rect x="44" y="22" width="152" height="96" rx="13" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <line x1="44" y1="42" x2="196" y2="42" stroke="hsl(var(--border))"/>
+                <circle cx="57" cy="32" r="2.4" fill="hsl(var(--muted-foreground) / .5)"/><circle cx="65" cy="32" r="2.4" fill="hsl(var(--muted-foreground) / .5)"/><circle cx="73" cy="32" r="2.4" fill="hsl(var(--muted-foreground) / .5)"/>
+                <rect class="tkw-pop p1" x="58" y="54" width="66" height="9" rx="4.5" fill="hsl(var(--primary) / .75)"/>
+                <rect x="58" y="72" width="124" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="58" y="83" width="104" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g class="tkw-pop p2"><rect x="58" y="96" width="52" height="15" rx="5" fill="hsl(var(--primary) / .1)" stroke="hsl(var(--primary) / .45)"/><text x="84" y="106.5" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">schema</text></g>
+                <g class="tkw-pop p3"><rect x="116" y="96" width="44" height="15" rx="5" fill="hsl(var(--primary) / .1)" stroke="hsl(var(--primary) / .45)"/><text x="138" y="106.5" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">meta</text></g>
+                <g class="tkw-pop p4"><circle cx="176" cy="103.5" r="11" fill="hsl(var(--card))" stroke="#16a34a" stroke-width="2.6"/><path d="M170.5 103.5 l3.5 3.5 L182 99" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-code"></i></span><h3 class="font-semibold">On-page SEO &amp; schema</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Clean titles, meta, headings, image alts and structured data (schema.org) so Google reads each page correctly.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">Standard, Ultra, Custom</p>
+            </div>
+          </article>
+
+          <!-- AI-ready / GEO -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="AI-ready, cited by generative engines">
+                <g class="lift"><rect x="40" y="22" width="160" height="66" rx="16" fill="hsl(var(--card))" stroke="hsl(var(--primary) / .5)" stroke-width="2"/></g>
+                <path class="tkw-pop p1" d="M65 45 l3 6.6 l6.6 3 l-6.6 3 l-3 6.6 l-3 -6.6 l-6.6 -3 l6.6 -3 z" fill="hsl(var(--primary))"/>
+                <rect x="90" y="40" width="92" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="90" y="52" width="74" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <g class="tkw-pop p2"><rect x="90" y="64" width="82" height="15" rx="7.5" fill="hsl(var(--primary) / .1)" stroke="hsl(var(--primary) / .45)"/><text x="131" y="74.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="hsl(var(--primary))" font-family="Inter Tight, sans-serif">[1] your-site.com</text></g>
+                <g class="tkw-pop p3"><circle cx="96" cy="114" r="9" fill="hsl(142 64% 45% / .12)" stroke="#16a34a" stroke-width="2.4"/><path d="M91.5 114 l3 3 L102 110.5" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+                <text x="110" y="118" font-size="11" font-weight="700" fill="hsl(142 64% 35%)" font-family="Inter Tight, sans-serif">Cited by AI</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-sparkle"></i></span><h3 class="font-semibold">AI-ready / GEO</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Structured, answer-ready content and entity optimization so AI search &amp; generative engines can read, cite and surface you.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">Standard, Ultra, Custom</p>
+            </div>
+          </article>
+
+          <!-- Technical SEO & render -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Technical SEO and JavaScript render optimization">
+                <g class="lift"><rect x="40" y="22" width="160" height="96" rx="13" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <line x1="40" y1="42" x2="200" y2="42" stroke="hsl(var(--border))"/>
+                <circle cx="53" cy="32" r="2.6" fill="#ef4444"/><circle cx="62" cy="32" r="2.6" fill="#f59e0b"/><circle cx="71" cy="32" r="2.6" fill="#22c55e"/>
+                <text x="188" y="35.5" text-anchor="end" font-size="8" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">render</text>
+                <rect class="tkw-pop p1" x="54" y="55" width="26" height="5" rx="2.5" fill="hsl(var(--primary) / .65)"/>
+                <rect x="84" y="55" width="42" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="64" y="68" width="34" height="5" rx="2.5" fill="hsl(var(--primary) / .4)"/>
+                <rect x="102" y="68" width="46" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect class="tkw-pop p2" x="64" y="81" width="40" height="5" rx="2.5" fill="hsl(var(--primary) / .65)"/>
+                <rect x="54" y="94" width="30" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g class="tkw-pop p3"><circle cx="174" cy="96" r="13" fill="hsl(var(--card))" stroke="#16a34a" stroke-width="2.8"/><path d="M168 96 l4 4 L181 91" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-tree-structure"></i></span><h3 class="font-semibold">Technical SEO &amp; render</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Deep technical fixes, JavaScript/render optimization and crawlability so search engines see your full content.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">Ultra, Custom</p>
+            </div>
+          </article>
+
+          <!-- Internal links & structure -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Internal linking and site structure">
+                <path class="tkw-draw" pathLength="100" d="M120 46 L120 64 M68 64 L172 64 M68 64 L68 82 M120 64 L120 82 M172 64 L172 82" fill="none" stroke="hsl(var(--primary) / .5)" stroke-width="2.4" stroke-linecap="round"/>
+                <g class="tkw-pop p1"><circle cx="120" cy="34" r="13" fill="hsl(var(--primary))"/><path d="M114 34 h12 M120 28 v12" stroke="hsl(var(--primary-foreground))" stroke-width="2.6" stroke-linecap="round"/></g>
+                <g class="tkw-pop p2"><circle cx="68" cy="94" r="11" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.8"/><rect x="62.5" y="90" width="11" height="3" rx="1.5" fill="hsl(var(--primary) / .55)"/><rect x="62.5" y="95.5" width="8" height="3" rx="1.5" fill="hsl(var(--primary) / .35)"/></g>
+                <g class="tkw-pop p3"><circle cx="120" cy="94" r="11" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.8"/><rect x="114.5" y="90" width="11" height="3" rx="1.5" fill="hsl(var(--primary) / .55)"/><rect x="114.5" y="95.5" width="8" height="3" rx="1.5" fill="hsl(var(--primary) / .35)"/></g>
+                <g class="tkw-pop p4"><circle cx="172" cy="94" r="11" fill="hsl(var(--card))" stroke="hsl(var(--primary))" stroke-width="2.8"/><rect x="166.5" y="90" width="11" height="3" rx="1.5" fill="hsl(var(--primary) / .55)"/><rect x="166.5" y="95.5" width="8" height="3" rx="1.5" fill="hsl(var(--primary) / .35)"/></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-graph"></i></span><h3 class="font-semibold">Internal links &amp; structure</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">A logical site architecture and internal linking that spreads authority and helps both users and crawlers navigate.</p>
+              <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-primary">Ultra, Custom</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESS ============ -->
+    <section id="process" class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">How it works</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">A safe, measured optimization in four steps</h2>
+          <p class="mt-3 text-muted-foreground">We never touch your live site blind. We measure, agree on a plan, back up your source, then optimize and deploy — with proof at the end.</p>
+        </div>
+
+        <div class="wo-flow tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- Step 1 -->
+          <article data-reveal class="wo-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <span class="font-display text-3xl font-bold tkw-num">01</span>
+              <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-magnifying-glass-plus text-xl"></i></span>
+            </div>
+            <h3 class="mt-4 font-semibold">Evaluate &amp; audit</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You send your URL. We run a full website audit — speed, Core Web Vitals, technical, on-page and AI-readiness.</p>
+            <span class="wo-audit mt-4"><i class="ph-fill ph-check-circle"></i> Included in every plan</span>
+          </article>
+
+          <!-- Step 2 -->
+          <article data-reveal class="wo-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <span class="font-display text-3xl font-bold tkw-num">02</span>
+              <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-chart-line-up text-xl"></i></span>
+            </div>
+            <h3 class="mt-4 font-semibold">Plan &amp; predict</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">We turn the audit into a clear solution and a realistic predicted improvement — so you know the upside before we start.</p>
+            <p class="mt-4 text-xs font-medium text-muted-foreground"><i class="ph-bold ph-target text-primary"></i> Confirmed before any work</p>
+          </article>
+
+          <!-- Step 3 -->
+          <article data-reveal class="wo-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <span class="font-display text-3xl font-bold tkw-num">03</span>
+              <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-floppy-disk text-xl"></i></span>
+            </div>
+            <h3 class="mt-4 font-semibold">Back up &amp; optimize</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Once you approve access, we back up your full source first, then optimize on a copy — speed, technical, on-page and GEO.</p>
+            <p class="mt-4 text-xs font-medium text-muted-foreground"><i class="ph-bold ph-shield-check text-primary"></i> Rollback always available</p>
+          </article>
+
+          <!-- Step 4 -->
+          <article data-reveal class="wo-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between">
+              <span class="font-display text-3xl font-bold tkw-num">04</span>
+              <span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-rocket-launch text-xl"></i></span>
+            </div>
+            <h3 class="mt-4 font-semibold">Deploy &amp; report</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">After internal review we deploy the optimized site and hand you a before-and-after report: PageSpeed, CWV, SEO &amp; AI-readiness.</p>
+            <p class="mt-4 text-xs font-medium text-muted-foreground"><i class="ph-bold ph-file-text text-primary"></i> Before/after report delivered</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BEFORE / AFTER ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Proof, not promises</span>
+            <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">You see the numbers move</h2>
+            <p class="mt-4 text-muted-foreground">Because every plan begins with an audit, we have a baseline to compare against. At delivery you get a side-by-side report you can verify in PageSpeed Insights and Search Console yourself.</p>
+            <ul class="mt-6 space-y-3 text-sm">
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">PageSpeed &amp; Core Web Vitals</b> — mobile and desktop scores, LCP / CLS / INP.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">SEO score</b> — technical &amp; on-page health before vs after.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">AI-readiness (GEO)</b> — structured data, entities and answer-ready content checks.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">Deployed site</b> — the optimized version live, with your source handed back.</span></li>
+            </ul>
+            <p class="mt-6 text-xs text-muted-foreground">Figures shown are an illustrative example, not a guarantee — your predicted lift is confirmed after the audit.</p>
+          </div>
+
+          <!-- before/after panel -->
+          <div data-reveal class="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-8">
+            <div class="flex items-center justify-between pb-5">
+              <p class="text-sm font-semibold">Optimization report</p>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600"><i class="ph-fill ph-trend-up"></i> Improved</span>
+            </div>
+
+            <div class="space-y-5">
+              <div>
+                <div class="mb-1.5 flex items-center justify-between text-sm"><span class="font-medium">PageSpeed (mobile)</span><span class="text-muted-foreground"><span class="text-destructive">42</span> → <b class="text-green-500">96</b></span></div>
+                <div class="wo-cmp" style="--bw:96%"><i class="b" style="--bw:42%"></i><i class="a" style="--bw:96%"></i></div>
+              </div>
+              <div>
+                <div class="mb-1.5 flex items-center justify-between text-sm"><span class="font-medium">SEO score</span><span class="text-muted-foreground"><span class="text-destructive">61</span> → <b class="text-green-500">98</b></span></div>
+                <div class="wo-cmp" style="--bw:98%"><i class="b" style="--bw:61%"></i><i class="a" style="--bw:98%"></i></div>
+              </div>
+              <div>
+                <div class="mb-1.5 flex items-center justify-between text-sm"><span class="font-medium">Core Web Vitals</span><span class="text-muted-foreground"><span class="text-destructive">35</span> → <b class="text-green-500">92</b></span></div>
+                <div class="wo-cmp" style="--bw:92%"><i class="b" style="--bw:35%"></i><i class="a" style="--bw:92%"></i></div>
+              </div>
+              <div>
+                <div class="mb-1.5 flex items-center justify-between text-sm"><span class="font-medium">AI-readiness (GEO)</span><span class="text-muted-foreground"><span class="text-destructive">28</span> → <b class="text-green-500">90</b></span></div>
+                <div class="wo-cmp" style="--bw:90%"><i class="b" style="--bw:28%"></i><i class="a" style="--bw:90%"></i></div>
+              </div>
+            </div>
+
+            <div class="mt-6 flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-4">
+              <div class="flex flex-1 items-center gap-2 text-xs text-muted-foreground"><span class="inline-block h-2.5 w-5 rounded-full bg-gradient-to-r from-red-300 to-red-500"></span> Before</div>
+              <div class="flex flex-1 items-center gap-2 text-xs text-muted-foreground"><span class="inline-block h-2.5 w-5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"></span> After</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section id="plans" class="border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Plans &amp; pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Pick the depth your site needs</h2>
+          <p class="mt-3 text-muted-foreground">Every plan includes a full website audit, a source backup before any change, and deployment of the optimized site. Launch pricing — 60% off fixed-price plans.</p>
+        </div>
+
+        <div class="mt-12">
+          <PricingGrid cols={4} tiers={optimizationTiers} />
+        </div>
+
+        <p data-reveal class="mt-8 text-center text-sm text-muted-foreground">Not sure which fits? <a href="#contact" class="font-semibold text-primary hover:underline">Send your URL for a free audit</a> and we'll recommend the right plan.</p>
+      </div>
+    </section>
+
+    <!-- ============ COMPARISON TABLE ============ -->
+    <ComparisonTable
+      eyebrow="Compare plans"
+      title="What's in each plan"
+      columns={optimizationCompareColumns}
+      rows={optimizationCompareRows}
+    />
+
+    <!-- ============ GUARANTEE BAND ============ -->
+    <section class="border-y border-border bg-muted/40 py-14 lg:py-20">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="tkw-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-magnifying-glass-plus text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Audit on every plan</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">We measure before we touch anything.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-floppy-disk text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Backup &amp; rollback</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Your source is saved before any change.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-clock-countdown text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">On time or refund</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Miss the agreed date, get your money back.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-key text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">You own it</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Full source &amp; accounts handed back to you.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">FAQ</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Questions, answered</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5" open>
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Is the website audit really included in every plan?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes — Basic, Standard, Ultra and Custom all start with a full website audit. We measure speed, Core Web Vitals, technical and on-page SEO, and AI-readiness first, so the work is targeted and you get a clear before-and-after report at delivery.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Will optimizing break my live website?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">No. We back up your full source code before making any change and optimize on a copy. We verify everything works, then deploy — and if anything looks off we can roll back to the backup immediately.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What access do you need?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Just your website URL to start and run the audit. Once you approve the plan, we request access to your source code or CMS (hosting, admin or repository) so we can apply the optimizations and deploy.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How much improvement can I expect?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">After the audit we predict the realistic lift for your site and show it before we start. Typical results include large PageSpeed gains, passing Core Web Vitals and a higher technical SEO score — all documented in the before-and-after report you can verify yourself.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What does AI-ready / GEO optimization mean?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">GEO (Generative Engine Optimization) makes your content readable, citable and surfaceable by AI search and generative engines. We add structured data, strengthen entity and answer-ready content, and clean up markup so AI systems can understand and quote your pages. It's included from the Standard plan up.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Which platforms do you support?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">WordPress, custom-coded sites, headless and most common stacks. For large or unusual sites we run a Custom plan scoped to your codebase after the audit.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What happens after optimization?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">A faster, cleaner, AI-ready site is the foundation. To grow rankings further, many clients continue with our Content, Backlink and ongoing maintenance services — your specialist will suggest the best next step based on the audit.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="contact" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-magic-wand text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Send your URL, get a free audit</h2>
+          <p class="mt-3 text-muted-foreground">Drop your contact details and a specialist will run a quick audit and recommend the right plan — free, with a predicted before-and-after.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" novalidate>
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden" />
+            <label for="cta-email" class="sr-only">Email or phone number</label>
+            <input id="cta-email" name="contact" type="text" inputmode="email" autocomplete="email" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button id="lead-submit" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+              <span class="lead-spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span class="lead-submit-label">Get my free audit</span>
+            </button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('cta-email');
+      var status = document.getElementById('lead-status');
+      var defaultStatus = status ? status.innerHTML : '';
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the "' + name + '" plan. Leave your contact details!';
+        });
+      });
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

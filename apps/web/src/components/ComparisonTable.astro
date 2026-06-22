@@ -1,0 +1,95 @@
+---
+/**
+ * Reusable card-style comparison table.
+ *
+ * Usage:
+ *   <ComparisonTable
+ *     eyebrow="Compare plans" title="What's in each plan"
+ *     columns={[{ label:'Basic', icon:'ph-lightning', sub:'$40' }, { label:'Standard', icon:'ph-sparkle', sub:'$79', highlight:true }, ...]}
+ *     rows={[{ label:'Full website audit', cells:[true,true,true,true] }, { label:'Support', cells:[false,'1 month','3 months','By agreement'] }]}
+ *   />
+ *
+ * cell value: `true` → green check · `false` → muted dash · string → text
+ */
+export interface CompareColumn {
+  label: string;
+  icon?: string;       // phosphor icon name, e.g. 'ph-sparkle'
+  sub?: string;        // small sub-label under the column name (e.g. price)
+  highlight?: boolean; // tints the column as the recommended lane
+}
+export interface CompareRow {
+  label: string;
+  cells: (boolean | string)[];
+  strong?: boolean;    // render text cells bold
+}
+interface Props {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  featureLabel?: string;
+  columns: CompareColumn[];
+  rows: CompareRow[];
+  minWidth?: string;   // table min-width before horizontal scroll, e.g. '760px'
+  maxWidth?: string;   // card max-width utility, e.g. 'max-w-4xl'
+  sectionClass?: string;
+}
+const {
+  eyebrow,
+  title,
+  subtitle,
+  featureLabel = 'Feature',
+  columns,
+  rows,
+  minWidth = '760px',
+  maxWidth = 'max-w-4xl',
+  sectionClass = 'py-16 lg:py-24',
+} = Astro.props;
+---
+<section class={sectionClass}>
+  <div class="mx-auto max-w-7xl px-5 lg:px-8">
+    <div data-reveal class="mx-auto max-w-2xl text-center">
+      {eyebrow && <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">{eyebrow}</span>}
+      <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">{title}</h2>
+      {subtitle && <p class="mt-3 text-muted-foreground">{subtitle}</p>}
+    </div>
+
+    <div data-reveal class:list={["mx-auto mt-10 overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5", maxWidth]}>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm" style={`min-width:${minWidth}`}>
+          <thead>
+            <tr class="border-b border-border">
+              <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{featureLabel}</th>
+              {columns.map((c) => (
+                <th class:list={["px-4 py-3.5 text-center", c.highlight && "border-x border-border bg-primary/[0.05]"]}>
+                  <span class:list={["inline-flex flex-col items-center gap-1 text-[13px] font-bold", c.highlight && "text-primary"]}>
+                    {c.icon && <i class:list={[`ph-bold ${c.icon} text-base`, !c.highlight && "text-primary"]}></i>}
+                    <span>{c.label}</span>
+                    {c.sub && <span class="text-[11px] font-normal text-muted-foreground">{c.sub}</span>}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody class="text-muted-foreground [&_td]:px-4 [&_td]:py-2.5 [&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0">
+            {rows.map((row) => (
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium text-foreground">{row.label}</td>
+                {row.cells.map((cell, i) => (
+                  <td class:list={["text-center", columns[i]?.highlight && "border-x border-border bg-primary/[0.04]"]}>
+                    {cell === true ? (
+                      <i class="ph-fill ph-check-circle text-base text-primary"></i>
+                    ) : cell === false ? (
+                      <i class="ph-bold ph-minus text-muted-foreground/30"></i>
+                    ) : (
+                      <span class:list={["text-xs", row.strong ? "font-bold text-foreground" : columns[i]?.highlight && "font-medium text-foreground"]}>{cell}</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

@@ -27,6 +27,9 @@
 * { border-color: hsl(var(--border)); }
 body { font-feature-settings: "cv11", "ss01"; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pageReveal { from { opacity: 0; filter: blur(7px); transform: translateY(3px); } to { opacity: 1; filter: blur(0); transform: none; } }
+.page-anim { animation: pageReveal .5s cubic-bezier(.22,.61,.36,1) backwards; }
+@media (prefers-reduced-motion: reduce) { .page-anim { animation: none; } }
 .display { font-family: "Inter Tight", Inter, sans-serif; }
 /* sidebar nav item */
     .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500;
@@ -36,7 +39,21 @@ body { font-feature-settings: "cv11", "ss01"; }
 .nav-item i { font-size:1rem; }
 /* KPI card */
     .kpi { position:relative; overflow:hidden; border:1px solid hsl(var(--border)); background:hsl(var(--card));
-      border-radius:1rem; padding:.85rem 1rem; transition:.2s; }
+      border-radius:1rem; padding:.85rem 1rem; transition:.2s; display:flex; flex-direction:column; min-height:8.75rem; }
+/* Satin gold VIP card: warm smooth gold + brushed texture + soft highlight & vignette */
+.kpi-glass { position:relative; overflow:hidden; border-color:rgba(255,240,200,.45);
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 7px),
+    radial-gradient(135% 120% at 58% 0%, rgba(255,249,222,.92) 0%, rgba(236,203,128,.45) 42%, transparent 72%),
+    radial-gradient(120% 120% at 50% 122%, rgba(150,108,40,.38), transparent 56%),
+    linear-gradient(158deg, #ECCC82 0%, #DDB763 48%, #CCA14B 100%);
+  box-shadow:0 20px 46px -16px rgba(150,108,28,.55); }
+.kpi-glass, .kpi-glass * { color:#5a3f08 !important; }
+.kpi-glass .kpi-glow { display:none; }
+/* gentle satin sheen near the top */
+.kpi-glass::before { content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(72% 50% at 30% -6%, rgba(255,255,255,.45), transparent 60%); }
+.kpi-glass > * { position:relative; z-index:2; }
 /* KPI graphics */
     .seg { display:flex; height:7px; border-radius:9999px; overflow:hidden; background:hsl(var(--muted)); }
 .seg i { height:100%; }
@@ -61,14 +78,41 @@ body { font-feature-settings: "cv11", "ss01"; }
 .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
 .pill-warn { background:#f59e0b1f; color:#d97706; }
 /* kanban */
-    .kcard { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.8rem; padding:.85rem .9rem; transition:.15s; cursor:default; }
+    .kcard { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.8rem; padding:.85rem .9rem; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:default; }
 .kcard:hover { border-color:hsl(var(--primary)/.45); transform:translateY(-2px); box-shadow:0 14px 28px -18px hsl(var(--foreground)/.35); }
+@keyframes cardIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
+.kcard-anim { animation: cardIn .3s cubic-bezier(.2,.7,.3,1) backwards; }
+@keyframes panelIn { from { transform:translateX(100%); } to { transform:none; } }
+@keyframes panelOut { from { transform:none; } to { transform:translateX(100%); } }
+@keyframes backdropIn { from { opacity:0; } to { opacity:1; } }
+@keyframes backdropOut { from { opacity:1; } to { opacity:0; } }
+.order-panel { animation: panelIn .26s cubic-bezier(.2,.7,.3,1); }
+.order-panel-out { animation: panelOut .23s cubic-bezier(.4,0,.7,.2) forwards; }
+.order-backdrop { animation: backdropIn .2s ease; }
+.order-backdrop-out { animation: backdropOut .23s ease forwards; }
+@keyframes modalIn { from { opacity:0; transform:scale(.96) translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes modalOut { from { opacity:1; transform:none; } to { opacity:0; transform:scale(.97) translateY(4px); } }
+.modal-in { animation: modalIn .18s cubic-bezier(.2,.7,.3,1); }
+.modal-out { animation: modalOut .15s ease forwards; }
+@media (prefers-reduced-motion: reduce) { .kcard-anim, .order-panel, .order-panel-out, .order-backdrop, .order-backdrop-out, .modal-in, .modal-out { animation:none; } }
+@keyframes toastIn { from { opacity:0; transform:translateX(24px) scale(.98); } to { opacity:1; transform:none; } }
+.toast-in { animation: toastIn .26s cubic-bezier(.2,.7,.3,1); }
+.skel { position:relative; overflow:hidden; background:hsl(var(--muted)); border-radius:.6rem; }
+.skel::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, hsl(var(--foreground)/.07), transparent); animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .toast-in { animation:none; } .skel::after { animation:none; } }
+@keyframes legendMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.legend-marquee { animation: legendMarquee 14s linear infinite; }
+.legend-marquee:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .legend-marquee { animation: none; } }
 .prio { font-size:.65rem; font-weight:800; padding:.1rem .45rem; border-radius:.4rem; text-transform:uppercase; letter-spacing:.03em; }
 .prio-high { background:#ef44441f; color:#dc2626; }
 .prio-med { background:#f59e0b1f; color:#d97706; }
 .prio-low { background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); }
 .bar { height:.4rem; border-radius:9999px; background:hsl(var(--muted)); overflow:hidden; }
-.bar > i { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,#3b82f6,#2563eb); }
+.bar > i { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,#3b82f6,#2563eb); transform-origin:left; animation: barGrow .8s cubic-bezier(.4,0,.2,1) both; }
+@keyframes barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .bar > i { animation: none; } }
 .spark { stroke-dasharray:1000; stroke-dashoffset:1000; animation:draw 2s ease forwards; }
 @keyframes draw { to { stroke-dashoffset:0; } }
 .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }

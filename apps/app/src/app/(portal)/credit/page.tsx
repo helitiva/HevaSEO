@@ -19,7 +19,7 @@ export default function CreditPage() {
       </div>
 
       {/* balance */}
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+      <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 sm:col-span-1">
           <div className="flex items-center justify-between"><p className="text-xs font-medium text-muted-foreground">Credit balance</p><span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}>VIP</span></div>
           <p className="display mt-1 text-3xl font-semibold tracking-tight">${CREDIT_BALANCE}</p>

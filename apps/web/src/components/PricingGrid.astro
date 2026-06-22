@@ -1,0 +1,167 @@
+---
+/**
+ * Reusable gradient pricing-card grid (compact header style).
+ *
+ * Usage:
+ *   <PricingGrid cols={4} tiers={[
+ *     { name:'Basic', subtitle:'Make a slow site fast.', icon:'ph-lightning', hue:'sky',
+ *       price:'$40', strike:'$100', delivery:'~3–5 days',
+ *       features:['Full website audit', ...], footerBadge:'Website audit included',
+ *       cta:'Choose Basic', goi:'Basic · $40' },
+ *     { name:'Standard', ..., popular:true, everythingIn:'Everything in Basic, plus' },
+ *   ]} />
+ *
+ * Feature strings may contain inline HTML (rendered with set:html).
+ */
+export interface PricingTier {
+  name: string;
+  subtitle?: string;
+  icon: string;                // phosphor icon, e.g. 'ph-sparkle'
+  hue?: 'sky' | 'violet' | 'amber' | 'emerald' | 'rose';
+  price: string;               // '$40' | 'Consult' | '79'
+  pricePrefix?: string;        // 'from '
+  priceSuffix?: string;        // '/website' | '/package'
+  strike?: string;             // '$100'
+  delivery?: string;           // '~3–5 days' (right of price)
+  popular?: boolean;
+  popularLabel?: string;       // defaults to 'Most popular'
+  everythingIn?: string;       // tinted note at top of body
+  features?: string[];
+  footerBadge?: string;        // green pill pinned to the card bottom
+  cta: string;
+  goi: string;                 // value for the data attribute
+  goiAttr?: string;            // 'data-goi' (default) or 'data-package'
+  href?: string;               // defaults to '#contact'
+}
+interface Props {
+  tiers: PricingTier[];
+  cols?: 2 | 3 | 4 | 5;
+}
+const { tiers, cols = 3 } = Astro.props;
+
+const COLS: Record<number, string> = {
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+  5: 'sm:grid-cols-2 lg:grid-cols-3',
+};
+
+const HUE: Record<string, { grad: string; gradPop: string; tile: string; note: string; pop: string; badge: string }> = {
+  sky: {
+    grad: 'from-sky-100 via-sky-50 to-blue-100 dark:from-sky-950/60 dark:via-card dark:to-blue-950/40',
+    gradPop: 'from-sky-200 via-sky-100 to-blue-200 dark:from-sky-900/60 dark:via-card dark:to-blue-900/40',
+    tile: 'bg-sky-500 shadow-sky-500/30',
+    note: 'border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    pop: 'shadow-sky-500/15 ring-sky-300/60 dark:ring-sky-500/30',
+    badge: 'bg-sky-600 shadow-sky-600/30',
+  },
+  violet: {
+    grad: 'from-violet-100 via-violet-50 to-fuchsia-100 dark:from-violet-950/60 dark:via-card dark:to-fuchsia-950/40',
+    gradPop: 'from-violet-200 via-violet-100 to-fuchsia-100 dark:from-violet-900/60 dark:via-card dark:to-fuchsia-900/40',
+    tile: 'bg-violet-500 shadow-violet-500/30',
+    note: 'border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    pop: 'shadow-violet-500/15 ring-violet-300/50 dark:ring-violet-500/30',
+    badge: 'bg-violet-600 shadow-violet-600/30',
+  },
+  amber: {
+    grad: 'from-amber-100 via-amber-50 to-orange-100 dark:from-amber-950/60 dark:via-card dark:to-orange-950/40',
+    gradPop: 'from-amber-200 via-amber-100 to-orange-200 dark:from-amber-900/60 dark:via-card dark:to-orange-900/40',
+    tile: 'bg-amber-500 shadow-amber-500/30',
+    note: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    pop: 'shadow-amber-500/15 ring-amber-300/60 dark:ring-amber-500/30',
+    badge: 'bg-amber-600 shadow-amber-600/30',
+  },
+  emerald: {
+    grad: 'from-emerald-100 via-emerald-50 to-teal-100 dark:from-emerald-950/60 dark:via-card dark:to-teal-950/40',
+    gradPop: 'from-emerald-200 via-emerald-100 to-teal-200 dark:from-emerald-900/60 dark:via-card dark:to-teal-900/40',
+    tile: 'bg-emerald-500 shadow-emerald-500/30',
+    note: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    pop: 'shadow-emerald-500/15 ring-emerald-300/60 dark:ring-emerald-500/30',
+    badge: 'bg-emerald-600 shadow-emerald-600/30',
+  },
+  rose: {
+    grad: 'from-rose-100 via-rose-50 to-pink-100 dark:from-rose-950/60 dark:via-card dark:to-pink-950/40',
+    gradPop: 'from-rose-200 via-rose-100 to-pink-200 dark:from-rose-900/60 dark:via-card dark:to-pink-900/40',
+    tile: 'bg-rose-500 shadow-rose-500/30',
+    note: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    pop: 'shadow-rose-500/15 ring-rose-300/60 dark:ring-rose-500/30',
+    badge: 'bg-rose-600 shadow-rose-600/30',
+  },
+};
+---
+<div class:list={["grid items-stretch gap-5", COLS[cols]]}>
+  {tiers.map((t, i) => {
+    const h = HUE[t.hue ?? 'sky'] ?? HUE.sky;
+    const attrs = { [t.goiAttr ?? 'data-goi']: t.goi };
+    return (
+      <article
+        data-reveal
+        style={`transition-delay:${i * 60}ms`}
+        class:list={[
+          "group flex flex-col overflow-hidden rounded-3xl border border-border bg-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40",
+          t.popular ? `shadow-xl ring-1 ${h.pop}` : "shadow-lg shadow-foreground/5 hover:shadow-xl",
+        ]}
+      >
+        <div class:list={["relative bg-gradient-to-br p-5", t.popular ? h.gradPop : h.grad]}>
+          {t.popular && (
+            <span class:list={["absolute right-4 top-4 rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow-md", h.badge]}>
+              {t.popularLabel ?? 'Most popular'}
+            </span>
+          )}
+          <div class="flex items-center gap-3">
+            <span class:list={["grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-md", h.tile]}>
+              <i class={`ph-bold ${t.icon} text-base`}></i>
+            </span>
+            <h3 class="text-lg font-bold tracking-tight">{t.name}</h3>
+          </div>
+          {t.subtitle && <p class="mt-2 min-h-[2rem] text-xs text-muted-foreground">{t.subtitle}</p>}
+          <div class="mt-2 flex items-end justify-between gap-2">
+            <p class="flex items-end gap-1.5">
+              {t.pricePrefix && <span class="mb-1 text-sm text-muted-foreground">{t.pricePrefix}</span>}
+              <span class="font-display text-3xl font-bold tracking-tight">{t.price}</span>
+              {t.priceSuffix && <span class="mb-1 text-sm text-muted-foreground">{t.priceSuffix}</span>}
+              {t.strike && <span class="mb-0.5 text-xs text-muted-foreground line-through">{t.strike}</span>}
+            </p>
+            {t.delivery && <p class="pb-1 text-xs text-muted-foreground">{t.delivery}</p>}
+          </div>
+          <a
+            href={t.href ?? '#contact'}
+            {...attrs}
+            class:list={[
+              "mt-4 block rounded-xl py-2.5 text-center text-sm font-semibold shadow-sm transition hover:-translate-y-px",
+              t.popular
+                ? "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+                : "bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-white dark:text-zinc-900",
+            ]}
+          >{t.cta}</a>
+        </div>
+
+        {(t.features?.length || t.everythingIn || t.footerBadge) && (
+          <div class="flex flex-1 flex-col p-6">
+            {t.everythingIn && (
+              <div class:list={["mb-3 inline-flex items-center gap-2 self-start rounded-lg border px-3 py-1.5 text-[12px] font-medium", h.note]}>
+                <i class="ph-fill ph-arrow-fat-up"></i> {t.everythingIn}
+              </div>
+            )}
+            {t.features?.length ? (
+              <ul class="space-y-2.5 text-sm text-muted-foreground">
+                {t.features.map((f) => (
+                  <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span set:html={f}></span></li>
+                ))}
+              </ul>
+            ) : null}
+            {t.footerBadge && (
+              <div class="mt-auto pt-6">
+                <div class="border-t border-border pt-4">
+                  <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <i class="ph-fill ph-check-circle"></i> {t.footerBadge}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </article>
+    );
+  })}
+</div>

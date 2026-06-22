@@ -1,6 +1,6 @@
 ---
 import Logo from './Logo.astro';
-import { nav } from '../data/site';
+import { nav, serviceMenu } from '../data/site';
 ---
 <header class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
   <nav class="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
@@ -8,7 +8,27 @@ import { nav } from '../data/site';
 
     <div class="hidden items-center gap-8 lg:flex">
       {nav.map((item) =>
-        item.highlight ? (
+        item.submenu === 'services' ? (
+          <div class="group relative">
+            <a href={item.href} class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+              {item.label}
+              <i class="ph-bold ph-caret-down text-xs transition-transform duration-200 group-hover:rotate-180"></i>
+            </a>
+            <div class="invisible absolute left-1/2 top-full z-50 w-[330px] -translate-x-1/2 translate-y-1 pt-3 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+              <div class="overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-xl shadow-foreground/10">
+                {serviceMenu.map((s) => (
+                  <a href={s.href} class="flex items-start gap-3 rounded-xl px-3 py-2.5 transition hover:bg-accent">
+                    <span class="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary/15"><i class={`ph-bold ${s.icon} text-base`}></i></span>
+                    <span class="min-w-0">
+                      <span class="block text-sm font-medium text-foreground">{s.label}</span>
+                      <span class="block text-xs text-muted-foreground">{s.desc}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : item.highlight ? (
           <a href={item.href} class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition hover:text-primary/80"><i class="ph-fill ph-fire"></i> {item.label}</a>
         ) : (
           <a href={item.href} class="text-sm font-medium text-muted-foreground transition hover:text-foreground">{item.label}</a>
@@ -33,7 +53,18 @@ import { nav } from '../data/site';
   <div id="mobile-menu" class="hidden border-t border-border px-5 pb-5 pt-2 lg:hidden">
     <div class="flex flex-col gap-1">
       {nav.map((item) =>
-        item.highlight ? (
+        item.submenu === 'services' ? (
+          <div>
+            <a href={item.href} class="block rounded-md px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-accent hover:text-accent-foreground">{item.label}</a>
+            <div class="ml-3 mt-1 flex flex-col gap-0.5 border-l border-border pl-3">
+              {serviceMenu.map((s) => (
+                <a href={s.href} class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                  <i class={`ph-bold ${s.icon} text-primary`}></i> {s.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : item.highlight ? (
           <a href={item.href} class="inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-semibold text-primary hover:bg-accent"><i class="ph-fill ph-fire"></i> {item.label}</a>
         ) : (
           <a href={item.href} class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">{item.label}</a>

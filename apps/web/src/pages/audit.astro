@@ -24,9 +24,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         "areaServed": "US",
         "description": "A comprehensive SEO health score across 200+ technical, on-page, content, backlink, and Core Web Vitals criteria, with a detailed report and a prioritized fix roadmap.",
         "offers": [
-          { "@type": "Offer", "name": "Basic plan", "price": "14", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Advanced plan", "price": "26", "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Comprehensive plan", "price": "60", "priceCurrency": "USD" }
+          { "@type": "Offer", "name": "Basic plan", "price": "19", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Standard plan", "price": "39", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Pro plan", "price": "69", "priceCurrency": "USD" }
         ]
       },
       {
@@ -47,17 +47,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           {
             "@type": "Question",
             "name": "How long until I receive the audit report?",
-            "acceptedAnswer": { "@type": "Answer", "text": "The Basic plan delivers in 1-2 business days, Advanced in 3-5 days, and Comprehensive in 5-7 days, depending on your site's size." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Basic delivers in about 2 business days, Standard in 2-3 days, and Pro in 3-4 days, depending on your site's size." }
           },
           {
             "@type": "Question",
             "name": "After the audit, do I get fix guidance?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every plan includes a list of issues sorted by priority. The Advanced and Comprehensive plans also include a detailed fix roadmap and a live consultation so you or your technical team can execute." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every plan includes a list of issues sorted by priority. Standard and Pro also include a detailed, prioritized fix roadmap so you or your technical team can execute." }
           },
           {
             "@type": "Question",
             "name": "Which audit plan should I choose?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Choose Basic if you need a quick snapshot of your website's health. Choose Advanced for a deep manual audit with competitor comparison and a roadmap. Choose Comprehensive if you're about to run a major SEO campaign and need backlink analysis, content-gap analysis, and a 90-day plan." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Choose Basic for a quick snapshot of your website's health. Choose Standard for a deeper audit covering content, schema and Core Web Vitals with a fix roadmap. Choose Pro if you're about to run a major SEO campaign and need backlink analysis, a competitor benchmark, and content-gap analysis." }
           }
         ]
       }
@@ -668,64 +668,70 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
         <div class="relative mt-10 grid items-stretch gap-6 md:grid-cols-3">
           <!-- BASIC -->
-          <div data-reveal data-tilt class="au-card flex flex-col rounded-xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="grid h-9 w-9 place-items-center rounded-lg bg-accent text-accent-foreground"><i class="ph-bold ph-gauge"></i></span>
-              <h3 class="font-bold">Basic</h3>
+          <div data-reveal data-tilt class="au-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-sky-100 via-sky-50 to-blue-100 p-5 dark:from-sky-950/60 dark:via-card dark:to-blue-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/30"><i class="ph-bold ph-gauge text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Basic</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">A quick snapshot of your website's SEO health.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$19</span><span class="text-sm text-muted-foreground"> /website</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~2 days</span></p>
+              <a href="#contact" data-package="Audit - Basic" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Basic</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$14</span><span class="text-sm text-muted-foreground">/website</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">A quick snapshot of your website's SEO health.</p>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Automated scan of 50+ technical &amp; on-page criteria</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Overall SEO Health Score</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Detects index, speed &amp; mobile issues</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> PDF report + prioritized issue list</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-clock mt-0.5 text-primary"></i> Delivered in 1-2 business days</li>
-            </ul>
-            <a href="#contact" data-package="Audit - Basic" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Basic</a>
+            <div class="flex flex-1 flex-col p-7">
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Technical SEO &amp; basic on-page audit</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Index coverage check</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Overall SEO Health Score</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Dashboard report + downloadable PDF, issues by priority</li>
+              </ul>
+            </div>
           </div>
 
-          <!-- ADVANCED (popular) -->
-          <div data-reveal data-tilt class="au-card relative flex flex-col rounded-xl border-2 border-primary bg-card p-7 shadow-xl shadow-brand-500/10">
-            <span class="au-sheen" aria-hidden="true"></span>
-            <span class="absolute -top-3 left-7 z-[4] rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Popular</span>
-            <div class="flex items-center gap-2">
-              <span class="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-magnifying-glass-plus"></i></span>
-              <h3 class="font-bold">Advanced</h3>
+          <!-- STANDARD (popular) -->
+          <div data-reveal data-tilt class="au-card relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-violet-500/15 ring-1 ring-violet-300/50 dark:ring-violet-500/30">
+            <div class="relative bg-gradient-to-br from-violet-200 via-violet-100 to-fuchsia-100 p-5 dark:from-violet-900/60 dark:via-card dark:to-fuchsia-900/40">
+              <span class="absolute right-5 top-5 rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow-md shadow-violet-600/30">Most popular</span>
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500 text-white shadow-md shadow-violet-500/30"><i class="ph-bold ph-magnifying-glass-plus text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Standard</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] max-w-[14rem] text-sm text-muted-foreground">A deeper audit covering content, schema and Core Web Vitals.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$39</span><span class="text-sm text-muted-foreground"> /website</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~2-3 days</span></p>
+              <a href="#contact" data-package="Audit - Standard" class="mt-4 block rounded-xl bg-zinc-900 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">Choose Standard</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$26</span><span class="text-sm text-muted-foreground">/website</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">A deep manual audit with competitor comparison and a roadmap.</p>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Everything in Basic</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Manual audit of 120+ criteria (incl. Core Web Vitals &amp; UX)</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Keyword &amp; current ranking analysis</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Comparison with 1 direct competitor</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> A detailed, prioritized fix roadmap</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> One 30-minute consultation call</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-clock mt-0.5 text-primary"></i> Delivered in 3-5 business days</li>
-            </ul>
-            <a href="#contact" data-package="Audit - Advanced" class="mt-7 block rounded-lg bg-primary py-3 text-center text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]">Choose Advanced</a>
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[13px] font-medium text-violet-600 dark:text-violet-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Content &amp; on-page audit</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Schema / structured data check</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Core Web Vitals (LCP / INP / CLS)</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> A detailed, prioritized fix roadmap</li>
+              </ul>
+            </div>
           </div>
 
-          <!-- COMPREHENSIVE -->
-          <div data-reveal data-tilt class="au-card flex flex-col rounded-xl border border-border bg-card p-7">
-            <div class="flex items-center gap-2">
-              <span class="grid h-9 w-9 place-items-center rounded-lg bg-accent text-accent-foreground"><i class="ph-bold ph-crown"></i></span>
-              <h3 class="font-bold">Comprehensive</h3>
+          <!-- PRO -->
+          <div data-reveal data-tilt class="au-card flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5">
+            <div class="bg-gradient-to-br from-amber-100 via-amber-50 to-orange-100 p-5 dark:from-amber-950/60 dark:via-card dark:to-orange-950/40">
+              <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/30"><i class="ph-bold ph-crown text-base"></i></span>
+                <h3 class="text-xl font-bold tracking-tight">Pro</h3>
+              </div>
+              <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">A full audit before launching a major SEO campaign.</p>
+              <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$69</span><span class="text-sm text-muted-foreground"> /website</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~3-4 days</span></p>
+              <a href="#contact" data-package="Audit - Pro" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Pro</a>
             </div>
-            <p class="mt-4"><span class="text-3xl font-semibold tracking-tight">$60</span><span class="text-sm text-muted-foreground">/website</span></p>
-            <p class="mt-2 text-sm text-muted-foreground">An in-depth audit before launching a major SEO campaign.</p>
-            <ul class="mt-6 space-y-3 text-sm text-muted-foreground">
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Everything in Advanced</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> In-depth audit of 200+ criteria + backlinks &amp; entity/GEO</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Comparison with 3 direct competitors</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Content gap &amp; suggested topical map</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Toxic backlink analysis</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> A 90-day action plan</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> 60-minute review + 7 days of Q&A support</li>
-              <li class="flex gap-2.5"><i class="ph-bold ph-clock mt-0.5 text-primary"></i> Delivered in 5-7 business days</li>
-            </ul>
-            <a href="#contact" data-package="Audit - Comprehensive" class="mt-7 block rounded-lg border border-border bg-card py-3 text-center text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Choose Comprehensive</a>
+            <div class="flex flex-1 flex-col p-7">
+              <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[13px] font-medium text-amber-600 dark:text-amber-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Standard, plus</div>
+              <ul class="space-y-3 text-sm text-muted-foreground">
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Deep Core Web Vitals analysis</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Backlink profile + toxic backlink analysis</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Competitor benchmark + content gap</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Prioritized fix list with impact estimate</li>
+                <li class="flex gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i> Optional GSC / Analytics access for a deeper audit</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -972,14 +978,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               How long until I receive the report?
               <i class="ph-bold ph-plus shrink-0 text-primary transition group-open:rotate-45"></i>
             </summary>
-            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">The Basic plan delivers in 1-2 business days, Advanced in 3-5 days, and Comprehensive in 5-7 days, depending on your site's size.</p>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Basic delivers in about 2 business days, Standard in 2-3 days, and Pro in 3-4 days, depending on your site's size.</p>
           </details>
           <details data-reveal class="group rounded-xl border border-border bg-card p-5 [&_summary::-webkit-details-marker]:hidden">
             <summary class="flex cursor-pointer items-center justify-between gap-3 font-medium">
               After the audit, do I get fix guidance?
               <i class="ph-bold ph-plus shrink-0 text-primary transition group-open:rotate-45"></i>
             </summary>
-            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes. Every plan includes a list of issues sorted by priority. The Advanced and Comprehensive plans also include a detailed fix roadmap and a live consultation so you or your technical team can execute.</p>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes. Every plan includes a list of issues sorted by priority. Standard and Pro also include a detailed, prioritized fix roadmap so you or your technical team can execute.</p>
           </details>
           <details data-reveal class="group rounded-xl border border-border bg-card p-5 [&_summary::-webkit-details-marker]:hidden">
             <summary class="flex cursor-pointer items-center justify-between gap-3 font-medium">

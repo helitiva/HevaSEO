@@ -41,6 +41,10 @@ export interface Order {
   service: ServiceKey;
   domain: string;
   sub: string;
+  /** number of URLs (e.g. indexer batches) */
+  urls?: number;
+  /** true when the order spans several websites (indexer multi-site) */
+  multiWeb?: boolean;
   status: OrderStatus;
   priority: Priority;
   progress: number | null;
@@ -59,7 +63,7 @@ export const ORDERS: Order[] = [
   { id: 'AD-1040', date: '06/04/2026', title: 'Website audit', service: 'audit', domain: 'newsite.com', sub: '200+ criteria', status: 'planned', priority: 'med', progress: null, detail: 'Awaiting kickoff', eta: '4 days', owner: 'Ryan Cole', cost: 60, pay: 'pending', invoice: null },
   { id: 'WD-1038', date: '06/03/2026', title: 'Landing page design', service: 'design', domain: 'beautyspa.com', sub: '1 landing page', status: 'planned', priority: 'low', progress: null, detail: 'Brief completed', eta: '2 weeks', owner: 'Grace Lee', cost: 600, pay: 'pending', invoice: null },
   { id: 'CT-1033', date: '05/28/2026', title: 'Content SEO/GEO x30', service: 'content', domain: 'hevashop.com', sub: '12/30 articles · E-E-A-T', status: 'progress', priority: 'med', progress: 40, eta: '8 days', owner: 'Sophie Lane', cost: 700, pay: 'paid', invoice: 'INV-2033' },
-  { id: 'IDX-1035', date: '05/30/2026', title: 'Indexer Pro', service: 'indexer', domain: 'hevashop.com', sub: '9.2k / 10k URLs · retry', status: 'progress', priority: 'high', progress: 92, eta: '2 days', owner: 'Daniel Brooks', cost: 40, pay: 'paid', invoice: 'INV-2035' },
+  { id: 'IDX-1035', date: '05/30/2026', title: 'Indexer Pro', service: 'indexer', domain: 'hevashop.com', sub: '9.2k / 10k URLs · retry', urls: 10000, multiWeb: true, status: 'progress', priority: 'high', progress: 92, eta: '2 days', owner: 'Daniel Brooks', cost: 40, pay: 'paid', invoice: 'INV-2035' },
   { id: 'BLPR-1034', date: '05/29/2026', title: 'Press backlinks', service: 'backlink', domain: 'anphat.com', sub: '8 VIP press articles', status: 'progress', priority: 'high', progress: 60, eta: '6 days', owner: 'Emily Hart', cost: 356, pay: 'paid', invoice: 'INV-2034' },
   { id: 'OP-1030', date: '05/26/2026', title: 'Core Web Vitals optimization', service: 'optimize', domain: 'techland.com', sub: 'LCP · INP · CLS', status: 'progress', priority: 'med', progress: 55, eta: '1 week', owner: 'Ryan Cole', cost: 156, pay: 'paid', invoice: 'INV-2030' },
   { id: 'CT-1029', date: '05/25/2026', title: 'Content, 10 articles', service: 'content', domain: 'clinicpro.com', sub: '6/10 articles', status: 'progress', priority: 'low', progress: 60, eta: '5 days', owner: 'Sophie Lane', cost: 260, pay: 'paid', invoice: 'INV-2029' },
@@ -67,13 +71,15 @@ export const ORDERS: Order[] = [
   { id: 'AD-1027', date: '05/23/2026', title: 'Website audit', service: 'audit', domain: 'saigonhomes.com', sub: 'Report awaiting handover', status: 'review', priority: 'high', progress: 100, detail: 'Awaiting handover', eta: 'Today', owner: 'Daniel Brooks', cost: 60, pay: 'paid', invoice: 'INV-2027' },
   { id: 'AD-1015', date: '05/12/2026', title: 'Website audit', service: 'audit', domain: 'anphat.com', sub: 'Score 78/100', status: 'completed', priority: 'low', progress: 100, detail: 'SEO 78/100', eta: 'Delivered', owner: 'Emily Hart', cost: 60, pay: 'paid', invoice: 'INV-2015' },
   { id: 'BLEN-1012', date: '05/08/2026', title: 'Entity citations', service: 'backlink', domain: 'hevashop.com', sub: '65 profiles live', status: 'completed', priority: 'med', progress: 100, detail: '65 live', eta: 'Delivered', owner: 'Ryan Cole', cost: 156, pay: 'paid', invoice: 'INV-2012' },
-  { id: 'IDX-1009', date: '05/05/2026', title: 'Indexer batch', service: 'indexer', domain: 'techland.com', sub: '5,000 links · 98% indexed', status: 'completed', priority: 'low', progress: 100, detail: '98% indexed', eta: 'Delivered', owner: 'Sophie Lane', cost: 12, pay: 'paid', invoice: 'INV-2009' },
+  { id: 'IDX-1009', date: '05/05/2026', title: 'Indexer batch', service: 'indexer', domain: 'techland.com', sub: '5,000 links · 98% indexed', urls: 5000, status: 'completed', priority: 'low', progress: 100, detail: '98% indexed', eta: 'Delivered', owner: 'Sophie Lane', cost: 12, pay: 'paid', invoice: 'INV-2009' },
   { id: 'CT-1004', date: '04/28/2026', title: 'Content, 20 articles', service: 'content', domain: 'vietbeauty.com', sub: '20/20 published', status: 'completed', priority: 'med', progress: 100, detail: 'Published', eta: 'Delivered', owner: 'Grace Lee', cost: 700, pay: 'paid', invoice: 'INV-2004' },
   { id: 'OP-1001', date: '04/20/2026', title: 'Speed optimization', service: 'optimize', domain: 'saigonhomes.com', sub: '5.2s → 1.8s', status: 'completed', priority: 'low', progress: 100, detail: '5.2s → 1.8s', eta: 'Delivered', owner: 'Daniel Brooks', cost: 156, pay: 'paid', invoice: 'INV-2001' },
 ];
 
 export interface Project {
   id: string;
+  /** project name the customer created */
+  name: string;
   domain: string;
   label: string;
   folder: string;
@@ -92,15 +98,86 @@ export const FOLDERS = [
 ];
 
 export const PROJECTS: Project[] = [
-  { id: 'p1', domain: 'hevashop.com', label: 'E-commerce client', folder: 'ecom', status: 'progress', note: 'Pushing entity in Q2, prioritizing the “authentic cosmetics” cluster. The client requests a report every 2 weeks.', updated: '2 minutes ago', tags: { backlink: { plan: 1, run: 1, done: 5 }, content: { plan: 0, run: 1, done: 18 }, indexer: { plan: 0, run: 1, done: 3 }, audit: { plan: 0, run: 0, done: 2 } } },
-  { id: 'p2', domain: 'anphat.com', label: 'E-commerce client', folder: 'ecom', status: 'progress', note: 'Press backlinks are in their second wave. Awaiting client approval of the June content brief.', updated: 'Today', tags: { backlink: { plan: 0, run: 1, done: 3 }, content: { plan: 1, run: 0, done: 0 }, audit: { plan: 0, run: 0, done: 1 } } },
-  { id: 'p3', domain: 'vietbeauty.com', label: 'Fashion', folder: 'ecom-fashion', status: 'completed', note: 'Delivered 20 content articles. Awaiting the client’s response on renewing the plan.', updated: 'Today', tags: { content: { plan: 0, run: 0, done: 20 } } },
-  { id: 'p4', domain: 'techland.com', label: 'Internal project', folder: 'internal', status: 'progress', note: 'Optimizing Core Web Vitals on the homepage + PDP. Monitoring LCP after deploy.', updated: 'Yesterday', tags: { optimize: { plan: 0, run: 1, done: 1 }, indexer: { plan: 0, run: 0, done: 1 } } },
-  { id: 'p5', domain: 'newsite.com', label: 'Internal project', folder: 'internal', status: 'planned', note: 'New site, awaiting audit kickoff. Need GSC access from the client.', updated: 'Yesterday', tags: { audit: { plan: 1, run: 0, done: 0 } } },
-  { id: 'p6', domain: 'clinicpro.com', label: 'Client — Healthcare & Spa', folder: 'health', status: 'progress', note: 'Dermatology cluster content is in progress. Keyword map pending sign-off with the doctor.', updated: '2 days ago', tags: { content: { plan: 0, run: 2, done: 0 }, keyword: { plan: 1, run: 0, done: 0 } } },
-  { id: 'p7', domain: 'saigonhomes.com', label: 'Client — Healthcare & Spa', folder: 'health', status: 'progress', note: 'Audit found 12 critical issues. Found mass indexing errors after the migration. Needs urgent attention before continuing.', updated: '2 days ago', tags: { audit: { plan: 0, run: 0, done: 1 }, optimize: { plan: 0, run: 0, done: 1 } } },
-  { id: 'p8', domain: 'beautyspa.com', label: 'Spa & Aesthetics', folder: 'health-spa', status: 'planned', note: 'Landing brief is finalized; waiting on the design team to start.', updated: 'Just created', tags: { design: { plan: 1, run: 0, done: 0 } } },
+  { id: 'p1', name: 'HevaShop Store', domain: 'hevashop.com', label: 'E-commerce client', folder: 'ecom', status: 'progress', note: 'Pushing entity in Q2, prioritizing the “authentic cosmetics” cluster. The client requests a report every 2 weeks.', updated: '2 minutes ago', tags: { backlink: { plan: 1, run: 1, done: 5 }, content: { plan: 0, run: 1, done: 18 }, indexer: { plan: 0, run: 1, done: 3 }, audit: { plan: 0, run: 0, done: 2 } } },
+  { id: 'p2', name: 'An Phat Retail', domain: 'anphat.com', label: 'E-commerce client', folder: 'ecom', status: 'progress', note: 'Press backlinks are in their second wave. Awaiting client approval of the June content brief.', updated: 'Today', tags: { backlink: { plan: 0, run: 1, done: 3 }, content: { plan: 1, run: 0, done: 0 }, audit: { plan: 0, run: 0, done: 1 } } },
+  { id: 'p3', name: 'Viet Beauty', domain: 'vietbeauty.com', label: 'Fashion', folder: 'ecom-fashion', status: 'completed', note: 'Delivered 20 content articles. Awaiting the client’s response on renewing the plan.', updated: 'Today', tags: { content: { plan: 0, run: 0, done: 20 } } },
+  { id: 'p4', name: 'TechLand', domain: 'techland.com', label: 'Internal project', folder: 'internal', status: 'progress', note: 'Optimizing Core Web Vitals on the homepage + PDP. Monitoring LCP after deploy.', updated: 'Yesterday', tags: { optimize: { plan: 0, run: 1, done: 1 }, indexer: { plan: 0, run: 0, done: 1 } } },
+  { id: 'p5', name: 'NewSite Launch', domain: 'newsite.com', label: 'Internal project', folder: 'internal', status: 'planned', note: 'New site, awaiting audit kickoff. Need GSC access from the client.', updated: 'Yesterday', tags: { audit: { plan: 1, run: 0, done: 0 } } },
+  { id: 'p6', name: 'ClinicPro Clinic', domain: 'clinicpro.com', label: 'Client — Healthcare & Spa', folder: 'health', status: 'progress', note: 'Dermatology cluster content is in progress. Keyword map pending sign-off with the doctor.', updated: '2 days ago', tags: { content: { plan: 0, run: 2, done: 0 }, keyword: { plan: 1, run: 0, done: 0 } } },
+  { id: 'p7', name: 'Saigon Homes', domain: 'saigonhomes.com', label: 'Client — Healthcare & Spa', folder: 'health', status: 'progress', note: 'Audit found 12 critical issues. Found mass indexing errors after the migration. Needs urgent attention before continuing.', updated: '2 days ago', tags: { audit: { plan: 0, run: 0, done: 1 }, optimize: { plan: 0, run: 0, done: 1 } } },
+  { id: 'p8', name: 'Beauty Spa', domain: 'beautyspa.com', label: 'Spa & Aesthetics', folder: 'health-spa', status: 'planned', note: 'Landing brief is finalized; waiting on the design team to start.', updated: 'Just created', tags: { design: { plan: 1, run: 0, done: 0 } } },
 ];
+
+/** Project name for a domain — used on the order cards. */
+export function projectForDomain(domain: string): { name: string } | null {
+  const proj = PROJECTS.find((p) => p.domain === domain);
+  return proj ? { name: proj.name } : null;
+}
+
+/** Project id for a domain — used to deep-link a card to its project detail. */
+export function projectIdForDomain(domain: string): string | null {
+  return PROJECTS.find((p) => p.domain === domain)?.id ?? null;
+}
+
+/** Folder breadcrumb (root → leaf) for a domain's project. */
+export function folderPathForDomain(domain: string): { id: string; name: string; color: string }[] {
+  const proj = PROJECTS.find((p) => p.domain === domain);
+  if (!proj) return [];
+  const path: { id: string; name: string; color: string }[] = [];
+  let cur = FOLDERS.find((f) => f.id === proj.folder);
+  while (cur) {
+    path.unshift({ id: cur.id, name: cur.name, color: cur.color });
+    const parentId: string | null = cur.parentId;
+    cur = parentId ? FOLDERS.find((f) => f.id === parentId) : undefined;
+  }
+  return path;
+}
+
+/** The folder a domain belongs to, via its project — drives the card's folder tag. */
+export function folderForDomain(domain: string): { name: string; color: string } | null {
+  const proj = PROJECTS.find((p) => p.domain === domain);
+  if (!proj) return null;
+  const f = FOLDERS.find((x) => x.id === proj.folder);
+  return f ? { name: f.name, color: f.color } : { name: proj.label, color: '#64748b' };
+}
+
+// ── Order detail (slide-over panel) ───────────────────────────────────────────
+export interface Deliverable { name: string; version: string; status: 'approved' | 'review' | 'rejected'; date: string; }
+export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; }
+export interface Activity { label: string; date: string; }
+
+const DELIVERABLES: Record<string, Deliverable[]> = {
+  'CT-1033': [
+    { name: 'Batch 1 — 5 articles', version: 'v1', status: 'approved', date: '06/02/2026' },
+    { name: 'Batch 2 — 5 articles', version: 'v1', status: 'review', date: '06/08/2026' },
+  ],
+  'AD-1027': [{ name: 'Audit report', version: 'v2', status: 'review', date: '05/23/2026' }],
+  'AD-1015': [{ name: 'Audit report (final)', version: 'final', status: 'approved', date: '05/12/2026' }],
+  'IDX-1009': [{ name: 'Index coverage export', version: 'final', status: 'approved', date: '05/05/2026' }],
+};
+export function deliverablesFor(id: string): Deliverable[] { return DELIVERABLES[id] ?? []; }
+
+const COMMENTS: Record<string, OrderComment[]> = {
+  'CT-1033': [{ author: 'Huy', initials: 'HV', text: 'Can batch 2 lean more into product comparisons?', time: '1 day ago' }],
+  'IDX-1035': [{ author: 'Daniel Brooks', initials: 'DB', text: 'Retrying the 800 URLs that failed first pass.', time: '3 hours ago', internal: true }],
+};
+export function commentsFor(id: string): OrderComment[] { return COMMENTS[id] ?? []; }
+
+/** Build a plausible activity timeline (newest first) from the order's status. */
+export function activityFor(o: Order): Activity[] {
+  const order: OrderStatus[] = ['planned', 'progress', 'review', 'completed'];
+  const idx = order.indexOf(o.status);
+  const acts: Activity[] = [{ label: 'Order created', date: o.date }];
+  if (idx >= 1) { acts.push({ label: `Assigned to ${o.owner}`, date: o.date }); acts.push({ label: 'Moved to In progress', date: o.date }); }
+  if (idx >= 2) acts.push({ label: 'Submitted for review', date: o.eta });
+  if (idx >= 3) acts.push({ label: 'Completed & delivered', date: o.eta });
+  return acts.reverse();
+}
+
+/** Scope bullet points seeded from the order's sub/detail. */
+export function scopeFor(o: Order): string[] {
+  return [o.sub, o.detail].filter((x): x is string => Boolean(x));
+}
 
 export interface CreditTx {
   date: string;

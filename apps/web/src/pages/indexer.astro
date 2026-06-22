@@ -1,0 +1,705 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="Backlink Indexer — Get Your Links Into Google, Fast | HevaSEO"
+  description="Push your backlinks into Google's index fast. Pay per link — cheaper at volume (from $0.008, down to $0.004). Per-link index status and a HevaSEO plugin to verify it yourself. Already included free with every Backlink package."
+  keywords="backlink indexer, link indexing service, get backlinks indexed, google index links, index checker plugin, fast link indexing"
+  ogDescription="Pay-per-link backlink indexing — from $0.008/link, cheaper at volume. Per-link index status + a plugin to verify. Free with every Backlink package."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "Backlink Indexer",
+        "serviceType": "Pay-per-link backlink indexing with per-link status verification",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "Usage-based backlink indexing: submit a list of URLs and we push them into Google's index, with a per-link status report and a HevaSEO plugin to verify. Pricing is per link and drops at higher volumes. Indexing is included free with every Backlink package.",
+        "offers": [
+          { "@type": "Offer", "name": "Indexer — standard rate", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "0.008", "priceCurrency": "USD", "unitText": "per link" } },
+          { "@type": "Offer", "name": "Indexer — over 5,000 links", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "0.006", "priceCurrency": "USD", "unitText": "per link" } },
+          { "@type": "Offer", "name": "Indexer — over 20,000 links", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "0.004", "priceCurrency": "USD", "unitText": "per link" } }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Backlink Indexer", "item": "https://hevaseo.com/indexer" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "How long does indexing take?", "acceptedAnswer": { "@type": "Answer", "text": "Most links are submitted and crawled within days. You can watch each link move through pending → submitting → completed in your report, and verify the final state yourself with the HevaSEO plugin." } },
+          { "@type": "Question", "name": "What index rate can I expect?", "acceptedAnswer": { "@type": "Answer", "text": "It depends on the quality of the links. Strong, content-backed links index at very high rates; thin or low-quality links index lower. Your report shows the exact percentage indexed so there's no guesswork." } },
+          { "@type": "Question", "name": "What if a link doesn't get indexed?", "acceptedAnswer": { "@type": "Answer", "text": "We re-submit links that don't index on the first pass. The report flags anything still pending so you always know the real status." } },
+          { "@type": "Question", "name": "How is pricing calculated?", "acceptedAnswer": { "@type": "Answer", "text": "Pricing is per link and gets cheaper at volume: $0.008 per link by default, $0.006 over 5,000 links, and $0.004 over 20,000 links. You pay only for the links you submit — no packages, no minimum." } },
+          { "@type": "Question", "name": "How do I install the plugin?", "acceptedAnswer": { "@type": "Answer", "text": "The HevaSEO plugin installs in a click from your dashboard. It lets you check the index status of any link on demand, including links you didn't order through us." } },
+          { "@type": "Question", "name": "Isn't indexing included with backlinks?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — every Backlink package already includes our Indexer free. This page is for standalone indexing of links you built elsewhere or want re-indexed." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ===== Page flourishes — Indexer ===== */
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .hero-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    @property --tkwv { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    .tkw-gauge { position: relative; width: 84px; height: 84px; border-radius: 50%;
+      display: grid; place-items: center; --tkwv: 0;
+      background: conic-gradient(var(--gc, hsl(var(--primary))) calc(var(--tkwv) * 1%), hsl(var(--muted)) 0); }
+    .tkw-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: hsl(var(--card)); }
+    .tkw-gauge b { position: relative; font-family: '"Inter Tight"', Inter, sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1; }
+    [data-reveal].is-visible .tkw-gauge { transition: --tkwv 1.5s cubic-bezier(.16,1,.3,1); transition-delay: var(--gd, .2s); --tkwv: var(--to, 0); }
+    .tkw-gauge.sm { width: 70px; height: 70px; }
+    .tkw-gauge.sm::before { inset: 5px; }
+    .tkw-gauge.sm b { font-size: 1.05rem; }
+
+    .tkw-bar { position: relative; height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .tkw-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+    [data-reveal].is-visible .tkw-bar > i { animation: tkwBar 1.4s cubic-bezier(.16,1,.3,1) forwards; animation-delay: var(--bd, .3s); }
+    @keyframes tkwBar { to { width: var(--bw, 100%); } }
+
+    .tkw-scan { position: relative; overflow: hidden; }
+    .tkw-scan::after { content: ""; position: absolute; left: 0; right: 0; top: -42%; height: 36%; pointer-events: none; z-index: 5;
+      background: linear-gradient(180deg, hsl(var(--primary) / .16), transparent);
+      animation: tkwScan 3.6s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tkwScan { 0% { transform: translateY(0); } 100% { transform: translateY(380%); } }
+
+    .tkw-chip { position: absolute; z-index: 30; display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .92);
+      padding: .45rem .8rem; font-size: .78rem; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 10px 28px hsl(213 50% 20% / .14); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      animation: tkwFloat 6s ease-in-out infinite; }
+    .dark .tkw-chip { box-shadow: 0 10px 28px hsl(0 0% 0% / .4); }
+    .tkw-chip.d2 { animation-duration: 7.4s; animation-delay: -2.2s; }
+    .tkw-chip.d3 { animation-duration: 8.6s; animation-delay: -4.1s; }
+    @keyframes tkwFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+
+    .tkw-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .tkw-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .tkw-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+    .tkw-ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .tkw-card:hover .tkw-ic, .tkw-step:hover .tkw-ic { transform: scale(1.14) rotate(-7deg); }
+
+    .tkw-figure { position: relative; height: 10.5rem; overflow: hidden;
+      background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .14), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .13) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .2), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure svg { position: relative; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .tkw-figure svg { transform: scale(1.04); }
+    .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(213 50% 25% / .15)); }
+    .dark .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(0 0% 0% / .5)); }
+    .tkw-figure .glow { filter: drop-shadow(0 0 5px hsl(var(--primary) / .5)); }
+    .tkw-guar { transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+    .tkw-guar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px hsl(213 60% 30% / .18); }
+    .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .13), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .12) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .22), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure .glow-warn { filter: drop-shadow(0 0 5px hsl(var(--destructive) / .45)); }
+    .tkw-arc { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-arc { animation: tkwArc 1.5s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    @keyframes tkwArc { to { stroke-dashoffset: var(--arc, 10); } }
+    .tkw-draw { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-draw { animation: tkwDraw 1.6s cubic-bezier(.16,1,.3,1) .25s forwards; }
+    @keyframes tkwDraw { to { stroke-dashoffset: 0; } }
+    .tkw-pop { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: center; }
+    [data-reveal].is-visible .tkw-pop { animation: tkwPop .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .tkw-pop.p1 { animation-delay: .25s; } .tkw-pop.p2 { animation-delay: .4s; }
+    .tkw-pop.p3 { animation-delay: .55s; } .tkw-pop.p4 { animation-delay: .7s; } .tkw-pop.p5 { animation-delay: .85s; }
+    @keyframes tkwPop { to { opacity: 1; transform: scale(1); } }
+
+    .tkw-grid > [data-reveal]:nth-child(2) { transition-delay: .07s; }
+    .tkw-grid > [data-reveal]:nth-child(3) { transition-delay: .14s; }
+    .tkw-grid > [data-reveal]:nth-child(4) { transition-delay: .21s; }
+
+    .tkw-num { background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 95% 62%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    .tkw-live { position: relative; }
+    .tkw-live::before { content: ""; position: absolute; inset: -5px; border-radius: 999px; border: 2px solid hsl(142 70% 45% / .6); animation: tkwPing 1.8s ease-out infinite; }
+    @keyframes tkwPing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    /* === indexer-specific === */
+    .idx-pill { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px;
+      padding: .12rem .5rem; font-size: .66rem; font-weight: 700; white-space: nowrap; }
+    .idx-pill.done { background: hsl(142 64% 45% / .14); color: hsl(142 60% 34%); }
+    .idx-pill.sub  { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
+    .idx-pill.pend { background: hsl(38 92% 50% / .15); color: hsl(32 80% 42%); }
+    .dark .idx-pill.done { color: hsl(142 65% 60%); } .dark .idx-pill.pend { color: hsl(38 92% 62%); }
+    .idx-spin { animation: idxSpin 1s linear infinite; }
+    @keyframes idxSpin { to { transform: rotate(360deg); } }
+
+    /* volume tier rows + active highlight (driven by calculator) */
+    .idx-tier { transition: border-color .25s ease, background-color .25s ease, transform .25s ease; }
+    .idx-tier.is-active { border-color: hsl(var(--primary)); background: hsl(var(--primary) / .06); transform: translateX(2px); }
+    .idx-tier.is-active .idx-tier-dot { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+
+    .idx-chip { transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .idx-chip.is-active { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
+
+    .cw-flow { position: relative; }
+    @media (min-width: 1024px) {
+      .cw-flow::before { content: ""; position: absolute; top: 2.25rem; left: 11%; right: 11%; height: 2px; z-index: 0;
+        background: repeating-linear-gradient(90deg, hsl(var(--primary) / .45) 0 10px, transparent 10px 20px); }
+    }
+    .cw-step-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .cw-step-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .cw-step-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tkw-scan::after, .tkw-chip, .tkw-live::before, .idx-spin { animation: none !important; }
+      .tkw-chip { transform: none !important; }
+      [data-reveal].is-visible .tkw-gauge { transition: none; --tkwv: var(--to,0); }
+      [data-reveal].is-visible .tkw-bar > i { animation: none; width: var(--bw,100%); }
+      .tkw-arc, .tkw-draw { stroke-dashoffset: 0 !important; animation: none !important; }
+      .tkw-pop { opacity: 1 !important; transform: none !important; animation: none !important; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-6 pb-16 lg:pt-8 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <nav data-reveal class="mb-8 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <a href="/#top" class="transition hover:text-primary">Home</a>
+          <i class="ph-bold ph-caret-right text-xs"></i>
+          <span class="text-foreground">Backlink Indexer</span>
+        </nav>
+
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary shadow-sm"><i class="ph-fill ph-magnifying-glass"></i> Pay per link · cheaper at volume</span>
+            <h1 class="mt-4 font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Get your backlinks <span class="text-primary">into Google</span> — fast.
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              A link Google never indexes passes <b class="font-semibold text-foreground">zero authority</b>. Submit your URLs and we push them into the index — <b class="font-semibold text-foreground">priced per link, from $0.008</b>, with a per-link status report and a plugin to verify it yourself.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#calculator" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                Calculate your price <i class="ph-bold ph-calculator"></i>
+              </a>
+              <a href="#contact" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                Submit your links
+              </a>
+            </div>
+            <div class="mt-7 flex flex-wrap gap-2.5">
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-coins text-sm"></i></span> From $0.008 / link</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-list-checks text-sm"></i></span> Per-link status</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-puzzle-piece text-sm"></i></span> Verify with the plugin</span>
+            </div>
+
+            <!-- SAMPLE FIGURES: replace with real numbers -->
+            <div data-reveal class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-border bg-card/70 p-3 pr-5 shadow-sm backdrop-blur">
+              <div class="flex items-center gap-3">
+                <div class="flex -space-x-2.5">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white ring-2 ring-card">M</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white ring-2 ring-card">H</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-xs font-bold text-white ring-2 ring-card">T</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-card">+1k</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex text-amber-400"><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i></span>
+                    <span class="text-sm font-bold text-foreground">4.9/5</span>
+                  </div>
+                  <p class="text-xs text-muted-foreground"><b class="font-bold text-foreground"><span data-count="9">0</span>M+</b> links indexed</p>
+                </div>
+              </div>
+              <span class="hidden h-10 w-px bg-border sm:block"></span>
+              <div class="flex items-center gap-5">
+                <div><p class="font-display text-xl font-bold text-primary">$0.004</p><p class="text-[11px] text-muted-foreground">Per link at volume</p></div>
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="100">0</span>%</p><p class="text-[11px] text-muted-foreground">Status reported</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- hero visual: indexer queue -->
+          <div data-reveal class="relative">
+            <span class="tkw-chip -left-3 top-6 text-emerald-500"><i class="ph-fill ph-check-circle"></i> 88% indexed</span>
+            <span class="tkw-chip d2 -right-2 top-1/3 text-primary"><i class="ph-fill ph-lightning"></i> Submitting</span>
+            <span class="tkw-chip d3 -left-2 bottom-10 text-violet-500"><i class="ph-fill ph-puzzle-piece"></i> Plugin check</span>
+
+            <div class="tkw-scan rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+              <div class="flex items-center gap-2 pb-4">
+                <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-red-400"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400"></i><i class="h-2.5 w-2.5 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-list-checks"></i> Indexer queue</span>
+                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500"><span class="tkw-live grid h-2 w-2 place-items-center rounded-full bg-emerald-500"></span> Live</span>
+              </div>
+
+              <div class="mb-4 flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-4">
+                <div class="tkw-gauge sm shrink-0" style="--to:88;--gc:#22c55e;--gd:.2s"><b class="text-green-500"><span data-count="88">0</span>%</b></div>
+                <div class="grid flex-1 grid-cols-3 gap-x-3 text-center">
+                  <div><p class="font-display text-lg font-bold text-foreground"><span data-count="1000">0</span></p><p class="text-[10px] text-muted-foreground">Submitted</p></div>
+                  <div><p class="font-display text-lg font-bold text-foreground"><span data-count="884">0</span></p><p class="text-[10px] text-muted-foreground">Indexed</p></div>
+                  <div><p class="font-display text-lg font-bold text-foreground"><span data-count="116">0</span></p><p class="text-[10px] text-muted-foreground">In queue</p></div>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <i class="ph-bold ph-link text-muted-foreground"></i>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">techblog.com/post-a</span>
+                  <span class="idx-pill done"><i class="ph-fill ph-check-circle"></i> Indexed</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <i class="ph-bold ph-link text-muted-foreground"></i>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">guildreview.net/x</span>
+                  <span class="idx-pill sub"><i class="ph-bold ph-circle-notch idx-spin"></i> Submitting</span>
+                </div>
+                <div class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2">
+                  <i class="ph-bold ph-link text-muted-foreground"></i>
+                  <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">profilehub.org/y</span>
+                  <span class="idx-pill pend"><i class="ph-fill ph-clock"></i> Pending</span>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <div class="mb-1 flex items-center justify-between text-xs"><span class="text-muted-foreground">Indexing progress</span><span class="font-medium text-green-500">884 / 1,000</span></div>
+                <div class="tkw-bar" style="--bw:88%;--bd:.4s"><i></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VOLUME-PRICE CALLOUT ============ -->
+    <section class="relative -mt-4 pb-4">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/[0.07] via-card to-emerald-500/[0.06] p-6 text-center shadow-sm sm:flex-row sm:text-left lg:p-7">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-fill ph-trend-down text-2xl"></i></span>
+          <div class="sm:flex-1">
+            <h2 class="text-lg font-bold tracking-tight sm:text-xl">Usage-based — the more you index, the cheaper it gets</h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted-foreground">No packages, no minimum. Pay per link and the rate drops automatically at higher volumes.</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2 text-center">
+            <span class="rounded-xl border border-border bg-card px-3 py-2"><span class="block font-display text-lg font-bold text-primary">$0.008</span><span class="text-[10px] text-muted-foreground">default</span></span>
+            <i class="ph-bold ph-arrow-right text-muted-foreground"></i>
+            <span class="rounded-xl border border-border bg-card px-3 py-2"><span class="block font-display text-lg font-bold text-primary">$0.006</span><span class="text-[10px] text-muted-foreground">5k+</span></span>
+            <i class="ph-bold ph-arrow-right text-muted-foreground"></i>
+            <span class="rounded-xl border border-primary/40 bg-primary/5 px-3 py-2"><span class="block font-display text-lg font-bold text-primary">$0.004</span><span class="text-[10px] text-muted-foreground">20k+</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Why indexing matters</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">An unindexed link is invisible to Google</h2>
+          <p class="mt-3 text-muted-foreground">You can build the best backlinks in the world — if Google never crawls them, they pass no authority and don't move rankings.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Link not in Google index">
+                <g class="lift"><circle cx="100" cy="74" r="30" fill="hsl(var(--card))" stroke="hsl(var(--border))" stroke-width="2"/><line x1="121" y1="95" x2="140" y2="114" stroke="hsl(var(--muted-foreground) / .5)" stroke-width="6" stroke-linecap="round"/></g>
+                <path d="M88 74 a12 12 0 0 1 12 -12 l6 0" fill="none" stroke="hsl(var(--muted-foreground) / .6)" stroke-width="5" stroke-linecap="round"/>
+                <path d="M112 74 a12 12 0 0 1 -12 12 l-6 0" fill="none" stroke="hsl(var(--muted-foreground) / .6)" stroke-width="5" stroke-linecap="round"/>
+                <g class="tkw-pop p3"><circle cx="172" cy="50" r="16" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3.4"/><line x1="162" y1="40" x2="182" y2="60" stroke="hsl(var(--destructive))" stroke-width="3.4" stroke-linecap="round"/></g>
+                <text x="120" y="128" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">not indexed</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-magnifying-glass-minus"></i></span><h3 class="font-semibold">No index, no value</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Authority only flows through links Google has actually crawled and added to its index.</p>
+            </div>
+          </article>
+
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Slow manual indexing">
+                <g class="lift"><circle cx="120" cy="72" r="32" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3"/></g>
+                <line x1="120" y1="72" x2="120" y2="50" stroke="hsl(var(--destructive))" stroke-width="4" stroke-linecap="round"/>
+                <line x1="120" y1="72" x2="136" y2="80" stroke="hsl(var(--destructive))" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="120" cy="72" r="4" fill="hsl(var(--destructive))"/>
+                <path d="M120 32 a40 40 0 0 1 28 12" fill="none" stroke="hsl(var(--destructive) / .4)" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 5"/>
+                <text x="120" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">weeks of waiting</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-hourglass-medium"></i></span><h3 class="font-semibold">Indexing on its own is slow</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Left alone, new links can sit uncrawled for weeks — delaying every ranking gain.</p>
+            </div>
+          </article>
+
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="No visibility into index status">
+                <g class="lift"><rect x="54" y="34" width="132" height="72" rx="11" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="68" y="50" width="40" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="68" y="66" width="64" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <rect x="68" y="80" width="52" height="5" rx="2.5" fill="hsl(var(--muted))"/>
+                <g class="tkw-pop p3"><circle cx="158" cy="76" r="18" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3"/><text x="158" y="84" text-anchor="middle" font-size="22" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">?</text></g>
+                <text x="120" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">no status</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-eye-slash"></i></span><h3 class="font-semibold">You can't see what's indexed</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Without per-link status you're guessing which links count and which are dead weight.</p>
+            </div>
+          </article>
+
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Money wasted on links that do not count">
+                <g class="lift"><circle cx="120" cy="70" r="30" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3"/><text x="120" y="80" text-anchor="middle" font-size="26" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">$</text></g>
+                <line class="tkw-draw" pathLength="100" x1="98" y1="92" x2="142" y2="48" stroke="hsl(var(--destructive))" stroke-width="4" stroke-linecap="round"/>
+                <g class="tkw-pop p3"><path d="M150 96 l10 0 l-3 -3 m3 3 l-3 3" fill="none" stroke="hsl(var(--destructive))" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+                <text x="120" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">wasted spend</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-coin-vertical"></i></span><h3 class="font-semibold">Links you paid for, wasted</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Every unindexed backlink is budget spent on authority that never reaches your site.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section id="process" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">How it works</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Submit, index, verify — in four steps</h2>
+          <p class="mt-3 text-muted-foreground">Paste your links, we handle submission and monitoring, and you check the result yourself.</p>
+        </div>
+
+        <div class="cw-flow tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">01</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-upload-simple text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Submit your links</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Paste your backlink URLs or upload a CSV. We price it instantly — links × your volume rate.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">02</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-paper-plane-tilt text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">We submit &amp; monitor</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Each link moves through <b class="font-semibold text-foreground">pending → submitting → completed</b>, near-automated with staff oversight.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">03</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-list-checks text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Per-link status</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Watch the status of every link and the overall % indexed update in real time on your dashboard.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">04</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-puzzle-piece text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Verify with the plugin</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Use the HevaSEO plugin to confirm the index state of any link yourself — full transparency.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRICING + CALCULATOR ============ -->
+    <section id="calculator" class="scroll-mt-20 border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Pay only for the links you submit</h2>
+          <p class="mt-3 text-muted-foreground">Launch pricing — usage-based, no packages, no minimum. Drag the count to see your rate and total.</p>
+        </div>
+
+        <div class="mt-12 grid items-stretch gap-6 lg:grid-cols-2">
+
+          <!-- calculator -->
+          <div data-reveal class="flex flex-col rounded-2xl border-2 border-primary/30 bg-card p-7 shadow-xl shadow-primary/5 lg:p-8">
+            <label for="idx-count" class="text-sm font-semibold">How many backlinks to index?</label>
+            <div class="mt-3 flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+              <i class="ph-bold ph-link text-muted-foreground"></i>
+              <input id="idx-count" type="number" min="1" step="100" value="1000" class="w-full bg-transparent text-lg font-bold outline-none" />
+              <span class="text-sm text-muted-foreground">links</span>
+            </div>
+            <input id="idx-range" type="range" min="100" max="50000" step="100" value="1000" class="mt-4 w-full accent-[hsl(var(--primary))]" aria-label="Number of links" />
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" class="idx-chip rounded-full border border-border px-3 py-1 text-xs font-semibold transition hover:border-primary" data-count="1000">1,000</button>
+              <button type="button" class="idx-chip rounded-full border border-border px-3 py-1 text-xs font-semibold transition hover:border-primary" data-count="5000">5,000</button>
+              <button type="button" class="idx-chip rounded-full border border-border px-3 py-1 text-xs font-semibold transition hover:border-primary" data-count="10000">10,000</button>
+              <button type="button" class="idx-chip rounded-full border border-border px-3 py-1 text-xs font-semibold transition hover:border-primary" data-count="25000">25,000</button>
+              <button type="button" class="idx-chip rounded-full border border-border px-3 py-1 text-xs font-semibold transition hover:border-primary" data-count="50000">50,000</button>
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-border bg-muted/40 p-5">
+              <div>
+                <p class="text-xs text-muted-foreground">Rate</p>
+                <p class="font-display text-2xl font-bold text-foreground"><span id="idx-rate">$0.008</span><span class="text-sm font-medium text-muted-foreground"> / link</span></p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-muted-foreground">Estimated total</p>
+                <p class="font-display text-2xl font-bold text-primary" id="idx-total">$8.00</p>
+              </div>
+              <div class="col-span-2 border-t border-border pt-3">
+                <p id="idx-save" class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600"><i class="ph-bold ph-tag"></i> Standard rate — submit 5,000+ to save</p>
+              </div>
+            </div>
+            <a href="#contact" data-goi="Indexer · usage-based" class="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Submit these links <i class="ph-bold ph-arrow-right"></i></a>
+            <p class="mt-3 text-center text-[11px] text-muted-foreground">Estimate only — final count confirmed from your submitted list.</p>
+          </div>
+
+          <!-- tiers -->
+          <div data-reveal class="flex flex-col rounded-2xl border border-border bg-card p-7 lg:p-8">
+            <p class="text-sm font-semibold">Volume pricing</p>
+            <p class="mt-1 text-sm text-muted-foreground">Your rate is applied automatically based on how many links you submit.</p>
+            <div class="mt-5 space-y-3">
+              <div id="idx-tier-0" class="idx-tier is-active flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                <span class="idx-tier-dot grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted font-display font-bold"><i class="ph-bold ph-stack"></i></span>
+                <div class="flex-1"><p class="text-sm font-semibold">Default</p><p class="text-xs text-muted-foreground">1 – 5,000 links</p></div>
+                <p class="font-display text-xl font-bold text-primary">$0.008<span class="text-xs font-medium text-muted-foreground">/link</span></p>
+              </div>
+              <div id="idx-tier-1" class="idx-tier flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                <span class="idx-tier-dot grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted font-display font-bold"><i class="ph-bold ph-stack-plus"></i></span>
+                <div class="flex-1"><p class="text-sm font-semibold">Over 5,000 links</p><p class="text-xs text-muted-foreground">Save 25%</p></div>
+                <p class="font-display text-xl font-bold text-primary">$0.006<span class="text-xs font-medium text-muted-foreground">/link</span></p>
+              </div>
+              <div id="idx-tier-2" class="idx-tier flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                <span class="idx-tier-dot grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted font-display font-bold"><i class="ph-bold ph-stack-simple"></i></span>
+                <div class="flex-1"><p class="text-sm font-semibold">Over 20,000 links</p><p class="text-xs text-muted-foreground">Save 50% — best value</p></div>
+                <p class="font-display text-xl font-bold text-primary">$0.004<span class="text-xs font-medium text-muted-foreground">/link</span></p>
+              </div>
+            </div>
+            <div class="mt-5 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/[0.05] p-4">
+              <i class="ph-fill ph-gift mt-0.5 text-primary"></i>
+              <p class="text-xs leading-relaxed text-muted-foreground"><b class="font-semibold text-foreground">Buying Backlinks?</b> Indexing is already included free with every <a href="/backlink" class="font-semibold text-primary hover:underline">Backlink package</a>. This is for standalone indexing of links you built elsewhere.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ THE PLUGIN ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Verify it yourself</span>
+            <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">The HevaSEO index-check plugin</h2>
+            <p class="mt-4 text-muted-foreground">Don't take our word for it. The plugin lets you check the index status of any link on demand — the ones we indexed and any others you want to test.</p>
+            <ul class="mt-6 space-y-3 text-sm">
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">One-click install</b> from your dashboard.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">Bulk check</b> a whole list and export the results.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span><b class="font-semibold text-foreground">Live re-check</b> any time — status stays current.</span></li>
+              <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle mt-0.5 text-primary"></i><span>Works on links <b class="font-semibold text-foreground">whether or not</b> you ordered them here.</span></li>
+            </ul>
+          </div>
+
+          <!-- plugin mock -->
+          <div data-reveal class="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+            <div class="flex items-center justify-between pb-4">
+              <p class="inline-flex items-center gap-2 text-sm font-semibold"><span class="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground"><i class="ph-fill ph-puzzle-piece text-sm"></i></span> HevaSEO Index Checker</p>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600"><span class="grid h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Connected</span>
+            </div>
+            <div class="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground"><i class="ph-bold ph-magnifying-glass"></i> Paste or pick links to check…</div>
+            <div class="overflow-hidden rounded-xl border border-border">
+              <div class="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><span>Link</span><span>Status</span></div>
+              <div class="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs"><span class="min-w-0 truncate text-muted-foreground">techblog.com/post-a</span><span class="idx-pill done"><i class="ph-fill ph-check-circle"></i> Indexed</span></div>
+              <div class="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs"><span class="min-w-0 truncate text-muted-foreground">guildreview.net/x</span><span class="idx-pill done"><i class="ph-fill ph-check-circle"></i> Indexed</span></div>
+              <div class="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-border/70 px-3 py-2.5 text-xs"><span class="min-w-0 truncate text-muted-foreground">citystartups.io/y</span><span class="idx-pill sub"><i class="ph-bold ph-circle-notch idx-spin"></i> Submitting</span></div>
+              <div class="grid grid-cols-[1fr_auto] items-center gap-2 px-3 py-2.5 text-xs"><span class="min-w-0 truncate text-muted-foreground">profilehub.org/z</span><span class="idx-pill pend"><i class="ph-fill ph-clock"></i> Pending</span></div>
+            </div>
+            <div class="mt-4 flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
+              <span class="text-xs text-muted-foreground">Indexed</span>
+              <span class="font-display text-base font-bold text-green-500">88% · 884 / 1,000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GUARANTEE BAND ============ -->
+    <section class="border-y border-border bg-muted/40 py-14 lg:py-20">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="tkw-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-coins text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Pay per link</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">No packages or minimum spend.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-trend-down text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Cheaper at volume</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Down to $0.004 per link.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-list-checks text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Per-link status</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Real-time progress &amp; % indexed.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-puzzle-piece text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Verify with the plugin</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Check any link yourself, any time.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">FAQ</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Questions, answered</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5" open>
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How is pricing calculated?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Per link, cheaper at volume: $0.008 by default, $0.006 over 5,000 links, $0.004 over 20,000 links. You pay only for the links you submit — no packages, no minimum.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How long does indexing take?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Most links are submitted and crawled within days. You watch each link move through pending → submitting → completed, and verify the final state with the plugin.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What index rate can I expect?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">It depends on link quality — strong, content-backed links index at very high rates; thin links lower. Your report shows the exact percentage indexed, so there's no guesswork.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">What if a link doesn't get indexed?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">We re-submit links that don't index on the first pass, and the report flags anything still pending so you always know the real status.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How do I install the plugin?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">One click from your dashboard. It lets you check the index status of any link on demand, including links you didn't order through us.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Isn't indexing included with backlinks?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes — every <a href="/backlink" class="font-semibold text-primary hover:underline">Backlink package</a> already includes our Indexer free. This page is for standalone indexing of links you built elsewhere or want re-indexed.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="contact" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-list-checks text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Get every link counted</h2>
+          <p class="mt-3 text-muted-foreground">Leave your details and send your link list — we'll price it, index it, and give you per-link status plus the plugin to verify.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" novalidate>
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden" />
+            <label for="cta-email" class="sr-only">Email or phone number</label>
+            <input id="cta-email" name="contact" type="text" inputmode="email" autocomplete="email" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button id="lead-submit" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+              <span class="lead-spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span class="lead-submit-label">Submit my links</span>
+            </button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      // ---- lead form package capture ----
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('cta-email');
+      var status = document.getElementById('lead-status');
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the Indexer. Leave your contact details and link list!';
+        });
+      });
+
+      // ---- price calculator ----
+      var countEl = document.getElementById('idx-count');
+      var rangeEl = document.getElementById('idx-range');
+      var rateEl = document.getElementById('idx-rate');
+      var totalEl = document.getElementById('idx-total');
+      var saveEl = document.getElementById('idx-save');
+      var tiers = [document.getElementById('idx-tier-0'), document.getElementById('idx-tier-1'), document.getElementById('idx-tier-2')];
+      var chips = Array.prototype.slice.call(document.querySelectorAll('.idx-chip'));
+      if (!countEl) return;
+
+      function rateFor(n) { if (n > 20000) return 0.004; if (n > 5000) return 0.006; return 0.008; }
+      function tierIndex(n) { if (n > 20000) return 2; if (n > 5000) return 1; return 0; }
+      function fmtMoney(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+      function update(n) {
+        n = Math.max(0, Math.floor(n || 0));
+        var rate = rateFor(n);
+        var total = n * rate;
+        if (rateEl) rateEl.textContent = '$' + rate.toFixed(3);
+        if (totalEl) totalEl.textContent = fmtMoney(total);
+        var ti = tierIndex(n);
+        tiers.forEach(function (t, i) { if (t) t.classList.toggle('is-active', i === ti); });
+        chips.forEach(function (c) { c.classList.toggle('is-active', parseInt(c.getAttribute('data-count'), 10) === n); });
+        if (saveEl) {
+          if (ti === 0) { saveEl.innerHTML = '<i class="ph-bold ph-tag"></i> Standard rate — submit 5,000+ to save'; }
+          else {
+            var saved = n * (0.008 - rate);
+            var pct = Math.round((0.008 - rate) / 0.008 * 100);
+            saveEl.innerHTML = '<i class="ph-bold ph-trend-down"></i> Saving ' + pct + '% — ' + fmtMoney(saved) + ' off the standard rate';
+          }
+        }
+      }
+
+      countEl.addEventListener('input', function () { if (rangeEl) rangeEl.value = Math.min(50000, Math.max(100, parseInt(countEl.value || '0', 10) || 0)); update(parseInt(countEl.value || '0', 10)); });
+      if (rangeEl) rangeEl.addEventListener('input', function () { countEl.value = rangeEl.value; update(parseInt(rangeEl.value, 10)); });
+      chips.forEach(function (c) {
+        c.addEventListener('click', function () {
+          var n = parseInt(c.getAttribute('data-count'), 10);
+          countEl.value = n; if (rangeEl) rangeEl.value = Math.min(50000, n);
+          update(n);
+        });
+      });
+      update(parseInt(countEl.value || '1000', 10));
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

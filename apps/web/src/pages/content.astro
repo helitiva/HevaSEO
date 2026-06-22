@@ -1,0 +1,831 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PricingGrid from '../components/PricingGrid.astro';
+
+const SCORE_BADGE = 'Content Score & Methodology';
+
+const aiTiers = [
+  { name: 'A1000', subtitle: '~1000 words · standard', icon: 'ph-file-text', hue: 'sky', price: '$12', strike: '$30', delivery: '2–3 days', footerBadge: SCORE_BADGE, cta: 'Choose A1000', goi: 'A1000 · $12', features: ['1 SEO article (~1,000 words) + illustrative images', 'On-page: title / meta / headings / density / internal links', 'Plagiarism &amp; AI-detection checked', 'Google-safe, helpful content', 'HTML preview · DOC · TXT · images'] },
+  { name: 'A2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$19', strike: '$47', delivery: '~3 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose A2000', goi: 'A2000 · $19', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word article</b> + images', 'Full on-page optimization (title/meta/headings/density)', 'Internal links + outbound citations', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'A3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$28', strike: '$70', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose A3000', goi: 'A3000 · $28', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word article</b> + images', 'Full on-page optimization', 'Topic-cluster ready + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+];
+
+const humanTiers = [
+  { name: 'H1000', subtitle: '~1000 words · human', icon: 'ph-file-text', hue: 'sky', price: '$24', strike: '$60', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose H1000', goi: 'H1000 · $24', features: ['Human-written SEO article (~1,000 words) + images', '<b class="font-semibold text-foreground">E-E-A-T</b> — real expertise &amp; cited sources', 'On-page: title / meta / headings / density', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'H2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$39', strike: '$97', delivery: '~4 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose H2000', goi: 'H2000 · $39', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word</b> human-written article + images', 'Deep E-E-A-T, expert sourcing &amp; references', 'Full on-page optimization + internal links', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'H3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$56', strike: '$140', delivery: '~5 days', footerBadge: SCORE_BADGE, cta: 'Choose H3000', goi: 'H3000 · $56', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word</b> human-written article + images', 'Deepest E-E-A-T &amp; topical authority', 'Full on-page + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+];
+---
+<BaseLayout
+  title="SEO Content Writing — Scored, Sourced & Google-Safe | HevaSEO"
+  description="SEO content that ranks and stays safe — AI-powered or human-written with E-E-A-T. Every article ships with a Content Score & Methodology report (voice, sources, intent, keywords, readability, E-E-A-T, originality) plus HTML, DOC, TXT and images. Plans from $12."
+  keywords="seo content writing, ai content writing, human written seo content, e-e-a-t content, content score, seo article writing service, geo content"
+  ogDescription="Google-safe SEO articles — AI-powered or human-written — every one delivered with a transparent Content Score & Methodology report. From $12."
+>
+  <script type="application/ld+json" slot="head" is:inline>
+{
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "SEO Content Writing",
+        "serviceType": "AI-powered & human-written SEO content with a transparent quality score",
+        "provider": {
+          "@type": "Organization",
+          "name": "HevaSEO",
+          "url": "https://hevaseo.com/"
+        },
+        "areaServed": "US",
+        "description": "SEO content writing in two tiers — AI-powered (AI ~70% / editor) and human-written with E-E-A-T. Every article is Google-guideline compliant, checked for plagiarism and AI-detection, and delivered with a Content Score & Methodology report plus HTML, DOC, TXT and images.",
+        "offers": [
+          { "@type": "Offer", "name": "A1000 (AI ~1000 words)", "price": "12", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "A2000 (AI ~2000 words)", "price": "19", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "A3000 (AI ~3000 words)", "price": "28", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "H1000 (Human ~1000 words)", "price": "24", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "H2000 (Human ~2000 words)", "price": "39", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "H3000 (Human ~3000 words)", "price": "56", "priceCurrency": "USD" }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://hevaseo.com/" },
+          { "@type": "ListItem", "position": 2, "name": "SEO Content Writing", "item": "https://hevaseo.com/content" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "Does the Content Score & Methodology come with every article?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every article — AI-powered or human-written — is delivered with a Content Score and a Methodology report showing exactly how it was researched and written: voice, sources, search intent, keywords & density, readability, E-E-A-T and originality. No black box." } },
+          { "@type": "Question", "name": "Will AI content get penalized by Google?", "acceptedAnswer": { "@type": "Answer", "text": "No. Google rewards helpful content regardless of how it's produced. Our AI tier is edited by a human, optimized on-page, and passes plagiarism and AI-detection checks before delivery. For sites that need maximum trust, the human-written tier adds deeper E-E-A-T." } },
+          { "@type": "Question", "name": "How many revisions are included?", "acceptedAnswer": { "@type": "Answer", "text": "Revisions are included per package against the agreed brief and outline. We confirm the brief, outline and target keyword before writing, so the first draft already matches your direction." } },
+          { "@type": "Question", "name": "Is keyword research included?", "acceptedAnswer": { "@type": "Answer", "text": "You can supply your own keywords, or link an order from our Keyword Research service. We optimize each article around the target keyword and a safe density." } },
+          { "@type": "Question", "name": "Where do I see the score and sources?", "acceptedAnswer": { "@type": "Answer", "text": "Each article gets a single URL showing the Content Score, the full Methodology (voice, sources, intent, keywords, readability, E-E-A-T, originality) and a live preview of the article — with downloads for HTML, DOC, TXT and images." } },
+          { "@type": "Question", "name": "What formats do I receive?", "acceptedAnswer": { "@type": "Answer", "text": "An HTML live preview (as it would look on your site), plus DOC, TXT and an image set, all from one report URL alongside the Content Score and Methodology." } },
+          { "@type": "Question", "name": "Is there a discount for multiple articles?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — orders of 10 or more articles get an additional 10% off. Tell us your volume and we'll quote a content plan." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style slot="head" is:global is:inline>
+/* ===== Page flourishes — SEO Content Writing ===== */
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+      -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+      opacity: 0.45;
+    }
+    .hero-blob {
+      position: absolute; border-radius: 9999px; filter: blur(72px);
+      pointer-events: none; z-index: 0;
+      background: radial-gradient(circle, hsl(var(--primary) / 0.20), transparent 70%);
+    }
+
+    @property --tkwv { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    .tkw-gauge { position: relative; width: 84px; height: 84px; border-radius: 50%;
+      display: grid; place-items: center; --tkwv: 0;
+      background: conic-gradient(var(--gc, hsl(var(--primary))) calc(var(--tkwv) * 1%), hsl(var(--muted)) 0); }
+    .tkw-gauge::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: hsl(var(--card)); }
+    .tkw-gauge b { position: relative; font-family: '"Inter Tight"', Inter, sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1; }
+    [data-reveal].is-visible .tkw-gauge { transition: --tkwv 1.5s cubic-bezier(.16,1,.3,1); transition-delay: var(--gd, .2s); --tkwv: var(--to, 0); }
+    .tkw-gauge.lg { width: 104px; height: 104px; }
+    .tkw-gauge.lg::before { inset: 7px; }
+    .tkw-gauge.lg b { font-size: 1.7rem; }
+
+    .tkw-bar { position: relative; height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+    .tkw-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+    [data-reveal].is-visible .tkw-bar > i { animation: tkwBar 1.4s cubic-bezier(.16,1,.3,1) forwards; animation-delay: var(--bd, .3s); }
+    @keyframes tkwBar { to { width: var(--bw, 100%); } }
+
+    .tkw-scan { position: relative; overflow: hidden; }
+    .tkw-scan::after { content: ""; position: absolute; left: 0; right: 0; top: -42%; height: 36%; pointer-events: none; z-index: 5;
+      background: linear-gradient(180deg, hsl(var(--primary) / .16), transparent);
+      animation: tkwScan 3.6s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tkwScan { 0% { transform: translateY(0); } 100% { transform: translateY(380%); } }
+
+    .tkw-chip { position: absolute; z-index: 30; display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .92);
+      padding: .45rem .8rem; font-size: .78rem; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 10px 28px hsl(213 50% 20% / .14); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      animation: tkwFloat 6s ease-in-out infinite; }
+    .dark .tkw-chip { box-shadow: 0 10px 28px hsl(0 0% 0% / .4); }
+    .tkw-chip.d2 { animation-duration: 7.4s; animation-delay: -2.2s; }
+    .tkw-chip.d3 { animation-duration: 8.6s; animation-delay: -4.1s; }
+    @keyframes tkwFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+
+    .tkw-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .tkw-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .tkw-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+    .tkw-ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .tkw-card:hover .tkw-ic, .tkw-step:hover .tkw-ic { transform: scale(1.14) rotate(-7deg); }
+
+    .tkw-figure { position: relative; height: 10.5rem; overflow: hidden;
+      background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .14), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .13) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--primary) / .2), transparent 58%),
+        radial-gradient(hsl(var(--primary) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure svg { position: relative; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .tkw-figure svg { transform: scale(1.04); }
+    .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(213 50% 25% / .15)); }
+    .dark .tkw-figure .lift { filter: drop-shadow(0 6px 13px hsl(0 0% 0% / .5)); }
+    .tkw-figure .glow { filter: drop-shadow(0 0 5px hsl(var(--primary) / .5)); }
+    .tkw-guar { transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+    .tkw-guar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px hsl(213 60% 30% / .18); }
+    .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .13), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .12) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .dark .tkw-figure.warn { background:
+        radial-gradient(135% 130% at 50% -18%, hsl(var(--destructive) / .22), transparent 58%),
+        radial-gradient(hsl(var(--destructive) / .16) 1px, transparent 1.5px);
+      background-size: auto, 19px 19px; background-position: center; }
+    .tkw-figure .glow-warn { filter: drop-shadow(0 0 5px hsl(var(--destructive) / .45)); }
+    .tkw-arc { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-arc { animation: tkwArc 1.5s cubic-bezier(.16,1,.3,1) .2s forwards; }
+    @keyframes tkwArc { to { stroke-dashoffset: var(--arc, 10); } }
+    .tkw-draw { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    [data-reveal].is-visible .tkw-draw { animation: tkwDraw 1.6s cubic-bezier(.16,1,.3,1) .25s forwards; }
+    @keyframes tkwDraw { to { stroke-dashoffset: 0; } }
+    .tkw-pop { opacity: 0; transform: scale(.5); transform-box: fill-box; transform-origin: center; }
+    [data-reveal].is-visible .tkw-pop { animation: tkwPop .55s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .tkw-pop.p1 { animation-delay: .25s; } .tkw-pop.p2 { animation-delay: .4s; }
+    .tkw-pop.p3 { animation-delay: .55s; } .tkw-pop.p4 { animation-delay: .7s; } .tkw-pop.p5 { animation-delay: .85s; }
+    @keyframes tkwPop { to { opacity: 1; transform: scale(1); } }
+
+    .tkw-grid > [data-reveal]:nth-child(2) { transition-delay: .07s; }
+    .tkw-grid > [data-reveal]:nth-child(3) { transition-delay: .14s; }
+    .tkw-grid > [data-reveal]:nth-child(4) { transition-delay: .21s; }
+    .tkw-grid > [data-reveal]:nth-child(5) { transition-delay: .28s; }
+    .tkw-grid > [data-reveal]:nth-child(6) { transition-delay: .35s; }
+
+    .tkw-num { background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 95% 62%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    .tkw-shine { position: relative; overflow: hidden; }
+    .tkw-shine::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(105deg, transparent 30%, hsl(0 0% 100% / .55) 50%, transparent 70%);
+      transform: translateX(-130%); animation: tkwShine 3.4s ease-in-out infinite; }
+    @keyframes tkwShine { 0%, 55% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+    .tkw-live { position: relative; }
+    .tkw-live::before { content: ""; position: absolute; inset: -5px; border-radius: 999px; border: 2px solid hsl(142 70% 45% / .6); animation: tkwPing 1.8s ease-out infinite; }
+    @keyframes tkwPing { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    /* === content-specific === */
+    /* "Content Score included" badge — the hallmark, green */
+    .cw-score { display: inline-flex; align-items: center; gap: .4rem;
+      border-radius: 999px; padding: .3rem .7rem; font-size: .72rem; font-weight: 700; letter-spacing: .01em;
+      background: linear-gradient(120deg, hsl(142 72% 45% / .16), hsl(142 72% 45% / .06));
+      color: hsl(142 64% 32%); border: 1px solid hsl(142 64% 42% / .35); }
+    .dark .cw-score { color: hsl(142 70% 62%); border-color: hsl(142 64% 50% / .4); }
+    /* methodology chip */
+    .cw-tag { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px;
+      padding: .2rem .55rem; font-size: .68rem; font-weight: 600; background: hsl(var(--primary) / .1); color: hsl(var(--primary)); }
+    .cw-pkg { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .cw-pkg:hover { transform: translateY(-5px); border-color: hsl(var(--primary) / .45); box-shadow: 0 18px 40px hsl(213 60% 28% / .14); }
+    .dark .cw-pkg:hover { box-shadow: 0 18px 40px hsl(0 0% 0% / .45); }
+    .cw-flow { position: relative; }
+    @media (min-width: 1024px) {
+      .cw-flow::before { content: ""; position: absolute; top: 2.25rem; left: 11%; right: 11%; height: 2px; z-index: 0;
+        background: repeating-linear-gradient(90deg, hsl(var(--primary) / .45) 0 10px, transparent 10px 20px); }
+    }
+    .cw-step-card { transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease; }
+    .cw-step-card:hover { transform: translateY(-6px); border-color: hsl(var(--primary) / .45); box-shadow: 0 20px 44px hsl(213 60% 28% / .14); }
+    .dark .cw-step-card:hover { box-shadow: 0 20px 44px hsl(0 0% 0% / .45); }
+
+    /* AI/Human contribution split */
+    .cw-fig { transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .tkw-card:hover .cw-fig { transform: scale(1.03); }
+    .cw-split { display: flex; gap: 2px; height: 1.5rem; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; box-shadow: inset 0 1px 2px hsl(213 30% 20% / .08); }
+    .cw-split > span { height: 100%; width: 0; transition: width 1.1s cubic-bezier(.16,1,.3,1) .25s; }
+    .cw-split > span:first-child { border-radius: 999px 0 0 999px; }
+    .cw-split > span:last-child { border-radius: 0 999px 999px 0; }
+    [data-reveal].is-visible .cw-split > span { width: var(--w); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tkw-scan::after, .tkw-chip, .tkw-shine::after, .tkw-live::before { animation: none !important; }
+      .cw-split > span { transition: none !important; width: var(--w) !important; }
+      .cw-fig { transition: none !important; }
+      .tkw-chip { transform: none !important; }
+      [data-reveal].is-visible .tkw-gauge { transition: none; --tkwv: var(--to,0); }
+      [data-reveal].is-visible .tkw-bar > i { animation: none; width: var(--bw,100%); }
+      .tkw-arc, .tkw-draw { stroke-dashoffset: 0 !important; animation: none !important; }
+      .tkw-pop { opacity: 1 !important; transform: none !important; animation: none !important; }
+    }
+  </style>
+
+<main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="relative overflow-hidden pt-6 pb-16 lg:pt-8 lg:pb-24">
+      <canvas id="hero-fx" class="fx-canvas" aria-hidden="true"></canvas>
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-blob" aria-hidden="true" style="top:-6rem;right:-4rem;width:26rem;height:26rem;"></div>
+      <div class="relative z-10 mx-auto max-w-7xl px-5 lg:px-8">
+        <nav data-reveal class="mb-8 flex items-center gap-2 text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <a href="/#top" class="transition hover:text-primary">Home</a>
+          <i class="ph-bold ph-caret-right text-xs"></i>
+          <span class="text-foreground">SEO Content Writing</span>
+        </nav>
+
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-primary shadow-sm"><i class="ph-fill ph-pen-nib"></i> AI-powered &amp; human-written</span>
+            <h1 class="mt-4 font-display text-4xl font-bold leading-[1.1] tracking-tight md:text-5xl">
+              Content that ranks — and you can <span class="text-primary">see why.</span>
+            </h1>
+            <p class="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+              SEO articles that are <b class="font-semibold text-foreground">Google-safe, on-page optimized, and E-E-A-T-ready</b>. Every piece ships with a <b class="font-semibold text-foreground">Content Score &amp; Methodology report</b> — voice, sources, intent, keywords, readability, E-E-A-T and originality, all on the record.
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#plans" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+                See packages &amp; pricing <i class="ph-bold ph-arrow-down"></i>
+              </a>
+              <a href="#aivshuman" class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">
+                AI or human-written?
+              </a>
+            </div>
+            <div class="mt-7 flex flex-wrap gap-2.5">
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-gauge text-sm"></i></span> Content Score on every article</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-shield-check text-sm"></i></span> Google-safe, plagiarism-checked</span>
+              <span class="tkw-guar inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm font-bold text-foreground shadow-md shadow-primary/10"><span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-fill ph-files text-sm"></i></span> HTML · DOC · TXT · images</span>
+            </div>
+
+            <!-- SAMPLE FIGURES: replace with real numbers -->
+            <div data-reveal class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-border bg-card/70 p-3 pr-5 shadow-sm backdrop-blur">
+              <div class="flex items-center gap-3">
+                <div class="flex -space-x-2.5">
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white ring-2 ring-card">M</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white ring-2 ring-card">H</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-xs font-bold text-white ring-2 ring-card">T</span>
+                  <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground ring-2 ring-card">+1k</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex text-amber-400"><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i><i class="ph-fill ph-star text-sm"></i></span>
+                    <span class="text-sm font-bold text-foreground">4.9/5</span>
+                  </div>
+                  <p class="text-xs text-muted-foreground"><b class="font-bold text-foreground"><span data-count="1200">0</span>+</b> articles delivered</p>
+                </div>
+              </div>
+              <span class="hidden h-10 w-px bg-border sm:block"></span>
+              <div class="flex items-center gap-5">
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="94">0</span></p><p class="text-[11px] text-muted-foreground">Avg content score</p></div>
+                <div><p class="font-display text-xl font-bold text-primary"><span data-count="100">0</span>%</p><p class="text-[11px] text-muted-foreground">Plagiarism-checked</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- hero visual: Content Score report -->
+          <div data-reveal class="relative">
+            <span class="tkw-chip -left-3 top-6 text-emerald-500"><i class="ph-fill ph-seal-check"></i> Grade A</span>
+            <span class="tkw-chip d2 -right-2 top-1/3 text-primary"><i class="ph-fill ph-fingerprint"></i> 99% original</span>
+            <span class="tkw-chip d3 -left-2 bottom-10 text-violet-500"><i class="ph-fill ph-books"></i> Sourced</span>
+
+            <div class="tkw-scan rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-7">
+              <div class="flex items-center gap-2 pb-4">
+                <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-red-400"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400"></i><i class="h-2.5 w-2.5 rounded-full bg-green-400"></i></span>
+                <span class="ml-1 inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground"><i class="ph-bold ph-article"></i> your-article.html</span>
+                <span class="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500"><span class="tkw-live grid h-2 w-2 place-items-center rounded-full bg-emerald-500"></span> Scored</span>
+              </div>
+
+              <div class="mb-4 flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-4">
+                <div class="tkw-gauge shrink-0" style="--to:94;--gc:#22c55e;--gd:.2s"><b class="text-green-500"><span data-count="94">0</span></b></div>
+                <div class="flex-1">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content Score</p>
+                  <p class="font-display text-lg font-bold text-foreground">Grade A · Google-safe</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">On-page · readability · E-E-A-T · originality</p>
+                </div>
+              </div>
+
+              <div class="space-y-3 text-sm">
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">On-page SEO</span><span class="font-medium text-green-500">96</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:96%;--bd:.4s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">Readability</span><span class="font-medium text-green-500">92</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:92%;--bd:.55s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">E-E-A-T</span><span class="font-medium text-green-500">90</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:90%;--bd:.7s"><i></i></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between"><span class="text-muted-foreground">Originality</span><span class="font-medium text-green-500">99</span></div>
+                  <div class="tkw-bar mt-1.5" style="--bw:99%;--bd:.85s"><i></i></div>
+                </div>
+              </div>
+
+              <div class="mt-5 flex flex-wrap gap-1.5">
+                <span class="cw-tag"><i class="ph-fill ph-microphone-stage"></i> Voice</span>
+                <span class="cw-tag"><i class="ph-fill ph-books"></i> Sources</span>
+                <span class="cw-tag"><i class="ph-fill ph-target"></i> Intent</span>
+                <span class="cw-tag"><i class="ph-fill ph-key"></i> Keywords</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCORE-INCLUDED CALLOUT ============ -->
+    <section class="relative -mt-4 pb-4">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/[0.07] via-card to-emerald-500/[0.06] p-6 text-center shadow-sm sm:flex-row sm:text-left lg:p-7">
+          <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-fill ph-gauge text-2xl"></i></span>
+          <div class="sm:flex-1">
+            <h2 class="text-lg font-bold tracking-tight sm:text-xl">Every article comes with a Content Score &amp; Methodology</h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted-foreground">No black box. You see a quality score and exactly how the piece was researched and written — voice, sources, search intent, keywords &amp; density, readability, E-E-A-T and originality. <b class="font-semibold text-foreground">Included on every AI and human-written article.</b></p>
+          </div>
+          <a href="#methodology" class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">See what's scored <i class="ph-bold ph-arrow-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAIN POINTS ============ -->
+    <section class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Why most content fails</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Cheap words don't rank — and some get you penalized</h2>
+          <p class="mt-3 text-muted-foreground">Mass-produced articles look fine until Google ignores them, or worse, flags them. Here's what quietly wastes content budgets.</p>
+        </div>
+        <div class="tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- 1. Raw AI spam -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Unedited AI spam flagged">
+                <g class="lift"><rect x="58" y="30" width="86" height="64" rx="14" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="2.4"/></g>
+                <circle cx="84" cy="58" r="6" fill="hsl(var(--destructive) / .6)"/><circle cx="118" cy="58" r="6" fill="hsl(var(--destructive) / .6)"/>
+                <path d="M82 78 h38" stroke="hsl(var(--destructive))" stroke-width="3.4" stroke-linecap="round"/>
+                <line x1="101" y1="30" x2="101" y2="20" stroke="hsl(var(--destructive))" stroke-width="3"/><circle cx="101" cy="16" r="4.5" fill="hsl(var(--destructive))"/>
+                <g class="tkw-pop p3"><circle cx="164" cy="92" r="15" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3.4"/><line x1="154" y1="82" x2="174" y2="102" stroke="hsl(var(--destructive))" stroke-width="3.4" stroke-linecap="round"/></g>
+                <text x="116" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">AI spam flagged</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-robot"></i></span><h3 class="font-semibold">Raw, unedited AI</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Bulk AI text with no editing or sources reads generic and can be flagged as unhelpful — a real risk, not a ranking win.</p>
+            </div>
+          </article>
+
+          <!-- 2. Thin content -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="Thin content that does not rank">
+                <g class="lift"><rect x="74" y="24" width="92" height="92" rx="10" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="88" y="40" width="40" height="6" rx="3" fill="hsl(var(--muted))"/>
+                <rect x="88" y="56" width="64" height="4" rx="2" fill="hsl(var(--muted))"/>
+                <rect x="88" y="68" width="48" height="4" rx="2" fill="hsl(var(--muted))"/>
+                <path class="tkw-draw" pathLength="100" d="M88 86 H152" fill="none" stroke="hsl(var(--destructive) / .5)" stroke-width="2.6" stroke-dasharray="5 5"/>
+                <text x="120" y="106" text-anchor="middle" font-size="10.5" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">300 words</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-file-dashed"></i></span><h3 class="font-semibold">Thin, shallow articles</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Short pieces that don't fully answer the query lose to deeper, better-structured competitors.</p>
+            </div>
+          </article>
+
+          <!-- 3. No transparency -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="No quality score or proof">
+                <g class="lift"><circle cx="120" cy="70" r="34" fill="hsl(var(--card))" stroke="hsl(var(--border))" stroke-width="2"/><path d="M120 36 A34 34 0 0 1 120 104" fill="hsl(var(--muted))"/></g>
+                <text class="tkw-pop p3" x="120" y="82" text-anchor="middle" font-size="30" font-weight="800" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">?</text>
+                <text x="120" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="hsl(var(--muted-foreground))" font-family="Inter Tight, sans-serif">no score</text>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-eye-slash"></i></span><h3 class="font-semibold">No proof of quality</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Most writers hand over a doc with no score, no sources and no way to judge whether it's actually good.</p>
+            </div>
+          </article>
+
+          <!-- 4. No E-E-A-T -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure warn flex items-center justify-center border-b border-border" style="height:9rem">
+              <svg viewBox="0 0 240 140" class="h-28" role="img" aria-label="No expertise or sources">
+                <g class="lift"><rect x="62" y="28" width="116" height="84" rx="10" fill="hsl(var(--card))" stroke="hsl(var(--border))"/></g>
+                <rect x="76" y="42" width="56" height="7" rx="3.5" fill="hsl(var(--muted))"/>
+                <rect x="76" y="58" width="88" height="4.5" rx="2.25" fill="hsl(var(--muted))"/>
+                <rect x="76" y="70" width="74" height="4.5" rx="2.25" fill="hsl(var(--muted))"/>
+                <g class="lift"><rect x="76" y="84" width="52" height="16" rx="5" fill="hsl(var(--card))" stroke="hsl(var(--destructive) / .6)" stroke-dasharray="4 4"/><text x="102" y="95.5" text-anchor="middle" font-size="8" font-weight="700" fill="hsl(var(--destructive))" font-family="Inter Tight, sans-serif">no source</text></g>
+                <g class="tkw-pop p3"><circle cx="162" cy="40" r="11" fill="hsl(var(--card))" stroke="hsl(var(--destructive))" stroke-width="3"/><line x1="154" y1="32" x2="170" y2="48" stroke="hsl(var(--destructive))" stroke-width="3" stroke-linecap="round"/></g>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><i class="ph-bold ph-seal-warning"></i></span><h3 class="font-semibold">Zero E-E-A-T</h3></div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">No expertise, citations or trust signals — exactly what new, low-authority sites can't afford.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AI vs HUMAN ============ -->
+    <section id="aivshuman" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Two ways to get content</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">AI-powered or human-written</h2>
+          <p class="mt-3 text-muted-foreground">Same Google-safe standards and the same Content Score on both — pick the tier that fits your site's age and authority.</p>
+        </div>
+
+        <div class="mt-12 grid gap-6 lg:grid-cols-2">
+
+          <!-- AI -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:11rem">
+              <div class="cw-fig w-full max-w-[17rem] px-2">
+                <p class="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Who writes it</p>
+                <div class="mb-3 flex items-start justify-between gap-2">
+                  <div class="text-center">
+                    <span class="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/30"><i class="ph-fill ph-sparkle text-lg"></i></span>
+                    <p class="mt-1.5 text-xs font-bold text-primary">AI · 70%</p>
+                    <p class="text-[10px] text-muted-foreground">drafts</p>
+                  </div>
+                  <span class="mt-3 text-muted-foreground/50"><i class="ph-bold ph-plus"></i></span>
+                  <div class="text-center">
+                    <span class="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-border bg-card text-foreground shadow-sm"><i class="ph-bold ph-pencil-simple-line text-lg"></i></span>
+                    <p class="mt-1.5 text-xs font-bold text-foreground">Human · 30%</p>
+                    <p class="text-[10px] text-muted-foreground">edits</p>
+                  </div>
+                </div>
+                <div class="cw-split">
+                  <span class="bg-primary" style="--w:70%"></span>
+                  <span class="bg-foreground/25" style="--w:30%"></span>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-1 flex-col p-7">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-sparkle text-lg"></i></span><h3 class="text-lg font-bold">AI-powered</h3></div>
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">AI ~70% · editor</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">AI drafts about <b class="font-semibold text-foreground">70%</b> of each article; a human editor refines the other <b class="font-semibold text-foreground">30%</b> — sourcing, fact-checks, on-page and polish. Best value for <b class="font-semibold text-foreground">established sites</b> that already have authority.</p>
+              <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Lowest cost per article</span></li>
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Fast turnaround (2–4 days)</span></li>
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Human-edited, plagiarism &amp; AI-checked</span></li>
+              </ul>
+              <a href="#ai" class="mt-6 inline-flex items-center gap-1 self-start text-sm font-medium text-primary transition hover:gap-2">See A1000–A3000 <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+          <!-- Human -->
+          <article data-reveal class="tkw-card flex flex-col overflow-hidden rounded-2xl border-2 border-primary/30 bg-card">
+            <div class="tkw-figure flex items-center justify-center border-b border-border" style="height:11rem">
+              <div class="cw-fig w-full max-w-[17rem] px-2">
+                <p class="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Who writes it</p>
+                <div class="mb-3 flex items-start justify-between gap-2">
+                  <div class="text-center">
+                    <span class="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/30"><i class="ph-bold ph-pen-nib text-lg"></i></span>
+                    <p class="mt-1.5 text-xs font-bold text-primary">Human · 80%</p>
+                    <p class="text-[10px] text-muted-foreground">writes</p>
+                  </div>
+                  <span class="mt-3 text-muted-foreground/50"><i class="ph-bold ph-plus"></i></span>
+                  <div class="text-center">
+                    <span class="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-border bg-card text-foreground shadow-sm"><i class="ph-fill ph-sparkle text-lg"></i></span>
+                    <p class="mt-1.5 text-xs font-bold text-foreground">AI · 20%</p>
+                    <p class="text-[10px] text-muted-foreground">assists</p>
+                  </div>
+                </div>
+                <div class="cw-split">
+                  <span class="bg-primary" style="--w:80%"></span>
+                  <span class="bg-foreground/25" style="--w:20%"></span>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-1 flex-col p-7">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5"><span class="tkw-ic grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-pen-nib text-lg"></i></span><h3 class="text-lg font-bold">Human-written</h3></div>
+                <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">Human 70–80%</span>
+              </div>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">People write <b class="font-semibold text-foreground">70–80%</b> with real expertise and cited sources; AI only assists (<b class="font-semibold text-foreground">~20%</b>) with research and structure — deep <b class="font-semibold text-foreground">E-E-A-T</b>. The right choice for <b class="font-semibold text-foreground">new sites with low DA/PA</b> that need to earn trust fast.</p>
+              <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Genuine expertise &amp; cited sources</span></li>
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Deep E-E-A-T for low-authority sites</span></li>
+                <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Highest quality &amp; trust signals</span></li>
+              </ul>
+              <a href="#human" class="mt-6 inline-flex items-center gap-1 self-start text-sm font-medium text-primary transition hover:gap-2">See H1000–H3000 <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PACKAGES ============ -->
+    <section id="plans" class="border-t border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Packages &amp; pricing</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Per-article pricing, score included</h2>
+          <p class="mt-3 text-muted-foreground">Launch pricing — 60% off. Every article ships with a Content Score &amp; Methodology report and full file set. 10+ articles get an extra 10% off.</p>
+        </div>
+
+        <!-- AI -->
+        <div id="ai" class="mt-14 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-sparkle text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">AI-powered</h3>
+            <span class="cw-score"><i class="ph-fill ph-gauge"></i> Content Score included</span>
+            <span class="ml-auto text-sm text-muted-foreground">AI ~70% · human-edited · for established sites</span>
+          </div>
+          <div class="mt-6">
+            <PricingGrid cols={3} tiers={aiTiers} />
+          </div>
+        </div>
+
+        <!-- HUMAN -->
+        <div id="human" class="mt-16 scroll-mt-24">
+          <div data-reveal class="flex flex-wrap items-center gap-3 border-b border-border pb-4">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-pen-nib text-xl"></i></span>
+            <h3 class="text-xl font-bold tracking-tight">Human-written + AI-assisted</h3>
+            <span class="cw-score"><i class="ph-fill ph-gauge"></i> Content Score included</span>
+            <span class="ml-auto text-sm text-muted-foreground">Human 70–80% · deep E-E-A-T · for new sites</span>
+          </div>
+          <div class="mt-6">
+            <PricingGrid cols={3} tiers={humanTiers} />
+          </div>
+        </div>
+
+        <p data-reveal class="mt-10 text-center text-sm text-muted-foreground">Need a content plan at scale? <a href="#contact" class="font-semibold text-primary hover:underline">Tell us your volume</a> — 10+ articles get an extra 10% off.</p>
+      </div>
+    </section>
+
+    <!-- ============ AI vs HUMAN COMPARISON ============ -->
+    <section class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Compare tiers</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">AI-powered vs human-written</h2>
+          <p class="mt-3 text-muted-foreground">Same Google-safe standards and Content Score on both — the only difference is who does the writing.</p>
+        </div>
+        <div data-reveal class="mx-auto mt-10 max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-foreground/5">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-border">
+                <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
+                <th class="px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 text-[13px] font-bold"><i class="ph-fill ph-sparkle text-primary"></i> AI-powered</span></th>
+                <th class="border-l border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 text-[13px] font-bold text-primary"><i class="ph-fill ph-pen-nib"></i> Human-written</span></th>
+              </tr>
+            </thead>
+            <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-4 [&_td]:py-2.5">
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Written by</td>
+                <td class="text-center text-xs text-muted-foreground">AI ~70% + editor</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">Human 70–80%</td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Best for</td>
+                <td class="text-center text-xs text-muted-foreground">Established sites</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">New · low DA/PA</td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">E-E-A-T depth</td>
+                <td class="text-center text-xs text-muted-foreground">Standard</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">Deep + sources</td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Cost (from)</td>
+                <td class="text-center font-bold">$12</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center font-bold text-primary">$24</td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Turnaround</td>
+                <td class="text-center text-xs text-muted-foreground">2–4 days</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center text-xs font-medium text-foreground">3–5 days</td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">On-page SEO</td>
+                <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                <td class="border-l border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Plagiarism &amp; AI checked</td>
+                <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                <td class="border-l border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">Content Score &amp; Methodology</td>
+                <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                <td class="border-l border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+              </tr>
+              <tr class="transition hover:bg-muted/30">
+                <td class="!px-5 font-medium">HTML · DOC · TXT · images</td>
+                <td class="text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+                <td class="border-l border-border bg-primary/[0.04] text-center"><i class="ph-fill ph-check-circle text-base text-primary"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTENT SCORE & METHODOLOGY ============ -->
+    <section id="methodology" class="border-y border-border bg-muted/40 py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal>
+            <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">What's scored</span>
+            <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">The Content Score &amp; Methodology report</h2>
+            <p class="mt-4 text-muted-foreground">Every article gets one report URL showing a quality score, a live preview, and exactly how it was researched and written — so you never have to take "it's good" on faith.</p>
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-microphone-stage"></i></span><div><p class="text-sm font-semibold">Voice &amp; tone</p><p class="text-xs text-muted-foreground">Matched to your brand</p></div></div>
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-books"></i></span><div><p class="text-sm font-semibold">Sources</p><p class="text-xs text-muted-foreground">Citations &amp; references</p></div></div>
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-target"></i></span><div><p class="text-sm font-semibold">Search intent</p><p class="text-xs text-muted-foreground">What the query wants</p></div></div>
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-key"></i></span><div><p class="text-sm font-semibold">Keywords &amp; density</p><p class="text-xs text-muted-foreground">Safe, on-target usage</p></div></div>
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-book-open-text"></i></span><div><p class="text-sm font-semibold">Readability</p><p class="text-xs text-muted-foreground">Clear &amp; scannable</p></div></div>
+              <div class="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class="ph-bold ph-fingerprint"></i></span><div><p class="text-sm font-semibold">Originality</p><p class="text-xs text-muted-foreground">Plagiarism &amp; AI checked</p></div></div>
+            </div>
+          </div>
+
+          <!-- methodology report card -->
+          <div data-reveal class="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5 lg:p-8">
+            <div class="flex items-center justify-between pb-5">
+              <p class="text-sm font-semibold">Methodology · "Best CRM for startups"</p>
+              <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600"><i class="ph-fill ph-seal-check"></i> Grade A</span>
+            </div>
+            <div class="flex items-center gap-5 rounded-xl border border-border bg-muted/40 p-5">
+              <div class="tkw-gauge lg shrink-0" style="--to:94;--gc:#22c55e;--gd:.2s"><b class="text-green-500"><span data-count="94">0</span></b></div>
+              <div class="flex-1 space-y-2.5">
+                <div><div class="flex justify-between text-xs"><span class="text-muted-foreground">E-E-A-T</span><span class="font-medium">90</span></div><div class="tkw-bar mt-1" style="--bw:90%;--bd:.4s"><i></i></div></div>
+                <div><div class="flex justify-between text-xs"><span class="text-muted-foreground">Readability</span><span class="font-medium">92</span></div><div class="tkw-bar mt-1" style="--bw:92%;--bd:.55s"><i></i></div></div>
+                <div><div class="flex justify-between text-xs"><span class="text-muted-foreground">Originality</span><span class="font-medium">99</span></div><div class="tkw-bar mt-1" style="--bw:99%;--bd:.7s"><i></i></div></div>
+              </div>
+            </div>
+            <div class="mt-5 space-y-2.5 text-sm">
+              <div class="flex items-center justify-between border-b border-border/70 pb-2.5"><span class="inline-flex items-center gap-2 text-muted-foreground"><i class="ph-bold ph-target text-primary"></i> Search intent</span><span class="font-medium">Commercial · comparison</span></div>
+              <div class="flex items-center justify-between border-b border-border/70 pb-2.5"><span class="inline-flex items-center gap-2 text-muted-foreground"><i class="ph-bold ph-key text-primary"></i> Keyword density</span><span class="font-medium">1.4% · safe</span></div>
+              <div class="flex items-center justify-between border-b border-border/70 pb-2.5"><span class="inline-flex items-center gap-2 text-muted-foreground"><i class="ph-bold ph-books text-primary"></i> Sources cited</span><span class="font-medium">6 references</span></div>
+              <div class="flex items-center justify-between"><span class="inline-flex items-center gap-2 text-muted-foreground"><i class="ph-bold ph-fingerprint text-primary"></i> AI-detection</span><span class="font-medium text-green-500">Passed</span></div>
+            </div>
+            <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-file-html text-primary"></i> HTML</span>
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-file-doc text-primary"></i> DOC</span>
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-file-text text-primary"></i> TXT</span>
+              <span class="inline-flex items-center gap-1.5"><i class="ph-bold ph-image text-primary"></i> Images</span>
+              <span class="ml-auto inline-flex items-center gap-1.5 font-semibold text-primary"><i class="ph-bold ph-link"></i> 1 report URL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section id="process" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div data-reveal class="mx-auto max-w-2xl text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">How it works</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">From brief to scored article in four steps</h2>
+          <p class="mt-3 text-muted-foreground">Brief confirmed up front, every draft checked for SEO, plagiarism and AI-detection before it reaches you.</p>
+        </div>
+
+        <div class="cw-flow tkw-grid mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">01</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-clipboard-text text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Confirm the brief</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You send the target URL, keyword (or a Keyword Research link), outline, tone and any references. We confirm in ~24h.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">02</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-pencil-line text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Write &amp; illustrate</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">AI-drafted or human-written to the brief, on-page optimized, with an image set to match.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">03</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Score &amp; QA</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Internal review: on-page SEO, plagiarism, AI-detection and Google-compliance — then the Content Score is generated.</p>
+          </article>
+
+          <article data-reveal class="cw-step-card tkw-step relative z-10 rounded-2xl border border-border bg-card p-6">
+            <div class="flex items-center justify-between"><span class="font-display text-3xl font-bold tkw-num">04</span><span class="tkw-ic grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-package text-xl"></i></span></div>
+            <h3 class="mt-4 font-semibold">Deliver &amp; revise</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">You get one URL with the score, methodology, preview and downloads — plus revisions against the brief.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GUARANTEE BAND ============ -->
+    <section class="border-y border-border bg-muted/40 py-14 lg:py-20">
+      <div class="mx-auto max-w-7xl px-5 lg:px-8">
+        <div class="tkw-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-shield-check text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Google-safe</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Guideline-compliant, helpful content.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-fingerprint text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Original &amp; checked</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Plagiarism &amp; AI-detection passed.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-gauge text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Scored &amp; sourced</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Transparent methodology, every piece.</p></div>
+          </div>
+          <div data-reveal class="tkw-card flex items-start gap-3 rounded-2xl border border-border bg-card p-5">
+            <span class="tkw-ic grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class="ph-bold ph-arrows-clockwise text-xl"></i></span>
+            <div><h3 class="text-sm font-semibold">Revisions included</h3><p class="mt-1 text-xs leading-relaxed text-muted-foreground">Refined against your brief.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 lg:px-8">
+        <div data-reveal class="text-center">
+          <span class="text-xs font-bold uppercase tracking-[0.16em] text-primary">FAQ</span>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Questions, answered</h2>
+        </div>
+        <div class="mt-10 space-y-3">
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5" open>
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Does the Content Score &amp; Methodology come with every article?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes — every article, AI or human-written, is delivered with a Content Score and a Methodology report: voice, sources, search intent, keywords &amp; density, readability, E-E-A-T and originality. No black box.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Will AI content get penalized by Google?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">No. Google rewards helpful content regardless of how it's produced. Our AI tier is human-edited, on-page optimized, and passes plagiarism and AI-detection checks. For maximum trust, the human-written tier adds deeper E-E-A-T.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">How many revisions are included?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Revisions are included per package against the agreed brief and outline. We confirm the brief, outline and keyword before writing, so the first draft already matches your direction.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Is keyword research included?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">You can supply your own keywords or link an order from our Keyword Research service. We optimize each article around the target keyword at a safe density.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Where do I see the score and sources?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Each article gets one URL showing the Content Score, full Methodology and a live preview — with downloads for HTML, DOC, TXT and images.</p>
+          </details>
+          <details data-reveal class="faq-item group rounded-xl border border-border bg-card p-5">
+            <summary class="flex cursor-pointer items-center justify-between gap-4 font-semibold">Is there a discount for multiple articles?<i class="ph-bold ph-caret-down transition group-open:rotate-180"></i></summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted-foreground">Yes — orders of 10 or more articles get an additional 10% off. Tell us your volume and we'll quote a content plan.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA / CONTACT ============ -->
+    <section id="contact" class="py-16 lg:py-24">
+      <div class="mx-auto max-w-3xl px-5 text-center lg:px-8">
+        <div data-reveal class="rounded-3xl border border-border bg-card p-10 shadow-lg shadow-foreground/5 lg:p-14">
+          <span class="grid h-14 w-14 mx-auto place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"><i class="ph-bold ph-pen-nib text-2xl"></i></span>
+          <h2 class="mt-6 text-3xl font-bold tracking-tight md:text-4xl">Get content you can measure</h2>
+          <p class="mt-3 text-muted-foreground">Leave your details and a specialist will recommend AI or human-written, scope your topics, and quote a content plan — every article scored and sourced.</p>
+          <form id="lead-form" class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center" novalidate>
+            <input type="hidden" id="lead-package" name="package" value="" />
+            <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" class="hidden" />
+            <label for="cta-email" class="sr-only">Email or phone number</label>
+            <input id="cta-email" name="contact" type="text" inputmode="email" autocomplete="email" placeholder="Your email or phone number" class="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:max-w-xs" />
+            <button id="lead-submit" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">
+              <span class="lead-spinner hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span class="lead-submit-label">Get a content plan</span>
+            </button>
+          </form>
+          <p id="lead-status" class="mt-4 text-sm text-muted-foreground">Or call our hotline <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a> for help right away.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script is:inline>
+(function () {
+      var pkgField = document.getElementById('lead-package');
+      var input = document.getElementById('cta-email');
+      var status = document.getElementById('lead-status');
+      var defaultStatus = status ? status.innerHTML : '';
+      document.querySelectorAll('a[data-goi]').forEach(function (a) {
+        a.addEventListener('click', function () {
+          var name = a.getAttribute('data-goi');
+          if (pkgField) pkgField.value = name;
+          if (input) input.placeholder = 'Ask about: ' + name.split(' · ')[0];
+          if (status) status.textContent = 'You’re interested in the "' + name + '" package. Leave your contact details!';
+        });
+      });
+    })();
+  </script>
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>
