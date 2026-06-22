@@ -56,9 +56,9 @@ New → Confirmed → Assigned → In progress → Internal review → Delivered
 **Packages (giá đã giảm 40%, trừ credit):**
 | Gói | Cho ai | Gồm gì | Giá | SLA |
 |---|---|---|---|---|
-| **Basic** | Site nhỏ/mới | 1 cluster chính · ~50 từ khóa · volume + difficulty | **$19** | 5 ngày |
-| **Standard** ⭐ | Đa số | 3–5 cluster · ~150 từ khóa · **so sánh 3 đối thủ** (metrics + spider chart) · gợi ý chiến lược | **$39** | 4 ngày |
-| **Pro** | Site lớn/sâu | Không giới hạn cluster · ~300+ từ khóa · **SWOT** + benchmark 5 đối thủ · lộ trình 3–6 tháng · **skip hỏi thêm** | **$79** | 3 ngày |
+| **Basic** | Site nhỏ/mới | 1 cluster chính · ~50 từ khóa · search volume + difficulty | **$19** | 5 ngày |
+| **Standard** ⭐ | Đa số | 3–5 cluster · ~150 từ khóa · volume + difficulty + intent · **so sánh 3 đối thủ** (metrics + spider chart) · gợi ý chiến lược SEO | **$39** | 4 ngày |
+| **Pro** | Site lớn/sâu | không giới hạn cluster · ~300+ từ khóa · volume + difficulty + intent · **SWOT + benchmark 5 đối thủ** · lộ trình SEO 3–6 tháng · ưu tiên triển khai · **skip hỏi thêm** | **$79** | 3 ngày |
 
 **Input (form):** Website URL · Sản phẩm/dịch vụ/thông tin website (textarea hoặc **chat AI**) · *(tùy chọn)* thị trường/ngôn ngữ, đối thủ đã biết.
 
@@ -82,25 +82,25 @@ New → Confirmed → Assigned → In progress → Internal review → Delivered
 ### 2.1 Backlink Entity — branding & social · *index 80–95% · kèm Indexer*
 | Gói | Links | Gồm | Giá | SLA |
 |---|---|---|---|---|
-| Entity 300 | 300 | business profiles · NAP · social citations | **$52** | 7–10 ngày |
-| Entity 500 ⭐ | 500 | + directory uy tín | **$79** | 10–14 ngày |
-| Entity 1000 | 1000 | + bộ entity mở rộng | **$139** | 14–21 ngày |
+| Entity 300 | 300 | business profiles · NAP citations · social citations · **Indexer kèm** | **$52** | 7–10 ngày |
+| Entity 500 ⭐ | 500 | profiles · NAP · social · **directory uy tín** · Indexer kèm | **$79** | 10–14 ngày |
+| Entity 1000 | 1000 | profiles · NAP · social · directory · **web 2.0 / entity mở rộng** · Indexer kèm | **$139** | 14–21 ngày |
 
 ### 2.2 Backlink Pyramid — boost power qua nhiều tier · *index ~70% · kèm Indexer*
 *Cho website đã “cứng”, dồn power cho **1 URL / category / service**.* **4 gói:**
 | Gói | Cấu trúc | Giá | SLA |
 |---|---|---|---|
-| Pyramid Starter | Tier-1 contextual + Tier-2 hỗ trợ | **$36** | 10 ngày |
-| Pyramid Growth ⭐ | 2 tier dày hơn | **$64** | 14 ngày |
-| Pyramid Power | 3 tier | **$104** | 18 ngày |
-| Pyramid Max | 3 tier + indexer nâng cao | **$159** | 21 ngày |
+| Pyramid Starter | Tier-1 contextual links → Tier-2 hỗ trợ · Indexer kèm | **$36** | 10 ngày |
+| Pyramid Growth ⭐ | Tier-1 dày hơn → Tier-2 hỗ trợ · Indexer kèm | **$64** | 14 ngày |
+| Pyramid Power | Tier-1 → Tier-2 → Tier-3 (3 tầng) · Indexer kèm | **$104** | 18 ngày |
+| Pyramid Max | 3 tầng đầy đủ + bổ sung link mạnh · **Indexer nâng cao** | **$159** | 21 ngày |
 
 ### 2.3 Guest Post — viết bài + outreach + đặt link · *index ~100% · kèm Indexer*
 | Gói | Gồm | Giá | SLA |
 |---|---|---|---|
-| Guest 3 (DR30+) | 3 bài · viết + outreach + đặt link | **$104** | 2–3 tuần |
-| Guest 5 (DR40+) ⭐ | 5 bài DR cao hơn | **$180** | 3 tuần |
-| Guest 5 Pro (DR50+) | 5 bài DR50+ · **đi thêm Pyramid cho mỗi bài** | **$280** | 3–4 tuần |
+| Guest 3 (DR30+) | 3 bài guest post (DR30+) · viết bài chuẩn SEO + outreach site phù hợp + đặt link · Indexer kèm | **$104** | 2–3 tuần |
+| Guest 5 (DR40+) ⭐ | 5 bài guest post (DR40+) · viết bài chuẩn SEO + outreach + đặt link · Indexer kèm | **$180** | 3 tuần |
+| Guest 5 Pro (DR50+) | 5 bài guest post (DR50+) · viết bài chuẩn SEO + outreach + đặt link · **đi thêm Backlink Pyramid cho mỗi bài** · Indexer kèm | **$280** | 3–4 tuần |
 
 ### 2.4 PR — báo quốc tế · *index ~100%* · **consult**
 Viết + đăng bài trên **báo quốc tế**; **site báo & chi phí do tư vấn viên đề xuất** theo ngân sách/ngành. Từ ~**$120/bài**.
@@ -124,16 +124,16 @@ Viết + đăng bài trên **báo quốc tế**; **site báo & chi phí do tư v
 ### 3.1 AI-powered content *(AI ~70% / editor ~30%, rẻ — cho site đã có tuổi)*
 | Gói | Độ dài | Gồm | Giá | SLA |
 |---|---|---|---|---|
-| **A1000** | ~1000 từ | bài + ảnh + on-page SEO + **content score & methodology** | **$12** | 2–3 ngày |
-| **A2000** ⭐ | ~2000 từ | // | **$19** | 3 ngày |
-| **A3000** | ~3000 từ | // | **$28** | 3–4 ngày |
+| **A1000** | ~1000 từ | 1 bài chuẩn SEO · ảnh minh hoạ · tối ưu on-page (title/meta/heading/density/internal link) · **Content Score & Methodology** | **$12** | 2–3 ngày |
+| **A2000** ⭐ | ~2000 từ | 1 bài chuẩn SEO · ảnh minh hoạ · tối ưu on-page (title/meta/heading/density/internal link) · **Content Score & Methodology** | **$19** | 3 ngày |
+| **A3000** | ~3000 từ | 1 bài chuẩn SEO · ảnh minh hoạ · tối ưu on-page (title/meta/heading/density/internal link) · **Content Score & Methodology** | **$28** | 3–4 ngày |
 
 ### 3.2 Human-written + AI-assisted *(người viết 70–80% — chất lượng cao, cho site mới DA/PA thấp)*
 | Gói | Độ dài | Gồm | Giá | SLA |
 |---|---|---|---|---|
-| **H1000** | ~1000 từ | bài + ảnh + on-page SEO + E-E-A-T + score & methodology | **$24** | 3–4 ngày |
-| **H2000** ⭐ | ~2000 từ | // | **$39** | 4 ngày |
-| **H3000** | ~3000 từ | // | **$56** | 5 ngày |
+| **H1000** | ~1000 từ | 1 bài người viết chuẩn SEO · ảnh · on-page · tối ưu **E-E-A-T** (chuyên môn, nguồn dẫn) · **Content Score & Methodology** | **$24** | 3–4 ngày |
+| **H2000** ⭐ | ~2000 từ | 1 bài người viết chuẩn SEO · ảnh · on-page · tối ưu **E-E-A-T** (chuyên môn, nguồn dẫn) · **Content Score & Methodology** | **$39** | 4 ngày |
+| **H3000** | ~3000 từ | 1 bài người viết chuẩn SEO · ảnh · on-page · tối ưu **E-E-A-T** (chuyên môn, nguồn dẫn) · **Content Score & Methodology** | **$56** | 5 ngày |
 
 *Cả hai tuân thủ guideline Google, an toàn cao. Gói nhiều bài giảm thêm (đề xuất ≥10 bài −10%).*
 
@@ -162,9 +162,9 @@ Viết + đăng bài trên **báo quốc tế**; **site báo & chi phí do tư v
 **Packages (3 gói, giá đã giảm 40%, trừ credit):**
 | Gói | Phạm vi | Giá | SLA |
 |---|---|---|---|
-| **Basic** | technical · on-page cơ bản · index coverage | **$19** | 2 ngày |
-| **Standard** ⭐ | + content · schema · Core Web Vitals | **$39** | 2–3 ngày |
-| **Pro** | + backlink profile · CWV sâu · competitor benchmark · ưu tiên fix · *(tùy chọn GSC/GA)* | **$69** | 3–4 ngày |
+| **Basic** | technical SEO · on-page cơ bản · index coverage | **$19** | 2 ngày |
+| **Standard** ⭐ | technical · on-page · content · schema · Core Web Vitals · index coverage | **$39** | 2–3 ngày |
+| **Pro** | technical · on-page · content · schema · **CWV sâu · backlink profile · competitor benchmark** · ưu tiên fix · *(tùy chọn GSC/GA)* | **$69** | 3–4 ngày |
 
 **Input (form):** Website URL · *(Pro, tùy chọn)* quyền **GSC/GA**.
 
@@ -185,10 +185,10 @@ Viết + đăng bài trên **báo quốc tế**; **site báo & chi phí do tư v
 **Packages:**
 | Gói | Gồm (tăng dần) | Giá | SLA |
 |---|---|---|---|
-| **Basic** | tối ưu **speed** · ảnh · cache | **$40** | 3–5 ngày |
-| **Standard** ⭐ | + on-page SEO · schema · Core Web Vitals · **AI-ready / GEO** (structured/answer-ready, entity, optimize cho AI search & generative engines) | **$79** | 5–7 ngày |
-| **Ultra** | + technical SEO sâu · JS/render · internal linking · GEO nâng cao | **consult** | 7–10 ngày |
-| **Custom** *(web bự)* | task riêng theo audit | **consult** | thỏa thuận |
+| **Basic** | tối ưu **speed**: nén ảnh · cache · minify · lazyload | **$40** | 3–5 ngày |
+| **Standard** ⭐ | speed · **on-page SEO · schema · Core Web Vitals · AI-ready/GEO** (structured/answer-ready, entity, tối ưu cho AI search & generative engines) | **$79** | 5–7 ngày |
+| **Ultra** | tất cả Standard · **technical SEO sâu · JS/render optimization · internal linking · GEO nâng cao** | **consult** | 7–10 ngày |
+| **Custom** *(web bự)* | task riêng theo kết quả audit (quy mô lớn) | **consult** | thỏa thuận |
 
 **Input (form):** Website URL · *(sau khi chốt)* **quyền truy cập source code**.
 
