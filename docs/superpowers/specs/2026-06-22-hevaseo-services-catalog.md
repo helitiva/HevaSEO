@@ -276,7 +276,7 @@ Viết + đăng bài trên **báo quốc tế**; **site báo & chi phí do tư v
 | Backlink Guest | $104 / $180 / $280 · **index ~100% · kèm Indexer** | Excel + live report |
 | Backlink PR | **consult** (từ ~$120/bài) · **index ~100%** | Link bài báo |
 | Content A1000–A3000 | $12 / $19 / $28 | HTML + DOC + TXT + ảnh + **score & methodology (1 URL)** |
-| Content H1000–H3000 | $24 / $39 / $56 | // |
+| Content H1000–H3000 | $24 / $39 / $56 | HTML + DOC + TXT + ảnh + **score & methodology (1 URL)** |
 | Audit | $19 / $39 / $69 | Trang report + PDF (điểm + lỗi severity) |
 | Website Optimization | $40 / $79 · Ultra/Custom **consult** · **+AI-ready/GEO** | Web tối ưu + before/after + deploy |
 | Website Development | từ $79… · full-site **báo giá sau draft** | Website + audit + hướng dẫn domain |
