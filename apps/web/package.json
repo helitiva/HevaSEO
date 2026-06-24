@@ -10,6 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@heva/catalog": "workspace:*",
     "@heva/ui": "workspace:*",
     "astro": "^5.6.1",
     "@astrojs/tailwind": "^5.1.5",

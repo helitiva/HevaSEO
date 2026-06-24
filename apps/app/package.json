@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heva/catalog": "workspace:*",
     "@heva/ui": "workspace:*",
     "next": "^15.3.0",
     "next-themes": "^0.4.4",
