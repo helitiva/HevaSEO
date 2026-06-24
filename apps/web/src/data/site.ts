@@ -9,6 +9,13 @@ export const site = {
   whatsapp: 'https://wa.me/14155550142',
   messenger: 'https://m.me/hevaseo',
   address: 'San Francisco, CA',
+  // Customer dashboard (the portal app). Placeholder anchors today — swap for the
+  // real app URLs (e.g. https://app.hevaseo.com/login) when the portal goes live.
+  dashboard: {
+    url: '/#dashboard',
+    login: '/#dashboard',
+    signup: '/#dashboard',
+  },
   social: {
     facebook: '#',
     youtube: '#',

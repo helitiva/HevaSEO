@@ -1,0 +1,751 @@
+---
+/**
+ * Shared quick-order layout. Same format for every service; the service-specific
+ * brief fields are passed via the default `brief` slot. Drives a sticky order
+ * summary and a mock submit (no backend) consistent with the site's lead forms.
+ *
+ *   <OrderShell service={service}>
+ *     <OrderField ... />   // service-specific brief fields
+ *   </OrderShell>
+ */
+import { resolveAddOns } from '@heva/catalog';
+import type { OrderService } from '../../data/orders';
+import { DEFAULT_STEPS } from '../../data/orders';
+import { site } from '../../data/site';
+import PackagePicker from './PackagePicker.astro';
+import OrderSummary from './OrderSummary.astro';
+import OrderField from './OrderField.astro';
+
+interface Props {
+  service: OrderService;
+}
+const { service } = Astro.props;
+const howItWorks = service.steps ?? DEFAULT_STEPS;
+const addons = resolveAddOns(service.addons ?? []);
+// Add-on detail groups: one per (add-on × tier) that has extra fields.
+const addonGroups = addons.flatMap((a) =>
+  a.tiers.filter((t) => t.fields && t.fields.length > 0).map((t) => ({ addon: a, tier: t })),
+);
+
+// Packages may be flat or split into typed groups (e.g. backlink). One selection spans all.
+const allPackages = service.packageGroups ? service.packageGroups.flatMap((g) => g.packages) : (service.packages ?? []);
+const globalDefault = (allPackages.find((p) => p.popular) ?? allPackages[0])?.id;
+const colsFor = (n: number): 1 | 2 | 3 | 4 | 5 => (n >= 5 ? 5 : n === 4 ? 4 : n === 2 ? 2 : n === 1 ? 1 : 3);
+
+const isUsage = service.pricingMode === 'usage' && !!service.usage;
+
+const StepHeading = (n: number, title: string, sub: string) => ({ n, title, sub });
+const steps = [
+  isUsage
+    ? StepHeading(1, 'Submit your backlinks', 'Paste, upload or link your URLs — priced per link.')
+    : StepHeading(1, 'Choose your package', 'Pick the scope that fits — you can change it after we talk.'),
+  StepHeading(2, 'Project brief', 'Tell us about your site so we hit the ground running.'),
+  StepHeading(3, 'Your details', 'Where to send the confirmation. No payment at this step.'),
+];
+---
+<main class="bg-background">
+  <!-- ============ HEADER ============ -->
+  <section class="border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent">
+    <div class="mx-auto max-w-7xl px-5 pb-7 pt-4 lg:px-8 lg:pt-4">
+      <nav aria-label="Breadcrumb" class="text-xs text-muted-foreground">
+        <ol class="flex flex-wrap items-center gap-1.5">
+          <li><a href="/" class="hover:text-foreground">Home</a></li>
+          <li aria-hidden="true"><i class="ph-bold ph-caret-right text-[10px]"></i></li>
+          <li><a href={service.servicePath} class="hover:text-foreground">{service.name}</a></li>
+          <li aria-hidden="true"><i class="ph-bold ph-caret-right text-[10px]"></i></li>
+          <li class="font-medium text-foreground" aria-current="page">Order</li>
+        </ol>
+      </nav>
+
+      <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_minmax(0,560px)] lg:items-center">
+        <div>
+          <div class="flex items-start gap-4">
+            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+              <i class={`ph-bold ${service.icon} text-2xl`}></i>
+            </span>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.16em] text-primary">Quick order</p>
+              <h1 class="mt-1 font-display text-3xl font-bold tracking-tight md:text-4xl">Order {service.name}</h1>
+            </div>
+          </div>
+          <p class="mt-4 max-w-xl text-muted-foreground">{service.tagline}</p>
+        </div>
+
+        <!-- order via dashboard (alternative) -->
+        <div class="flex flex-col gap-4 rounded-2xl border border-primary/30 bg-primary/[0.06] p-5 shadow-sm shadow-primary/5 sm:flex-row sm:items-center">
+          <div class="flex flex-1 items-start gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
+              <i class="ph-bold ph-squares-four"></i>
+            </span>
+            <div>
+              <p class="font-display text-base font-bold leading-snug tracking-tight">A more convenient way to place order</p>
+              <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Sign up or log in to place orders, store your brief, and track every project in one place — it's just as fast.</p>
+            </div>
+          </div>
+          <div class="flex shrink-0 flex-col gap-2 sm:w-40">
+            <a href={site.dashboard.signup} class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">
+              Create account <i class="ph-bold ph-arrow-right"></i>
+            </a>
+            <a href={site.dashboard.login} class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold transition hover:bg-accent hover:text-accent-foreground">
+              <i class="ph-bold ph-sign-in"></i> Log in
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- how it works -->
+      <ol class="mt-5 grid gap-3 sm:grid-cols-3">
+        {howItWorks.map((s, i) => (
+          <li class="relative flex flex-col rounded-2xl border border-border bg-card/70 p-4">
+            <span class="absolute right-3 top-3 font-display text-xs font-bold text-muted-foreground/40">{`0${i + 1}`}</span>
+            <div class="flex items-center gap-3">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <i class={`ph-bold ${s.icon}`}></i>
+              </span>
+              <p class="text-sm font-semibold">{s.title}</p>
+            </div>
+            <p class="mt-2 text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
+            {s.points && s.points.length > 0 && (
+              <ul class="mt-3 space-y-2 border-t border-border/60 pt-3">
+                {s.points.map((pt) => (
+                  <li class="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                    <i class={`ph-bold ${pt.icon} mt-0.5 shrink-0 text-primary`}></i>
+                    <span set:html={pt.text}></span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ FORM + SUMMARY ============ -->
+  <section class="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
+    <form id="order-form" novalidate>
+      <input type="hidden" name="service" value={service.slug} />
+      <!-- honeypot: real users never fill this -->
+      <input type="text" name="company_url" tabindex="-1" autocomplete="off" aria-hidden="true" class="pointer-events-none absolute -left-[9999px] h-0 w-0 opacity-0" />
+
+      <!-- Step 1: choose package — full width so the cards breathe -->
+      <div class="rounded-3xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 lg:p-7">
+        <div class="flex items-center gap-3">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">{steps[0].n}</span>
+          <div>
+            <h2 class="font-display text-lg font-bold tracking-tight">{steps[0].title}</h2>
+            <p class="text-xs text-muted-foreground">{steps[0].sub}</p>
+          </div>
+        </div>
+        <div class="mt-5">
+          {isUsage && service.usage ? (
+            <div
+              id="order-usage"
+              data-tiers={JSON.stringify(service.usage.tiers)}
+              data-default={service.usage.defaultQty}
+              data-unit={service.usage.unit}
+              class="space-y-4"
+            >
+              <div class="rounded-2xl border border-primary/30 bg-primary/[0.04] p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="flex items-center gap-2 text-sm font-bold"><i class="ph-bold ph-link text-primary"></i> Your backlink URLs</p>
+                    <p id="usage-note" class="mt-0.5 text-xs text-muted-foreground">One {service.usage.unit} per {service.usage.countNoun} — paste, upload, or link a sheet.</p>
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <p class="font-display text-2xl font-bold leading-none text-primary"><span id="usage-qty-out">0</span></p>
+                    <p class="text-[11px] font-medium text-muted-foreground">{service.usage.unitPlural}</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1 text-xs font-semibold">
+                  <button type="button" class="usage-tab rounded-md px-3 py-1.5 text-muted-foreground transition" data-mode="paste"><i class="ph-bold ph-list-bullets mr-1"></i>Paste URLs</button>
+                  <button type="button" class="usage-tab rounded-md px-3 py-1.5 text-muted-foreground transition" data-mode="file"><i class="ph-bold ph-table mr-1"></i>Upload / Google Sheet</button>
+                </div>
+
+                <div class="usage-pane mt-3" data-pane="paste">
+                  <textarea id="usage-links" name="links" rows="6" placeholder={"https://site.com/your-backlink-1\nhttps://site.com/your-backlink-2\n…"} class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-relaxed outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
+                  <p class="mt-1 text-[11px] text-muted-foreground">One URL per line. We push each into Google's index and report the status.</p>
+                </div>
+
+                <div class="usage-pane mt-3 hidden" data-pane="file">
+                  {service.usage.sampleUrl && (
+                    <div class="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.05] p-3 text-xs leading-relaxed text-muted-foreground">
+                      <i class="ph-fill ph-info mt-0.5 shrink-0 text-primary"></i>
+                      <span>Paste your URLs into <a href={service.usage.sampleUrl} target="_blank" rel="noopener" class="font-semibold text-primary hover:underline">our sample sheet</a>. If you share a Sheet link, <b class="font-semibold text-foreground">grant access to {site.email}</b>.</span>
+                    </div>
+                  )}
+                  <label class="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-background p-4 transition hover:border-primary/50">
+                    <i class="ph-bold ph-file-xls text-2xl text-primary"></i>
+                    <span class="min-w-0 flex-1"><span id="usage-file-name" class="block truncate text-sm font-medium">Upload .csv / .txt / .xlsx</span><span class="block text-[11px] text-muted-foreground">One URL per row.</span></span>
+                    <input id="usage-file" name="links_file" type="file" accept=".csv,.txt,.xlsx,.xls" class="sr-only" />
+                    <span class="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Browse</span>
+                  </label>
+                  <div class="my-3 flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground"><span class="h-px flex-1 bg-border"></span> or <span class="h-px flex-1 bg-border"></span></div>
+                  <input id="usage-sheet" name="links_sheet" type="url" placeholder="Paste your Google Sheet link" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <label for="usage-count" class="text-xs font-medium">Number of {service.usage.unitPlural}</label>
+                    <input id="usage-count" type="number" min="1" value={service.usage.defaultQty} class="w-28 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid gap-2 sm:grid-cols-3">
+                {service.usage.tiers.map((t, i) => (
+                  <div class="usage-tier rounded-xl border border-border bg-card p-3 text-center transition" data-tier={i}>
+                    <p class="font-display text-lg font-bold text-primary">${t.rate.toFixed(3)}<span class="text-[11px] font-medium text-muted-foreground">/{service.usage!.unit}</span></p>
+                    <p class="mt-0.5 text-[11px] font-semibold">{t.label}</p>
+                    {t.sub && <p class="text-[10px] text-muted-foreground">{t.sub}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : service.packageGroups ? (
+            <div class="space-y-7">
+              {service.packageGroups.map((g) => (
+                <div>
+                  <div class="flex items-center gap-2.5">
+                    {g.icon && <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i class={`ph-bold ${g.icon}`}></i></span>}
+                    <div>
+                      <p class="font-display font-bold tracking-tight">{g.title}</p>
+                      {g.subtitle && <p class="text-xs text-muted-foreground">{g.subtitle}</p>}
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <PackagePicker packages={g.packages} selectedId={globalDefault} cols={g.cols ?? colsFor(g.packages.length)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <PackagePicker packages={service.packages ?? []} selectedId={globalDefault} cols={colsFor((service.packages ?? []).length)} />
+          )}
+        </div>
+      </div>
+
+      <!-- Steps 2 & 3 + order summary -->
+      <div id="order-grid" class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div class="flex flex-col gap-6">
+          <!-- Step 2: project brief -->
+          <div class="rounded-3xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 lg:p-7">
+            <div class="flex items-center gap-3">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">{steps[1].n}</span>
+              <div>
+                <h2 class="font-display text-lg font-bold tracking-tight">{steps[1].title}</h2>
+                <p class="text-xs text-muted-foreground">{steps[1].sub}</p>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              {service.brief?.map((f) => (
+                <OrderField label={f.label} name={f.name} as={f.as} type={f.type} placeholder={f.placeholder} hint={f.hint} required={f.required} rows={f.rows} icon={f.icon} colSpan={f.colSpan} autocomplete={f.autocomplete} inputmode={f.inputmode} options={f.options} />
+              ))}
+            </div>
+
+            {service.bulk && (
+              <div
+                id="order-bulk"
+                data-min={service.bulk.minDiscountQty}
+                data-pct={service.bulk.discountPct}
+                data-default={service.bulk.defaultQty}
+                data-unit={service.bulk.unit}
+                class="mt-5 rounded-2xl border border-primary/30 bg-primary/[0.04] p-5"
+              >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="flex items-center gap-2 text-sm font-bold"><i class="ph-bold ph-list-bullets text-primary"></i> Keyword list — one {service.bulk.unit} per row</p>
+                    <p id="bulk-note" class="mt-0.5 text-xs text-muted-foreground">Add each article's keyword (plus optional internal-link &amp; reference URLs), or upload a sheet.</p>
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <p class="font-display text-2xl font-bold leading-none text-primary"><span id="bulk-qty-out">0</span></p>
+                    <p class="text-[11px] font-medium text-muted-foreground">{service.bulk.unitPlural}</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1 text-xs font-semibold">
+                  <button type="button" class="bulk-tab rounded-md px-3 py-1.5 text-muted-foreground transition" data-mode="rows"><i class="ph-bold ph-rows mr-1"></i>Add keywords</button>
+                  <button type="button" class="bulk-tab rounded-md px-3 py-1.5 text-muted-foreground transition" data-mode="file"><i class="ph-bold ph-table mr-1"></i>Upload / Google Sheet</button>
+                </div>
+
+                <!-- METHOD 1: per-row keywords -->
+                <div class="bulk-pane mt-3" data-pane="rows">
+                  <div class="hidden gap-2 px-1 pb-1 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[1.2fr_1fr_1fr_auto]">
+                    <span>Keyword(s) for the article</span>
+                    <span>Internal link URL <span class="opacity-60">· optional</span></span>
+                    <span>Reference URL <span class="opacity-60">· optional</span></span>
+                    <span></span>
+                  </div>
+                  <div id="bulk-rows" class="space-y-2">
+                    {[0, 1, 2].map(() => (
+                      <div class="bulk-row grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr_auto]">
+                        <input name="kw_keyword[]" class="bulk-row-kw rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="best running shoes for flat feet" />
+                        <input name="kw_internal[]" type="text" class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="/related-page" />
+                        <input name="kw_reference[]" type="url" class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="https://ref.com/article" />
+                        <button type="button" class="bulk-row-remove grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-destructive/40 hover:text-destructive" aria-label="Remove row"><i class="ph-bold ph-x"></i></button>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" id="bulk-add-row" class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/5"><i class="ph-bold ph-plus"></i> Add article</button>
+                </div>
+
+                <!-- METHOD 2: upload / Google Sheet -->
+                <div class="bulk-pane mt-3 hidden" data-pane="file">
+                  <div class="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.05] p-3 text-xs leading-relaxed text-muted-foreground">
+                    <i class="ph-fill ph-info mt-0.5 shrink-0 text-primary"></i>
+                    <span>Fill keywords &amp; clusters using {service.bulk.sampleUrl ? (<a href={service.bulk.sampleUrl} target="_blank" rel="noopener" class="font-semibold text-primary hover:underline">our sample Google Sheet</a>) : 'our template'} (pre-formatted columns). If you share a Sheet link, <b class="font-semibold text-foreground">grant access to {site.email}</b>.</span>
+                  </div>
+
+                  <label class="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-background p-4 transition hover:border-primary/50">
+                    <i class="ph-bold ph-file-xls text-2xl text-primary"></i>
+                    <span class="min-w-0 flex-1"><span id="bulk-file-name" class="block truncate text-sm font-medium">Upload your .xlsx / .csv</span><span class="block text-[11px] text-muted-foreground">Matching our template columns.</span></span>
+                    <input id="bulk-file" name="keywords_file" type="file" accept=".xlsx,.xls,.csv" class="sr-only" />
+                    <span class="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Browse</span>
+                  </label>
+
+                  <div class="my-3 flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground"><span class="h-px flex-1 bg-border"></span> or <span class="h-px flex-1 bg-border"></span></div>
+
+                  <input id="bulk-sheet" name="keywords_sheet" type="url" placeholder="Paste your Google Sheet link" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <label for="bulk-count" class="text-xs font-medium">Number of SEO {service.bulk.unitPlural}</label>
+                    <input id="bulk-count" type="number" min="1" max="1000" value={service.bulk.defaultQty} class="w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <!-- Step 3: your details -->
+          <div class="rounded-3xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 lg:p-7">
+            <div class="flex items-center gap-3">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">{steps[2].n}</span>
+              <div>
+                <h2 class="font-display text-lg font-bold tracking-tight">{steps[2].title}</h2>
+                <p class="text-xs text-muted-foreground">{steps[2].sub}</p>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              <OrderField label="Full name" name="name" required colSpan={1} icon="ph-user" placeholder="Jane Doe" autocomplete="name" />
+              <OrderField label="Email" name="email" type="email" required colSpan={1} icon="ph-envelope-simple" placeholder="you@company.com" autocomplete="email" inputmode="email" />
+              <OrderField label="Phone / WhatsApp" name="phone" type="tel" colSpan={1} icon="ph-phone" placeholder="+1 (415) 555-0142" autocomplete="tel" inputmode="tel" />
+              <OrderField label="Company" name="company" colSpan={1} icon="ph-buildings" placeholder="Your brand" autocomplete="organization" />
+              <OrderField label="Anything else we should know?" name="notes" as="textarea" rows={3} placeholder="Deadlines, internal context, links to share…" />
+            </div>
+          </div>
+
+          <!-- Add-on details: the extras each ticked add-on (selected tier) needs -->
+          {addonGroups.length > 0 && (
+            <div id="addon-details" class="hidden rounded-3xl border border-emerald-500/30 bg-emerald-500/[0.04] p-6 shadow-sm shadow-foreground/5 lg:p-7">
+              <div class="flex items-center gap-3">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-500 font-display text-sm font-bold text-white"><i class="ph-bold ph-plus"></i></span>
+                <div>
+                  <h2 class="font-display text-lg font-bold tracking-tight">Add-on details</h2>
+                  <p class="text-xs text-muted-foreground">A couple of extras for the add-ons you picked — we reuse your website &amp; contact details, so nothing's asked twice.</p>
+                </div>
+              </div>
+              <div class="mt-5 space-y-5">
+                {addonGroups.map(({ addon, tier }) => (
+                  <div class="addon-group hidden rounded-2xl border border-border bg-card p-4" data-bump-group={addon.id} data-tier={tier.id}>
+                    <p class="flex items-center gap-2 text-sm font-semibold"><i class={`ph-bold ${addon.icon} text-primary`}></i> {addon.name} · {tier.name}</p>
+                    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                      {tier.fields!.map((f) => (
+                        <OrderField label={f.label} name={f.name} as={f.as} type={f.type} placeholder={f.placeholder} hint={f.hint} rows={f.rows} icon={f.icon} colSpan={f.colSpan} options={f.options} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <!-- summary -->
+        <OrderSummary service={service} />
+      </div>
+    </form>
+
+    <!-- ============ SUCCESS ============ -->
+    <div id="order-success" class="hidden">
+      <div class="mx-auto max-w-xl rounded-3xl border border-border bg-card p-8 text-center shadow-xl shadow-foreground/5 lg:p-12">
+        <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <i class="ph-fill ph-check-circle text-3xl"></i>
+        </span>
+        <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
+        <p class="mt-3 text-muted-foreground">
+          Thanks! We've logged your <strong id="success-plan" class="text-foreground">request</strong>.
+          A specialist will confirm the scope and final price within 24h — no charge until you approve.
+        </p>
+        <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
+          <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> is on its way, with your <b class="font-semibold text-foreground">dashboard login</b> to follow progress.</span></li>
+          <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
+          <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
+        </ul>
+        <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
+          <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById('order-form') as HTMLFormElement | null;
+  if (form) {
+    const radios = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="package"]'));
+    const osName = document.getElementById('os-name');
+    const osPrice = document.getElementById('os-price');
+    const osSla = document.getElementById('os-sla');
+    const osTotal = document.getElementById('os-total');
+    const osFeatures = document.getElementById('os-features');
+    const osSavings = document.getElementById('os-savings');
+    const osSaveAmt = document.getElementById('os-save-amt');
+    const osSavePct = document.getElementById('os-save-pct');
+    const bumpBoxes = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="bump"]'));
+
+    const money = (n: number) => '$' + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+
+    // ---- Bulk ordering (keyword list → one unit per article) ----
+    const bulkPanel = document.getElementById('order-bulk');
+    const bulkRowsWrap = document.getElementById('bulk-rows');
+    const bulkCount = document.getElementById('bulk-count') as HTMLInputElement | null;
+    const bulkFile = document.getElementById('bulk-file') as HTMLInputElement | null;
+    const bulkFileName = document.getElementById('bulk-file-name');
+    const bulkQtyOut = document.getElementById('bulk-qty-out');
+    const bulkNote = document.getElementById('bulk-note');
+    const osQty = document.getElementById('os-qty');
+    const osSubtotal = document.getElementById('os-subtotal');
+    const osBulkRow = document.getElementById('os-bulk-discount');
+    const osBulkAmt = document.getElementById('os-bulk-amt');
+    const bulkMin = Number(bulkPanel?.dataset.min) || 0;
+    const bulkPct = Number(bulkPanel?.dataset.pct) || 0;
+    const bulkDefault = Number(bulkPanel?.dataset.default) || 1;
+    const bulkUnit = bulkPanel?.dataset.unit || 'unit';
+    let bulkMode = 'rows';
+    const filledRows = () => {
+      if (!bulkRowsWrap) return 0;
+      let n = 0;
+      bulkRowsWrap.querySelectorAll<HTMLInputElement>('.bulk-row-kw').forEach((i) => { if (i.value.trim()) n++; });
+      return n;
+    };
+    const bulkQty = () => {
+      if (bulkMode === 'rows') return filledRows();
+      const v = parseInt(bulkCount?.value || '', 10) || 0;
+      return v > 0 ? v : bulkDefault;
+    };
+
+    // Total = selected package price + ticked bumps; surface how much the bumps save.
+    const recomputeTotal = () => {
+      const checked = radios.find((r) => r.checked);
+      const raw = checked?.dataset.price ?? '';
+      const base = raw === '' ? NaN : Number(raw); // '' = consult / quote-only package
+      const chosen = bumpBoxes.filter((b) => b.checked);
+
+      const bumpsSum = chosen.reduce((acc, b) => acc + (Number(b.dataset.price) || 0), 0);
+
+      if (bulkPanel && !Number.isNaN(base)) {
+        // Bulk: per-unit price × keyword count, with a volume discount above the threshold.
+        const qty = bulkQty();
+        const subtotal = base * qty;
+        const discount = qty >= bulkMin ? Math.round(subtotal * bulkPct) / 100 : 0;
+        if (bulkQtyOut) bulkQtyOut.textContent = String(qty);
+        if (osPrice) osPrice.textContent = (checked?.dataset.priceLabel || '') + ' / ' + bulkUnit;
+        if (osQty) osQty.textContent = '× ' + qty;
+        if (osSubtotal) osSubtotal.textContent = money(subtotal);
+        if (osBulkRow && osBulkAmt) {
+          if (discount > 0) {
+            osBulkAmt.textContent = '−' + money(discount) + ' (−' + bulkPct + '%)';
+            osBulkRow.classList.remove('hidden');
+            osBulkRow.classList.add('flex');
+          } else {
+            osBulkRow.classList.add('hidden');
+            osBulkRow.classList.remove('flex');
+          }
+        }
+        if (bulkNote) {
+          if (bulkMode === 'rows') {
+            bulkNote.textContent = qty > 0 ? qty + ' article' + (qty === 1 ? '' : 's') + ' — one per keyword row.' : 'Add a keyword to each row — one article per row.';
+          } else {
+            bulkNote.textContent = "We'll confirm the exact count from your file / sheet.";
+          }
+        }
+        if (osTotal) osTotal.textContent = money(subtotal - discount + bumpsSum);
+      } else if (osTotal) {
+        if (!Number.isNaN(base)) {
+          osTotal.textContent = money(base + bumpsSum);
+        } else {
+          osTotal.textContent = checked?.dataset.priceLabel || '';
+        }
+      }
+
+      // Savings from the discounted bumps, vs their original (struck-through) price.
+      let saved = 0;
+      let original = 0;
+      for (const b of chosen) {
+        const price = Number(b.dataset.price) || 0;
+        const strike = Number(b.dataset.strike);
+        if (!Number.isNaN(strike) && strike > price) {
+          saved += strike - price;
+          original += strike;
+        }
+      }
+      if (osSavings) {
+        if (saved > 0 && !Number.isNaN(base)) {
+          if (osSaveAmt) osSaveAmt.textContent = money(saved);
+          if (osSavePct) osSavePct.textContent = original > 0 ? `(${Math.round((saved / original) * 100)}%)` : '';
+          osSavings.classList.remove('hidden');
+        } else {
+          osSavings.classList.add('hidden');
+        }
+      }
+    };
+
+    const sync = (radio: HTMLInputElement | undefined | null) => {
+      if (!radio) return;
+      const d = radio.dataset;
+      const priceLabel = d.priceLabel || '';
+      if (osName) osName.textContent = d.name || '';
+      if (osPrice) osPrice.textContent = priceLabel;
+      if (osSla) osSla.textContent = 'Delivery in ' + (d.sla || '');
+      if (osFeatures) {
+        osFeatures.replaceChildren();
+        let features: string[] = [];
+        try { features = JSON.parse(d.features || '[]'); } catch { features = []; }
+        for (const f of features) {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2';
+          const icon = document.createElement('i');
+          icon.className = 'ph-fill ph-check-circle mt-0.5 shrink-0 text-primary';
+          const span = document.createElement('span');
+          span.textContent = f;
+          li.append(icon, span);
+          osFeatures.appendChild(li);
+        }
+      }
+      recomputeTotal();
+    };
+
+    // Reveal an add-on's extra-brief fields only while it's ticked; disable hidden ones
+    // so they neither validate nor submit. Shared info (website, contact) is never re-asked.
+    const addonDetails = document.getElementById('addon-details');
+    const addonGroups = Array.from(document.querySelectorAll<HTMLElement>('[data-bump-group]'));
+    const syncAddonDetails = () => {
+      let anyOpen = false;
+      for (const g of addonGroups) {
+        const box = bumpBoxes.find((b) => b.value === g.dataset.bumpGroup);
+        // Show a group only when its add-on is ticked AND its tier is the selected one.
+        const open = !!box?.checked && box.dataset.tier === g.dataset.tier;
+        g.classList.toggle('hidden', !open);
+        g.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select')
+          .forEach((el) => { el.disabled = !open; });
+        if (open) anyOpen = true;
+      }
+      addonDetails?.classList.toggle('hidden', !anyOpen);
+    };
+
+    // Add-on tier <select>: update the checkbox's price/strike/tier so recomputeTotal()
+    // (which reads the checkbox data) and the visible price stay in sync.
+    Array.from(form.querySelectorAll<HTMLSelectElement>('select[data-addon-select]')).forEach((sel) => {
+      sel.addEventListener('change', () => {
+        const id = sel.dataset.addonSelect || '';
+        const box = bumpBoxes.find((b) => b.value === id);
+        const opt = sel.selectedOptions[0];
+        const price = Number(opt?.dataset.price) || 0;
+        const strikeRaw = opt?.dataset.strike || '';
+        const strike = Number(strikeRaw);
+        if (box) {
+          box.dataset.price = String(price);
+          box.dataset.strike = strikeRaw;
+          box.dataset.tier = opt?.value || '';
+        }
+        const priceEl = form.querySelector(`[data-addon-price="${id}"]`);
+        if (priceEl) priceEl.textContent = String(price);
+        const strikeWrap = form.querySelector(`[data-addon-strike-wrap="${id}"]`);
+        const strikeEl = form.querySelector(`[data-addon-strike="${id}"]`);
+        const hasStrike = strikeRaw !== '' && !Number.isNaN(strike) && strike > price;
+        if (strikeEl) strikeEl.textContent = strikeRaw;
+        strikeWrap?.classList.toggle('hidden', !hasStrike);
+        const pctEl = form.querySelector(`[data-addon-pct="${id}"]`);
+        if (pctEl) {
+          pctEl.textContent = hasStrike ? '−' + Math.round(((strike - price) / strike) * 100) + '%' : '';
+          pctEl.classList.toggle('hidden', !hasStrike);
+        }
+        recomputeTotal();
+        syncAddonDetails();
+      });
+    });
+
+    // Deep-link preselect: /order/<slug>?plan=standard
+    const plan = (new URLSearchParams(window.location.search).get('plan') || '').toLowerCase();
+    if (plan) {
+      const match = radios.find((r) => r.value === plan);
+      if (match) match.checked = true;
+    }
+    radios.forEach((r) => r.addEventListener('change', () => sync(r)));
+    bumpBoxes.forEach((b) => b.addEventListener('change', () => { recomputeTotal(); syncAddonDetails(); }));
+    sync(radios.find((r) => r.checked) || radios[0]);
+    syncAddonDetails();
+
+    if (bulkPanel) {
+      const setBulkMode = (mode: string) => {
+        bulkMode = mode;
+        document.querySelectorAll<HTMLElement>('.bulk-tab').forEach((t) => {
+          const on = t.dataset.mode === mode;
+          t.classList.toggle('bg-primary', on);
+          t.classList.toggle('text-primary-foreground', on);
+          t.classList.toggle('text-muted-foreground', !on);
+        });
+        document.querySelectorAll<HTMLElement>('.bulk-pane').forEach((p) => {
+          p.classList.toggle('hidden', p.dataset.pane !== mode);
+        });
+        recomputeTotal();
+      };
+      document.querySelectorAll<HTMLElement>('.bulk-tab').forEach((t) => {
+        t.addEventListener('click', () => setBulkMode(t.dataset.mode || 'rows'));
+      });
+
+      // Method 1 — per-row keyword editor
+      bulkRowsWrap?.addEventListener('input', recomputeTotal);
+      bulkRowsWrap?.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.bulk-row-remove');
+        if (!btn || !bulkRowsWrap) return;
+        if (bulkRowsWrap.querySelectorAll('.bulk-row').length > 1) btn.closest('.bulk-row')?.remove();
+        recomputeTotal();
+      });
+      document.getElementById('bulk-add-row')?.addEventListener('click', () => {
+        const first = bulkRowsWrap?.querySelector('.bulk-row');
+        if (!first || !bulkRowsWrap) return;
+        const clone = first.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('input').forEach((i) => { i.value = ''; });
+        bulkRowsWrap.appendChild(clone);
+        const firstInput = clone.querySelector<HTMLInputElement>('input');
+        firstInput?.focus();
+        recomputeTotal();
+      });
+
+      // Method 2 — upload / sheet (manual count; CSV is auto-counted)
+      bulkCount?.addEventListener('input', recomputeTotal);
+      bulkFile?.addEventListener('change', () => {
+        const f = bulkFile.files && bulkFile.files[0];
+        if (bulkFileName) bulkFileName.textContent = f ? f.name : 'Upload your .xlsx / .csv';
+        if (f && /\.csv$/i.test(f.name)) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const n = String(reader.result || '').split('\n').map((x) => x.trim()).filter(Boolean).length;
+            if (n > 0 && bulkCount) bulkCount.value = String(n);
+            recomputeTotal();
+          };
+          reader.readAsText(f);
+        } else {
+          recomputeTotal();
+        }
+      });
+
+      setBulkMode('rows');
+    }
+
+    // ---- Usage pricing (submitted URL list → tiered per-link rate) ----
+    const usagePanel = document.getElementById('order-usage');
+    if (usagePanel) {
+      type Tier = { min: number; rate: number; label: string; sub?: string };
+      let usageTiers: Tier[] = [];
+      try { usageTiers = JSON.parse(usagePanel.dataset.tiers || '[]'); } catch { usageTiers = []; }
+      const usageDefault = Number(usagePanel.dataset.default) || 1;
+      let usageMode = 'paste';
+      const usageLinks = document.getElementById('usage-links') as HTMLTextAreaElement | null;
+      const usageCount = document.getElementById('usage-count') as HTMLInputElement | null;
+      const usageFile = document.getElementById('usage-file') as HTMLInputElement | null;
+      const usageFileName = document.getElementById('usage-file-name');
+      const usageQtyOut = document.getElementById('usage-qty-out');
+      const usageNote = document.getElementById('usage-note');
+      const osRate = document.getElementById('os-rate');
+      const osQtyU = document.getElementById('os-qty');
+      const osTier = document.getElementById('os-tier');
+      const lineCount = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean).length;
+      const tierIdx = (n: number) => { let idx = 0; usageTiers.forEach((t, i) => { if (n >= t.min) idx = i; }); return idx; };
+      const usageQty = () => {
+        if (usageMode === 'paste') return usageLinks ? lineCount(usageLinks.value) : 0;
+        const v = parseInt(usageCount?.value || '', 10) || 0;
+        return v > 0 ? v : usageDefault;
+      };
+      const recomputeUsage = () => {
+        const qty = usageQty();
+        const idx = tierIdx(qty);
+        const rate = usageTiers[idx]?.rate || 0;
+        if (usageQtyOut) usageQtyOut.textContent = qty.toLocaleString();
+        if (osRate) osRate.textContent = '$' + rate.toFixed(3);
+        if (osQtyU) osQtyU.textContent = qty.toLocaleString();
+        if (osTier) {
+          const t = usageTiers[idx];
+          osTier.textContent = t ? (t.sub ? t.label + ' · ' + t.sub : t.label) : '';
+        }
+        if (osTotal) osTotal.textContent = '$' + (rate * qty).toFixed(2);
+        document.querySelectorAll<HTMLElement>('.usage-tier').forEach((el) => {
+          const on = Number(el.dataset.tier) === idx;
+          el.classList.toggle('border-primary', on);
+          el.classList.toggle('ring-2', on);
+          el.classList.toggle('ring-primary/30', on);
+          el.classList.toggle('shadow-md', on);
+        });
+        if (usageNote) {
+          usageNote.textContent = usageMode === 'paste'
+            ? (qty > 0 ? qty.toLocaleString() + ' URLs detected' : 'Paste your URLs — one per line.')
+            : "We'll confirm the exact count from your file / sheet.";
+        }
+      };
+      const setUsageMode = (mode: string) => {
+        usageMode = mode;
+        document.querySelectorAll<HTMLElement>('.usage-tab').forEach((t) => {
+          const on = t.dataset.mode === mode;
+          t.classList.toggle('bg-primary', on);
+          t.classList.toggle('text-primary-foreground', on);
+          t.classList.toggle('text-muted-foreground', !on);
+        });
+        document.querySelectorAll<HTMLElement>('.usage-pane').forEach((p) => {
+          p.classList.toggle('hidden', p.dataset.pane !== mode);
+        });
+        recomputeUsage();
+      };
+      document.querySelectorAll<HTMLElement>('.usage-tab').forEach((t) => {
+        t.addEventListener('click', () => setUsageMode(t.dataset.mode || 'paste'));
+      });
+      usageLinks?.addEventListener('input', recomputeUsage);
+      usageCount?.addEventListener('input', recomputeUsage);
+      usageFile?.addEventListener('change', () => {
+        const f = usageFile.files && usageFile.files[0];
+        if (usageFileName) usageFileName.textContent = f ? f.name : 'Upload .csv / .txt / .xlsx';
+        if (f && /\.(csv|txt)$/i.test(f.name)) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const n = lineCount(String(reader.result || ''));
+            if (n > 0 && usageCount) usageCount.value = String(n);
+            recomputeUsage();
+          };
+          reader.readAsText(f);
+        } else {
+          recomputeUsage();
+        }
+      });
+      setUsageMode('paste');
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      // honeypot — silently treat as success to not tip off bots
+      const hp = form.querySelector<HTMLInputElement>('input[name="company_url"]');
+      if (!hp?.value && !form.reportValidity()) return;
+
+      const selected = radios.find((r) => r.checked);
+      const successPlan = document.getElementById('success-plan');
+      if (successPlan && selected) {
+        successPlan.textContent = (selected.dataset.name || '') + ' · ' + (selected.dataset.priceLabel || '');
+      }
+      form.classList.add('hidden');
+      const success = document.getElementById('order-success');
+      if (success) {
+        success.classList.remove('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+</script>

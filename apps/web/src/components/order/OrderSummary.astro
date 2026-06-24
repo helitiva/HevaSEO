@@ -1,0 +1,160 @@
+---
+/**
+ * Sticky order-summary sidebar. The order script (in OrderShell) fills the
+ * id-targeted slots from the selected package. The submit button lives here and
+ * submits the surrounding #order-form.
+ */
+import { resolveAddOns } from '@heva/catalog';
+import type { OrderService } from '../../data/orders';
+interface Props {
+  service: OrderService;
+}
+const { service } = Astro.props;
+const addons = resolveAddOns(service.addons ?? []);
+---
+<aside class="lg:sticky lg:top-24">
+  <div class="overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-foreground/5">
+    <div class="border-b border-border bg-muted/40 px-6 py-4">
+      <p class="flex items-center gap-2 text-sm font-bold">
+        <i class="ph-bold ph-receipt text-primary"></i> Order summary
+      </p>
+    </div>
+
+    <div class="px-6 py-5">
+      {service.usage ? (
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class={`ph-bold ${service.icon}`}></i></span>
+            <p class="font-display text-base font-bold tracking-tight">{service.name}</p>
+          </div>
+          <div class="mt-4 space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-muted-foreground">Rate</span>
+              <span class="text-foreground"><span id="os-rate" class="font-display font-bold">—</span> <span class="text-xs font-medium text-muted-foreground">/ {service.usage.unit}</span></span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="capitalize text-muted-foreground">{service.usage.unitPlural}</span>
+              <span id="os-qty" class="font-medium text-foreground">—</span>
+            </div>
+          </div>
+          <p id="os-tier" class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-tag"></i> —</p>
+          <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
+            <li class="flex items-start gap-2"><i class="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary"></i><span>Per-link index status report</span></li>
+            <li class="flex items-start gap-2"><i class="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary"></i><span>Index-check plugin to verify it yourself</span></li>
+            <li class="flex items-start gap-2"><i class="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary"></i><span>Cheaper rate kicks in automatically at volume</span></li>
+          </ul>
+        </div>
+      ) : (
+        <div>
+          <div class="flex items-baseline justify-between gap-3">
+            <div>
+              <p class="text-xs text-muted-foreground">Selected plan</p>
+              <p id="os-name" class="font-display text-lg font-bold tracking-tight">—</p>
+            </div>
+            <p id="os-price" class="font-display text-2xl font-bold tracking-tight text-primary">—</p>
+          </div>
+
+          <p class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <i class="ph-bold ph-clock text-primary"></i> <span id="os-sla">—</span>
+          </p>
+
+          <ul id="os-features" class="mt-4 space-y-2 text-sm text-muted-foreground">
+            <!-- filled by the order script -->
+          </ul>
+        </div>
+      )}
+
+      <!-- order add-ons (from the shared @heva/catalog) — discounted only here -->
+      {addons.length > 0 && (
+        <div class="mt-4 border-t border-border pt-4">
+          <p class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"><i class="ph-fill ph-plus-circle"></i> Add &amp; save — checkout-only</p>
+          <div class="mt-2.5 space-y-2">
+            {addons.map((a) => {
+              const t0 = a.tiers[0];
+              const pct0 = t0.strike ? Math.round(((t0.strike - t0.price) / t0.strike) * 100) : 0;
+              return (
+                <div class="rounded-xl border border-border bg-background/60 transition hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/[0.04] has-[:checked]:ring-1 has-[:checked]:ring-primary/30">
+                  <label class="flex cursor-pointer gap-2.5 p-2.5">
+                    <input type="checkbox" name="bump" value={a.id} data-addon={a.id} data-name={a.name} data-price={t0.price} data-strike={t0.strike ?? ''} data-tier={t0.id} class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary" />
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="truncate text-[13px] font-semibold text-foreground">{a.name}</span>
+                        <span class="shrink-0 whitespace-nowrap">
+                          <span class="font-display text-[13px] font-bold text-foreground">+$<span data-addon-price={a.id}>{t0.price}</span></span>
+                          <span data-addon-strike-wrap={a.id} class:list={['ml-1 text-[10px] text-muted-foreground line-through', !t0.strike && 'hidden']}>$<span data-addon-strike={a.id}>{t0.strike ?? ''}</span></span>
+                        </span>
+                      </div>
+                      <div class="mt-0.5 flex items-start justify-between gap-2">
+                        <span class="text-[11px] leading-snug text-muted-foreground">{a.headline}</span>
+                        <span data-addon-pct={a.id} class:list={['mt-px shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400', pct0 <= 0 && 'hidden']}>−{pct0}%</span>
+                      </div>
+                    </div>
+                  </label>
+                  {a.tiers.length > 1 && (
+                    <div class="px-2.5 pb-2.5 pl-9">
+                      <select data-addon-select={a.id} aria-label={`Choose ${a.name} package`} class="w-full cursor-pointer rounded-lg border border-border bg-background px-2 py-1.5 text-[12px] font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                        {a.tiers.map((t) => <option value={t.id} data-price={t.price} data-strike={t.strike ?? ''}>{t.name} · ${t.price}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {service.bulk && (
+        <div class="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="capitalize text-muted-foreground">{service.bulk.unitPlural}</span>
+            <span id="os-qty" class="font-medium text-foreground">—</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">Subtotal</span>
+            <span id="os-subtotal" class="font-medium text-foreground">—</span>
+          </div>
+          <div id="os-bulk-discount" class="hidden items-center justify-between font-semibold text-emerald-600 dark:text-emerald-400">
+            <span>Bulk discount</span>
+            <span id="os-bulk-amt"></span>
+          </div>
+        </div>
+      )}
+
+      <div class="mt-5 border-t border-border pt-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-foreground">Estimated total</span>
+          <span id="os-total" class="font-display text-2xl font-bold tracking-tight text-foreground">—</span>
+        </div>
+      </div>
+
+      <!-- savings banner — shown only when bumps are ticked -->
+      <div id="os-savings" class="mt-3 hidden flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-sm font-bold text-emerald-700 shadow-sm shadow-emerald-500/15 dark:text-emerald-300">
+        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-white shadow-sm"><i class="ph-fill ph-seal-percent text-sm"></i></span>
+        <span>You save <span id="os-save-amt" class="font-display text-base">—</span> <span id="os-save-pct" class="opacity-90"></span></span>
+      </div>
+
+      <button
+        type="submit"
+        form="order-form"
+        class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.99]"
+      >
+        {service.submitLabel ?? 'Place order'} <i class="ph-bold ph-arrow-right"></i>
+      </button>
+      <p class="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+        No charge yet — a specialist confirms scope &amp; final price within 24h.
+      </p>
+
+      <div class="mt-4 grid gap-2 border-t border-border pt-4 text-xs text-muted-foreground">
+        <span class="flex items-center gap-2"><i class="ph-bold ph-shield-check text-primary"></i> Free consultation, no pressure to buy</span>
+        <span class="flex items-center gap-2"><i class="ph-bold ph-arrow-counter-clockwise text-primary"></i> Revisions until the scope is right</span>
+        <span class="flex items-center gap-2"><i class="ph-bold ph-headset text-primary"></i> Reply within 24h on business days</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-4 text-center text-xs text-muted-foreground">
+    Questions first? <a href={service.servicePath + '#faq'} class="font-semibold text-primary hover:underline">See the {service.name} FAQ</a>
+    or call <a href="tel:+14155550142" class="font-semibold text-primary hover:underline">+1 (415) 555-0142</a>.
+  </p>
+</aside>

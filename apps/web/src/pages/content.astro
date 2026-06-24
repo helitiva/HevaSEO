@@ -5,15 +5,15 @@ import PricingGrid from '../components/PricingGrid.astro';
 const SCORE_BADGE = 'Content Score & Methodology';
 
 const aiTiers = [
-  { name: 'A1000', subtitle: '~1000 words · standard', icon: 'ph-file-text', hue: 'sky', price: '$12', strike: '$30', delivery: '2–3 days', footerBadge: SCORE_BADGE, cta: 'Choose A1000', goi: 'A1000 · $12', features: ['1 SEO article (~1,000 words) + illustrative images', 'On-page: title / meta / headings / density / internal links', 'Plagiarism &amp; AI-detection checked', 'Google-safe, helpful content', 'HTML preview · DOC · TXT · images'] },
-  { name: 'A2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$19', strike: '$47', delivery: '~3 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose A2000', goi: 'A2000 · $19', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word article</b> + images', 'Full on-page optimization (title/meta/headings/density)', 'Internal links + outbound citations', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
-  { name: 'A3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$28', strike: '$70', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose A3000', goi: 'A3000 · $28', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word article</b> + images', 'Full on-page optimization', 'Topic-cluster ready + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'A1000', subtitle: '~1000 words · standard', icon: 'ph-file-text', hue: 'sky', price: '$12', strike: '$30', delivery: '2–3 days', footerBadge: SCORE_BADGE, cta: 'Choose A1000', href: '/order/content?plan=a1000', goi: 'A1000 · $12', features: ['1 SEO article (~1,000 words) + illustrative images', 'On-page: title / meta / headings / density / internal links', 'Plagiarism &amp; AI-detection checked', 'Google-safe, helpful content', 'HTML preview · DOC · TXT · images'] },
+  { name: 'A2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$19', strike: '$47', delivery: '~3 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose A2000', href: '/order/content?plan=a2000', goi: 'A2000 · $19', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word article</b> + images', 'Full on-page optimization (title/meta/headings/density)', 'Internal links + outbound citations', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'A3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$28', strike: '$70', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose A3000', href: '/order/content?plan=a3000', goi: 'A3000 · $28', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word article</b> + images', 'Full on-page optimization', 'Topic-cluster ready + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
 ];
 
 const humanTiers = [
-  { name: 'H1000', subtitle: '~1000 words · human', icon: 'ph-file-text', hue: 'sky', price: '$24', strike: '$60', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose H1000', goi: 'H1000 · $24', features: ['Human-written SEO article (~1,000 words) + images', '<b class="font-semibold text-foreground">E-E-A-T</b> — real expertise &amp; cited sources', 'On-page: title / meta / headings / density', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
-  { name: 'H2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$39', strike: '$97', delivery: '~4 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose H2000', goi: 'H2000 · $39', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word</b> human-written article + images', 'Deep E-E-A-T, expert sourcing &amp; references', 'Full on-page optimization + internal links', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
-  { name: 'H3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$56', strike: '$140', delivery: '~5 days', footerBadge: SCORE_BADGE, cta: 'Choose H3000', goi: 'H3000 · $56', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word</b> human-written article + images', 'Deepest E-E-A-T &amp; topical authority', 'Full on-page + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'H1000', subtitle: '~1000 words · human', icon: 'ph-file-text', hue: 'sky', price: '$24', strike: '$60', delivery: '3–4 days', footerBadge: SCORE_BADGE, cta: 'Choose H1000', href: '/order/content?plan=h1000', goi: 'H1000 · $24', features: ['Human-written SEO article (~1,000 words) + images', '<b class="font-semibold text-foreground">E-E-A-T</b> — real expertise &amp; cited sources', 'On-page: title / meta / headings / density', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'H2000', subtitle: '~2000 words · in-depth', icon: 'ph-files', hue: 'violet', price: '$39', strike: '$97', delivery: '~4 days', popular: true, footerBadge: SCORE_BADGE, cta: 'Choose H2000', href: '/order/content?plan=h2000', goi: 'H2000 · $39', features: ['<b class="font-semibold text-foreground">In-depth 2,000-word</b> human-written article + images', 'Deep E-E-A-T, expert sourcing &amp; references', 'Full on-page optimization + internal links', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
+  { name: 'H3000', subtitle: '~3000 words · pillar', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$56', strike: '$140', delivery: '~5 days', footerBadge: SCORE_BADGE, cta: 'Choose H3000', href: '/order/content?plan=h3000', goi: 'H3000 · $56', features: ['<b class="font-semibold text-foreground">Pillar-length 3,000-word</b> human-written article + images', 'Deepest E-E-A-T &amp; topical authority', 'Full on-page + internal linking', 'Plagiarism &amp; AI-detection checked', 'HTML preview · DOC · TXT · images'] },
 ];
 ---
 <BaseLayout
@@ -580,8 +580,8 @@ const humanTiers = [
             <thead>
               <tr class="border-b border-border">
                 <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
-                <th class="px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 text-[13px] font-bold"><i class="ph-fill ph-sparkle text-primary"></i> AI-powered</span></th>
-                <th class="border-l border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 text-[13px] font-bold text-primary"><i class="ph-fill ph-pen-nib"></i> Human-written</span></th>
+                <th class="px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 font-display text-[13px] font-bold tracking-tight"><i class="ph-fill ph-sparkle text-primary"></i> AI-powered</span></th>
+                <th class="border-l border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex items-center gap-1.5 font-display text-[13px] font-bold tracking-tight text-primary"><i class="ph-fill ph-pen-nib"></i> Human-written</span></th>
               </tr>
             </thead>
             <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-4 [&_td]:py-2.5">
@@ -602,8 +602,8 @@ const humanTiers = [
               </tr>
               <tr class="transition hover:bg-muted/30">
                 <td class="!px-5 font-medium">Cost (from)</td>
-                <td class="text-center font-bold">$12</td>
-                <td class="border-l border-border bg-primary/[0.04] text-center font-bold text-primary">$24</td>
+                <td class="text-center font-display font-bold">$12</td>
+                <td class="border-l border-border bg-primary/[0.04] text-center font-display font-bold text-primary">$24</td>
               </tr>
               <tr class="transition hover:bg-muted/30">
                 <td class="!px-5 font-medium">Turnaround</td>

@@ -63,7 +63,7 @@ const {
                 <th class:list={["px-4 py-3.5 text-center", c.highlight && "border-x border-border bg-primary/[0.05]"]}>
                   <span class:list={["inline-flex flex-col items-center gap-1 text-[13px] font-bold", c.highlight && "text-primary"]}>
                     {c.icon && <i class:list={[`ph-bold ${c.icon} text-base`, !c.highlight && "text-primary"]}></i>}
-                    <span>{c.label}</span>
+                    <span class="font-display tracking-tight">{c.label}</span>
                     {c.sub && <span class="text-[11px] font-normal text-muted-foreground">{c.sub}</span>}
                   </span>
                 </th>

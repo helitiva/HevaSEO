@@ -1,0 +1,25 @@
+---
+/**
+ * One dynamic route renders the quick-order flow for every service in `orderServices`.
+ * Each service is fully described by data (packages, brief, bumps, meta); the shared
+ * OrderShell component does the rest. To add a service: add an entry to data/orders.ts.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import OrderShell from '../../components/order/OrderShell.astro';
+import { orderServices, getOrderService } from '../../data/orders';
+
+export function getStaticPaths() {
+  return Object.keys(orderServices).map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const service = getOrderService(slug!)!;
+const title = service.metaTitle ?? `Order ${service.name} — HevaSEO`;
+const description = service.metaDescription ?? service.tagline;
+---
+<BaseLayout title={title} description={description} canonical={`/order/${service.slug}`}>
+  <OrderShell service={service} />
+
+  <script src="/app.js?v=8" is:inline></script>
+  <script src="/effects.js?v=2" is:inline></script>
+</BaseLayout>

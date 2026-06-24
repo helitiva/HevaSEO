@@ -1,0 +1,115 @@
+---
+/**
+ * One labelled form control (input / textarea / select) with consistent styling,
+ * a required marker, and an optional hint. Used for both the service-specific brief
+ * fields and the shared contact fields.
+ */
+interface SelectOption {
+  value: string;
+  label: string;
+}
+interface Props {
+  label: string;
+  name: string;
+  as?: 'input' | 'textarea' | 'select' | 'keyword-rows';
+  type?: string;              // input type, e.g. 'email' | 'url' | 'tel'
+  placeholder?: string;
+  hint?: string;
+  required?: boolean;
+  rows?: number;              // textarea
+  autocomplete?: string;
+  inputmode?: string;
+  icon?: string;              // phosphor icon shown inside the control
+  options?: SelectOption[];   // select
+  colSpan?: 1 | 2;            // grid span when used inside a 2-col grid
+}
+const {
+  label,
+  name,
+  as = 'input',
+  type = 'text',
+  placeholder,
+  hint,
+  required = false,
+  rows = 4,
+  autocomplete,
+  inputmode,
+  icon,
+  options = [],
+  colSpan = 2,
+} = Astro.props;
+
+const id = `f-${name}`;
+const base =
+  'w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/20';
+const withIcon = icon ? ' pl-11' : '';
+---
+<div class:list={['flex flex-col gap-1.5', colSpan === 2 && 'sm:col-span-2']}>
+  {as === 'keyword-rows' ? (
+    <Fragment>
+      <label class="text-sm font-medium text-foreground">{label}<span class="ml-1 text-xs font-normal text-muted-foreground">({rows} {rows === 1 ? 'article' : 'articles'})</span></label>
+      <div class="hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[1.2fr_1fr_1fr]">
+        <span>Keyword(s) for the article</span>
+        <span>Internal link URL · optional</span>
+        <span>Reference URL · optional</span>
+      </div>
+      <div class="space-y-2">
+        {Array.from({ length: rows }).map(() => (
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
+            <input name={`${name}_keyword`} placeholder="best running shoes for flat feet" class={base} />
+            <input name={`${name}_internal`} placeholder="/related-page" class={base} />
+            <input name={`${name}_reference`} type="url" placeholder="https://ref.com/article" class={base} />
+          </div>
+        ))}
+      </div>
+      {hint && <p class="text-xs leading-relaxed text-muted-foreground">{hint}</p>}
+    </Fragment>
+  ) : (
+    <Fragment>
+      <label for={id} class="text-sm font-medium text-foreground">
+        {label}
+        {required
+          ? <span class="text-primary" aria-hidden="true"> *</span>
+          : <span class="ml-1 text-xs font-normal text-muted-foreground">(optional)</span>}
+      </label>
+
+      <div class="relative">
+        {icon && (
+          <i class:list={[`ph-bold ${icon} pointer-events-none absolute left-4 text-base text-muted-foreground`, as === 'textarea' ? 'top-3.5' : 'top-1/2 -translate-y-1/2']}></i>
+        )}
+
+        {as === 'textarea' ? (
+          <textarea
+            id={id}
+            name={name}
+            rows={rows}
+            required={required}
+            placeholder={placeholder}
+            class:list={[base + withIcon, 'resize-y leading-relaxed']}
+          ></textarea>
+        ) : as === 'select' ? (
+          <select id={id} name={name} required={required} class:list={[base + withIcon, 'appearance-none pr-10']}>
+            {options.map((o) => <option value={o.value}>{o.label}</option>)}
+          </select>
+        ) : (
+          <input
+            id={id}
+            name={name}
+            type={type}
+            required={required}
+            placeholder={placeholder}
+            autocomplete={autocomplete}
+            inputmode={inputmode}
+            class:list={[base + withIcon]}
+          />
+        )}
+
+        {as === 'select' && (
+          <i class="ph-bold ph-caret-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"></i>
+        )}
+      </div>
+
+      {hint && <p class="text-xs leading-relaxed text-muted-foreground">{hint}</p>}
+    </Fragment>
+  )}
+</div>

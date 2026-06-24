@@ -5,22 +5,22 @@ import PricingGrid from '../components/PricingGrid.astro';
 const IDX_BADGE = 'Indexer included';
 
 const entityTiers = [
-  { name: 'Entity 300', subtitle: '300 links', icon: 'ph-buildings', hue: 'sky', price: '$52', strike: '$130', delivery: '7–10 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 300', goi: 'Entity 300 · $52', features: ['300 authority links', 'Business profile links', 'NAP citations (name · address · phone)', 'Social profile citations', 'Safe, diversified anchors', '80–95% indexed · live per-link report'] },
-  { name: 'Entity 500', subtitle: '500 links', icon: 'ph-buildings', hue: 'sky', price: '$79', strike: '$197', delivery: '10–14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Entity 500', goi: 'Entity 500 · $79', features: ['500 authority links', 'Profiles · NAP · social citations', '<b class="font-semibold text-foreground">Trusted directory</b> listings', 'Diversified anchor profile', 'White-hat, Google-safe placements', '80–95% indexed · live per-link report'] },
-  { name: 'Entity 1000', subtitle: '1000 links', icon: 'ph-buildings', hue: 'sky', price: '$139', strike: '$347', delivery: '14–21 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 1000', goi: 'Entity 1000 · $139', features: ['1,000 authority links', 'Profiles · NAP · social · directory', '<b class="font-semibold text-foreground">Web 2.0 / extended entity</b> links', 'Widest brand footprint', 'Natural, diversified anchors', '80–95% indexed · live per-link report'] },
+  { name: 'Entity 300', subtitle: '300 links', icon: 'ph-buildings', hue: 'sky', price: '$52', strike: '$130', delivery: '7–10 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 300', href: '/order/backlink?plan=entity-300', goi: 'Entity 300 · $52', features: ['300 authority links', 'Business profile links', 'NAP citations (name · address · phone)', 'Social profile citations', 'Safe, diversified anchors', '80–95% indexed · live per-link report'] },
+  { name: 'Entity 500', subtitle: '500 links', icon: 'ph-buildings', hue: 'sky', price: '$79', strike: '$197', delivery: '10–14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Entity 500', href: '/order/backlink?plan=entity-500', goi: 'Entity 500 · $79', features: ['500 authority links', 'Profiles · NAP · social citations', '<b class="font-semibold text-foreground">Trusted directory</b> listings', 'Diversified anchor profile', 'White-hat, Google-safe placements', '80–95% indexed · live per-link report'] },
+  { name: 'Entity 1000', subtitle: '1000 links', icon: 'ph-buildings', hue: 'sky', price: '$139', strike: '$347', delivery: '14–21 days', footerBadge: IDX_BADGE, cta: 'Choose Entity 1000', href: '/order/backlink?plan=entity-1000', goi: 'Entity 1000 · $139', features: ['1,000 authority links', 'Profiles · NAP · social · directory', '<b class="font-semibold text-foreground">Web 2.0 / extended entity</b> links', 'Widest brand footprint', 'Natural, diversified anchors', '80–95% indexed · live per-link report'] },
 ];
 
 const pyramidTiers = [
-  { name: 'Pyramid Starter', subtitle: 'Tier-1 → Tier-2', icon: 'ph-stack', hue: 'violet', price: '$36', strike: '$90', delivery: '10 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Starter · $36', features: ['Tier-1 contextual links', 'Tier-2 support layer', 'Power funneled to 1 target URL', 'Safe, white-hat tiers', '~70% indexed · live report'] },
-  { name: 'Pyramid Growth', subtitle: 'Denser Tier-1', icon: 'ph-stack', hue: 'violet', price: '$64', strike: '$160', delivery: '14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Growth · $64', features: ['<b class="font-semibold text-foreground">Denser Tier-1</b> contextual links', 'Tier-2 support layer', 'Stronger power to your URL', 'Safe anchor distribution', '~70% indexed · live report'] },
-  { name: 'Pyramid Power', subtitle: '3 tiers (T1–T3)', icon: 'ph-stack', hue: 'violet', price: '$104', strike: '$260', delivery: '18 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Power · $104', features: ['<b class="font-semibold text-foreground">3 tiers</b> (T1 → T2 → T3)', 'Deeper power flow', 'Boost a competitive URL / category', 'Safe, white-hat structure', '~70% indexed · live report'] },
-  { name: 'Pyramid Max', subtitle: 'Full 3 tiers', icon: 'ph-stack', hue: 'violet', price: '$159', strike: '$397', delivery: '21 days', footerBadge: IDX_BADGE, cta: 'Choose', goi: 'Pyramid Max · $159', features: ['Full 3 tiers + extra strong links', 'Maximum power funnel', 'For your most competitive targets', '<b class="font-semibold text-foreground">Advanced Indexer</b> push', '~70%+ indexed · live report'] },
+  { name: 'Pyramid Starter', subtitle: 'Tier-1 → Tier-2', icon: 'ph-stack', hue: 'violet', price: '$36', strike: '$90', delivery: '10 days', footerBadge: IDX_BADGE, cta: 'Choose', href: '/order/backlink?plan=pyramid-starter', goi: 'Pyramid Starter · $36', features: ['Tier-1 contextual links', 'Tier-2 support layer', 'Power funneled to 1 target URL', 'Safe, white-hat tiers', '~70% indexed · live report'] },
+  { name: 'Pyramid Growth', subtitle: 'Denser Tier-1', icon: 'ph-stack', hue: 'violet', price: '$64', strike: '$160', delivery: '14 days', popular: true, footerBadge: IDX_BADGE, cta: 'Choose', href: '/order/backlink?plan=pyramid-growth', goi: 'Pyramid Growth · $64', features: ['<b class="font-semibold text-foreground">Denser Tier-1</b> contextual links', 'Tier-2 support layer', 'Stronger power to your URL', 'Safe anchor distribution', '~70% indexed · live report'] },
+  { name: 'Pyramid Power', subtitle: '3 tiers (T1–T3)', icon: 'ph-stack', hue: 'violet', price: '$104', strike: '$260', delivery: '18 days', footerBadge: IDX_BADGE, cta: 'Choose', href: '/order/backlink?plan=pyramid-power', goi: 'Pyramid Power · $104', features: ['<b class="font-semibold text-foreground">3 tiers</b> (T1 → T2 → T3)', 'Deeper power flow', 'Boost a competitive URL / category', 'Safe, white-hat structure', '~70% indexed · live report'] },
+  { name: 'Pyramid Max', subtitle: 'Full 3 tiers', icon: 'ph-stack', hue: 'violet', price: '$159', strike: '$397', delivery: '21 days', footerBadge: IDX_BADGE, cta: 'Choose', href: '/order/backlink?plan=pyramid-max', goi: 'Pyramid Max · $159', features: ['Full 3 tiers + extra strong links', 'Maximum power funnel', 'For your most competitive targets', '<b class="font-semibold text-foreground">Advanced Indexer</b> push', '~70%+ indexed · live report'] },
 ];
 
 const guestTiers = [
-  { name: 'Guest 3', subtitle: 'DR30+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$104', strike: '$260', delivery: '2–3 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 3', goi: 'Guest 3 (DR30+) · $104', features: ['3 guest posts on DR30+ blogs', 'SEO article written for each', 'Manual outreach + placement', 'Contextual, in-content links', '~100% indexed · live report'] },
-  { name: 'Guest 5', subtitle: 'DR40+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$180', strike: '$450', delivery: '~3 weeks', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Guest 5', goi: 'Guest 5 (DR40+) · $180', features: ['<b class="font-semibold text-foreground">5 guest posts on DR40+ blogs</b>', 'SEO article written for each', 'Manual outreach + placement', 'Higher-authority, real-traffic sites', '~100% indexed · live report'] },
-  { name: 'Guest 5 Pro', subtitle: 'DR50+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$280', strike: '$700', delivery: '3–4 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 5 Pro', goi: 'Guest 5 Pro (DR50+) · $280', features: ['5 guest posts on DR50+ blogs', '<b class="font-semibold text-foreground">+ Pyramid boost per post</b>', 'SEO article written for each', 'Premium, high-traffic publications', '~100% indexed · live report'] },
+  { name: 'Guest 3', subtitle: 'DR30+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$104', strike: '$260', delivery: '2–3 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 3', href: '/order/backlink?plan=guest-3', goi: 'Guest 3 (DR30+) · $104', features: ['3 guest posts on DR30+ blogs', 'SEO article written for each', 'Manual outreach + placement', 'Contextual, in-content links', '~100% indexed · live report'] },
+  { name: 'Guest 5', subtitle: 'DR40+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$180', strike: '$450', delivery: '~3 weeks', popular: true, footerBadge: IDX_BADGE, cta: 'Choose Guest 5', href: '/order/backlink?plan=guest-5', goi: 'Guest 5 (DR40+) · $180', features: ['<b class="font-semibold text-foreground">5 guest posts on DR40+ blogs</b>', 'SEO article written for each', 'Manual outreach + placement', 'Higher-authority, real-traffic sites', '~100% indexed · live report'] },
+  { name: 'Guest 5 Pro', subtitle: 'DR50+', icon: 'ph-newspaper-clipping', hue: 'amber', price: '$280', strike: '$700', delivery: '3–4 weeks', footerBadge: IDX_BADGE, cta: 'Choose Guest 5 Pro', href: '/order/backlink?plan=guest-5-pro', goi: 'Guest 5 Pro (DR50+) · $280', features: ['5 guest posts on DR50+ blogs', '<b class="font-semibold text-foreground">+ Pyramid boost per post</b>', 'SEO article written for each', 'Premium, high-traffic publications', '~100% indexed · live report'] },
 ];
 ---
 <BaseLayout
@@ -856,7 +856,7 @@ const guestTiers = [
                   <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>~100% indexed</span></li>
                   <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 text-primary"></i><span>Maximum brand authority</span></li>
                 </ul>
-                <a href="#contact" data-goi="PR · consult" class="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Request a PR consult <i class="ph-bold ph-arrow-right"></i></a>
+                <a href="/order/backlink?plan=pr" class="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.98]">Request a PR consult <i class="ph-bold ph-arrow-right"></i></a>
               </div>
               <div class="rounded-xl border border-border bg-muted/40 p-5">
                 <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sample placements</p>
@@ -890,10 +890,10 @@ const guestTiers = [
               <thead>
                 <tr class="border-b border-border">
                   <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
-                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-buildings text-base text-primary"></i> Entity</span></th>
-                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-stack text-base text-primary"></i> Pyramid</span></th>
-                  <th class="border-x border-border bg-primary/[0.05] px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold text-primary"><i class="ph-bold ph-newspaper-clipping text-base"></i> Guest Post</span></th>
-                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-medal text-base text-primary"></i> PR</span></th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight"><i class="ph-bold ph-buildings text-base text-primary"></i> Entity</span></th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight"><i class="ph-bold ph-stack text-base text-primary"></i> Pyramid</span></th>
+                  <th class="border-x border-border bg-primary/[0.05] px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight text-primary"><i class="ph-bold ph-newspaper-clipping text-base"></i> Guest Post</span></th>
+                  <th class="px-3 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight"><i class="ph-bold ph-medal text-base text-primary"></i> PR</span></th>
                 </tr>
               </thead>
               <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-3 [&_td]:py-2.5">
@@ -906,10 +906,10 @@ const guestTiers = [
                 </tr>
                 <tr class="transition hover:bg-muted/30">
                   <td class="!px-5 font-medium">Index rate (2 wks)</td>
-                  <td class="text-center font-semibold text-primary">80–95%</td>
-                  <td class="text-center font-semibold text-primary">~70%</td>
-                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-primary">~100%</td>
-                  <td class="text-center font-semibold text-primary">~100%</td>
+                  <td class="text-center font-display font-semibold text-primary">80–95%</td>
+                  <td class="text-center font-display font-semibold text-primary">~70%</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-display font-bold text-primary">~100%</td>
+                  <td class="text-center font-display font-semibold text-primary">~100%</td>
                 </tr>
                 <tr class="transition hover:bg-muted/30">
                   <td class="!px-5 font-medium">Link style</td>
@@ -922,15 +922,15 @@ const guestTiers = [
                   <td class="!px-5 font-medium">Authority (DR)</td>
                   <td class="text-center text-xs text-muted-foreground">Varied</td>
                   <td class="text-center text-xs text-muted-foreground">Varied</td>
-                  <td class="border-x border-border bg-primary/[0.04] text-center text-xs font-bold text-foreground">DR30–50+</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-display text-xs font-bold text-foreground">DR30–50+</td>
                   <td class="text-center text-xs text-muted-foreground">Very high</td>
                 </tr>
                 <tr class="transition hover:bg-muted/30">
                   <td class="!px-5 font-medium">From</td>
-                  <td class="text-center font-bold">$52</td>
-                  <td class="text-center font-bold">$36</td>
-                  <td class="border-x border-border bg-primary/[0.04] text-center font-bold text-primary">$104</td>
-                  <td class="text-center font-bold">~$120/post</td>
+                  <td class="text-center font-display font-bold">$52</td>
+                  <td class="text-center font-display font-bold">$36</td>
+                  <td class="border-x border-border bg-primary/[0.04] text-center font-display font-bold text-primary">$104</td>
+                  <td class="text-center font-display font-bold">~$120/post</td>
                 </tr>
                 <tr class="transition hover:bg-muted/30">
                   <td class="!px-5 font-medium">Indexer included</td>

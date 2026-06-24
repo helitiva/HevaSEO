@@ -1,0 +1,84 @@
+---
+/**
+ * Gradient package selector — same visual language as PricingGrid, but each card is
+ * a selectable radio (not a CTA link). Selection state is driven by the hidden radio:
+ * the wrapping label is a `group`, so `group-has-[:checked]` toggles the ring and the
+ * "Selected" control. Package data rides on the radio so the order script can sync the
+ * summary without per-page JS. The popular package is pre-checked; the order script
+ * overrides it from a `?plan=` query when present.
+ */
+import type { OrderPackage } from '../../data/orders';
+import { HUE } from '../../data/hues';
+
+interface Props {
+  packages: OrderPackage[];
+  name?: string;
+  cols?: 1 | 2 | 3 | 4 | 5;
+  selectedId?: string;   // when set (e.g. grouped pickers), only the matching radio is checked
+}
+const { packages, name = 'package', cols = 3, selectedId } = Astro.props;
+const COLS: Record<number, string> = {
+  1: '',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+  5: 'sm:grid-cols-2 lg:grid-cols-3',
+};
+const fmtPrice = (p: OrderPackage) => p.priceLabel ?? `$${p.price}`;
+const defaultId = selectedId ?? (packages.find((p) => p.popular) ?? packages[0])?.id;
+---
+<fieldset class:list={['grid items-stretch gap-4', COLS[cols]]}>
+  <legend class="sr-only">Choose a package</legend>
+  {packages.map((p) => {
+    const h = HUE[p.hue] ?? HUE.sky;
+    return (
+      <label class="order-pkg group relative flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-foreground/5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl has-[:checked]:border-primary has-[:checked]:shadow-xl has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/50 has-[:checked]:ring-2 has-[:checked]:ring-primary/40">
+        <input
+          type="radio"
+          name={name}
+          value={p.id}
+          checked={p.id === defaultId}
+          class="peer sr-only"
+          data-name={p.name}
+          data-price={p.price > 0 ? p.price : ''}
+          data-price-label={fmtPrice(p)}
+          data-sla={p.sla}
+          data-features={JSON.stringify(p.features)}
+        />
+
+        <!-- gradient header -->
+        <div class:list={["relative bg-gradient-to-br p-5", p.popular ? h.gradPop : h.grad]}>
+          {p.popular && (
+            <span class:list={["absolute right-4 top-4 rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow-md", h.badge]}>Most popular</span>
+          )}
+          <div class="flex items-center gap-3">
+            <span class:list={["grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-md", h.tile]}>
+              <i class={`ph-bold ${p.icon} text-base`}></i>
+            </span>
+            <h3 class="font-display text-lg font-bold tracking-tight">{p.name}</h3>
+          </div>
+          <p class="mt-2 min-h-[2.25rem] text-xs text-muted-foreground">{p.summary}</p>
+          <div class="mt-1 flex items-end justify-between gap-2">
+            <p class="font-display text-3xl font-bold tracking-tight">{fmtPrice(p)}</p>
+            <p class="pb-1 text-xs text-muted-foreground"><i class="ph-bold ph-clock mr-0.5 text-primary"></i>{p.sla}</p>
+          </div>
+
+          <!-- selection control (mirrors the PricingGrid CTA position) -->
+          <span class="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition group-has-[:checked]:bg-primary group-has-[:checked]:text-primary-foreground dark:bg-white dark:text-zinc-900 dark:group-has-[:checked]:bg-primary dark:group-has-[:checked]:text-primary-foreground">
+            <span class="group-has-[:checked]:hidden">Select {p.name}</span>
+            <span class="hidden items-center gap-1.5 group-has-[:checked]:inline-flex"><i class="ph-bold ph-check"></i> Selected</span>
+          </span>
+        </div>
+
+        <!-- body: features -->
+        <div class="flex flex-1 flex-col p-6">
+          <ul class="space-y-2.5 text-sm text-muted-foreground">
+            {p.features.map((f) => (
+              <li class="flex items-start gap-2.5"><i class="ph-bold ph-check mt-0.5 shrink-0 text-primary"></i><span>{f}</span></li>
+            ))}
+          </ul>
+        </div>
+      </label>
+    );
+  })}
+</fieldset>

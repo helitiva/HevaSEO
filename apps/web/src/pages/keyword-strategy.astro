@@ -728,7 +728,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               </div>
               <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">New or small sites that want to start in the right direction.</p>
               <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$19</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~5 days</span></p>
-              <a href="#contact" data-goi="Basic · $19" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Basic</a>
+              <a href="/order/keyword-research?plan=basic" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Basic</a>
             </div>
             <div class="flex flex-1 flex-col p-7">
               <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[13px] font-medium text-emerald-600 dark:text-emerald-400"><i class="ph-fill ph-gift"></i> Free with a backlink order from $120 or &gt;50 articles</div>
@@ -751,7 +751,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               </div>
               <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">SMBs running SEO who want a structured system.</p>
               <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$39</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">One-time · ~4 days</span></p>
-              <a href="#contact" data-goi="Standard · $39" class="mt-4 block rounded-xl bg-zinc-900 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">Choose Standard</a>
+              <a href="/order/keyword-research?plan=standard" class="mt-4 block rounded-xl bg-zinc-900 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">Choose Standard</a>
             </div>
             <div class="flex flex-1 flex-col p-7">
               <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-[13px] font-medium text-violet-600 dark:text-violet-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Basic, plus</div>
@@ -774,7 +774,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               </div>
               <p class="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">Scaling projects, agencies, highly competitive industries.</p>
               <p class="mt-2 flex items-end justify-between gap-2"><span><span class="font-display text-3xl font-bold tracking-tight md:text-4xl">$79</span><span class="text-sm text-muted-foreground"> /package</span></span><span class="pb-1 text-xs text-muted-foreground">Priority · ~3 days</span></p>
-              <a href="#contact" data-goi="Pro · $79" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Pro</a>
+              <a href="/order/keyword-research?plan=pro" class="mt-4 block rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:-translate-y-px hover:bg-zinc-100 dark:bg-white dark:text-zinc-900">Choose Pro</a>
             </div>
             <div class="flex flex-1 flex-col p-7">
               <div class="mb-4 inline-flex items-center gap-2 self-start rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[13px] font-medium text-amber-600 dark:text-amber-400"><i class="ph-fill ph-arrow-fat-up"></i> Everything in Standard, plus</div>
@@ -838,9 +838,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <thead>
                 <tr class="border-b border-border">
                   <th class="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Feature</th>
-                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-circle text-base text-primary"></i> Basic</span></th>
-                  <th class="border-x border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold text-primary"><i class="ph-fill ph-star text-base"></i> Standard</span></th>
-                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 text-[13px] font-bold"><i class="ph-bold ph-crown text-base text-primary"></i> Pro</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight"><i class="ph-bold ph-circle text-base text-primary"></i> Basic</span></th>
+                  <th class="border-x border-border bg-primary/[0.05] px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight text-primary"><i class="ph-fill ph-star text-base"></i> Standard</span></th>
+                  <th class="px-4 py-3.5 text-center"><span class="inline-flex flex-col items-center gap-1 font-display text-[13px] font-bold tracking-tight"><i class="ph-bold ph-crown text-base text-primary"></i> Pro</span></th>
                 </tr>
               </thead>
               <tbody class="[&_tr]:border-b [&_tr]:border-border/60 [&_tr:last-child]:border-b-0 [&_td]:px-4 [&_td]:py-2.5 text-muted-foreground">
