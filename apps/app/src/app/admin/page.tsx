@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
-import { Sparkline } from '@/components/admin/Sparkline';
+import { RevenueChart } from '@/components/admin/RevenueChart';
+import { ServiceMix } from '@/components/admin/ServiceMix';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { PriorityBadge } from '@/components/admin/StatBadge';
 import {
   KPIS, ORDERS, STAFF, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
-  REVENUE_SERIES, REVENUE_DELTA, SLA_ON_TIME, CAPACITY_USED, money,
+  REVENUE_30, SERVICE_MIX, SLA_ON_TIME, CAPACITY_USED, money,
   type AdminOrder, type OpsKpi,
 } from '@/data/adminMock';
 
@@ -39,23 +39,12 @@ export default function CommandCenter() {
         {OPS_KPIS.map((k) => <OpsTile key={k.key} kpi={k} />)}
       </div>
 
-      {/* bento: revenue + on-time/capacity */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="kpi lg:col-span-2">
-          <span className="kpi-glow" />
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Revenue · today</p>
-              <p className="display mt-1 text-4xl font-bold tracking-tight">{money(KPIS.revenueToday)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Month to date <span className="font-semibold text-foreground">{money(KPIS.revenueMtd)}</span></p>
-            </div>
-            <span className={`pill ${REVENUE_DELTA >= 0 ? 'pill-live' : 'pill-warn'}`}>
-              <i className={`ph-bold ${REVENUE_DELTA >= 0 ? 'ph-trend-up' : 'ph-trend-down'}`} /> {REVENUE_DELTA >= 0 ? '+' : ''}{REVENUE_DELTA}%
-            </span>
-          </div>
-          <div className="mt-3"><Sparkline data={REVENUE_SERIES} height={64} /></div>
-        </div>
+      {/* revenue & volume — bars + line + time axis + period toggle */}
+      <RevenueChart data={REVENUE_30} />
 
+      {/* service mix + on-time/capacity */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2"><ServiceMix data={SERVICE_MIX} /></div>
         <div className="kpi">
           <span className="kpi-glow" />
           <p className="text-xs font-semibold text-muted-foreground">On-time delivery</p>
@@ -65,12 +54,14 @@ export default function CommandCenter() {
               <p className="text-xs text-muted-foreground">Capacity in use</p>
               <div className="bar mt-1"><i style={{ width: `${CAPACITY_USED}%` }} /></div>
               <p className="mt-1 text-sm font-semibold">{CAPACITY_USED}%</p>
+              <p className="mt-3 text-xs text-muted-foreground">Revenue today</p>
+              <p className="display text-xl font-bold tracking-tight">{money(KPIS.revenueToday)}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* order pipeline */}
+      {/* order pipeline — segmented bar */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-flow-arrow text-primary" /> Order pipeline</p>

@@ -102,3 +102,31 @@ export const OPS_KPIS: OpsKpi[] = [
   { key: 'overdue', icon: 'ph-warning', label: 'Overdue', value: KPIS.overdue, trend: [1, 2, 1, 3, 2, 3, 3], delta: 12, deltaGood: false, tone: 'warn' },
   { key: 'unassigned', icon: 'ph-user-minus', label: 'Unassigned', value: KPIS.unassigned, trend: [4, 3, 2, 3, 2, 2, 2], delta: -20, deltaGood: true, tone: 'warn' },
 ];
+
+// Daily revenue + order volume for the 30-day chart (dated, for time-axis ticks).
+export interface RevenuePoint { date: string; revenue: number; orders: number; }
+const REV_VALUES = [
+  560, 720, 640, 810, 900, 760, 1180, 690, 880, 940, 1020, 1150, 980, 1320,
+  820, 1010, 1190, 1080, 1260, 1130, 1410, 900, 1240, 1320, 1180, 1450, 1290, 1510, 1380, 1240,
+];
+export const REVENUE_30: RevenuePoint[] = REV_VALUES.map((revenue, i) => {
+  const d = new Date('2026-06-24T00:00:00');
+  d.setDate(d.getDate() - (REV_VALUES.length - 1 - i));
+  return {
+    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    revenue,
+    orders: Math.round(revenue / 80) + (i % 4),
+  };
+});
+
+// Share of orders by service — both by order count and by revenue value.
+export interface ServiceMixRow { service: string; orders: number; value: number; color: string; }
+export const SERVICE_MIX: ServiceMixRow[] = [
+  { service: 'Keyword', orders: 51, value: 1990, color: '#38bdf8' },
+  { service: 'Backlink', orders: 42, value: 3180, color: '#2563eb' },
+  { service: 'Content', orders: 38, value: 4120, color: '#10b981' },
+  { service: 'Audit', orders: 29, value: 1130, color: '#a78bfa' },
+  { service: 'Optimization', orders: 24, value: 1900, color: '#f59e0b' },
+  { service: 'Indexer', orders: 18, value: 640, color: '#34d399' },
+  { service: 'Web Design', orders: 9, value: 1610, color: '#fb923c' },
+];
