@@ -61,6 +61,8 @@ export function OrderDetailClient(p: Props) {
   const [msgInternal, setMsgInternal] = useState(true);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundAmt, setRefundAmt] = useState(String(p.order.value));
+  const [staffNotes, setStaffNotes] = useState<{ body: string; at: string }[]>([{ body: "Use the client's brand voice; avoid mentioning competitors by name.", at: `${p.today} 09:00` }]);
+  const [staffNote, setStaffNote] = useState('');
 
   const o = p.order;
   const nowStamp = `${p.today} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
@@ -83,6 +85,7 @@ export function OrderDetailClient(p: Props) {
   }
   function assignTo(name: string) { setStaff(name); setPicker(false); if (status === 'confirmed') transition('assigned', `→ ${name}`); else { log('assign', `${o.code} → ${name}`); notify(`Assigned to ${name}`); } }
   function sendMsg() { if (!msg.trim()) return; setMessages((m) => [...m, { who: 'You', body: msg.trim(), internal: msgInternal }]); setMsg(''); notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
+  function sendStaffNote() { if (!staffNote.trim()) return; setStaffNotes((n) => [...n, { body: staffNote.trim(), at: nowStamp }]); setStaffNote(''); log('note', `${o.code} note to staff`); notify(`Note sent to ${staff ?? 'staff (unassigned)'}`); }
   function doRefund() { const amt = Math.max(0, Number(refundAmt) || 0); setBalance((b) => b + amt); log('refund', `${o.code} refund ${money(amt)}`); notify(`Refunded ${money(amt)}`); setRefundOpen(false); }
 
   const actions = NEXT[status] ?? [];
@@ -184,6 +187,24 @@ export function OrderDetailClient(p: Props) {
               </div>
               <Checklist service={o.service} />
             </div>
+
+            <div className="mt-4 rounded-xl border border-border bg-background/40 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-note text-primary" /> Notes to staff {staff ? <span className="text-foreground">· {staff}</span> : <span>· unassigned</span>}</p>
+              <div className="space-y-1.5">
+                {staffNotes.map((n, i) => (
+                  <div key={i} className="rounded-lg border border-border bg-card p-2 text-sm">
+                    <p className="flex items-center justify-between text-[10px] text-muted-foreground"><span className="font-semibold text-foreground">Admin</span><span>{n.at}</span></p>
+                    <p>{n.body}</p>
+                  </div>
+                ))}
+                {staffNotes.length === 0 && <p className="text-xs text-muted-foreground">No notes yet.</p>}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input value={staffNote} onChange={(e) => setStaffNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendStaffNote()} placeholder={`Note an instruction for ${staff ?? 'the staff'}…`} className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <button onClick={sendStaffNote} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">Send</button>
+              </div>
+            </div>
+
             <p className="mb-2 mt-4 text-xs font-semibold text-muted-foreground">Deliverables</p>
             {submitted ? (
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3">
