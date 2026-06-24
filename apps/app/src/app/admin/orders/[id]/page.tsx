@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { ORDERS, AUDIT, STAFF, TIER, ORDER_EXTRA, SERVICE_INCLUDED, customerByCompany, money, type OrderStatus, type AdminOrder } from '@/data/adminMock';
 import { OrderActions } from './OrderActions';
-import { SeoOutcomes } from './SeoOutcomes';
 import { Checklist } from './Checklist';
 
 const seqMap = new Map([...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
@@ -69,22 +68,25 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               <Fact label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{order.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
               <Fact label="Priority" value={<span className="capitalize">{order.priority}</span>} />
             </div>
-            <div className="mt-4 grid gap-5 lg:grid-cols-2">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground">Package · {money(order.value)}</p>
-                <p className="text-sm font-semibold">{order.service} · {order.pkg}</p>
-                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                  {included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}
-                </ul>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground">Customer inputs</p>
-                <div className="mt-2 space-y-1.5 text-sm">
-                  {brief.map((f) => <div key={f.label}><span className="text-muted-foreground">{f.label}: </span><span className="font-medium">{f.value}</span></div>)}
-                </div>
-              </div>
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold text-muted-foreground">Package · {money(order.value)}</p>
+              <p className="text-sm font-semibold">{order.service} · {order.pkg}</p>
+              <ul className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                {included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}
+              </ul>
             </div>
+          </Card>
 
+          {/* Full customer submission (replaces the unmeasurable SEO-outcomes block) */}
+          <Card icon="ph-note-pencil" title="Customer intake — full submission">
+            <div className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              {brief.map((f) => (
+                <div key={f.label} className="flex flex-col">
+                  <span className="text-[11px] font-semibold text-muted-foreground">{f.label}</span>
+                  <span className="font-medium">{f.value}</span>
+                </div>
+              ))}
+            </div>
             {addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" /> Upsells added at checkout</p>
@@ -110,8 +112,6 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               </div>
             </Card>
           )}
-
-          <SeoOutcomes order={order} />
 
           <Card icon="ph-wrench" title="Fulfillment">
             <div className="grid gap-4 sm:grid-cols-2">
