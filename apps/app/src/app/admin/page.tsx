@@ -1,17 +1,10 @@
 import Link from 'next/link';
-import { RevenueChart } from '@/components/admin/RevenueChart';
-import { ServiceMix } from '@/components/admin/ServiceMix';
-import { GeoPanel } from '@/components/admin/GeoPanel';
-import { SupportStats } from '@/components/admin/SupportStats';
-import { TeamPerformance } from '@/components/admin/TeamPerformance';
-import { AudienceAnalytics } from '@/components/admin/AudienceAnalytics';
-import { Donut } from '@/components/admin/Donut';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { PriorityBadge } from '@/components/admin/StatBadge';
 import {
-  ORDERS, CUSTOMERS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
-  REVENUE_90, SERVICE_MIX, SLA_ON_TIME, CAPACITY_USED, SOURCE_SPLIT, REVENUE_GOAL, money,
+  KPIS, ORDERS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
+  USER_STATS, TICKET_STATS, SLA_ON_TIME, CAPACITY_USED, REVENUE_GOAL, money,
   type AdminOrder, type OpsKpi,
 } from '@/data/adminMock';
 
@@ -27,13 +20,6 @@ export default function CommandCenter() {
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const pipeTotal = PIPELINE.reduce((s, p) => s + p.count, 0);
   const activeTotal = PIPELINE.filter((p) => p.status !== 'completed').reduce((s, p) => s + p.count, 0);
-  const topCustomers = [...CUSTOMERS].sort((a, b) => b.spend - a.spend).slice(0, 4);
-  const maxSpend = Math.max(...topCustomers.map((c) => c.spend), 1);
-  const convSegs = [
-    { label: 'Quick checkout', value: SOURCE_SPLIT.quick, color: '#2563eb' },
-    { label: 'Dashboard', value: SOURCE_SPLIT.dashboard, color: '#10b981' },
-  ];
-  const convTotal = SOURCE_SPLIT.quick + SOURCE_SPLIT.dashboard;
   const goalPct = Math.min(100, Math.round((REVENUE_GOAL.mtd / REVENUE_GOAL.target) * 100));
 
   return (
@@ -44,7 +30,10 @@ export default function CommandCenter() {
           <h1 className="display text-2xl font-bold tracking-tight">Command Center</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel} · live operational snapshot</p>
         </div>
-        <span className="pill pill-live"><span /> Live</span>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/analytics" className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50"><i className="ph-bold ph-chart-line-up mr-1 text-primary" />Full analytics</Link>
+          <span className="pill pill-live"><span /> Live</span>
+        </div>
       </div>
 
       {/* ops KPI strip */}
@@ -52,22 +41,30 @@ export default function CommandCenter() {
         {OPS_KPIS.map((k) => <OpsTile key={k.key} kpi={k} />)}
       </div>
 
-      {/* revenue — stacked bars by service + line + date range */}
-      <RevenueChart data={REVENUE_90} services={SERVICE_MIX} />
+      {/* glance snapshot — each links to its detail surface */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <SnapshotCard icon="ph-currency-dollar" title="Revenue" href="/admin/analytics" cta="Analytics"
+          rows={[['Today', money(KPIS.revenueToday)], ['Month to date', money(KPIS.revenueMtd)]]} />
+        <SnapshotCard icon="ph-users" title="Audience" href="/admin/analytics" cta="Analytics"
+          rows={[['New today', String(USER_STATS.newToday)], ['Active (DAU)', USER_STATS.dau.toLocaleString('en-US')]]} />
+        <SnapshotCard icon="ph-lifebuoy" title="Support" href="/admin/tickets" cta="Inbox"
+          rows={[['Open', String(TICKET_STATS.open)], ['Pending', String(TICKET_STATS.pending)]]} />
 
-      {/* audience — new users, DAU/WAU/MAU, retention, funnel, engagement */}
-      <AudienceAnalytics />
-
-      {/* service mix + geo */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ServiceMix data={SERVICE_MIX} />
-        <div className="lg:col-span-2"><GeoPanel /></div>
-      </div>
-
-      {/* support + team performance */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SupportStats />
-        <div className="lg:col-span-2"><TeamPerformance /></div>
+        <div className="kpi">
+          <span className="kpi-glow" />
+          <p className="text-xs font-semibold text-muted-foreground">Operational health</p>
+          <div className="mt-2 flex items-center gap-3">
+            <RingStat pct={SLA_ON_TIME} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-muted-foreground">On-time · capacity {CAPACITY_USED}%</p>
+              <div className="bar mt-1"><i style={{ width: `${CAPACITY_USED}%` }} /></div>
+            </div>
+          </div>
+          <div className="mt-auto pt-3">
+            <div className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Revenue goal</span><span className="font-semibold">{goalPct}%</span></div>
+            <div className="bar mt-1"><i style={{ width: `${goalPct}%` }} /></div>
+          </div>
+        </div>
       </div>
 
       {/* order pipeline */}
@@ -91,68 +88,7 @@ export default function CommandCenter() {
         </div>
       </div>
 
-      {/* conversion + top customers + health */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-shopping-cart-simple text-primary" /> Acquisition</p>
-          <div className="flex items-center gap-5">
-            <Donut segs={convSegs} centerValue={String(convTotal)} centerLabel="orders" size={120} />
-            <div className="space-y-2">
-              {convSegs.map((s) => (
-                <div key={s.label} className="text-xs">
-                  <p className="flex items-center gap-1.5 font-medium"><span className="legend-dot" style={{ background: s.color }} />{s.label}</p>
-                  <p className="text-muted-foreground">{s.value} · {Math.round((s.value / convTotal) * 100)}%</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-crown-simple text-primary" /> Top customers</p>
-            <Link href="/admin/customers" className="text-xs font-semibold text-primary hover:underline">All →</Link>
-          </div>
-          <div className="space-y-2.5">
-            {topCustomers.map((c) => (
-              <div key={c.id}>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{c.name} <span className="text-muted-foreground">· {c.company}</span></span>
-                  <span className="font-semibold">{money(c.spend)}</span>
-                </div>
-                <div className="bar mt-1"><i style={{ width: `${(c.spend / maxSpend) * 100}%` }} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="kpi">
-          <span className="kpi-glow" />
-          <p className="text-xs font-semibold text-muted-foreground">Operational health</p>
-          <div className="mt-2 flex items-center gap-4">
-            <RingStat pct={SLA_ON_TIME} />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div>
-                <p className="text-[11px] text-muted-foreground">On-time delivery</p>
-                <p className="text-sm font-semibold">{SLA_ON_TIME}%</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Capacity in use</p>
-                <div className="bar mt-1"><i style={{ width: `${CAPACITY_USED}%` }} /></div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-auto pt-3">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground">Revenue goal</span>
-              <span className="font-semibold">{money(REVENUE_GOAL.mtd)} / {money(REVENUE_GOAL.target)}</span>
-            </div>
-            <div className="bar mt-1"><i style={{ width: `${goalPct}%` }} /></div>
-          </div>
-        </div>
-      </div>
-
-      {/* needs attention */}
+      {/* needs attention — the action core */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bell-ringing text-primary" /> Needs attention</p>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -176,6 +112,26 @@ export default function CommandCenter() {
         </ul>
       </div>
     </section>
+  );
+}
+
+function SnapshotCard({ icon, title, rows, href, cta }: { icon: string; title: string; rows: [string, string][]; href: string; cta: string }) {
+  return (
+    <div className="kpi">
+      <span className="kpi-glow" />
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className="display font-bold tracking-tight">{value}</span>
+          </div>
+        ))}
+      </div>
+      <Link href={href} className="mt-auto pt-3 text-xs font-semibold text-primary hover:underline">{cta} →</Link>
+    </div>
   );
 }
 

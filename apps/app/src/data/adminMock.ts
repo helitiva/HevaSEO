@@ -192,6 +192,26 @@ export const FUNNEL: { stage: string; value: number }[] = [
   { stage: 'First order', value: 312 }, { stage: 'Repeat buyer', value: 148 },
 ];
 
+// ---- Revenue analytics (deep, for the Analytics page) ----------------
+export const REVENUE_ANALYTICS = {
+  grossMtd: 18650, refundsMtd: 540, netMtd: 18110,
+  aov: 86, arpu: 14.2, payingCustomers: 1278,
+  forecastNextMonth: 24200, forecastDelta: 14,
+  bySource: [
+    { label: 'Quick checkout', value: 9200, color: '#2563eb' },
+    { label: 'Dashboard', value: 8910, color: '#10b981' },
+  ],
+};
+export interface RevKpi { key: string; icon: string; label: string; value: string; delta?: number; deltaGood?: boolean; }
+export const REVENUE_KPIS: RevKpi[] = [
+  { key: 'gross', icon: 'ph-currency-dollar', label: 'Gross · MTD', value: '$18,650', delta: 12, deltaGood: true },
+  { key: 'net', icon: 'ph-receipt', label: 'Net (after refunds)', value: '$18,110', delta: 11, deltaGood: true },
+  { key: 'aov', icon: 'ph-shopping-bag', label: 'Avg order value', value: '$86', delta: 4, deltaGood: true },
+  { key: 'arpu', icon: 'ph-user', label: 'ARPU', value: '$14.2', delta: 2, deltaGood: true },
+  { key: 'refunds', icon: 'ph-arrow-u-down-left', label: 'Refunds · MTD', value: '$540', delta: 8, deltaGood: false },
+  { key: 'forecast', icon: 'ph-trend-up', label: 'Forecast · next mo.', value: '$24,200', delta: 14, deltaGood: true },
+];
+
 // Share of orders by service — both by order count and by revenue value.
 export interface ServiceMixRow { service: string; orders: number; value: number; color: string; }
 export const SERVICE_MIX: ServiceMixRow[] = [
