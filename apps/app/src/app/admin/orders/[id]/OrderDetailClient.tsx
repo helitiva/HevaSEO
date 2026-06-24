@@ -104,41 +104,35 @@ export function OrderDetailClient(p: Props) {
   const submitted = ['delivered', 'approved', 'completed', 'changes_requested'].includes(status);
 
   return (
-    <section className="space-y-5">
-      <div className="flex items-center justify-between">
-        <Link href="/admin/orders" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-left" /> Orders</Link>
-        <div className="flex items-center gap-1 text-xs">
-          {p.prev ? <Link href={`/admin/orders/${p.prev.id}`} className="rounded-lg border border-border px-2 py-1 font-semibold hover:bg-accent">← {p.prev.code}</Link> : <span className="rounded-lg border border-border/50 px-2 py-1 text-muted-foreground/50">←</span>}
-          {p.next ? <Link href={`/admin/orders/${p.next.id}`} className="rounded-lg border border-border px-2 py-1 font-semibold hover:bg-accent">{p.next.code} →</Link> : <span className="rounded-lg border border-border/50 px-2 py-1 text-muted-foreground/50">→</span>}
+    <section className="space-y-4">
+      {/* compact sticky header */}
+      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur lg:-mx-7 lg:px-7">
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <Link href="/admin/orders" className="inline-flex items-center gap-1 font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-left" /> Orders</Link>
+          <div className="flex items-center gap-1">
+            {p.prev ? <Link href={`/admin/orders/${p.prev.id}`} className="rounded-md border border-border px-2 py-0.5 font-semibold hover:bg-accent">← {p.prev.code}</Link> : <span className="rounded-md border border-border/50 px-2 py-0.5 text-muted-foreground/40">←</span>}
+            {p.next ? <Link href={`/admin/orders/${p.next.id}`} className="rounded-md border border-border px-2 py-0.5 font-semibold hover:bg-accent">{p.next.code} →</Link> : <span className="rounded-md border border-border/50 px-2 py-0.5 text-muted-foreground/40">→</span>}
+          </div>
         </div>
-      </div>
 
-      {/* sticky header */}
-      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur lg:-mx-7 lg:px-7">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="display text-2xl font-bold tracking-tight">{o.code}</span>
-              <span className="text-sm font-semibold text-muted-foreground">#{o.seq}</span>
-              <PriorityBadge priority={priority} /><StatusBadge status={status} />
-            </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · created {ageDays}d ago</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="display text-xl font-bold tracking-tight">{o.code}</span>
+            <span className="text-xs font-semibold text-muted-foreground">#{o.seq}</span>
+            <PriorityBadge priority={priority} /><StatusBadge status={status} />
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} /> {banner.text}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
-            {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-3 py-2 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
-            {!actions.length && <span className="text-sm text-muted-foreground">No further actions</span>}
+            {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
+            {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
             <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)}
               onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
               canCancel={!['completed', 'canceled'].includes(status)} />
           </div>
         </div>
-        <div className="mt-3"><ProgressTracker status={status} /></div>
-      </div>
 
-      {/* status banner */}
-      <div className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium ${banner.cls}`}>
-        <i className={`ph-bold ${banner.icon}`} /> {banner.text}
+        <p className="mt-1 text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
+        <div className="mt-2"><ProgressTracker status={status} /></div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -351,17 +345,17 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
   const changes = status === 'changes_requested';
   const idx = changes ? FLOW.findIndex((s) => s.key === 'in_progress') : FLOW.findIndex((s) => s.key === status);
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-1">
+    <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
       {FLOW.map((s, i) => (
         <Fragment key={s.key}>
-          {i > 0 && <span className={`h-0.5 w-4 shrink-0 sm:w-8 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
-          <div className="flex shrink-0 flex-col items-center gap-1">
-            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
-            <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}</span>
+          {i > 0 && <span className={`h-0.5 w-3 shrink-0 sm:w-6 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className={`grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
+            {i === idx && <span className="whitespace-nowrap text-[11px] font-semibold text-foreground">{s.label}</span>}
           </div>
         </Fragment>
       ))}
-      {changes && <span className="pill pill-warn ml-2 shrink-0">changes requested</span>}
+      {changes && <span className="pill pill-warn ml-1 shrink-0">changes</span>}
     </div>
   );
 }
