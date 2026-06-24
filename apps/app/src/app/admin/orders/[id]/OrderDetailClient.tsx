@@ -114,7 +114,7 @@ export function OrderDetailClient(p: Props) {
       </div>
 
       {/* sticky header */}
-      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/85 px-4 py-3 backdrop-blur lg:-mx-7 lg:px-7">
+      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur lg:-mx-7 lg:px-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -128,7 +128,9 @@ export function OrderDetailClient(p: Props) {
             {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
             {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-3 py-2 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
             {!actions.length && <span className="text-sm text-muted-foreground">No further actions</span>}
-            <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)} />
+            <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)}
+              onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
+              canCancel={!['completed', 'canceled'].includes(status)} />
           </div>
         </div>
         <div className="mt-3"><ProgressTracker status={status} /></div>
@@ -329,18 +331,17 @@ function makeBanner(status: OrderStatus, staff: string | null, dToDue: number | 
   }
 }
 
-function MoreMenu({ onAssign, onRefund }: { onAssign: () => void; onRefund: () => void }) {
+function MoreMenu({ onAssign, onRefund, onCancel, canCancel }: { onAssign: () => void; onRefund: () => void; onCancel: () => void; canCancel: boolean }) {
   const [open, setOpen] = useState(false);
   const items = [
-    { icon: 'ph-user-gear', label: 'Assign / reassign', fn: onAssign },
-    { icon: 'ph-arrow-u-down-left', label: 'Refund', fn: onRefund },
-    { icon: 'ph-note-pencil', label: 'Add internal note', fn: () => {} },
-    { icon: 'ph-paperclip', label: 'Attach file', fn: () => {} },
+    { icon: 'ph-user-gear', label: 'Assign / reassign', fn: onAssign, danger: false },
+    { icon: 'ph-arrow-u-down-left', label: 'Refund', fn: onRefund, danger: false },
+    ...(canCancel ? [{ icon: 'ph-x-circle', label: 'Cancel order', fn: onCancel, danger: true }] : []),
   ];
   return (
     <div className="relative">
       <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent" aria-label="More actions"><i className="ph-bold ph-dots-three-outline" /></button>
-      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted"><i className={`ph-bold ${i.icon} text-muted-foreground`} /> {i.label}</button>)}</div></>)}
+      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} /> {i.label}</button>)}</div></>)}
     </div>
   );
 }
