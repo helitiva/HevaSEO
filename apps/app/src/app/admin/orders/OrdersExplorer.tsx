@@ -157,11 +157,11 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
       <p className="text-xs text-muted-foreground">{filtered.length} of {rows.length} orders · click a row to expand</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full border-collapse text-[13px]">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              {columns.map((c) => <th key={c.id} className={`p-3 ${c.align === 'right' ? 'text-right' : ''}`}>{c.header}</th>)}
-              <th className="w-8 p-3" />
+            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+              {columns.map((c) => <th key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.header}</th>)}
+              <th className="w-8 p-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -170,8 +170,8 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
               return (
                 <Fragment key={o.id}>
                   <tr onClick={() => setExpanded(open ? null : o.id)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${open ? 'bg-muted/30' : ''}`}>
-                    {columns.map((c) => <td key={c.id} className={`p-3 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
-                    <td className="p-3 text-muted-foreground"><i className={`ph-bold ${open ? 'ph-caret-up' : 'ph-caret-down'}`} /></td>
+                    {columns.map((c) => <td key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
+                    <td className="p-2.5 text-muted-foreground"><i className={`ph-bold ${open ? 'ph-caret-up' : 'ph-caret-down'}`} /></td>
                   </tr>
                   {open && (
                     <tr className="border-b border-border bg-background/40">

@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { ORDERS, AUDIT, STAFF, TIER, customerByCompany, money, type OrderStatus } from '@/data/adminMock';
+import { ORDERS, AUDIT, STAFF, TIER, ORDER_EXTRA, SERVICE_INCLUDED, customerByCompany, money, type OrderStatus, type AdminOrder } from '@/data/adminMock';
 import { OrderActions } from './OrderActions';
 import { SeoOutcomes } from './SeoOutcomes';
 import { Checklist } from './Checklist';
@@ -29,6 +29,13 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const debited = !['new', 'canceled'].includes(order.status);
   const submitted = ['delivered', 'approved', 'completed', 'changes_requested'].includes(order.status);
   const timeline = AUDIT.filter((a) => a.change.startsWith(order.code));
+
+  const extra = ORDER_EXTRA[order.id];
+  const included = extra?.included ?? SERVICE_INCLUDED[order.service] ?? [];
+  const brief = extra?.brief ?? [{ label: 'Website', value: `https://${site}` }, { label: 'Goal', value: 'Improve organic visibility' }, { label: 'Market', value: 'US · English' }];
+  const addons = extra?.addons ?? [];
+  const addonsTotal = addons.reduce((s, a) => s + a.price, 0);
+  const bundle = (extra?.bundle ?? []).map((bid) => ORDERS.find((o) => o.id === bid)).filter((o): o is AdminOrder => !!o);
 
   return (
     <section className="space-y-5">
@@ -62,9 +69,47 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               <Fact label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{order.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
               <Fact label="Priority" value={<span className="capitalize">{order.priority}</span>} />
             </div>
-            <p className="mt-3 text-[11px] font-semibold text-muted-foreground">Brief</p>
-            <p className="text-sm text-muted-foreground">Improve organic visibility for <b className="text-foreground">{site}</b> via {order.service.toLowerCase()}. Target market: US · English.</p>
+            <div className="mt-4 grid gap-5 lg:grid-cols-2">
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground">Package · {money(order.value)}</p>
+                <p className="text-sm font-semibold">{order.service} · {order.pkg}</p>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground">Customer inputs</p>
+                <div className="mt-2 space-y-1.5 text-sm">
+                  {brief.map((f) => <div key={f.label}><span className="text-muted-foreground">{f.label}: </span><span className="font-medium">{f.value}</span></div>)}
+                </div>
+              </div>
+            </div>
+
+            {addons.length > 0 && (
+              <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" /> Upsells added at checkout</p>
+                <div className="space-y-1 text-sm">
+                  {addons.map((a) => <div key={a.name} className="flex justify-between"><span>{a.name} <span className="text-muted-foreground">· {a.tier}</span></span><span className="font-semibold">+{money(a.price)}</span></div>)}
+                  <div className="mt-1 flex justify-between border-t border-emerald-500/20 pt-1 font-semibold"><span>Upsell total</span><span>{money(addonsTotal)}</span></div>
+                  <div className="flex justify-between text-muted-foreground"><span>Order grand total</span><span className="font-semibold text-foreground">{money(order.value + addonsTotal)}</span></div>
+                </div>
+              </div>
+            )}
           </Card>
+
+          {bundle.length > 0 && (
+            <Card icon="ph-link" title="Related orders (bundled upsells)">
+              <p className="mb-2 text-xs text-muted-foreground">Placed together with this order at checkout.</p>
+              <div className="space-y-2">
+                {bundle.map((b) => (
+                  <Link key={b.id} href={`/admin/orders/${b.id}`} className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3 transition hover:border-primary/50">
+                    <div className="min-w-0"><p className="truncate text-sm font-medium">{b.code} · {b.service} · {b.pkg}</p><p className="text-[11px] text-muted-foreground">{b.customer}</p></div>
+                    <div className="flex shrink-0 items-center gap-2"><StatusBadge status={b.status} /><span className="text-sm font-semibold">{money(b.value)}</span></div>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <SeoOutcomes order={order} />
 

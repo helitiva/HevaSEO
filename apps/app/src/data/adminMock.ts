@@ -68,6 +68,42 @@ export const CUSTOMERS: AdminCustomer[] = [
 ];
 export const customerByCompany = (company: string) => CUSTOMERS.find((c) => c.company === company);
 
+// Full order intake: what's included, the customer's brief inputs, upsells, and bundled orders.
+export interface OrderExtra {
+  included: string[];
+  brief: { label: string; value: string }[];
+  addons: { name: string; tier: string; price: number }[];
+  bundle: string[]; // ids of related orders placed together (upsells)
+}
+export const ORDER_EXTRA: Record<string, OrderExtra> = {
+  o1: {
+    included: ['Full site crawl (up to 500 URLs)', 'Technical SEO audit', 'On-page analysis', 'Competitor snapshot (3 rivals)', 'Prioritised fix roadmap'],
+    brief: [
+      { label: 'Website', value: 'https://acme.com' },
+      { label: 'Primary goal', value: 'Recover rankings lost after the site redesign' },
+      { label: 'Target market', value: 'United States · English' },
+      { label: 'Top competitors', value: 'rivalco.com, betterwidgets.com' },
+      { label: 'CMS / platform', value: 'WordPress + WooCommerce' },
+      { label: 'Notes', value: 'Focus on the money pages (/pricing, /shop).' },
+    ],
+    addons: [
+      { name: 'Keyword Research', tier: 'Standard', price: 39 },
+      { name: 'Content — 5 articles', tier: 'AI-assisted', price: 60 },
+    ],
+    bundle: ['o8', 'o13'],
+  },
+};
+
+export const SERVICE_INCLUDED: Record<string, string[]> = {
+  Audit: ['Full site crawl', 'Technical + on-page audit', 'Competitor snapshot', 'Fix roadmap'],
+  Keyword: ['Keyword clusters', 'Volume & difficulty', 'Intent mapping', 'Competitor gap'],
+  Backlink: ['Prospecting & vetting', 'Outreach', 'Link placement', 'Index verification'],
+  Content: ['SEO-optimised articles', 'Keyword targeting', 'Internal linking', 'Editorial review'],
+  Optimization: ['Speed optimisation', 'On-page + schema', 'Core Web Vitals', 'Deploy + report'],
+  'Web Design': ['Responsive build', 'On-page SEO setup', 'Schema & sitemap', 'QA + deploy'],
+  Indexer: ['Index submission', 'Retry pending links', 'Per-link status report'],
+};
+
 export const STAFF: AdminStaff[] = [
   { id: 's1', name: 'Mai T.', skills: ['keyword','optimize'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
   { id: 's2', name: 'Linh P.', skills: ['backlink'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true },

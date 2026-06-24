@@ -7,7 +7,7 @@ export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => 
   const pathname = usePathname();
   const isActive = (href: string) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
   return (
-    <aside className={`fixed inset-y-0 left-0 z-[60] w-64 shrink-0 border-r border-border bg-card transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-[60] w-52 shrink-0 border-r border-border bg-card transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex h-[68px] items-center gap-2 border-b border-border px-5">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">H</span>
         <span className="display text-lg font-bold">HevaSEO <span className="text-primary">Admin</span></span>
