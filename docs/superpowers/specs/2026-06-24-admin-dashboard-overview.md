@@ -98,7 +98,18 @@ are derived (read) from `orders` + `credit_ledger`, not stored on the customer r
 3. **Order Management** — `2026-06-24-order-management-design.md` (+ implementation plan `plans/2026-06-24-admin-foundation-order-management.md`).
 4. **Assignment & Workload** — `2026-06-24-assignment-routing-design.md`.
 5. **Staff Management & Performance** — `2026-06-24-staff-performance-design.md`.
-6. Each remaining module → its own spec → plan → build, in wave order.
+6. **Deliverable Review** — `2026-06-24-deliverable-review-design.md`.
+7. **Customer & User Management** — `2026-06-24-customer-management-design.md`.
+8. **Finance** — `2026-06-24-finance-design.md`.
+9. **Ticket / Support** — `2026-06-24-ticket-support-design.md`.
+10. **Messaging / Notifications** — `2026-06-24-messaging-notifications-design.md`.
+11. **Command Center / Overview** — `2026-06-24-command-center-design.md`.
+12. **Analytics & Reports** — `2026-06-24-analytics-reports-design.md`.
+13. **Audit Log** — `2026-06-24-audit-log-design.md`.
+14. **Settings** — `2026-06-24-settings-design.md`.
+
+All 13 modules now have specs. Each → implementation plan → build, in wave order (the Foundation +
+Order Management plan exists; the rest follow).
 
 ## 8. Out of scope (this suite)
 
