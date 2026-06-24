@@ -105,8 +105,8 @@ export function OrderDetailClient(p: Props) {
 
   return (
     <section className="space-y-4">
-      {/* compact sticky header */}
-      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur lg:-mx-7 lg:px-7">
+      {/* compact header card */}
+      <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
         <div className="mb-2 flex items-center justify-between text-xs">
           <Link href="/admin/orders" className="inline-flex items-center gap-1 font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-left" /> Orders</Link>
           <div className="flex items-center gap-1">
@@ -345,10 +345,10 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
   const changes = status === 'changes_requested';
   const idx = changes ? FLOW.findIndex((s) => s.key === 'in_progress') : FLOW.findIndex((s) => s.key === status);
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+    <div className="flex items-center pb-0.5">
       {FLOW.map((s, i) => (
         <Fragment key={s.key}>
-          {i > 0 && <span className={`h-0.5 w-3 shrink-0 sm:w-6 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
+          {i > 0 && <span className={`mx-1.5 h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
           <div className="flex shrink-0 items-center gap-1.5">
             <span className={`grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
             {i === idx && <span className="whitespace-nowrap text-[11px] font-semibold text-foreground">{s.label}</span>}
