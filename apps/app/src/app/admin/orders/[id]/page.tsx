@@ -1,23 +1,19 @@
+import { Fragment, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { ORDERS, AUDIT, STAFF, TIER, customerByCompany, money } from '@/data/adminMock';
+import { ORDERS, AUDIT, STAFF, TIER, customerByCompany, money, type OrderStatus } from '@/data/adminMock';
+import { OrderActions } from './OrderActions';
+import { SeoOutcomes } from './SeoOutcomes';
+import { Checklist } from './Checklist';
 
-const NEXT: Record<string, { label: string; primary?: boolean }[]> = {
-  new: [{ label: 'Confirm', primary: true }, { label: 'Cancel' }],
-  confirmed: [{ label: 'Assign staff', primary: true }, { label: 'Cancel' }],
-  assigned: [{ label: 'Start work', primary: true }],
-  in_progress: [{ label: 'Send to internal review', primary: true }],
-  internal_review: [{ label: 'Deliver to customer', primary: true }, { label: 'Kick back' }],
-  delivered: [{ label: 'Approve', primary: true }, { label: 'Request changes' }],
-  changes_requested: [{ label: 'Resume work', primary: true }],
-  approved: [{ label: 'Mark completed', primary: true }],
-};
+const seqMap = new Map([...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
 
-const seqMap = new Map(
-  [...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const),
-);
+const FLOW: { key: OrderStatus; label: string }[] = [
+  { key: 'new', label: 'New' }, { key: 'confirmed', label: 'Confirmed' }, { key: 'assigned', label: 'Assigned' },
+  { key: 'in_progress', label: 'In progress' }, { key: 'internal_review', label: 'Review' },
+  { key: 'delivered', label: 'Delivered' }, { key: 'approved', label: 'Approved' }, { key: 'completed', label: 'Completed' },
+];
 
 export default async function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,9 +24,9 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const cust = customerByCompany(order.customer);
   const staff = STAFF.find((s) => s.name === order.staff);
   const site = cust?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
-  const actions = NEXT[order.status] ?? [];
   const today = new Date().toISOString().slice(0, 10);
   const overdue = order.deadline && order.deadline < today && order.status !== 'completed' && order.status !== 'canceled';
+  const debited = !['new', 'canceled'].includes(order.status);
   const submitted = ['delivered', 'approved', 'completed', 'changes_requested'].includes(order.status);
   const timeline = AUDIT.filter((a) => a.change.startsWith(order.code));
 
@@ -38,26 +34,20 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
     <section className="space-y-5">
       <Link href="/admin/orders" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-left" /> Orders</Link>
 
-      {/* header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="display text-2xl font-bold tracking-tight">{order.code}</span>
-            <span className="text-sm font-semibold text-muted-foreground">#{seq}</span>
+      {/* sticky header */}
+      <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/85 px-4 py-3 backdrop-blur lg:-mx-7 lg:px-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="display text-2xl font-bold tracking-tight">{order.code}</span>
+              <span className="text-sm font-semibold text-muted-foreground">#{seq}</span>
+              <PriorityBadge priority={order.priority} /><StatusBadge status={order.status} />
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">{order.service} · {order.pkg} · {money(order.value)} · {cust?.name ?? order.customer}</p>
           </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">{order.service} · {order.pkg} · {money(order.value)} · {order.source}</p>
+          <OrderActions status={order.status} />
         </div>
-        <div className="flex items-center gap-2"><PriorityBadge priority={order.priority} /><StatusBadge status={order.status} /></div>
-      </div>
-
-      {/* actions */}
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="mb-2 text-sm font-semibold">Actions</p>
-        <div className="flex flex-wrap gap-2">
-          {actions.length ? actions.map((a) => (
-            <button key={a.label} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${a.primary ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border hover:bg-accent'}`}>{a.label}</button>
-          )) : <span className="text-sm text-muted-foreground">No further actions — this order is {order.status}.</span>}
-        </div>
+        <div className="mt-3"><ProgressTracker status={order.status} /></div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -69,26 +59,40 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               <Fact label="Service" value={`${order.service} · ${order.pkg}`} />
               <Fact label="Site" value={site} />
               <Fact label="Target URL" value={<a href={`https://${site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{site}</a>} />
-              <Fact label="Order value" value={<span className="font-semibold">{money(order.value)}</span>} />
-              <Fact label="Source" value={order.source} />
+              <Fact label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{order.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
+              <Fact label="Priority" value={<span className="capitalize">{order.priority}</span>} />
             </div>
             <p className="mt-3 text-[11px] font-semibold text-muted-foreground">Brief</p>
             <p className="text-sm text-muted-foreground">Improve organic visibility for <b className="text-foreground">{site}</b> via {order.service.toLowerCase()}. Target market: US · English.</p>
           </Card>
 
-          <Card icon="ph-seal-check" title="Deliverables">
-            {submitted ? (
-              <div className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3">
-                <div className="flex items-center gap-3">
-                  <i className="ph-bold ph-file-text text-2xl text-primary" />
-                  <div><p className="text-sm font-medium">{order.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {order.staff ?? '—'}</p></div>
-                </div>
-                {order.status === 'delivered' && (
-                  <div className="flex gap-2">
-                    <button className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Approve</button>
-                    <button className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">Request changes</button>
+          <SeoOutcomes order={order} />
+
+          <Card icon="ph-wrench" title="Fulfillment">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">Assigned staff</p>
+                {staff ? (
+                  <div className="rounded-xl border border-border bg-background/40 p-3">
+                    <div className="flex items-center justify-between"><span className="font-semibold">{staff.name}</span><span className="display text-lg font-bold text-primary">{staff.composite}</span></div>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{staff.throughput} done · {staff.quality}% quality · {staff.onTime}% on-time · {staff.openLoad}/{staff.capacity} load</p>
+                    <button className="mt-2 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent">Reassign</button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border p-3">
+                    <p className="text-sm text-muted-foreground">Unassigned</p>
+                    <button className="mt-2 w-full rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Assign staff</button>
                   </div>
                 )}
+              </div>
+              <Checklist service={order.service} />
+            </div>
+
+            <p className="mb-2 mt-4 text-xs font-semibold text-muted-foreground">Deliverables</p>
+            {submitted ? (
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3">
+                <div className="flex items-center gap-3"><i className="ph-bold ph-file-text text-2xl text-primary" /><div><p className="text-sm font-medium">{order.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {order.staff ?? '—'}</p></div></div>
+                {order.status === 'delivered' && <div className="flex gap-2"><button className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Approve</button><button className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">Request changes</button></div>}
               </div>
             ) : <p className="text-sm text-muted-foreground">Awaiting submission from staff.</p>}
           </Card>
@@ -100,6 +104,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             </div>
             <div className="mt-3 flex items-center gap-2">
               <input placeholder="Write a message…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              <label className="flex items-center gap-1 text-xs text-muted-foreground"><input type="checkbox" className="accent-primary" /> internal</label>
               <button className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">Send</button>
             </div>
           </Card>
@@ -130,35 +135,25 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             {cust && <Link href={`/admin/customers/${cust.id}`} className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>}
           </Card>
 
-          <Card icon="ph-user-gear" title="Assigned staff">
-            {staff ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">{staff.name}</span>
-                  <span className="display text-xl font-bold text-primary">{staff.composite}</span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                  <Stat label="Completed" value={`${staff.throughput}`} />
-                  <Stat label="Quality" value={`${staff.quality}%`} />
-                  <Stat label="On-time" value={`${staff.onTime}%`} />
-                  <Stat label="Load" value={`${staff.openLoad}/${staff.capacity}`} />
-                </div>
-                <button className="mt-3 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent">Reassign</button>
-              </>
-            ) : (
-              <div>
-                <p className="text-sm text-muted-foreground">Unassigned.</p>
-                <button className="mt-2 w-full rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Assign staff</button>
-              </div>
-            )}
+          <Card icon="ph-wallet" title="Commercial">
+            <div className="space-y-1.5 text-sm">
+              <Fact label="Order value" value={<span className="font-semibold">{money(order.value)}</span>} />
+              <Fact label="Credit debit" value={debited ? <span className="text-foreground">−{money(order.value)}</span> : <span className="text-muted-foreground">on confirm</span>} />
+              <Fact label="Invoice" value={debited ? 'Issued' : 'Draft'} />
+              <Fact label="Payment" value={order.status === 'completed' ? 'Settled' : 'Pending'} />
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button className="flex-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent">Adjust credit</button>
+              <button className="flex-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent">Refund</button>
+            </div>
           </Card>
 
           <Card icon="ph-info" title="Order facts">
             <div className="space-y-1.5 text-sm">
               <Fact label="Order #" value={`#${seq}`} />
               <Fact label="Created" value={order.created} />
-              <Fact label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{order.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
-              <Fact label="Priority" value={order.priority} />
+              <Fact label="Source" value={order.source} />
+              <Fact label="Deadline" value={order.deadline ?? '—'} />
             </div>
           </Card>
         </div>
@@ -167,13 +162,30 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   );
 }
 
-function Card({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
+function ProgressTracker({ status }: { status: OrderStatus }) {
+  if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" /> Order canceled</span>;
+  const changes = status === 'changes_requested';
+  const idx = changes ? FLOW.findIndex((s) => s.key === 'in_progress') : FLOW.findIndex((s) => s.key === status);
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>
-      {children}
+    <div className="flex items-center gap-1 overflow-x-auto pb-1">
+      {FLOW.map((s, i) => (
+        <Fragment key={s.key}>
+          {i > 0 && <span className={`h-0.5 w-4 shrink-0 sm:w-8 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>
+              {i < idx ? <i className="ph-bold ph-check" /> : i + 1}
+            </span>
+            <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}</span>
+          </div>
+        </Fragment>
+      ))}
+      {changes && <span className="pill pill-warn ml-2 shrink-0">changes requested</span>}
     </div>
   );
+}
+
+function Card({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
+  return <div className="rounded-2xl border border-border bg-card p-5"><p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>{children}</div>;
 }
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="truncate text-right font-medium">{value}</span></div>;
@@ -182,10 +194,5 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border bg-background/40 p-2"><p className="display text-base font-bold capitalize leading-none">{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p></div>;
 }
 function Msg({ who, body, internal }: { who: string; body: string; internal?: boolean }) {
-  return (
-    <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}>
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p>
-      <p className="text-sm">{body}</p>
-    </div>
-  );
+  return <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}><p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p><p className="text-sm">{body}</p></div>;
 }
