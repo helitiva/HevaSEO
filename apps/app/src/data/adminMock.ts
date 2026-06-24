@@ -103,21 +103,49 @@ export const OPS_KPIS: OpsKpi[] = [
   { key: 'unassigned', icon: 'ph-user-minus', label: 'Unassigned', value: KPIS.unassigned, trend: [4, 3, 2, 3, 2, 2, 2], delta: -20, deltaGood: true, tone: 'warn' },
 ];
 
-// Daily revenue + order volume for the 30-day chart (dated, for time-axis ticks).
-export interface RevenuePoint { date: string; revenue: number; orders: number; }
-const REV_VALUES = [
-  560, 720, 640, 810, 900, 760, 1180, 690, 880, 940, 1020, 1150, 980, 1320,
-  820, 1010, 1190, 1080, 1260, 1130, 1410, 900, 1240, 1320, 1180, 1450, 1290, 1510, 1380, 1240,
+// Daily revenue + order volume — 90 days, dated (ISO for range filtering, label for ticks).
+export interface RevenuePoint { iso: string; date: string; revenue: number; orders: number; }
+function genRevenue(days: number): RevenuePoint[] {
+  const out: RevenuePoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date('2026-06-24T00:00:00');
+    d.setDate(d.getDate() - (days - 1 - i));
+    const dow = d.getDay();
+    const trend = 560 + i * 7;
+    const wiggle = Math.round(170 * Math.sin(i / 2.3)) + (dow === 0 || dow === 6 ? -170 : 70);
+    const revenue = Math.max(280, trend + wiggle);
+    out.push({
+      iso: d.toISOString().slice(0, 10),
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      revenue,
+      orders: Math.round(revenue / 80) + (i % 4),
+    });
+  }
+  return out;
+}
+export const REVENUE_90: RevenuePoint[] = genRevenue(90);
+
+// Visitor geo distribution (detected by IP). x/y are normalized map coords (0..1).
+export interface GeoRow { country: string; flag: string; users: number; x: number; y: number; }
+export const GEO: GeoRow[] = [
+  { country: 'United States', flag: '🇺🇸', users: 1840, x: 0.21, y: 0.42 },
+  { country: 'United Kingdom', flag: '🇬🇧', users: 720, x: 0.47, y: 0.34 },
+  { country: 'Germany', flag: '🇩🇪', users: 560, x: 0.52, y: 0.37 },
+  { country: 'Canada', flag: '🇨🇦', users: 430, x: 0.19, y: 0.31 },
+  { country: 'India', flag: '🇮🇳', users: 360, x: 0.69, y: 0.52 },
+  { country: 'Australia', flag: '🇦🇺', users: 320, x: 0.84, y: 0.74 },
+  { country: 'Singapore', flag: '🇸🇬', users: 220, x: 0.75, y: 0.59 },
+  { country: 'Brazil', flag: '🇧🇷', users: 190, x: 0.34, y: 0.69 },
 ];
-export const REVENUE_30: RevenuePoint[] = REV_VALUES.map((revenue, i) => {
-  const d = new Date('2026-06-24T00:00:00');
-  d.setDate(d.getDate() - (REV_VALUES.length - 1 - i));
-  return {
-    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    revenue,
-    orders: Math.round(revenue / 80) + (i % 4),
-  };
-});
+
+// Support / ticket aggregate.
+export const TICKET_STATS = { open: 5, pending: 3, resolved: 28, closed: 64, answeredToday: 12, avgFirstResponseH: 1.8 };
+
+// Orders by acquisition source (for conversion donut).
+export const SOURCE_SPLIT = { quick: 64, dashboard: 41 };
+
+// Monthly revenue goal.
+export const REVENUE_GOAL = { mtd: 18650, target: 26000 };
 
 // Share of orders by service — both by order count and by revenue value.
 export interface ServiceMixRow { service: string; orders: number; value: number; color: string; }
