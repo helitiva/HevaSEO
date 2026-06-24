@@ -256,7 +256,7 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
 
       {/* Order */}
       <Section icon="ph-package" title="Order details">
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-2 text-sm">
           <Row label="Project" value={`${o.customer} — SEO program`} />
           <Row label="Site" value={site} />
           <Row label="Target URL" value={<a href={`https://${site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{site}</a>} />
@@ -283,7 +283,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border bg-background/40 p-2"><p className="display text-base font-bold leading-none">{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p></div>;
 }
 function Row({ label, value }: { label: string; value: ReactNode }) {
-  return <div className="flex items-center justify-between gap-2"><span className="text-muted-foreground">{label}</span><span className="truncate text-right">{value}</span></div>;
+  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="truncate text-right font-medium">{value}</span></div>;
 }
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
