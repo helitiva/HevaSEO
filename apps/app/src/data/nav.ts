@@ -23,10 +23,11 @@ export const NAV: NavSection[] = [
   {
     title: 'Services',
     items: [
-      { label: 'Backlink', href: '/orders?svc=backlink', icon: 'ph-share-network' },
-      { label: 'Content SEO/GEO', href: '/orders?svc=content', icon: 'ph-pen-nib' },
-      { label: 'Indexer', href: '/orders?svc=indexer', icon: 'ph-magnifying-glass' },
-      { label: 'Audit & Optimization', href: '/orders?svc=audit', icon: 'ph-stethoscope' },
+      { label: 'Browse services', href: '/services', icon: 'ph-squares-four' },
+      { label: 'Audit', href: '/services/audit', icon: 'ph-stethoscope' },
+      { label: 'Backlink', href: '/services/backlink', icon: 'ph-share-network' },
+      { label: 'Content SEO/GEO', href: '/services/content', icon: 'ph-pen-nib' },
+      { label: 'Indexer', href: '/services/indexer', icon: 'ph-magnifying-glass' },
     ],
   },
   {

@@ -189,7 +189,7 @@ const SAMPLE: Order = ORDERS.find((o) => o.progress != null) ?? ORDERS[0];
 export function OrdersBoard({ initialService = 'all', domain }: { initialService?: ServiceKey | 'all'; domain?: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { statusOverrides } = useOrdersStore();
+  const { statusOverrides, addedOrders } = useOrdersStore();
   const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
   const openOrder = (id: string) => router.push(`${pathname}?order=${id}`, { scroll: false });
 
@@ -226,14 +226,16 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const domains = useMemo(() => Array.from(new Set(ORDERS.map((o) => o.domain))).sort(), []);
+  // Session-placed orders (from the Services flow) sit on top of the seed data.
+  const allOrders = useMemo(() => [...addedOrders, ...ORDERS], [addedOrders]);
+  const domains = useMemo(() => Array.from(new Set(allOrders.map((o) => o.domain))).sort(), [allOrders]);
   const data = useMemo(
-    () => ORDERS.filter((o) =>
+    () => allOrders.filter((o) =>
       (svc === 'all' || o.service === svc) &&
       (proj === 'all' || o.domain === proj) &&
       (!domain || o.domain === domain)
     ),
-    [svc, proj, domain]
+    [allOrders, svc, proj, domain]
   );
 
   const filters: (ServiceKey | 'all')[] = ['all', ...(Object.keys(SERVICES) as ServiceKey[])];

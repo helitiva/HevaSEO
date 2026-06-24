@@ -1,32 +1,38 @@
 'use client';
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { commentsFor, type OrderComment, type OrderStatus } from '@/data/mock';
+import { commentsFor, type Order, type OrderComment, type OrderStatus } from '@/data/mock';
 
 type OrdersCtx = {
   statusOverrides: Record<string, OrderStatus>;
   setStatus: (id: string, status: OrderStatus) => void;
   extraComments: Record<string, OrderComment[]>;
   addComment: (id: string, text: string) => void;
+  /** Orders placed this session (e.g. from the Services flow), newest first. */
+  addedOrders: Order[];
+  addOrder: (order: Order) => void;
 };
 
 const Ctx = createContext<OrdersCtx | null>(null);
 
-/** Client-side store so panel edits (status, comments) reflect on the board without a backend. */
+/** Client-side store so panel edits (status, comments) and placed orders reflect on the board without a backend. */
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, OrderStatus>>({});
   const [extraComments, setExtraComments] = useState<Record<string, OrderComment[]>>({});
+  const [addedOrders, setAddedOrders] = useState<Order[]>([]);
 
   const value = useMemo<OrdersCtx>(() => ({
     statusOverrides,
     extraComments,
+    addedOrders,
     setStatus: (id, status) => setStatusOverrides((m) => ({ ...m, [id]: status })),
     addComment: (id, text) =>
       setExtraComments((m) => ({
         ...m,
         [id]: [...(m[id] ?? []), { author: 'Huy', initials: 'HV', text, time: 'just now' }],
       })),
-  }), [statusOverrides, extraComments]);
+    addOrder: (order) => setAddedOrders((list) => [order, ...list]),
+  }), [statusOverrides, extraComments, addedOrders]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

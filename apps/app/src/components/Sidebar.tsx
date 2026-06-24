@@ -27,7 +27,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
 
       <div className="px-2.5 pt-3">
         <Link
-          href="/orders"
+          href="/services"
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-[13px] font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]"
         >
           <i className="ph-bold ph-plus" /> Order service
