@@ -5,7 +5,8 @@ import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { KPIS, ORDERS, TICKETS, AUDIT, money } from '@/data/adminMock';
 
 export default function CommandCenter() {
-  const overdue = ORDERS.filter((o) => o.deadline && o.deadline < '2026-06-24' && o.status !== 'completed');
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = ORDERS.filter((o) => o.deadline && o.deadline < today && o.status !== 'completed');
   const awaiting = ORDERS.filter((o) => o.status === 'delivered');
   const unassigned = ORDERS.filter((o) => !o.staff && o.status !== 'completed' && o.status !== 'canceled');
 

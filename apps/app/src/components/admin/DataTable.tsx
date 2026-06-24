@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 export interface Column<T> { key: string; header: string; align?: 'left' | 'right'; render: (row: T) => ReactNode; }
 
@@ -18,7 +19,7 @@ export function DataTable<T extends { id: string }>({ columns, rows, onRowHref }
                 const cell = <span>{c.render(row)}</span>;
                 return (
                   <td key={c.key} className={`p-3 ${c.align === 'right' ? 'text-right' : ''}`}>
-                    {onRowHref ? <a href={onRowHref(row)} className="block">{cell}</a> : cell}
+                    {onRowHref ? <Link href={onRowHref(row)} className="block">{cell}</Link> : cell}
                   </td>
                 );
               })}

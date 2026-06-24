@@ -3,7 +3,7 @@ import { KpiTile } from '@/components/admin/KpiTile';
 import { KPIS, ORDERS, money } from '@/data/adminMock';
 
 export default function FinancePage() {
-  const tx = ORDERS.map((o) => ({ id: o.id, label: `${o.code} · ${o.customer}`, amount: -o.value }));
+  const tx = ORDERS.map((o) => ({ id: o.id, label: `${o.code} · ${o.customer}`, amount: o.value }));
   return (
     <section>
       <PageHeader title="Finance" subtitle="Revenue, credit & transactions" />
@@ -18,7 +18,7 @@ export default function FinancePage() {
           {tx.map((t) => (
             <li key={t.id} className="flex items-center justify-between py-2 text-sm">
               <span>{t.label}</span>
-              <span className={t.amount < 0 ? 'font-semibold text-foreground' : 'font-semibold text-emerald-500'}>{money(t.amount)}</span>
+              <span className="font-semibold text-foreground">−{money(t.amount)}</span>
             </li>
           ))}
         </ul>

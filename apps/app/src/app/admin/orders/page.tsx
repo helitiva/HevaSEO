@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { DataTable, type Column } from '@/components/admin/DataTable';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
@@ -22,7 +23,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <section>
       <PageHeader title="Orders" subtitle={`${rows.length} order${rows.length === 1 ? '' : 's'}`} />
-      <StatusFilter counts={counts} />
+      <Suspense fallback={<div className="mb-4 h-10" />}>
+        <StatusFilter counts={counts} />
+      </Suspense>
       <DataTable columns={columns} rows={rows} onRowHref={(o) => `/admin/orders/${o.id}`} />
     </section>
   );
