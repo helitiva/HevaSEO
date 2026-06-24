@@ -39,6 +39,12 @@ const NEXT: Record<OrderStatus, Act[]> = {
   completed: [], canceled: [],
 };
 
+const PRI_ACTIVE: Record<Priority, string> = {
+  low: 'bg-muted text-foreground',
+  med: 'bg-amber-500 text-white',
+  high: 'bg-destructive text-white',
+};
+
 export function OrderDetailClient(p: Props) {
   const [status, setStatus] = useState<OrderStatus>(p.order.status);
   const [staff, setStaff] = useState<string | null>(p.order.staff);
@@ -141,7 +147,16 @@ export function OrderDetailClient(p: Props) {
               <Fact label="Service" value={`${o.service} · ${o.pkg}`} />
               <Fact label="Site" value={p.site} />
               <Fact label="Target URL" value={<a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{p.site}</a>} />
-              <EditFact label="Priority" control={<select value={priority} onChange={(e) => { setPriority(e.target.value as Priority); log('edit', `${o.code} priority → ${e.target.value}`); notify('Priority updated'); }} className="rounded border border-border bg-background px-1.5 py-0.5 text-sm"><option value="high">High</option><option value="med">Med</option><option value="low">Low</option></select>} />
+              <EditFact label="Priority" control={
+                <div className="inline-flex rounded-lg border border-border p-0.5">
+                  {(['low', 'med', 'high'] as Priority[]).map((pr) => (
+                    <button key={pr} type="button" onClick={() => { if (pr === priority) return; setPriority(pr); log('edit', `${o.code} priority → ${pr}`); notify(`Priority → ${pr}`); }}
+                      className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide transition ${priority === pr ? PRI_ACTIVE[pr] : 'text-muted-foreground hover:text-foreground'}`}>
+                      {pr}
+                    </button>
+                  ))}
+                </div>
+              } />
               <EditFact label="Deadline" control={<input type="date" value={deadline} onChange={(e) => { setDeadline(e.target.value); log('edit', `${o.code} deadline → ${e.target.value}`); notify('Deadline updated'); }} className={`rounded border bg-background px-1.5 py-0.5 text-sm ${overdue ? 'border-amber-500 text-amber-500' : 'border-border'}`} />} />
             </div>
             <div className="mt-4">
@@ -353,7 +368,7 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
 function Overlay({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-      <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="order-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
         <div className="mb-3 flex items-center justify-between"><p className="display text-base font-bold">{title}</p><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" /></button></div>
         {children}
