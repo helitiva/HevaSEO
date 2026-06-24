@@ -51,11 +51,11 @@ Nothing operational works without this. Build first, once:
 | 0 | **Foundation** | Supabase + master-admin auth + admin shell + core schema | — |
 | 1 | **Command Center** (Overview) | At-a-glance KPIs: new/in-progress/overdue orders, revenue today/MTD, staff load, open tickets, pending approvals | 0 |
 | 2 | **Order Management** | The spine: intake queue + state machine + filters + detail + timeline + source (quick/dashboard) | 0 |
-| 3 | **Assignment & Workload** | Assign orders/tasks to staff; per-staff load; deadlines; reassign; SLA | 2 |
+| 3 | **Assignment & Workload** | **Routing-rules engine**: map service and/or package → one or many staff; **auto-assign on Confirm** (fixed staff, or round-robin/least-busy when a rule matches several); manual override + reassign; fallback to manual when no rule matches; per-staff load + deadlines + SLA | 2, 7 |
 | 4 | **Deliverable Review** | Staff submit file/link/version → admin approve / request changes | 2, 3 |
 | 5 | **Ticket / Support** | Support inbox: status/priority/assignee, SLA, linked to order/customer | 0 (links 2, 6) |
 | 6 | **Customer & User Management** | Customer accounts + profiles (user info), account status (shadow/claimed), **ordered-services history**, **total spend / LTV**, credit balance & ledger, projects/domains, tickets, internal notes; actions: edit, adjust credit, magic-link/impersonate, merge, suspend | 0 (reads 2, 9) |
-| 7 | **Staff Management** | Staff accounts, skills, capacity, performance | 0 |
+| 7 | **Staff Management** | Staff accounts, skills, capacity; **performance scoring** — auto (quality from approval/changes-requested ratio + on-time vs SLA + throughput) **and** manual admin rating per order/period; composite staff score + per-order scores + aggregate profile | 0 (reads 2, 4) |
 | 8 | **Catalog Management** | Services/packages/prices/add-ons → apply to marketing + dashboard | 0 |
 | 9 | **Finance** | Credit ledger, invoices, Stripe, revenue, refunds | 2, 6 |
 | 10 | **Messaging / Notifications** | Two-tier messages (internal/customer) + notification center (Realtime) | 2 |
