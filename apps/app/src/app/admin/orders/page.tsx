@@ -1,32 +1,23 @@
-import { Suspense } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
-import { DataTable, type Column } from '@/components/admin/DataTable';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { StatusFilter } from './StatusFilter';
-import { ORDERS, money, type AdminOrder, type OrderStatus } from '@/data/adminMock';
+import { OrdersExplorer, type ExplorerOrder } from './OrdersExplorer';
+import { ORDERS, customerByCompany } from '@/data/adminMock';
 
-export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const { status } = await searchParams;
-  const rows = status ? ORDERS.filter((o) => o.status === status) : ORDERS;
-  const counts = ORDERS.reduce<Partial<Record<OrderStatus, number>>>((a, o) => ({ ...a, [o.status]: (a[o.status] ?? 0) + 1 }), {});
-
-  const columns: Column<AdminOrder>[] = [
-    { key: 'code', header: 'Code', render: (o) => <span className="font-medium">{o.code}</span> },
-    { key: 'customer', header: 'Customer', render: (o) => o.customer },
-    { key: 'service', header: 'Service', render: (o) => <>{o.service} · <span className="text-muted-foreground">{o.pkg}</span></> },
-    { key: 'status', header: 'Status', render: (o) => <StatusBadge status={o.status} /> },
-    { key: 'priority', header: 'Priority', render: (o) => <PriorityBadge priority={o.priority} /> },
-    { key: 'staff', header: 'Staff', render: (o) => o.staff ?? <span className="text-muted-foreground">—</span> },
-    { key: 'value', header: 'Value', align: 'right', render: (o) => money(o.value) },
-  ];
+export default function OrdersPage() {
+  const rows: ExplorerOrder[] = ORDERS.map((o) => {
+    const c = customerByCompany(o.customer);
+    return {
+      ...o,
+      custName: c?.name ?? o.customer,
+      custTier: c?.tier ?? 'new',
+      custLtv: c?.spend ?? o.value,
+      custOrders: c?.orders ?? 1,
+    };
+  });
 
   return (
     <section>
-      <PageHeader title="Orders" subtitle={`${rows.length} order${rows.length === 1 ? '' : 's'}`} />
-      <Suspense fallback={<div className="mb-4 h-10" />}>
-        <StatusFilter counts={counts} />
-      </Suspense>
-      <DataTable columns={columns} rows={rows} onRowHref={(o) => `/admin/orders/${o.id}`} />
+      <PageHeader title="Orders" subtitle={`${rows.length} orders · customer tier, LTV & filters`} />
+      <OrdersExplorer rows={rows} />
     </section>
   );
 }

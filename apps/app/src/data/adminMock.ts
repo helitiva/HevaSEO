@@ -9,7 +9,7 @@ export interface AdminOrder {
 }
 export interface AdminCustomer {
   id: string; name: string; company: string; email: string; status: 'shadow'|'claimed';
-  orders: number; spend: number; balance: number; lastActive: string;
+  orders: number; spend: number; balance: number; lastActive: string; tier: Tier;
 }
 export interface AdminStaff {
   id: string; name: string; skills: string[]; capacity: number; openLoad: number;
@@ -33,13 +33,40 @@ export const ORDERS: AdminOrder[] = [
   { id: 'o3', code: 'BL-1003', customer: 'Nova', service: 'Backlink', pkg: 'Growth', status: 'internal_review', priority: 'high', source: 'dashboard', value: 64, staff: 'Linh P.', deadline: '2026-06-24', created: '2026-06-21' },
   { id: 'o4', code: 'CNT-1004', customer: 'Acme Co', service: 'Content', pkg: '10 articles', status: 'delivered', priority: 'med', source: 'quick', value: 120, staff: 'Huy N.', deadline: '2026-06-27', created: '2026-06-20' },
   { id: 'o5', code: 'OPT-1005', customer: 'Vértice', service: 'Optimization', pkg: 'Standard', status: 'completed', priority: 'low', source: 'dashboard', value: 79, staff: 'Mai T.', deadline: '2026-06-22', created: '2026-06-18' },
+  { id: 'o6', code: 'BL-1006', customer: 'Nova', service: 'Backlink', pkg: 'Power', status: 'assigned', priority: 'high', source: 'dashboard', value: 104, staff: 'Linh P.', deadline: '2026-06-28', created: '2026-06-22' },
+  { id: 'o7', code: 'KW-1007', customer: 'Peak Digital', service: 'Keyword', pkg: 'Pro', status: 'confirmed', priority: 'med', source: 'quick', value: 79, staff: null, deadline: '2026-06-26', created: '2026-06-22' },
+  { id: 'o8', code: 'CNT-1008', customer: 'Acme Co', service: 'Content', pkg: '5 articles', status: 'in_progress', priority: 'med', source: 'dashboard', value: 60, staff: 'Huy N.', deadline: '2026-06-25', created: '2026-06-19' },
+  { id: 'o9', code: 'AUD-1009', customer: 'Lumen', service: 'Audit', pkg: 'Basic', status: 'new', priority: 'low', source: 'quick', value: 19, staff: null, deadline: '2026-06-27', created: '2026-06-24' },
+  { id: 'o10', code: 'OPT-1010', customer: 'Vértice', service: 'Optimization', pkg: 'Ultra', status: 'approved', priority: 'med', source: 'dashboard', value: 140, staff: 'Mai T.', deadline: '2026-06-23', created: '2026-06-17' },
+  { id: 'o11', code: 'WD-1011', customer: 'Nova', service: 'Web Design', pkg: 'E-commerce', status: 'assigned', priority: 'high', source: 'dashboard', value: 279, staff: 'Linh P.', deadline: '2026-07-02', created: '2026-06-16' },
+  { id: 'o12', code: 'IDX-1012', customer: 'Peak Digital', service: 'Indexer', pkg: '—', status: 'completed', priority: 'low', source: 'quick', value: 24, staff: 'Huy N.', deadline: '2026-06-20', created: '2026-06-14' },
+  { id: 'o13', code: 'KW-1013', customer: 'Acme Co', service: 'Keyword', pkg: 'Standard', status: 'completed', priority: 'med', source: 'dashboard', value: 39, staff: 'Mai T.', deadline: '2026-06-19', created: '2026-06-13' },
+  { id: 'o14', code: 'BL-1014', customer: 'Bright Ltd', service: 'Backlink', pkg: 'Starter', status: 'changes_requested', priority: 'high', source: 'quick', value: 36, staff: 'Linh P.', deadline: '2026-06-24', created: '2026-06-12' },
+  { id: 'o15', code: 'CNT-1015', customer: 'Nova', service: 'Content', pkg: '3 articles', status: 'delivered', priority: 'med', source: 'dashboard', value: 36, staff: 'Huy N.', deadline: '2026-06-26', created: '2026-06-11' },
+  { id: 'o16', code: 'AUD-1016', customer: 'Vértice', service: 'Audit', pkg: 'Standard', status: 'canceled', priority: 'low', source: 'quick', value: 39, staff: null, deadline: '2026-06-15', created: '2026-06-09' },
 ];
 
+// Customer tiers (shown by icon in the orders/customers tables).
+export type Tier = 'new' | 'silver' | 'gold' | 'vip';
+export const TIER: Record<Tier, { label: string; icon: string; color: string }> = {
+  new: { label: 'New', icon: 'ph-sparkle', color: '#38bdf8' },
+  silver: { label: 'Silver', icon: 'ph-medal', color: '#94a3b8' },
+  gold: { label: 'Gold', icon: 'ph-medal', color: '#f59e0b' },
+  vip: { label: 'VIP', icon: 'ph-crown', color: '#a855f7' },
+};
+export function tierOf(spend: number): Tier {
+  return spend >= 3000 ? 'vip' : spend >= 1500 ? 'gold' : spend >= 400 ? 'silver' : 'new';
+}
+
 export const CUSTOMERS: AdminCustomer[] = [
-  { id: 'c1', name: 'Jane Doe', company: 'Acme Co', email: 'jane@acme.com', status: 'claimed', orders: 8, spend: 1240, balance: 320, lastActive: '2026-06-24' },
-  { id: 'c2', name: 'Sam Lee', company: 'Bright Ltd', email: 'sam@bright.io', status: 'shadow', orders: 2, spend: 198, balance: 0, lastActive: '2026-06-23' },
-  { id: 'c3', name: 'Ana Ruiz', company: 'Nova', email: 'ana@nova.co', status: 'claimed', orders: 14, spend: 3180, balance: 540, lastActive: '2026-06-22' },
+  { id: 'c1', name: 'Jane Doe', company: 'Acme Co', email: 'jane@acme.com', status: 'claimed', orders: 9, spend: 1840, balance: 320, lastActive: '2026-06-24', tier: 'gold' },
+  { id: 'c2', name: 'Sam Lee', company: 'Bright Ltd', email: 'sam@bright.io', status: 'shadow', orders: 2, spend: 198, balance: 0, lastActive: '2026-06-23', tier: 'new' },
+  { id: 'c3', name: 'Ana Ruiz', company: 'Nova', email: 'ana@nova.co', status: 'claimed', orders: 14, spend: 3180, balance: 540, lastActive: '2026-06-22', tier: 'vip' },
+  { id: 'c4', name: 'Marco Vidal', company: 'Vértice', email: 'marco@vertice.es', status: 'claimed', orders: 6, spend: 920, balance: 80, lastActive: '2026-06-21', tier: 'silver' },
+  { id: 'c5', name: 'Priya Nair', company: 'Peak Digital', email: 'priya@peak.io', status: 'claimed', orders: 4, spend: 640, balance: 0, lastActive: '2026-06-20', tier: 'silver' },
+  { id: 'c6', name: 'Tom Vale', company: 'Lumen', email: 'tom@lumen.co', status: 'shadow', orders: 1, spend: 79, balance: 0, lastActive: '2026-06-24', tier: 'new' },
 ];
+export const customerByCompany = (company: string) => CUSTOMERS.find((c) => c.company === company);
 
 export const STAFF: AdminStaff[] = [
   { id: 's1', name: 'Mai T.', skills: ['keyword','optimize'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
