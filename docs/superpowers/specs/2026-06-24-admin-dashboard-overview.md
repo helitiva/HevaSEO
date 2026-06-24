@@ -95,8 +95,10 @@ are derived (read) from `orders` + `credit_ledger`, not stored on the customer r
    versioned `catalog_versions` jsonb document, `@heva/catalog` becomes a JSON-artifact loader,
    data-driven marketing landing template, draft → Publish (~1–2 min) → rebuild. Full CRUD incl.
    creating new services (generic landing template).
-3. **Order Management** — next spec to be written (the first operational module).
-4. Each remaining module → its own spec → plan → build, in wave order.
+3. **Order Management** — `2026-06-24-order-management-design.md` (+ implementation plan `plans/2026-06-24-admin-foundation-order-management.md`).
+4. **Assignment & Workload** — `2026-06-24-assignment-routing-design.md`.
+5. **Staff Management & Performance** — `2026-06-24-staff-performance-design.md`.
+6. Each remaining module → its own spec → plan → build, in wave order.
 
 ## 8. Out of scope (this suite)
 
