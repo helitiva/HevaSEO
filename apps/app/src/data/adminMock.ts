@@ -67,3 +67,38 @@ export const statusLabel: Record<OrderStatus, string> = {
   delivered:'Delivered', changes_requested:'Changes requested', approved:'Approved', completed:'Completed', canceled:'Canceled',
 };
 export const money = (n: number) => `$${n.toLocaleString('en-US')}`;
+
+// ---- Command Center extras (data-viz) -------------------------------
+export const REVENUE_SERIES = [620, 840, 760, 980, 1120, 900, 1340, 1180, 1010, 1450, 1290, 1510, 1380, 1240];
+export const REVENUE_DELTA = 12.4; // % vs the prior 14-day window
+export const SLA_ON_TIME = 87;     // % of orders delivered on time
+export const CAPACITY_USED = 63;   // % of total staff capacity in use
+
+export interface PipelineStage { status: OrderStatus; label: string; count: number; }
+export const PIPELINE: PipelineStage[] = [
+  { status: 'new', label: 'New', count: 6 },
+  { status: 'confirmed', label: 'Confirmed', count: 4 },
+  { status: 'assigned', label: 'Assigned', count: 5 },
+  { status: 'in_progress', label: 'In progress', count: 11 },
+  { status: 'internal_review', label: 'Review', count: 3 },
+  { status: 'delivered', label: 'Delivered', count: 4 },
+  { status: 'approved', label: 'Approved', count: 2 },
+  { status: 'completed', label: 'Completed', count: 38 },
+];
+
+export const PIPELINE_COLOR: Record<OrderStatus, string> = {
+  new: '#60a5fa', confirmed: '#38bdf8', assigned: '#22d3ee', in_progress: '#2563eb',
+  internal_review: '#a78bfa', delivered: '#f59e0b', changes_requested: '#fb923c',
+  approved: '#34d399', completed: '#10b981', canceled: '#94a3b8',
+};
+
+export interface OpsKpi {
+  key: string; icon: string; label: string; value: number;
+  trend: number[]; delta: number; deltaGood: boolean; tone: 'primary' | 'warn' | 'good';
+}
+export const OPS_KPIS: OpsKpi[] = [
+  { key: 'new', icon: 'ph-tray', label: 'New orders', value: KPIS.newOrders, trend: [3, 5, 4, 6, 5, 7, 6], delta: 9, deltaGood: true, tone: 'primary' },
+  { key: 'wip', icon: 'ph-spinner-gap', label: 'In progress', value: KPIS.inProgress, trend: [8, 9, 11, 10, 12, 11, 11], delta: 4, deltaGood: true, tone: 'primary' },
+  { key: 'overdue', icon: 'ph-warning', label: 'Overdue', value: KPIS.overdue, trend: [1, 2, 1, 3, 2, 3, 3], delta: 12, deltaGood: false, tone: 'warn' },
+  { key: 'unassigned', icon: 'ph-user-minus', label: 'Unassigned', value: KPIS.unassigned, trend: [4, 3, 2, 3, 2, 2, 2], delta: -20, deltaGood: true, tone: 'warn' },
+];
