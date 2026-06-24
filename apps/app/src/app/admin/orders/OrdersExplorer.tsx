@@ -56,6 +56,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
   const [tier, setTier] = useState('');
   const [source, setSource] = useState('');
   const [priority, setPriority] = useState('');
+  const [staffF, setStaffF] = useState('');
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -68,6 +69,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
   const dragIdx = useRef<number | null>(null);
 
   const services = useMemo(() => [...new Set(rows.map((o) => o.service))].sort(), [rows]);
+  const staffList = useMemo(() => [...new Set(rows.map((o) => o.staff).filter((s): s is string => !!s))].sort(), [rows]);
   const counts = useMemo(() => rows.reduce<Record<string, number>>((a, o) => ({ ...a, [o.status]: (a[o.status] ?? 0) + 1 }), {}), [rows]);
   const statusesPresent = useMemo(() => (Object.keys(statusLabel) as OrderStatus[]).filter((s) => counts[s]), [counts]);
 
@@ -77,6 +79,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
       && (!tier || o.custTier === tier)
       && (!source || o.source === source)
       && (!priority || o.priority === priority)
+      && (!staffF || (staffF === '__un' ? !o.staff : o.staff === staffF))
       && (!from || o.created >= from)
       && (!to || o.created <= to)
       && (!search || `${o.code} ${o.customer} ${o.custName}`.toLowerCase().includes(search.toLowerCase())))
@@ -89,10 +92,10 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         case 'created_asc': return a.created.localeCompare(b.created);
         default: return b.created.localeCompare(a.created);
       }
-    }), [rows, status, service, tier, source, priority, from, to, search, sort]);
+    }), [rows, status, service, tier, source, priority, staffF, from, to, search, sort]);
 
-  const hasFilter = status || service || tier || source || priority || search || from || to;
-  const clear = () => { setStatus(''); setService(''); setTier(''); setSource(''); setPriority(''); setSearch(''); setFrom(''); setTo(''); };
+  const hasFilter = status || service || tier || source || priority || staffF || search || from || to;
+  const clear = () => { setStatus(''); setService(''); setTier(''); setSource(''); setPriority(''); setStaffF(''); setSearch(''); setFrom(''); setTo(''); };
 
   const columns = colOrder.filter((id) => !hidden.has(id)).map((id) => ({ id, ...COLDEF[id], header: id === 'seq' ? '#' : COLDEF[id].label }));
 
@@ -124,6 +127,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         <select value={tier} onChange={(e) => setTier(e.target.value)} className={sel}><option value="">All tiers</option>{(['vip', 'gold', 'silver', 'new'] as Tier[]).map((t) => <option key={t} value={t}>{TIER[t].label}</option>)}</select>
         <select value={source} onChange={(e) => setSource(e.target.value)} className={sel}><option value="">All sources</option><option value="quick">Quick</option><option value="dashboard">Dashboard</option></select>
         <select value={priority} onChange={(e) => setPriority(e.target.value)} className={sel}><option value="">All priority</option><option value="high">High</option><option value="med">Med</option><option value="low">Low</option></select>
+        <select value={staffF} onChange={(e) => setStaffF(e.target.value)} className={sel}><option value="">All staff</option><option value="__un">Unassigned</option>{staffList.map((s) => <option key={s} value={s}>{s}</option>)}</select>
         <label className="flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-xs"><span className="text-muted-foreground">From</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent outline-none" /></label>
         <label className="flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-xs"><span className="text-muted-foreground">To</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent outline-none" /></label>
         <select value={sort} onChange={(e) => setSort(e.target.value)} className={sel}>{SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
