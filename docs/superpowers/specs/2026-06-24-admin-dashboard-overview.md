@@ -54,14 +54,18 @@ Nothing operational works without this. Build first, once:
 | 3 | **Assignment & Workload** | Assign orders/tasks to staff; per-staff load; deadlines; reassign; SLA | 2 |
 | 4 | **Deliverable Review** | Staff submit file/link/version → admin approve / request changes | 2, 3 |
 | 5 | **Ticket / Support** | Support inbox: status/priority/assignee, SLA, linked to order/customer | 0 (links 2, 6) |
-| 6 | **Customer (CRM-lite)** | Customer profiles, shadow/claimed, order history, credit balance, internal notes, LTV | 0 |
+| 6 | **Customer & User Management** | Customer accounts + profiles (user info), account status (shadow/claimed), **ordered-services history**, **total spend / LTV**, credit balance & ledger, projects/domains, tickets, internal notes; actions: edit, adjust credit, magic-link/impersonate, merge, suspend | 0 (reads 2, 9) |
 | 7 | **Staff Management** | Staff accounts, skills, capacity, performance | 0 |
 | 8 | **Catalog Management** | Services/packages/prices/add-ons → apply to marketing + dashboard | 0 |
 | 9 | **Finance** | Credit ledger, invoices, Stripe, revenue, refunds | 2, 6 |
 | 10 | **Messaging / Notifications** | Two-tier messages (internal/customer) + notification center (Realtime) | 2 |
 | 11 | **Analytics & Reports** | Revenue trends, service performance, staff productivity, quick-checkout conversion, churn | reads 2, 6, 9 |
 | 12 | **Audit Log** | Who did what, when — the "no black box" USP | reads everywhere |
-| 13 | **Settings** | Email templates, SLA rules, integrations (Stripe/SMTP/Turnstile), permissions | 0 |
+| 13 | **Settings** | Email templates, SLA rules, integrations (Stripe/SMTP/Turnstile), permissions, **admin accounts** | 0 |
+
+**"User" disambiguation:** three account kinds — **customers** → module 6; **staff** → module 7;
+**admin accounts** → module 13 (Settings). A customer's *total spend / LTV* and *ordered services*
+are derived (read) from `orders` + `credit_ledger`, not stored on the customer row.
 
 ## 5. Build sequence (value × dependency)
 
