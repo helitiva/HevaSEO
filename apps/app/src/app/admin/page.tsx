@@ -4,6 +4,7 @@ import { ServiceMix } from '@/components/admin/ServiceMix';
 import { GeoPanel } from '@/components/admin/GeoPanel';
 import { SupportStats } from '@/components/admin/SupportStats';
 import { TeamPerformance } from '@/components/admin/TeamPerformance';
+import { AudienceAnalytics } from '@/components/admin/AudienceAnalytics';
 import { Donut } from '@/components/admin/Donut';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
@@ -53,6 +54,9 @@ export default function CommandCenter() {
 
       {/* revenue — stacked bars by service + line + date range */}
       <RevenueChart data={REVENUE_90} services={SERVICE_MIX} />
+
+      {/* audience — new users, DAU/WAU/MAU, retention, funnel, engagement */}
+      <AudienceAnalytics />
 
       {/* service mix + geo */}
       <div className="grid gap-4 lg:grid-cols-3">

@@ -147,6 +147,51 @@ export const SOURCE_SPLIT = { quick: 64, dashboard: 41 };
 // Monthly revenue goal.
 export const REVENUE_GOAL = { mtd: 18650, target: 26000 };
 
+// ---- Audience / user analytics --------------------------------------
+export const USER_STATS = {
+  newToday: 38, newWeek: 214, newMonth: 902,
+  dau: 1240, wau: 4380, mau: 9820,
+  stickiness: 13,            // DAU/MAU %
+  retention30: 41, churn30: 6.2,
+  newPct: 58, returningPct: 42,
+  avgSessionMin: 4.6, sessionsPerUser: 2.3, bounceRate: 38, visitorToCustomer: 3.1,
+};
+
+export interface UserKpi { key: string; icon: string; label: string; value: string; trend: number[]; delta: number; deltaGood: boolean; }
+export const USER_KPIS: UserKpi[] = [
+  { key: 'newToday', icon: 'ph-user-plus', label: 'New users · today', value: '38', trend: [22, 28, 31, 26, 35, 33, 38], delta: 9, deltaGood: true },
+  { key: 'newWeek', icon: 'ph-user-circle-plus', label: 'New · this week', value: '214', trend: [180, 195, 205, 198, 210, 208, 214], delta: 6, deltaGood: true },
+  { key: 'newMonth', icon: 'ph-users-four', label: 'New · this month', value: '902', trend: [700, 760, 810, 840, 870, 890, 902], delta: 11, deltaGood: true },
+  { key: 'dau', icon: 'ph-pulse', label: 'DAU', value: '1,240', trend: [1100, 1180, 1150, 1220, 1200, 1260, 1240], delta: 3, deltaGood: true },
+  { key: 'wau', icon: 'ph-chart-line', label: 'WAU', value: '4,380', trend: [3900, 4050, 4120, 4200, 4280, 4340, 4380], delta: 4, deltaGood: true },
+  { key: 'mau', icon: 'ph-users-three', label: 'MAU', value: '9,820', trend: [8800, 9000, 9200, 9400, 9600, 9750, 9820], delta: 5, deltaGood: true },
+];
+
+export interface DauPoint { date: string; dau: number; }
+function genDau(days: number): DauPoint[] {
+  const out: DauPoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date('2026-06-24T00:00:00');
+    d.setDate(d.getDate() - (days - 1 - i));
+    const dow = d.getDay();
+    const base = 960 + i * 9;
+    const w = Math.round(120 * Math.sin(i / 2)) + (dow === 0 || dow === 6 ? -180 : 60);
+    out.push({ date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), dau: Math.max(600, base + w) });
+  }
+  return out;
+}
+export const DAU_SERIES: DauPoint[] = genDau(30);
+
+export const RETENTION: { day: string; pct: number }[] = [
+  { day: 'D0', pct: 100 }, { day: 'D1', pct: 62 }, { day: 'D3', pct: 48 },
+  { day: 'D7', pct: 41 }, { day: 'D14', pct: 33 }, { day: 'D30', pct: 27 },
+];
+
+export const FUNNEL: { stage: string; value: number }[] = [
+  { stage: 'Visitors', value: 9820 }, { stage: 'Signups', value: 902 },
+  { stage: 'First order', value: 312 }, { stage: 'Repeat buyer', value: 148 },
+];
+
 // Share of orders by service — both by order count and by revenue value.
 export interface ServiceMixRow { service: string; orders: number; value: number; color: string; }
 export const SERVICE_MIX: ServiceMixRow[] = [
