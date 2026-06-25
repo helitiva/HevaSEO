@@ -55,7 +55,12 @@ export interface Order {
   cost: number;
   pay: PayStatus;
   invoice: string | null;
+  /** the brief the customer submitted at order time (captured from the order form) */
+  intake?: IntakeField[];
 }
+
+/** One answer from the order-time brief. `full` spans the full width when rendered. */
+export interface IntakeField { label: string; value: string; full?: boolean; }
 
 export const ORDERS: Order[] = [
   { id: 'BLEN-1042', date: '06/05/2026', title: 'Entity Growth', service: 'backlink', domain: 'hevashop.com', sub: '80 profiles · NAP, citations', status: 'planned', priority: 'high', progress: null, detail: 'NAP · social', eta: '3 days', owner: 'Daniel Brooks', cost: 356, pay: 'pending', invoice: null },
@@ -174,9 +179,68 @@ export function activityFor(o: Order): Activity[] {
   return acts.reverse();
 }
 
-/** Scope bullet points seeded from the order's sub/detail. */
-export function scopeFor(o: Order): string[] {
-  return [o.sub, o.detail].filter((x): x is string => Boolean(x));
+/**
+ * The brief the customer submitted at order time. Real for orders placed in this
+ * session (captured from the order form into `o.intake`); for seed/demo orders we
+ * return representative per-service answers, so each service shows a different,
+ * fully-filled request — matching the fields its order form actually collects.
+ */
+export function intakeFor(o: Order): IntakeField[] {
+  if (o.intake && o.intake.length) return o.intake;
+  const url = `https://${o.domain}`;
+  switch (o.service) {
+    case 'backlink':
+      return [
+        { label: 'Target URL(s) to boost', value: `${url}\n${url}/products`, full: true },
+        { label: 'Preferred anchors / keywords', value: 'brand name · primary keyword · naked URL', full: true },
+        { label: 'Niche / industry', value: 'E-commerce · retail' },
+        { label: 'Language / market', value: 'United States · English' },
+      ];
+    case 'audit':
+      return [
+        { label: 'What should the audit focus on?', value: 'A recent organic traffic drop and Core Web Vitals after the last redesign.', full: true },
+        { label: 'GSC / Analytics access', value: "I'll share after we confirm" },
+        { label: 'Target market / language', value: 'United States · English' },
+        { label: 'Competitors to benchmark', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+      ];
+    case 'content':
+      return [
+        { label: 'Tone / brand voice', value: 'Friendly expert' },
+        { label: 'Language', value: 'English (US)' },
+        { label: 'Style & guidelines for the batch', value: 'Lead with practical value, cite real sources, avoid hype. Audience: SMB owners researching options.', full: true },
+      ];
+    case 'keyword':
+      return [
+        { label: 'Website URL', value: url, full: true },
+        { label: 'What does your site offer?', value: 'Products and services for our core customers, plus an SEO-driven blog to capture top-of-funnel search.', full: true },
+        { label: 'Target market / language', value: 'United States · English' },
+        { label: 'Primary goal', value: 'Grow organic traffic' },
+        { label: 'Known competitors', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+      ];
+    case 'optimize':
+      return [
+        { label: 'Website URL', value: url, full: true },
+        { label: 'Platform / CMS', value: 'WordPress' },
+        { label: 'Source / hosting access', value: "I'll grant access after we confirm" },
+        { label: 'What do you most want to improve?', value: 'Page speed, Core Web Vitals (LCP / INP / CLS) and AI-readiness (GEO).', full: true },
+      ];
+    case 'design':
+      return [
+        { label: 'Existing website / domain', value: url },
+        { label: 'Google Maps listing', value: 'Shared — pull info & photos' },
+        { label: 'Tell us about your business', value: 'What we do, who we serve, and the goal for the new site.', full: true },
+        { label: 'Reference sites you like', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+        { label: 'Brand colors / fonts', value: 'Navy + gold · modern sans' },
+        { label: 'Logo & image links', value: 'Shared via Drive folder' },
+      ];
+    case 'indexer':
+      return [
+        { label: 'Links submitted', value: o.urls != null ? `${o.urls.toLocaleString('en-US')} URLs` : 'Pasted URL list' },
+        { label: 'Anything we should know?', value: 'Links built elsewhere — please prioritize the money pages first.', full: true },
+      ];
+    default:
+      return [];
+  }
 }
 
 export interface CreditTx {

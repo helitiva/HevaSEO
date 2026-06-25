@@ -3,7 +3,7 @@ export function SlideOver({ open, onClose, title, children }: { open: boolean; o
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[70]">
-      <div onClick={onClose} className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" />
+      <div onClick={onClose} className="order-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div className="order-panel absolute inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border bg-card p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="display text-lg font-bold">{title}</h2>

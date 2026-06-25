@@ -1,5 +1,8 @@
+import Link from 'next/link';
 import { OrdersBoard } from '@/components/OrdersBoard';
 import { CountUp } from '@/components/CountUp';
+import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { SpecialistChat } from '@/components/SpecialistChat';
 import { ACTIVITY } from '@/data/mock';
 
 export const metadata = { title: 'Overview' };
@@ -20,9 +23,7 @@ export default function DashboardPage() {
           <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-accent">
             <i className="ph-bold ph-calendar-blank" /> 90 days <i className="ph-bold ph-caret-down text-muted-foreground" />
           </button>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-            <i className="ph-bold ph-plus" /> New order
-          </button>
+          <QuickOrderButton className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]" />
         </div>
       </div>
 
@@ -142,12 +143,10 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">SEO Lead · replies &lt; 2h</p>
             </div>
           </div>
-          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90">
-            <i className="ph-bold ph-chat-circle-dots" /> Message specialist
-          </button>
+          <SpecialistChat className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90" />
           <div className="mt-3 grid gap-2">
-            <button className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-plus text-primary" /> Create new order</button>
-            <button className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" /> Top up credits</button>
+            <QuickOrderButton label="Create new order" icon="ph-plus text-primary" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent" />
+            <Link href="/credit" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" /> Top up credits</Link>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 import { ThemeToggle } from './ThemeToggle';
 import { NotifTicker } from './NotifTicker';
-import { CREDIT_BALANCE } from '@/data/mock';
+import { CreditButton } from './CreditButton';
 
 export function Topbar({ onMenu }: { onMenu?: () => void }) {
   return (
@@ -26,9 +26,7 @@ export function Topbar({ onMenu }: { onMenu?: () => void }) {
       <NotifTicker />
       <div className="flex-1 md:hidden" />
 
-      <span className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold sm:flex">
-        <i className="ph-bold ph-wallet text-primary" /> ${CREDIT_BALANCE.toLocaleString('en-US')}
-      </span>
+      <CreditButton />
       <ThemeToggle />
       <button
         aria-label="Notifications"

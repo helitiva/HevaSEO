@@ -15,7 +15,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
