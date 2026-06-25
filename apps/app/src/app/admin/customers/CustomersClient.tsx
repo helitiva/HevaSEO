@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { SlideOver } from '@/components/admin/SlideOver';
@@ -62,13 +62,26 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const [query, setQuery] = useState('');
   const [seg, setSeg] = useState('all');
   const [sort, setSort] = useState<SortKey>('ltv');
+  const [dir, setDir] = useState<'desc' | 'asc'>('desc');
   const [view, setView] = useState<'table' | 'cards'>('table');
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bentoOpen, setBentoOpen] = useState(true);
   const [panelId, setPanelId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
   const panelCust = useMemo(() => rows.find((c) => c.id === panelId) ?? null, [rows, panelId]);
+
+  // Default to the card view on small screens (the table needs horizontal scroll).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) setView('cards');
+  }, []);
+
+  const defaultDir = (k: SortKey): 'desc' | 'asc' => (k === 'name' || k === 'recent' ? 'asc' : 'desc');
+  const pickSort = (k: SortKey) => { setSort(k); setDir(defaultDir(k)); };
+  const clickSort = (k: SortKey) => (k === sort ? setDir((d) => (d === 'asc' ? 'desc' : 'asc')) : pickSort(k));
+  const openKey = (id: string) => (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPanelId(id); } };
 
   const kpis = useMemo(() => {
     const totalLtv = rows.reduce((s, c) => s + c.spend, 0);
@@ -94,20 +107,49 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
     const q = query.trim().toLowerCase();
     const test = SEGMENTS.find((s) => s.key === seg)?.test ?? (() => true);
     const list = rows.filter((c) => test(c) && (!q || c.name.toLowerCase().includes(q) || c.company.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)));
-    const cmp: Record<SortKey, (a: CustomerRow, b: CustomerRow) => number> = {
-      ltv: (a, b) => b.spend - a.spend,
-      orders: (a, b) => b.orders - a.orders,
+    // Base comparators sort ascending; direction is applied via the multiplier.
+    const base: Record<SortKey, (a: CustomerRow, b: CustomerRow) => number> = {
+      ltv: (a, b) => a.spend - b.spend,
+      orders: (a, b) => a.orders - b.orders,
       recent: (a, b) => a.churnDays - b.churnDays,
-      credit: (a, b) => b.balance - a.balance,
-      tier: (a, b) => TIER_RANK[b.tier] - TIER_RANK[a.tier] || b.spend - a.spend,
+      credit: (a, b) => a.balance - b.balance,
+      tier: (a, b) => TIER_RANK[a.tier] - TIER_RANK[b.tier] || a.spend - b.spend,
       name: (a, b) => a.name.localeCompare(b.name),
     };
-    return [...list].sort(cmp[sort]);
-  }, [rows, query, seg, sort]);
+    const mul = dir === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => base[sort](a, b) * mul);
+  }, [rows, query, seg, sort, dir]);
 
-  const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+  // ---- panel prev/next (through the filtered list) + copy link + URL deep-link ----
+  const panelIdx = panelId ? filtered.findIndex((c) => c.id === panelId) : -1;
+  const prevCust = panelIdx > 0 ? filtered[panelIdx - 1] : null;
+  const nextCust = panelIdx >= 0 && panelIdx < filtered.length - 1 ? filtered[panelIdx + 1] : null;
+  const copyCustLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/customers?customer=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  useEffect(() => { const id = new URLSearchParams(window.location.search).get('customer'); if (id && rows.some((c) => c.id === id)) setPanelId(id); }, [rows]);
+  useEffect(() => { const url = new URL(window.location.href); if (panelId) url.searchParams.set('customer', panelId); else url.searchParams.delete('customer'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [panelId]);
+  useEffect(() => {
+    if (!panelCust) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'j' && nextCust) setPanelId(nextCust.id);
+      else if (e.key === 'k' && prevCust) setPanelId(prevCust.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panelCust, nextCust, prevCust]);
+
+  const PAGE_SIZE = 8;
+  useEffect(() => { setPage(1); }, [query, seg, sort, dir]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const curPage = Math.min(page, pageCount);
+  const paged = useMemo(() => filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE), [filtered, curPage]);
+
+  const pageSelected = paged.filter((c) => selected.has(c.id)).length;
+  const allSelected = paged.length > 0 && pageSelected === paged.length;
+  const someSelected = pageSelected > 0 && !allSelected;
   const toggle = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(filtered.map((c) => c.id)));
+  const toggleAll = () => setSelected((s) => { const n = new Set(s); if (allSelected) paged.forEach((c) => n.delete(c.id)); else paged.forEach((c) => n.add(c.id)); return n; });
   const clearSel = () => setSelected(new Set());
   const bulk = (m: string) => { notify(`${m} · ${selected.size} customer${selected.size > 1 ? 's' : ''}`); clearSel(); };
 
@@ -191,7 +233,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                         <Link href={`/admin/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
                         <p className="text-[11px] text-muted-foreground">{ago(c.churnDays)} · {money(c.spend)} LTV</p>
                       </div>
-                      <a href={`mailto:${c.email}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" /></a>
+                      <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" /></a>
                     </li>
                   ))}
                 </ul>
@@ -210,7 +252,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
             <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, company or email…" className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
+          <select value={sort} onChange={(e) => pickSort(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
             {SORTS.map((s) => <option key={s.key} value={s.key}>Sort: {s.label}</option>)}
           </select>
           <div className="inline-flex rounded-lg border border-border p-0.5">
@@ -256,24 +298,24 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <th className="w-9 p-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-primary" aria-label="Select all" /></th>
-                <th className="p-3">Customer</th>
-                <th className="p-3 text-right">Orders</th>
-                <th className="p-3 text-right">Lifetime value</th>
+                <th className="w-9 p-3"><input type="checkbox" checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected; }} onChange={toggleAll} className="accent-primary" aria-label="Select all on this page" /></th>
+                <SortHead label="Customer" col="name" sort={sort} dir={dir} onSort={clickSort} />
+                <SortHead label="Orders" col="orders" align="right" sort={sort} dir={dir} onSort={clickSort} />
+                <SortHead label="Lifetime value" col="ltv" align="right" sort={sort} dir={dir} onSort={clickSort} />
                 <th className="p-3 text-right">AOV</th>
-                <th className="p-3 text-right">Credit</th>
+                <SortHead label="Credit" col="credit" align="right" sort={sort} dir={dir} onSort={clickSort} />
                 <th className="p-3 text-center">Tickets</th>
                 <th className="p-3">Health</th>
-                <th className="p-3">Last active</th>
+                <SortHead label="Last active" col="recent" sort={sort} dir={dir} onSort={clickSort} />
                 <th className="p-3">Joined</th>
                 <th className="w-10 p-3" />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c) => {
+              {paged.map((c) => {
                 const t = TIER[c.tier]; const h = HEALTH[c.health]; const sel = selected.has(c.id);
                 return (
-                  <tr key={c.id} onClick={() => setPanelId(c.id)} className={`group cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${sel ? 'bg-primary/5' : ''}`}>
+                  <tr key={c.id} onClick={() => setPanelId(c.id)} onKeyDown={openKey(c.id)} tabIndex={0} role="button" aria-label={`Open ${c.name}`} className={`group cursor-pointer border-b border-border/50 outline-none transition hover:bg-muted/40 focus-visible:bg-muted/60 ${sel ? 'bg-primary/5' : ''}`}>
                     <td className="p-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={sel} onChange={() => toggle(c.id)} className="accent-primary" aria-label={`Select ${c.name}`} /></td>
                     <td className="p-3">
                       <span className="flex items-center gap-2.5">
@@ -308,10 +350,10 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((c) => {
+          {paged.map((c) => {
             const t = TIER[c.tier]; const h = HEALTH[c.health];
             return (
-              <div key={c.id} onClick={() => setPanelId(c.id)} className="cursor-pointer rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40">
+              <div key={c.id} onClick={() => setPanelId(c.id)} onKeyDown={openKey(c.id)} tabIndex={0} role="button" aria-label={`Open ${c.name}`} className="cursor-pointer rounded-2xl border border-border bg-card p-4 outline-none transition hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/60">
                 <div className="flex items-start justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2.5">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{initials(c.name)}</span>
@@ -337,8 +379,21 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         </div>
       )}
 
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">{filtered.length} results · page {curPage} of {pageCount}</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-left" /></button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+              <button key={p} onClick={() => setPage(p)} aria-label={`Page ${p}`} aria-current={curPage === p ? 'page' : undefined} className={`grid h-8 w-8 place-items-center rounded-lg border text-xs font-semibold transition ${curPage === p ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'}`}>{p}</button>
+            ))}
+            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={curPage === pageCount} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-right" /></button>
+          </div>
+        </div>
+      )}
+
       <SlideOver open={!!panelCust} onClose={() => setPanelId(null)} title="Customer">
-        {panelCust && <CustomerPanel c={panelCust} notify={notify} />}
+        {panelCust && <CustomerPanel c={panelCust} notify={notify} prev={prevCust} next={nextCust} onNav={setPanelId} onCopy={() => copyCustLink(panelCust.id)} copied={copied} />}
       </SlideOver>
 
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
@@ -348,11 +403,16 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
 
 const MIX_COLOR = ['#2563eb', '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#fb923c', '#34d399'];
 
-function CustomerPanel({ c, notify }: { c: CustomerRow; notify: (m: string) => void }) {
+function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: CustomerRow; notify: (m: string) => void; prev: CustomerRow | null; next: CustomerRow | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean }) {
   const t = TIER[c.tier]; const h = HEALTH[c.health];
   const mixSum = c.mix.reduce((s, m) => s + m.value, 0) || 1;
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+      </div>
       {/* identity */}
       <div className="flex items-start gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-base font-bold text-primary">{initials(c.name)}</span>
@@ -471,6 +531,17 @@ function Panel({ icon, title, right, children }: { icon: string; title: string; 
 }
 function Mini({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg bg-muted/50 py-1.5"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p><p className="text-sm font-bold tabular-nums">{value}</p></div>;
+}
+function SortHead({ label, col, align, sort, dir, onSort }: { label: string; col: SortKey; align?: 'right' | 'center'; sort: SortKey; dir: 'asc' | 'desc'; onSort: (k: SortKey) => void }) {
+  const active = sort === col;
+  return (
+    <th onClick={() => onSort(col)} className={`cursor-pointer select-none p-3 hover:text-foreground ${align === 'right' ? 'text-right' : ''} ${active ? 'text-foreground' : ''}`}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? <i className={`ph-bold ${dir === 'asc' ? 'ph-arrow-up' : 'ph-arrow-down'} text-[10px] text-primary`} /> : <i className="ph-bold ph-arrows-down-up text-[10px] opacity-30" />}
+      </span>
+    </th>
+  );
 }
 function RowMenu({ c, notify, onView }: { c: CustomerRow; notify: (m: string) => void; onView: () => void }) {
   const [open, setOpen] = useState(false);
