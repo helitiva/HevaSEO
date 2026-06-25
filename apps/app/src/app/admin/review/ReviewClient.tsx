@@ -71,19 +71,21 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
             <button onClick={() => setReSubOnly((v) => !v)} className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${reSubOnly ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}>Re-subs</button>
             <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" className="w-full rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
           </div>
-          <div className="scrollbar-thin max-h-[34rem] space-y-1.5 overflow-y-auto pr-1">
+          <div className="scrollbar-thin max-h-[40rem] space-y-1 overflow-y-auto pr-1">
             {visible.map((q) => (
-              <button key={q.id} onClick={() => setSelectedId(q.id)} className={`w-full rounded-xl border p-2.5 text-left transition ${selected?.id === q.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${q.priority === 'high' ? 'bg-destructive' : q.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
-                  <span className="font-semibold">{q.code}</span>
-                  {q.isResubmission && <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">re-sub v{q.latest.version}</span>}
+              <button key={q.id} onClick={() => setSelectedId(q.id)} className={`w-full rounded-lg border p-2 text-left transition ${selected?.id === q.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${q.priority === 'high' ? 'bg-destructive' : q.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
+                  <span className="text-sm font-semibold">{q.code}</span>
+                  {q.isResubmission && <span className="rounded bg-amber-500/10 px-1 text-[10px] font-semibold text-amber-600">v{q.latest.version}</span>}
                   <span className={`ml-auto text-[11px] ${q.ageDays >= 4 ? 'font-semibold text-destructive' : q.ageDays >= 2 ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}>{q.ageDays}d</span>
                 </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{q.service} · {q.pkg}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
+                <div className="mt-1 flex items-center gap-1.5 text-[11px]">
+                  <span className="truncate text-muted-foreground">{q.service} · {q.pkg}</span>
+                  <span className="ml-auto flex shrink-0 items-center gap-1">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 font-semibold text-foreground"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span>
+                    <i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} title={q.customer} />
+                  </span>
                 </div>
               </button>
             ))}
