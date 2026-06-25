@@ -31,6 +31,7 @@ export function CustomerProfileClient(p: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustAmt, setAdjustAmt] = useState('50');
+  const [mixBy, setMixBy] = useState<'value' | 'orders'>('value');
 
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
   const addNote = () => { if (!note.trim()) return; setNotes((n) => [{ at: 'just now', body: note.trim() }, ...n]); setNote(''); notify('Internal note added'); };
@@ -38,7 +39,8 @@ export function CustomerProfileClient(p: Props) {
 
   const filteredOrders = useMemo(() => (statusF ? p.orders.filter((o) => o.status === statusF) : p.orders), [p.orders, statusF]);
   const statuses = useMemo(() => [...new Set(p.orders.map((o) => o.status))], [p.orders]);
-  const mixTotal = p.mix.reduce((s, m) => s + m.value, 0) || 1;
+  const mixSum = p.mix.reduce((s, m) => s + (mixBy === 'value' ? m.value : m.count), 0) || 1;
+  const mixRows = [...p.mix].sort((a, b) => (mixBy === 'value' ? b.value - a.value : b.count - a.count));
   const t = TIER[c.tier];
   const atRisk = p.churnDays > 30;
 
@@ -117,9 +119,15 @@ export function CustomerProfileClient(p: Props) {
             </div>
           </Card>
 
-          <Card icon="ph-chart-donut" title="Service mix">
+          <Card icon="ph-chart-donut" title="Service mix" right={
+            <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
+              {(['value', 'orders'] as const).map((k) => (
+                <button key={k} type="button" onClick={() => setMixBy(k)} className={`rounded-md px-2 py-0.5 capitalize transition ${mixBy === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{k === 'value' ? 'Value' : 'Orders'}</button>
+              ))}
+            </div>
+          }>
             <div className="space-y-2.5">
-              {p.mix.map((m, i) => { const pct = Math.round((m.value / mixTotal) * 100); return (
+              {mixRows.map((m, i) => { const pct = Math.round(((mixBy === 'value' ? m.value : m.count) / mixSum) * 100); return (
                 <div key={m.service}>
                   <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 font-medium"><span className="legend-dot" style={{ background: MIX_COLOR[i % MIX_COLOR.length] }} />{m.service}</span><span className="text-muted-foreground">{m.count} orders · {money(m.value)} · <b className="text-foreground">{pct}%</b></span></div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: MIX_COLOR[i % MIX_COLOR.length] }} /></div>
