@@ -271,7 +271,7 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
           <button
             onClick={publish}
             disabled={!dirty}
-            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-default"
+            className="rounded-lg px-3 py-1.5 text-sm font-semibold transition enabled:bg-primary enabled:text-primary-foreground enabled:hover:bg-primary/90 disabled:cursor-default disabled:border disabled:border-border disabled:bg-transparent disabled:text-muted-foreground"
           >
             <i className={`ph-bold ${dirty ? 'ph-cloud-arrow-up' : 'ph-check'} mr-1.5`} aria-hidden />
             {dirty ? 'Publish changes' : 'Published'}
@@ -362,7 +362,7 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
 
               {/* expanded body */}
               {isOpen && (
-                <div className="space-y-4 border-t border-border px-4 pb-4 pt-4">
+                <div className="animate-in fade-in duration-150 space-y-4 border-t border-border px-4 pb-4 pt-4">
                   <div className="flex flex-wrap gap-4 text-xs">
                     <span className="flex items-center gap-1.5 font-semibold"><i className="ph-bold ph-coins text-primary" aria-hidden />{svc.priceLabel}</span>
                     {!svc.hasUsage && <span className="flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-package" aria-hidden />{svc.packageCount} packages</span>}
@@ -577,7 +577,7 @@ function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
             <th className="px-3 py-2">Package</th>
             <th className="px-3 py-2">Price</th>
             <th className="px-3 py-2">SLA</th>
-            <th className="px-3 py-2">Includes</th>
+            <th className="px-3 py-2">Features</th>
             <th className="w-16 px-3 py-2" />
           </tr>
         </thead>
@@ -771,7 +771,7 @@ function FormField({ label, required, hint, children }: { label: string; require
 function Kpi({ icon, label, value, tone }: { icon: string; label: string; value: string; tone?: 'good' | 'warn' }) {
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
   return (
-    <div className="rounded-xl border border-border bg-card p-3 transition hover:border-primary/40">
+    <div className="rounded-xl border border-border bg-card p-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
         <i className={`ph-bold ${icon} ${col}`} aria-hidden />

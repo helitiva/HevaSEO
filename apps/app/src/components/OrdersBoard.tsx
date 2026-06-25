@@ -471,7 +471,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               </select>
             </div>
           )}
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
+          <div className="view-toggle flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
             <button onClick={() => setView('kanban')} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
             <button onClick={() => setView('list')} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
           </div>

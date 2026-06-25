@@ -38,6 +38,8 @@ body { font-feature-settings: "cv11", "ss01"; }
 .page-anim > *:nth-child(5) { animation-delay: .16s; }
 .page-anim > *:nth-child(n+6) { animation-delay: .18s; }
 @media (prefers-reduced-motion: reduce) { .page-anim, .page-anim > * { animation: none; } }
+/* Touch devices only: give the board's small filter/toggle controls a comfortable tap height (desktop density unchanged). */
+@media (pointer: coarse) { .filter-btn, .view-toggle > button { min-height: 40px; } }
 .display { font-family: "Inter Tight", Inter, sans-serif; }
 /* sidebar nav item */
     .nav-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .65rem; border-radius:.55rem; font-size:.8125rem; font-weight:500;
