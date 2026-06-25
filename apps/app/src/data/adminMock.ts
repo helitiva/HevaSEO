@@ -548,3 +548,130 @@ export const SERVICE_MIX: ServiceMixRow[] = [
   { service: 'Indexer', orders: 18, value: 640, color: '#34d399' },
   { service: 'Web Design', orders: 9, value: 1610, color: '#fb923c' },
 ];
+
+/* ============================== FINANCE =============================== */
+// Transaction ledger — hand-authored to cross-reference orders/customers/
+// tickets (e.g. Orbit's pending top-up, Pulse's refund matches ticket HV-1035).
+export type TxKind = 'top_up' | 'charge' | 'refund' | 'payout' | 'adjustment';
+export type TxMethod = 'stripe' | 'paypal' | 'wallet' | 'manual';
+export type TxStatus = 'settled' | 'pending' | 'failed';
+export interface Transaction {
+  id: string; at: string;            // 'YYYY-MM-DD HH:mm'
+  kind: TxKind; amount: number;      // + inflow / − outflow
+  party: string; partyId: string | null;
+  method: TxMethod; status: TxStatus;
+  orderCode: string | null; note: string;
+}
+export const TX_KIND: Record<TxKind, { label: string; icon: string; flow: 'in' | 'out' }> = {
+  top_up:     { label: 'Top-up',        icon: 'ph-arrow-circle-down', flow: 'in' },
+  charge:     { label: 'Order payment', icon: 'ph-receipt',           flow: 'in' },
+  refund:     { label: 'Refund',        icon: 'ph-arrow-u-down-left', flow: 'out' },
+  payout:     { label: 'Staff payout',  icon: 'ph-hand-coins',        flow: 'out' },
+  adjustment: { label: 'Adjustment',    icon: 'ph-sliders',           flow: 'in' },
+};
+export const TX_METHOD: Record<TxMethod, { label: string; icon: string }> = {
+  stripe: { label: 'Stripe', icon: 'ph-credit-card' },
+  paypal: { label: 'PayPal', icon: 'ph-paypal-logo' },
+  wallet: { label: 'Wallet', icon: 'ph-wallet' },
+  manual: { label: 'Manual', icon: 'ph-note-pencil' },
+};
+export const TRANSACTIONS: Transaction[] = [
+  { id: 'tx1', at: '2026-06-25 11:20', kind: 'top_up', amount: 200, party: 'Orbit Labs', partyId: 'c7', method: 'stripe', status: 'pending', orderCode: null, note: 'Wallet top-up — awaiting Stripe webhook' },
+  { id: 'tx2', at: '2026-06-24 10:05', kind: 'top_up', amount: 500, party: 'Acme Co', partyId: 'c1', method: 'stripe', status: 'settled', orderCode: null, note: 'Wallet top-up' },
+  { id: 'tx3', at: '2026-06-22 16:40', kind: 'top_up', amount: 540, party: 'Nova', partyId: 'c3', method: 'stripe', status: 'settled', orderCode: null, note: 'Wallet top-up' },
+  { id: 'tx4', at: '2026-06-22 09:15', kind: 'top_up', amount: 198, party: 'Bright Ltd', partyId: 'c2', method: 'stripe', status: 'failed', orderCode: null, note: 'Card declined — retry sent' },
+  { id: 'tx5', at: '2026-06-20 13:30', kind: 'top_up', amount: 150, party: 'Cobalt Studio', partyId: 'c11', method: 'stripe', status: 'settled', orderCode: null, note: 'Wallet top-up' },
+  { id: 'tx6', at: '2026-06-09 08:50', kind: 'top_up', amount: 900, party: 'Vertex AI', partyId: 'c9', method: 'paypal', status: 'settled', orderCode: null, note: 'Wallet top-up' },
+  { id: 'tx7', at: '2026-06-24 09:12', kind: 'charge', amount: 39, party: 'Acme Co', partyId: 'c1', method: 'wallet', status: 'settled', orderCode: 'AUD-1001', note: 'Order confirmed' },
+  { id: 'tx8', at: '2026-06-22 14:02', kind: 'charge', amount: 79, party: 'Peak Digital', partyId: 'c5', method: 'stripe', status: 'settled', orderCode: 'KW-1007', note: 'Order confirmed' },
+  { id: 'tx9', at: '2026-06-20 11:48', kind: 'charge', amount: 120, party: 'Acme Co', partyId: 'c1', method: 'wallet', status: 'settled', orderCode: 'CNT-1004', note: 'Order confirmed' },
+  { id: 'tx10', at: '2026-06-18 10:30', kind: 'charge', amount: 79, party: 'Vértice', partyId: 'c4', method: 'wallet', status: 'settled', orderCode: 'OPT-1005', note: 'Order confirmed' },
+  { id: 'tx11', at: '2026-06-17 15:20', kind: 'charge', amount: 140, party: 'Vértice', partyId: 'c4', method: 'stripe', status: 'settled', orderCode: 'OPT-1010', note: 'Order confirmed' },
+  { id: 'tx12', at: '2026-06-16 09:05', kind: 'charge', amount: 279, party: 'Nova', partyId: 'c3', method: 'wallet', status: 'settled', orderCode: 'WD-1011', note: 'Order confirmed' },
+  { id: 'tx13', at: '2026-06-21 10:15', kind: 'refund', amount: -79, party: 'Pulse Media', partyId: 'c8', method: 'stripe', status: 'settled', orderCode: null, note: 'Duplicate top-up refunded (ticket HV-1035)' },
+  { id: 'tx14', at: '2026-06-15 12:00', kind: 'refund', amount: -39, party: 'Vértice', partyId: 'c4', method: 'wallet', status: 'settled', orderCode: 'AUD-1016', note: 'Order canceled — credited to wallet' },
+  { id: 'tx15', at: '2026-06-05 17:00', kind: 'payout', amount: -700, party: 'Huy N.', partyId: 's3', method: 'manual', status: 'settled', orderCode: null, note: 'May payroll — salary + commission' },
+  { id: 'tx16', at: '2026-06-05 17:00', kind: 'payout', amount: -620, party: 'Mai T.', partyId: 's1', method: 'manual', status: 'settled', orderCode: null, note: 'May payroll — salary + commission' },
+  { id: 'tx17', at: '2026-06-05 17:00', kind: 'payout', amount: -540, party: 'Linh P.', partyId: 's2', method: 'manual', status: 'settled', orderCode: null, note: 'May payroll — salary + commission' },
+  { id: 'tx18', at: '2026-06-25 09:40', kind: 'adjustment', amount: 25, party: 'Greenfield', partyId: 'c10', method: 'manual', status: 'settled', orderCode: null, note: 'Goodwill credit — onboarding offer' },
+];
+
+// Invoices (accounts receivable). Some prepaid customers settle by invoice.
+export type InvoiceStatus = 'paid' | 'due' | 'overdue';
+export interface Invoice {
+  id: string; code: string; customer: string; customerId: string;
+  issued: string; due: string; amount: number; status: InvoiceStatus; orderCodes: string[];
+}
+export const INVOICE_STATUS: Record<InvoiceStatus, { label: string; pill: string }> = {
+  paid:    { label: 'Paid',    pill: 'pill-live' },
+  due:     { label: 'Due',     pill: 'pill-warn' },
+  overdue: { label: 'Overdue', pill: 'pill-bad' },
+};
+export const INVOICES: Invoice[] = [
+  { id: 'inv1', code: 'INV-2042', customer: 'Vertex AI', customerId: 'c9', issued: '2026-06-20', due: '2026-07-05', amount: 900, status: 'due', orderCodes: ['CNT-1024', 'BL-1018'] },
+  { id: 'inv2', code: 'INV-2041', customer: 'Nova', customerId: 'c3', issued: '2026-06-18', due: '2026-07-03', amount: 540, status: 'due', orderCodes: ['WD-1011'] },
+  { id: 'inv3', code: 'INV-2040', customer: 'Orbit Labs', customerId: 'c7', issued: '2026-06-10', due: '2026-06-20', amount: 410, status: 'overdue', orderCodes: ['KW-1017', 'WD-1025'] },
+  { id: 'inv4', code: 'INV-2039', customer: 'Acme Co', customerId: 'c1', issued: '2026-06-12', due: '2026-06-22', amount: 320, status: 'overdue', orderCodes: ['AUD-1001', 'CNT-1004'] },
+  { id: 'inv5', code: 'INV-2038', customer: 'Cobalt Studio', customerId: 'c11', issued: '2026-06-08', due: '2026-06-23', amount: 150, status: 'due', orderCodes: ['KW-1028'] },
+  { id: 'inv6', code: 'INV-2037', customer: 'Vértice', customerId: 'c4', issued: '2026-06-01', due: '2026-06-16', amount: 80, status: 'paid', orderCodes: ['OPT-1010'] },
+  { id: 'inv7', code: 'INV-2036', customer: 'Pulse Media', customerId: 'c8', issued: '2026-05-28', due: '2026-06-12', amount: 60, status: 'paid', orderCodes: ['CNT-1026'] },
+  { id: 'inv8', code: 'INV-2035', customer: 'Peak Digital', customerId: 'c5', issued: '2026-05-25', due: '2026-06-09', amount: 79, status: 'paid', orderCodes: ['KW-1007'] },
+];
+
+// Staff payroll — fixed monthly salary + commission on billable (delivered+)
+// work + an admin-entered bonus. Total due = base + commission + bonus.
+export interface Payout {
+  staffId: string; staff: string; role: string; active: boolean;
+  completedOrders: number; basis: number; rate: number;
+  base: number;        // fixed monthly salary
+  commission: number;  // round(basis × rate)
+  bonus: number;       // admin-entered, 0 by default
+  due: number;         // base + commission + bonus
+  lastPaidAt: string | null;
+}
+export const PAYABLE_STATES: OrderStatus[] = ['delivered', 'internal_review', 'approved', 'completed'];
+export const PAYOUT_RATE: Record<string, number> = {
+  'Senior SEO Specialist': 0.30, 'Backlink Specialist': 0.32, 'Content Lead': 0.30,
+  'Content Specialist': 0.28, 'SEO Analyst': 0.28, 'Link Builder': 0.30,
+};
+// Fixed monthly salary per role (USD).
+export const BASE_SALARY: Record<string, number> = {
+  'Senior SEO Specialist': 1200, 'Backlink Specialist': 950, 'Content Lead': 1300,
+  'Content Specialist': 900, 'SEO Analyst': 900, 'Link Builder': 700,
+};
+export const PAYOUTS: Payout[] = STAFF.map((s) => {
+  const work = ORDERS.filter((o) => o.staff === s.name && PAYABLE_STATES.includes(o.status));
+  const basis = work.reduce((a, o) => a + o.value, 0);
+  const rate = PAYOUT_RATE[s.role] ?? 0.28;
+  const base = BASE_SALARY[s.role] ?? 800;
+  const commission = Math.round(basis * rate);
+  const bonus = 0;
+  return {
+    staffId: s.id, staff: s.name, role: s.role, active: s.active,
+    completedOrders: work.length, basis, rate, base, commission, bonus,
+    due: base + commission + bonus, lastPaidAt: '2026-06-05',
+  };
+});
+
+// Cashflow: money in vs out per day (30d) — drives the Overview area chart.
+export interface CashflowPoint { iso: string; date: string; in: number; out: number; }
+function genCashflow(days: number): CashflowPoint[] {
+  const rev = REVENUE_90.slice(-days);
+  return rev.map((p, i) => {
+    const dow = new Date(p.iso).getDay();
+    const weekend = dow === 0 || dow === 6;
+    const out = Math.round(p.revenue * 0.18) + (i % 9 === 4 ? 1860 : 0) + (weekend ? 40 : 110);
+    return { iso: p.iso, date: p.date, in: p.revenue, out };
+  });
+}
+export const CASHFLOW: CashflowPoint[] = genCashflow(30);
+
+// Top-line balances — every figure derives from the data above.
+export const FINANCE = {
+  grossMtd: REVENUE_ANALYTICS.grossMtd,
+  netMtd: REVENUE_ANALYTICS.netMtd,
+  refundsMtd: REVENUE_ANALYTICS.refundsMtd,
+  walletLiability: CUSTOMERS.reduce((a, c) => a + c.balance, 0),
+  payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0),
+  outstandingAr: INVOICES.filter((i) => i.status !== 'paid').reduce((a, i) => a + i.amount, 0),
+};
