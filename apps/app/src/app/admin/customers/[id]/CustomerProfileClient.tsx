@@ -188,7 +188,13 @@ export function CustomerProfileClient(p: Props) {
 function Kpi({ icon, label, value, tone }: { icon: string; label: string; value: string; tone?: 'good' | 'warn' }) {
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
   return (
-    <div className="kpi"><span className="kpi-glow" /><div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} /></div><p className="display mt-auto pt-2 text-2xl font-bold tracking-tight">{value}</p></div>
+    <div className="rounded-xl border border-border bg-card p-3 transition hover:border-primary/40">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+        <i className={`ph-bold ${icon} ${col}`} />
+      </div>
+      <p className="display mt-1 text-xl font-bold tracking-tight">{value}</p>
+    </div>
   );
 }
 function Card({ icon, title, right, children }: { icon: string; title: string; right?: ReactNode; children: ReactNode }) {
