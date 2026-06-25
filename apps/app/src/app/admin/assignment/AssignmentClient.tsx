@@ -8,7 +8,7 @@ interface Cand { name: string; composite: number; quality: number; onTime: numbe
 interface QueueItem {
   id: string; seq: number; code: string; customer: string; tier: Tier; service: string; pkg: string;
   priority: Priority; status: OrderStatus; value: number; deadline: string | null; daysToDue: number;
-  suggested: string | null; pinnedTo: string | null; candidates: Cand[];
+  created: string; ageDays: number; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
 }
 interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; deadline: string | null; daysToDue: number; home: string }
 interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; daysToDue: number; pinnedTo?: string | null }
@@ -32,7 +32,12 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [fService, setFService] = useState(''); const [fPriority, setFPriority] = useState(''); const [fTier, setFTier] = useState('');
+  const [search, setSearch] = useState(''); const [sortBy, setSortBy] = useState<'priority' | 'due' | 'age'>('priority');
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkTo, setBulkTo] = useState('');
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
+  const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
   const allItems = useMemo<CardItem[]>(() => [...queue, ...assigned], [queue, assigned]);
   const pending = useMemo(() => queue.filter((q) => place[q.id] === null), [queue, place]);
@@ -49,6 +54,28 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     });
     const free = scored.filter((s) => !s.full);
     return (free.length ? free : scored).sort((a, b) => b.score - a.score)[0].name;
+  };
+
+  const services = useMemo(() => [...new Set(queue.map((q) => q.service))], [queue]);
+  const tiers = useMemo(() => [...new Set(queue.map((q) => q.tier))], [queue]);
+  const visible = useMemo(() => pending
+    .filter((q) => (!fService || q.service === fService) && (!fPriority || q.priority === fPriority) && (!fTier || q.tier === fTier)
+      && (!search.trim() || `${q.code} ${q.customer}`.toLowerCase().includes(search.toLowerCase())))
+    .sort((a, b) => sortBy === 'due' ? a.daysToDue - b.daysToDue : sortBy === 'age' ? b.ageDays - a.ageDays : (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue),
+    [pending, fService, fPriority, fTier, search, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selVisible = visible.filter((q) => sel.has(q.id));
+  const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const selAll = () => setSel((s) => (s.size === visible.length && visible.length ? new Set<string>() : new Set(visible.map((q) => q.id))));
+  const bulkAuto = () => {
+    const extra: Record<string, number> = {}; const picks: Record<string, string> = {};
+    for (const q of selVisible) { const name = bestFor(q, extra); if (name) { picks[q.id] = name; extra[name] = (extra[name] ?? 0) + 1; } }
+    const n = Object.keys(picks).length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set());
+    notify(n ? `Auto-routed ${n} selected — balanced by load` : 'Nothing routed');
+  };
+  const bulkAssign = (name: string) => {
+    if (!name) return; const picks = Object.fromEntries(selVisible.map((q) => [q.id, name] as const));
+    const n = selVisible.length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set()); setBulkTo('');
+    notify(`Assigned ${n} order${n > 1 ? 's' : ''} → ${name}`);
   };
 
   const moveTo = (id: string, target: string | null) => setPlace((p) => ({ ...p, [id]: target }));
@@ -109,19 +136,45 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       {view === 'list' ? (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="min-w-0 space-y-4 lg:col-span-2">
-            <Card icon="ph-tray-arrow-down" title="Assignment queue" right={<span className="text-xs text-muted-foreground">{pending.length} waiting</span>}>
+            <Card icon="ph-tray-arrow-down" title="Assignment queue" right={
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'priority' | 'due' | 'age')} className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary">
+                <option value="priority">Sort: Priority</option><option value="due">Sort: Due soon</option><option value="age">Sort: Longest waiting</option>
+              </select>
+            }>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <Sel value={fService} onChange={setFService} all="All services" opts={services} />
+                <Sel value={fPriority} onChange={setFPriority} all="All priority" opts={['high', 'med', 'low']} />
+                <Sel value={fTier} onChange={setFTier} all="All tiers" opts={tiers} />
+                <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code / customer" className="w-44 rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
+                {(fService || fPriority || fTier || search) && <button onClick={() => { setFService(''); setFPriority(''); setFTier(''); setSearch(''); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
+                <span className="ml-auto text-xs text-muted-foreground">{visible.length} of {pending.length}</span>
+              </div>
+              {sel.size > 0 && (
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+                  <span className="text-sm font-semibold">{selVisible.length} selected</span>
+                  <span className="ml-auto" />
+                  <button onClick={bulkAuto} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-magic-wand mr-1" />Auto-assign</button>
+                  <select value={bulkTo} onChange={(e) => bulkAssign(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary"><option value="">Assign all to…</option>{staff.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>
+                  <button onClick={() => setSel(new Set())} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
+                </div>
+              )}
               {pending.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground"><i className="ph-bold ph-check-circle mr-1 text-emerald-500" />All caught up — the queue is clear.</p>
+              ) : visible.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">No orders match these filters.</p>
               ) : (
                 <div className="space-y-2">
-                  {pending.map((q) => { const best = bestFor(q); return (
-                    <div key={q.id} className="rounded-xl border border-border bg-background/40 p-3">
+                  <label className="flex cursor-pointer items-center gap-2 px-1 text-xs text-muted-foreground"><input type="checkbox" checked={visible.length > 0 && selVisible.length === visible.length} onChange={selAll} className="accent-primary" />Select all ({visible.length})</label>
+                  {visible.map((q) => { const best = bestFor(q); return (
+                    <div key={q.id} className={`rounded-xl border bg-background/40 p-3 ${sel.has(q.id) ? 'border-primary/50' : 'border-border'}`}>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <input type="checkbox" checked={sel.has(q.id)} onChange={() => toggleSel(q.id)} className="accent-primary" />
                         <PriorityBadge priority={q.priority} />
                         <span className="font-semibold">{q.code}</span>
                         <span className="text-sm text-muted-foreground">{q.service} · {q.pkg}</span>
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
                         <Due d={q.daysToDue} />
+                        <span className={`inline-flex items-center gap-1 text-xs ${q.ageDays >= 3 ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`} title="Waiting in queue"><i className="ph-bold ph-hourglass-medium" />{q.ageDays}d wait</span>
                         <span className="ml-auto" />
                         {best && (
                           <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary" title={q.pinnedTo ? 'Pinned by routing rule' : 'Load-aware best match'}>
@@ -232,6 +285,9 @@ function Card({ icon, title, right, children }: { icon: string; title: string; r
 }
 function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">{children}</p>;
+}
+function Sel({ value, onChange, all, opts }: { value: string; onChange: (v: string) => void; all: string; opts: string[] }) {
+  return <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1 text-xs capitalize outline-none focus:border-primary"><option value="">{all}</option>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
 }
 function Column({ title, sub, accent, skills, children, onDrop, dragId }: { title: string; sub: string; accent: 'muted' | 'ok' | 'warn' | 'danger'; skills?: string[]; children: ReactNode; onDrop: () => void; dragId: string | null }) {
   const [over, setOver] = useState(false);
