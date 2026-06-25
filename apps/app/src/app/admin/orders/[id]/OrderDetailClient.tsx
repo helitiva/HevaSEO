@@ -20,11 +20,14 @@ interface Props {
   prev?: { id: string; code: string }; next?: { id: string; code: string };
 }
 
-const FLOW: { key: OrderStatus; label: string }[] = [
-  { key: 'new', label: 'New' }, { key: 'confirmed', label: 'Confirmed' }, { key: 'assigned', label: 'Assigned' },
-  { key: 'in_progress', label: 'In progress' }, { key: 'internal_review', label: 'Review' },
-  { key: 'delivered', label: 'Delivered' }, { key: 'approved', label: 'Approved' }, { key: 'completed', label: 'Completed' },
+// 6 named stages; each order status maps to one stage.
+const FLOW: { label: string }[] = [
+  { label: 'New' }, { label: 'Confirmed' }, { label: 'In progress' }, { label: 'Review' }, { label: 'Delivered' }, { label: 'Done' },
 ];
+const STAGE_OF: Record<OrderStatus, number> = {
+  new: 0, confirmed: 1, assigned: 2, in_progress: 2, changes_requested: 2,
+  internal_review: 3, delivered: 4, approved: 5, completed: 5, canceled: -1,
+};
 
 type Act = { label: string; to: OrderStatus; primary?: boolean; danger?: boolean; assign?: boolean; note?: boolean };
 const NEXT: Record<OrderStatus, Act[]> = {
@@ -130,17 +133,17 @@ export function OrderDetailClient(p: Props) {
           </div>
         </div>
 
-        <p className="mt-1 text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
-            <div className="mt-2"><ProgressTracker status={status} /></div>
+          <div className="mt-3"><ProgressTracker status={status} /></div>
+          <p className="mt-3 text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
           </div>
 
           <Card icon="ph-package" title="Scope">
-            <div className="grid gap-2 text-sm sm:grid-cols-2">
-              <Fact label="Project" value={`${o.customer} — SEO program`} />
-              <Fact label="Service" value={`${o.service} · ${o.pkg}`} />
-              <Fact label="Site" value={p.site} />
-              <Fact label="Target URL" value={<a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{p.site}</a>} />
-              <EditFact label="Priority" control={
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <Field label="Project" value={`${o.customer} — SEO program`} />
+              <Field label="Service" value={`${o.service} · ${o.pkg}`} />
+              <Field label="Site" value={p.site} />
+              <Field label="Target URL" value={<a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{p.site}</a>} />
+              <Field label="Priority" value={
                 <div className="inline-flex rounded-lg border border-border p-0.5">
                   {(['low', 'med', 'high'] as Priority[]).map((pr) => (
                     <button key={pr} type="button" onClick={() => { if (pr === priority) return; setPriority(pr); log('edit', `${o.code} priority → ${pr}`); notify(`Priority → ${pr}`); }}
@@ -150,17 +153,17 @@ export function OrderDetailClient(p: Props) {
                   ))}
                 </div>
               } />
-              <EditFact label="Deadline" control={<input type="date" value={deadline} onChange={(e) => { setDeadline(e.target.value); log('edit', `${o.code} deadline → ${e.target.value}`); notify('Deadline updated'); }} className={`rounded border bg-background px-1.5 py-0.5 text-sm ${overdue ? 'border-amber-500 text-amber-500' : 'border-border'}`} />} />
+              <Field label="Deadline" value={<input type="date" value={deadline} onChange={(e) => { setDeadline(e.target.value); log('edit', `${o.code} deadline → ${e.target.value}`); notify('Deadline updated'); }} className={`rounded-lg border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary ${overdue ? 'border-amber-500 text-amber-500' : 'border-border'}`} />} />
             </div>
-            <div className="mt-4">
-              <p className="text-[11px] font-semibold text-muted-foreground">Package · {money(o.value)}</p>
-              <p className="text-sm font-semibold">{o.service} · {o.pkg}</p>
-              <ul className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}</ul>
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Package · {money(o.value)}</p>
+              <p className="mt-0.5 text-sm font-semibold">{o.service} · {o.pkg}</p>
+              <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}</ul>
             </div>
           </Card>
 
           <Card icon="ph-note-pencil" title="Customer intake — full submission">
-            <div className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{p.brief.map((f) => <div key={f.label} className="flex flex-col"><span className="text-[11px] font-semibold text-muted-foreground">{f.label}</span><span className="font-medium">{f.value}</span></div>)}</div>
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{p.brief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
             {p.addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" /> Upsells added at checkout</p>
@@ -339,20 +342,19 @@ function MoreMenu({ onAssign, onRefund, onCancel, canCancel }: { onAssign: () =>
 
 function ProgressTracker({ status }: { status: OrderStatus }) {
   if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" /> Order canceled</span>;
+  const idx = STAGE_OF[status];
   const changes = status === 'changes_requested';
-  const idx = changes ? FLOW.findIndex((s) => s.key === 'in_progress') : FLOW.findIndex((s) => s.key === status);
   return (
-    <div className="flex items-center pb-0.5">
+    <div className="flex items-center">
       {FLOW.map((s, i) => (
-        <Fragment key={s.key}>
+        <Fragment key={s.label}>
           {i > 0 && <span className={`mx-1.5 h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className={`grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
-            {i === idx && <span className="whitespace-nowrap text-[11px] font-semibold text-foreground">{s.label}</span>}
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
+            <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}{changes && i === idx ? ' ·changes' : ''}</span>
           </div>
         </Fragment>
       ))}
-      {changes && <span className="pill pill-warn ml-1 shrink-0">changes</span>}
     </div>
   );
 }
@@ -375,8 +377,13 @@ function Card({ icon, title, children }: { icon: string; title: string; children
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="truncate text-right font-medium">{value}</span></div>;
 }
-function EditFact({ label, control }: { label: string; control: ReactNode }) {
-  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span>{control}</div>;
+function Field({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <div className="text-sm font-medium">{value}</div>
+    </div>
+  );
 }
 function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border bg-background/40 p-2"><p className="display text-base font-bold capitalize leading-none">{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p></div>;
