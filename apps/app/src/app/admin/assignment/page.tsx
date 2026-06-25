@@ -35,7 +35,7 @@ export default function AssignmentPage() {
       id: o.id, seq: seqMap.get(o.id) ?? 0, code: o.code, customer: o.customer, tier,
       service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, value: o.value,
       deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((TODAY.getTime() - new Date(o.created).getTime()) / 86400000),
-      cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
+      source: o.source, cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 

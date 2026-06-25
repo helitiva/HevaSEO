@@ -4,14 +4,14 @@ import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { SlideOver } from '@/components/admin/SlideOver';
-import { money, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { money, statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
 interface Cand { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skillMatch: boolean }
 interface QueueItem {
   id: string; seq: number; code: string; customer: string; tier: Tier; service: string; pkg: string;
   priority: Priority; status: OrderStatus; value: number; deadline: string | null; daysToDue: number;
-  created: string; ageDays: number; cust: CustSummary | null; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
+  created: string; ageDays: number; source: 'quick' | 'dashboard'; cust: CustSummary | null; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
 }
 interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline: string | null; daysToDue: number; cust: CustSummary | null; home: string }
 interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline?: string | null; daysToDue: number; cust: CustSummary | null; pinnedTo?: string | null }
@@ -209,6 +209,21 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                         )}
                         {best && <button onClick={() => assignWithGuard(q.id, best, q.code)} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
                         <button onClick={() => setExpanded((e) => (e === q.id ? null : q.id))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1" title="Order value"><i className="ph-bold ph-currency-dollar text-emerald-500" /><b className="text-foreground">{money(q.value)}</b></span>
+                        <span className="inline-flex items-center gap-1" title="Order status"><i className="ph-bold ph-circle-dashed" />{statusLabel[q.status]}</span>
+                        <span className="inline-flex items-center gap-1" title="Source"><i className="ph-bold ph-path" />via {q.source}</span>
+                        {q.deadline && <span className="inline-flex items-center gap-1" title="Deadline"><i className="ph-bold ph-calendar-blank" />{q.deadline}</span>}
+                        {q.cust && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span className="inline-flex items-center gap-1 font-medium text-foreground"><i className="ph-fill ph-user-circle text-primary" />{q.cust.name}</span>
+                            <span className="inline-flex items-center gap-1" title="Lifetime value"><i className="ph-bold ph-coins" />LTV {money(q.cust.spend)}</span>
+                            <span className="inline-flex items-center gap-1" title="Total orders"><i className="ph-bold ph-package" />{q.cust.orders} orders</span>
+                            <span className="inline-flex items-center gap-1" title="Credit balance"><i className="ph-bold ph-wallet" />{money(q.cust.balance)} credit</span>
+                          </>
+                        )}
                       </div>
                       {expanded === q.id && (
                         <div className="mt-2 space-y-1 border-t border-border pt-2">
