@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { SlideOver } from '@/components/admin/SlideOver';
-import { statusLabel, money, TIER, STAFF, customerByCompany, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
+import { statusLabel, money, TIER, STAFF, customerByCompany, ORDER_EXTRA, SERVICE_INCLUDED, ORDER_NOTE, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
 
 export interface ExplorerOrder extends AdminOrder {
   seq: number; custName: string; custTier: Tier; custLtv: number; custOrders: number;
@@ -200,6 +200,18 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
   const site = cust?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const overdue = o.deadline && o.deadline < new Date().toISOString().slice(0, 10) && o.status !== 'completed' && o.status !== 'canceled';
 
+  const ex = ORDER_EXTRA[o.id];
+  const project = ex?.project ?? `${o.customer} — SEO program`;
+  const folder = ex?.folder ?? 'General';
+  const included = ex?.included ?? SERVICE_INCLUDED[o.service] ?? [];
+  const addons = ex?.addons ?? [];
+  const brief = (ex?.brief ?? [
+    { label: 'Website', value: `https://${site}` },
+    { label: 'Primary goal', value: 'Improve organic visibility' },
+    { label: 'Target market', value: 'US · English' },
+  ]).filter((bf) => !/note/i.test(bf.label));
+  const note = ORDER_NOTE[o.id] ?? ex?.brief.find((bf) => /note/i.test(bf.label))?.value ?? null;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -211,14 +223,36 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
       {/* Order */}
       <Section icon="ph-package" title="Order details">
         <div className="space-y-2 text-sm">
-          <Row label="Project" value={`${o.customer} — SEO program`} />
+          <Row label="Order #" value={`#${o.seq}`} />
+          <Row label="Project" value={project} />
+          <Row label="Folder" value={folder} />
           <Row label="Site" value={site} />
           <Row label="Target URL" value={<a href={`https://${site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{site}</a>} />
           <Row label="Service" value={`${o.service} · ${o.pkg}`} />
           <Row label="Value" value={<span className="font-semibold">{money(o.value)}</span>} />
-          <Row label="Source" value={o.source} />
+          <Row label="Source" value={`via ${o.source}`} />
+          <Row label="Created" value={o.created} />
           <Row label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{o.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
         </div>
+      </Section>
+
+      {/* What's included */}
+      <Section icon="ph-list-checks" title="What's included">
+        <ul className="grid gap-1.5 text-sm">{included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}</ul>
+        {addons.length > 0 && (
+          <>
+            <p className="mb-1 mt-3 text-[11px] font-semibold text-muted-foreground">Add-ons bought</p>
+            <ul className="space-y-1 text-sm">{addons.map((a) => <li key={a.name} className="flex justify-between gap-3"><span className="truncate">{a.name} <span className="text-muted-foreground">· {a.tier}</span></span><span className="shrink-0 font-medium">{money(a.price)}</span></li>)}</ul>
+          </>
+        )}
+      </Section>
+
+      {/* Customer brief & note */}
+      <Section icon="ph-note" title="Customer brief">
+        <div className="space-y-2 text-sm">{brief.map((f) => <Row key={f.label} label={f.label} value={f.value} />)}</div>
+        {note
+          ? <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-2.5 text-sm"><p className="mb-0.5 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-chat-circle-text" />Note from customer</p>{note}</div>
+          : <p className="mt-2 text-xs text-muted-foreground">No note from the customer.</p>}
       </Section>
 
       {/* Customer */}
