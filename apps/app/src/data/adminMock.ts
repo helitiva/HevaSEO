@@ -42,7 +42,16 @@ export interface AdminTicket {
   thread: TicketMessage[];
 }
 export interface AdminRule { id: string; service: string; pkg: string | null; mode: 'pin'|'auto'; target: string | null; priority: number; active: boolean; }
-export interface AuditEntry { id: string; at: string; actor: string; entity: string; action: string; change: string; }
+export type AuditCategory = 'create' | 'update' | 'transition' | 'assign' | 'destructive' | 'auth';
+export type AuditEntity = 'order' | 'customer' | 'staff' | 'rule' | 'ticket' | 'deliverable' | 'catalog' | 'auth';
+export interface AuditEntry {
+  id: string; at: string; actor: string;
+  entity: AuditEntity; entityId: string | null; entityCode: string | null;
+  action: string; from: string | null; to: string | null;
+  category: AuditCategory; change: string;
+  diff?: { field: string; from: string; to: string }[];
+  meta?: Record<string, string | number>;
+}
 
 export const KPIS = {
   newOrders: 6, inProgress: 11, overdue: 3, awaitingApproval: 4,
@@ -382,9 +391,53 @@ export const RULES: AdminRule[] = [
   { id: 'r2', service: 'Content', pkg: null, mode: 'auto', target: null, priority: 50, active: true },
 ];
 
+export const AUDIT_CATEGORY: Record<AuditCategory, { label: string; icon: string; color: string }> = {
+  create: { label: 'Create', icon: 'ph-plus-circle', color: '#10b981' },
+  update: { label: 'Update', icon: 'ph-pencil-simple', color: '#0ea5e9' },
+  transition: { label: 'Transition', icon: 'ph-arrows-left-right', color: '#6366f1' },
+  assign: { label: 'Assign', icon: 'ph-user-switch', color: '#a855f7' },
+  destructive: { label: 'Destructive', icon: 'ph-warning-octagon', color: '#ef4444' },
+  auth: { label: 'Auth', icon: 'ph-shield-check', color: '#f59e0b' },
+};
+export const AUDIT_ENTITY: Record<AuditEntity, { label: string; icon: string; href: string | null }> = {
+  order: { label: 'Order', icon: 'ph-package', href: '/admin/orders' },
+  customer: { label: 'Customer', icon: 'ph-user', href: '/admin/customers' },
+  staff: { label: 'Staff', icon: 'ph-user-gear', href: '/admin/staff' },
+  rule: { label: 'Rule', icon: 'ph-git-fork', href: '/admin/assignment' },
+  ticket: { label: 'Ticket', icon: 'ph-lifebuoy', href: '/admin/tickets' },
+  deliverable: { label: 'Deliverable', icon: 'ph-file-arrow-up', href: '/admin/review' },
+  catalog: { label: 'Catalog', icon: 'ph-tag', href: '/admin/catalog' },
+  auth: { label: 'Auth', icon: 'ph-shield', href: null },
+};
+
 export const AUDIT: AuditEntry[] = [
-  { id: 'a1', at: '2026-06-24 09:12', actor: 'Admin', entity: 'order', action: 'transition', change: 'AUD-1001 new→confirmed' },
-  { id: 'a2', at: '2026-06-24 08:40', actor: 'Admin', entity: 'order', action: 'assign', change: 'KW-1002 → Mai T.' },
+  // ---- 2026-06-24 (today) ----
+  { id: 'a1', at: '2026-06-24 09:12', actor: 'Admin', entity: 'order', entityId: 'o1', entityCode: 'AUD-1001', action: 'transition', from: 'new', to: 'confirmed', category: 'transition', change: 'AUD-1001 new → confirmed' },
+  { id: 'a2', at: '2026-06-24 08:40', actor: 'Admin', entity: 'order', entityId: 'o2', entityCode: 'KW-1002', action: 'assign', from: null, to: 'Mai T.', category: 'assign', change: 'KW-1002 assigned → Mai T.', meta: { staff: 'Mai T.' } },
+  { id: 'a3', at: '2026-06-24 08:31', actor: 'Mai T.', entity: 'deliverable', entityId: 'o4', entityCode: 'CNT-1004', action: 'submit', from: null, to: 'v2', category: 'create', change: 'CNT-1004 deliverable v2 submitted', meta: { version: 2, kind: 'file' } },
+  { id: 'a4', at: '2026-06-24 08:05', actor: 'Admin', entity: 'auth', entityId: 'c1', entityCode: 'Jane Doe', action: 'impersonate', from: null, to: null, category: 'auth', change: 'Admin impersonated Jane Doe (Acme Co)', meta: { customer: 'Acme Co' } },
+  { id: 'a5', at: '2026-06-24 07:58', actor: 'Admin', entity: 'customer', entityId: 'c1', entityCode: 'Acme Co', action: 'credit_adjust', from: '$320', to: '$820', category: 'update', change: 'Acme Co credit +$500', meta: { delta: 500, reason: 'Top-up · Stripe' } },
+  { id: 'a6', at: '2026-06-24 07:20', actor: 'system', entity: 'order', entityId: 'o18', entityCode: 'BL-1018', action: 'create', from: null, to: 'new', category: 'create', change: 'BL-1018 created (quick order)', meta: { source: 'quick', value: 104 } },
+  // ---- 2026-06-23 ----
+  { id: 'a7', at: '2026-06-23 18:44', actor: 'Admin', entity: 'order', entityId: 'o10', entityCode: 'OPT-1010', action: 'refund', from: 'approved', to: 'approved', category: 'destructive', change: 'OPT-1010 refunded $140 to Vértice', meta: { amount: 140, customer: 'Vértice' } },
+  { id: 'a8', at: '2026-06-23 17:30', actor: 'Admin', entity: 'customer', entityId: 'c1', entityCode: 'Acme Co', action: 'update', from: null, to: null, category: 'update', change: 'Acme Co profile updated', diff: [{ field: 'tier', from: 'silver', to: 'gold' }, { field: 'tags', from: 'Retainer', to: 'Retainer, E-commerce' }] },
+  { id: 'a9', at: '2026-06-23 16:12', actor: 'Admin', entity: 'catalog', entityId: 'backlink-growth', entityCode: 'Backlink · Growth', action: 'publish', from: null, to: null, category: 'update', change: 'Backlink · Growth price changed', diff: [{ field: 'price', from: '$64', to: '$79' }] },
+  { id: 'a10', at: '2026-06-23 15:05', actor: 'Linh P.', entity: 'deliverable', entityId: 'o3', entityCode: 'BL-1003', action: 'request_changes', from: 'delivered', to: 'changes_requested', category: 'transition', change: 'BL-1003 changes requested', meta: { note: 'Anchor too exact-match' } },
+  { id: 'a11', at: '2026-06-23 14:18', actor: 'Admin', entity: 'rule', entityId: 'r1', entityCode: 'Backlink rule', action: 'update', from: null, to: null, category: 'update', change: 'Backlink routing rule updated', diff: [{ field: 'mode', from: 'skill pool', to: 'pinned' }, { field: 'target', from: '—', to: 'Linh P.' }] },
+  { id: 'a12', at: '2026-06-23 13:40', actor: 'Admin', entity: 'order', entityId: 'o14', entityCode: 'BL-1014', action: 'transition', from: 'internal_review', to: 'changes_requested', category: 'transition', change: 'BL-1014 internal_review → changes_requested' },
+  { id: 'a13', at: '2026-06-23 11:55', actor: 'Huy N.', entity: 'order', entityId: 'o8', entityCode: 'CNT-1008', action: 'transition', from: 'assigned', to: 'in_progress', category: 'transition', change: 'CNT-1008 assigned → in_progress' },
+  { id: 'a14', at: '2026-06-23 10:32', actor: 'Admin', entity: 'staff', entityId: 's1', entityCode: 'Mai T.', action: 'update', from: null, to: null, category: 'update', change: 'Mai T. capacity changed', diff: [{ field: 'capacity', from: '6', to: '7' }] },
+  { id: 'a15', at: '2026-06-23 09:48', actor: 'Mai T.', entity: 'ticket', entityId: 't2', entityCode: 'TKT-2042', action: 'reply', from: null, to: null, category: 'update', change: 'Replied to ticket TKT-2042', meta: { customer: 'Bright Ltd' } },
+  { id: 'a16', at: '2026-06-23 09:10', actor: 'Aria K.', entity: 'auth', entityId: 's5', entityCode: 'Aria K.', action: 'login', from: null, to: null, category: 'auth', change: 'Aria K. signed in', meta: { ip: '203.0.113.7' } },
+  // ---- 2026-06-22 ----
+  { id: 'a17', at: '2026-06-22 19:02', actor: 'Admin', entity: 'order', entityId: 'o16', entityCode: 'AUD-1016', action: 'cancel', from: 'new', to: 'canceled', category: 'destructive', change: 'AUD-1016 canceled', meta: { reason: 'Duplicate order' } },
+  { id: 'a18', at: '2026-06-22 17:25', actor: 'Admin', entity: 'staff', entityId: 's6', entityCode: 'Tom B.', action: 'create', from: null, to: null, category: 'create', change: 'Tom B. added to the team', meta: { role: 'Specialist', capacity: 5 } },
+  { id: 'a19', at: '2026-06-22 16:40', actor: 'Admin', entity: 'staff', entityId: 's3', entityCode: 'Huy N.', action: 'update', from: null, to: null, category: 'update', change: 'Huy N. skills changed', diff: [{ field: 'skills', from: 'content', to: 'content, optimize' }] },
+  { id: 'a20', at: '2026-06-22 15:18', actor: 'Mai T.', entity: 'deliverable', entityId: 'o13', entityCode: 'KW-1013', action: 'approve', from: 'delivered', to: 'approved', category: 'transition', change: 'KW-1013 v2 approved' },
+  { id: 'a21', at: '2026-06-22 14:02', actor: 'Linh P.', entity: 'ticket', entityId: 't1', entityCode: 'TKT-2041', action: 'resolve', from: 'open', to: 'resolved', category: 'transition', change: 'TKT-2041 resolved' },
+  { id: 'a22', at: '2026-06-22 12:30', actor: 'Admin', entity: 'customer', entityId: 'c9', entityCode: 'Vertex AI', action: 'update', from: null, to: null, category: 'update', change: 'Vertex AI marked priority', diff: [{ field: 'tags', from: '—', to: 'Enterprise, Priority' }] },
+  { id: 'a23', at: '2026-06-22 11:14', actor: 'system', entity: 'order', entityId: 'o24', entityCode: 'CNT-1024', action: 'create', from: null, to: 'confirmed', category: 'create', change: 'CNT-1024 created (dashboard)', meta: { source: 'dashboard', value: 120 } },
+  { id: 'a24', at: '2026-06-22 10:05', actor: 'Admin', entity: 'auth', entityId: null, entityCode: 'Admin', action: 'login', from: null, to: null, category: 'auth', change: 'Admin signed in', meta: { ip: '198.51.100.23' } },
 ];
 
 export const statusLabel: Record<OrderStatus, string> = {
@@ -451,16 +504,16 @@ function genRevenue(days: number): RevenuePoint[] {
 export const REVENUE_90: RevenuePoint[] = genRevenue(90);
 
 // Visitor geo distribution (detected by IP). x/y are normalized map coords (0..1).
-export interface GeoRow { country: string; flag: string; users: number; x: number; y: number; }
+export interface GeoRow { country: string; flag: string; users: number; x: number; y: number; isoNum: string; }
 export const GEO: GeoRow[] = [
-  { country: 'United States', flag: '🇺🇸', users: 1840, x: 0.21, y: 0.42 },
-  { country: 'United Kingdom', flag: '🇬🇧', users: 720, x: 0.47, y: 0.34 },
-  { country: 'Germany', flag: '🇩🇪', users: 560, x: 0.52, y: 0.37 },
-  { country: 'Canada', flag: '🇨🇦', users: 430, x: 0.19, y: 0.31 },
-  { country: 'India', flag: '🇮🇳', users: 360, x: 0.69, y: 0.52 },
-  { country: 'Australia', flag: '🇦🇺', users: 320, x: 0.84, y: 0.74 },
-  { country: 'Singapore', flag: '🇸🇬', users: 220, x: 0.75, y: 0.59 },
-  { country: 'Brazil', flag: '🇧🇷', users: 190, x: 0.34, y: 0.69 },
+  { country: 'United States', flag: '🇺🇸', users: 1840, x: 0.21, y: 0.42, isoNum: '840' },
+  { country: 'United Kingdom', flag: '🇬🇧', users: 720,  x: 0.47, y: 0.34, isoNum: '826' },
+  { country: 'Germany',        flag: '🇩🇪', users: 560,  x: 0.52, y: 0.37, isoNum: '276' },
+  { country: 'Canada',         flag: '🇨🇦', users: 430,  x: 0.19, y: 0.31, isoNum: '124' },
+  { country: 'India',          flag: '🇮🇳', users: 360,  x: 0.69, y: 0.52, isoNum: '356' },
+  { country: 'Australia',      flag: '🇦🇺', users: 320,  x: 0.84, y: 0.74, isoNum: '036' },
+  { country: 'Singapore',      flag: '🇸🇬', users: 220,  x: 0.75, y: 0.59, isoNum: '702' },
+  { country: 'Brazil',         flag: '🇧🇷', users: 190,  x: 0.34, y: 0.69, isoNum: '076' },
 ];
 
 // Support / ticket aggregate.
