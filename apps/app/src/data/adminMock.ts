@@ -74,9 +74,13 @@ export interface OrderExtra {
   brief: { label: string; value: string }[];
   addons: { name: string; tier: string; price: number }[];
   bundle: string[]; // ids of related orders placed together (upsells)
+  project?: string; // customer project the order was filed into
+  folder?: string;  // folder within that project
 }
 export const ORDER_EXTRA: Record<string, OrderExtra> = {
   o1: {
+    project: 'Acme — Main site',
+    folder: 'Money pages',
     included: ['Full site crawl (up to 500 URLs)', 'Technical SEO audit', 'On-page analysis', 'Competitor snapshot (3 rivals)', 'Prioritised fix roadmap'],
     brief: [
       { label: 'Website', value: 'https://acme.com' },

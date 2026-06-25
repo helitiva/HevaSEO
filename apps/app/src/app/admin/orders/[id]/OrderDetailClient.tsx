@@ -12,7 +12,7 @@ interface OrderLite { id: string; seq: number; code: string; customer: string; s
 interface Activity { id: string; at: string; action: string; change: string }
 
 interface Props {
-  order: OrderLite; cust?: CustLite; site: string; today: string;
+  order: OrderLite; cust?: CustLite; site: string; today: string; project: string; folder: string;
   included: string[]; brief: { label: string; value: string }[];
   addons: { name: string; tier: string; price: number }[]; addonsTotal: number;
   bundle: { id: string; code: string; service: string; pkg: string; customer: string; value: number; status: OrderStatus }[];
@@ -163,6 +163,13 @@ export function OrderDetailClient(p: Props) {
           </Card>
 
           <Card icon="ph-note-pencil" title="Customer intake — full submission">
+            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
+              <i className="ph-bold ph-folders text-primary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
+              <span className="font-semibold">{p.project}</span>
+              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" />
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" />{p.folder}</span>
+            </div>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{p.brief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
             {p.addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">

@@ -16,6 +16,8 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const c = customerByCompany(order.customer);
   const site = c?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const extra = ORDER_EXTRA[order.id];
+  const project = extra?.project ?? `${order.customer} — SEO program`;
+  const folder = extra?.folder ?? 'General';
   const included = extra?.included ?? SERVICE_INCLUDED[order.service] ?? [];
   const brief = extra?.brief ?? [{ label: 'Website', value: `https://${site}` }, { label: 'Goal', value: 'Improve organic visibility' }, { label: 'Market', value: 'US · English' }];
   const addons = extra?.addons ?? [];
@@ -49,6 +51,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
     <OrderDetailClient
       order={{ id: order.id, seq, code: order.code, customer: order.customer, service: order.service, pkg: order.pkg, status: order.status, priority: order.priority, source: order.source, value: order.value, staff: order.staff, deadline: order.deadline, created: order.created }}
       cust={cust} site={site} today={new Date().toISOString().slice(0, 10)}
+      project={project} folder={folder}
       included={included} brief={brief} addons={addons} addonsTotal={addonsTotal} bundle={bundle}
       eligibleStaff={eligibleStaff} initialActivity={initialActivity} prev={prev} next={next}
     />
