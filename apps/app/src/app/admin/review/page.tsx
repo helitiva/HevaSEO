@@ -1,5 +1,7 @@
-import { ORDERS, DELIVERABLES, STAFF, TIER, tierOf, customerByCompany, qaCriteriaFor, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier } from '@/data/adminMock';
+import { ORDERS, DELIVERABLES, STAFF, TIER, tierOf, customerByCompany, qaCriteriaFor, SERVICE_INCLUDED, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier } from '@/data/adminMock';
 import { ReviewClient } from './ReviewClient';
+
+const REVIEW_SLA_DAYS = 2;
 
 const TODAY = new Date('2026-06-25T00:00:00');
 const days = (a: string, b: Date) => Math.round((b.getTime() - new Date(a).getTime()) / 86400000);
@@ -33,7 +35,13 @@ export default function ReviewPage() {
         id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status,
         value: o.value, deadline: o.deadline, customer: o.customer, tier, cust: custOf(o.customer), staff: o.staff,
         versions, latest, isResubmission: versions.length > 1 || versions.some((v) => v.status === 'changes_requested'),
-        ageDays: days(latest.submittedAt, TODAY), criteria: qaCriteriaFor(o.service),
+        ageDays: days(latest.submittedAt, TODAY), overdue: days(latest.submittedAt, TODAY) >= 2,
+        included: SERVICE_INCLUDED[o.service] ?? [],
+        checklist: [
+          ...(SERVICE_INCLUDED[o.service] ?? []).map((text) => ({ group: 'Completeness', text })),
+          ...qaCriteriaFor(o.service).map((text) => ({ group: 'Quality', text })),
+        ],
+        priorNote: versions.find((v) => v.status === 'changes_requested')?.reviewNote ?? null,
         brief: brief.filter((b) => !/note/i.test(b.label)), customerNote,
         project: extra?.project ?? `${o.customer} — SEO program`, folder: extra?.folder ?? 'General',
         source: o.source, created: o.created, memberSince: cust ? CUSTOMER_EXTRA[cust.id]?.memberSince ?? null : null,
@@ -59,6 +67,7 @@ export default function ReviewPage() {
   const firstPass = approvedOrders.filter((oid) => !DELIVERABLES.some((d) => d.orderId === oid && d.status === 'changes_requested')).length;
   const turn = reviewed.filter((d) => d.reviewedAt).map((d) => days(d.submittedAt, new Date(d.reviewedAt as string)));
   const stats = {
+    slaDays: REVIEW_SLA_DAYS,
     awaiting: queue.length,
     resubmissions: queue.filter((q) => q.isResubmission).length,
     overdue: queue.filter((q) => q.ageDays >= 2).length,
