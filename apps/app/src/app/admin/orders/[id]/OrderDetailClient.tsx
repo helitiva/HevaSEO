@@ -112,28 +112,28 @@ export function OrderDetailClient(p: Props) {
         <div className="space-y-4 lg:col-span-2">
           {/* compact header card */}
           <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Link href="/admin/orders" className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
             <span className="display text-xl font-bold tracking-tight">{o.code}</span>
             <span className="text-xs font-semibold text-muted-foreground">#{o.seq}</span>
             <PriorityBadge priority={priority} /><StatusBadge status={status} />
             <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} /> {banner.text}</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 text-xs">
-              {p.prev ? <Link href={`/admin/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
-              {p.next ? <Link href={`/admin/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
-            </div>
-            {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
-            {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
-            <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)}
-              onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
-              canCancel={!['completed', 'canceled'].includes(status)} />
-          </div>
         </div>
 
-          <div className="mt-3"><ProgressTracker status={status} /></div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="flex items-center gap-1 text-xs">
+                {p.prev ? <Link href={`/admin/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
+                {p.next ? <Link href={`/admin/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
+              </div>
+              {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
+              {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
+              <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)}
+                onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
+                canCancel={!['completed', 'canceled'].includes(status)} />
+            </div>
+            <div className="min-w-[18rem] flex-1"><ProgressTracker status={status} /></div>
+          </div>
           <p className="mt-3 text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
           </div>
 
