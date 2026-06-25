@@ -424,7 +424,10 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
         </ul>
       </div>
 
-      <Link href={`/admin/customers/${c.id}`} className="block rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Open full profile page →</Link>
+      <div className="flex items-stretch gap-2">
+        <Link href={`/admin/customers/${c.id}`} className="flex-1 rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Open full profile page →</Link>
+        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-xl border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+      </div>
     </div>
   );
 }

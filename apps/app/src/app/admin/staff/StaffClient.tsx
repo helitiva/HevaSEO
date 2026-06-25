@@ -20,6 +20,7 @@ export interface StaffVM {
 }
 type SkillMeta = Record<string, { label: string; icon: string; color: string }>;
 interface Props { initialStaff: StaffVM[]; skillMeta: SkillMeta }
+interface Teammate { id: string; name: string; active: boolean; load: number; capacity: number }
 
 type SortKey = 'composite' | 'quality' | 'onTime' | 'throughput' | 'load' | 'name';
 const SORT_LABEL: Record<SortKey, string> = {
@@ -28,13 +29,21 @@ const SORT_LABEL: Record<SortKey, string> = {
 
 export function StaffClient({ initialStaff, skillMeta }: Props) {
   const allSkills = Object.keys(skillMeta);
+  // editable staff attributes (active / capacity / skills / identity)
   const [staff, setStaff] = useState<StaffVM[]>(initialStaff);
+  // every in-flight order, flattened with the staff it was originally assigned to
+  const flatOrders = useMemo(() => initialStaff.flatMap((s) => s.activeOrders.map((o) => ({ order: o, home: s.name }))), [initialStaff]);
+  // live placement of each order → enables reassigning between staff on this page
+  const [placement, setPlacement] = useState<Record<string, string>>(() => Object.fromEntries(flatOrders.map((f) => [f.order.id, f.home])));
+
   const [view, setView] = useState<'grid' | 'table'>('grid');
+  const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [fSkill, setFSkill] = useState('');
   const [fStatus, setFStatus] = useState<'all' | 'active' | 'paused'>('all');
   const [fAvail, setFAvail] = useState<'all' | 'free' | 'full' | 'over'>('all');
   const [sortBy, setSortBy] = useState<SortKey>('composite');
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const [panelId, setPanelId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -45,13 +54,25 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
     setLog((l) => [{ id: `${Date.now()}.${l.length}`, at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), text, icon }, ...l].slice(0, 30));
   };
 
+  // ---- live roster: merge editable attrs with placement-derived workload ----
+  const roster = useMemo<StaffVM[]>(() => staff.map((s) => {
+    const orders = flatOrders.filter((f) => placement[f.order.id] === s.name).map((f) => f.order).sort((a, b) => a.daysToDue - b.daysToDue);
+    return {
+      ...s, activeOrders: orders, load: orders.length,
+      valueInFlight: orders.reduce((n, o) => n + o.value, 0),
+      overdue: orders.filter((o) => o.daysToDue < 0).length,
+      dueSoon: orders.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 1).length,
+    };
+  }), [staff, placement, flatOrders]);
+
   const patch = (id: string, fn: (s: StaffVM) => StaffVM) => setStaff((list) => list.map((s) => (s.id === id ? fn(s) : s)));
   const toggleActive = (s: StaffVM) => { patch(s.id, (x) => ({ ...x, active: !x.active })); record(`${s.name} ${s.active ? 'paused — won’t receive new work' : 'reactivated'}`, s.active ? 'ph-pause-circle' : 'ph-play-circle'); };
-  const setCapacity = (s: StaffVM, n: number) => { const cap = Math.max(1, Math.min(20, n)); patch(s.id, (x) => ({ ...x, capacity: cap })); record(`${s.name} capacity → ${cap} slots`, 'ph-sliders'); };
+  const setCapacity = (s: StaffVM, n: number) => { const cap = Math.max(1, Math.min(20, n)); if (cap === s.capacity) return; patch(s.id, (x) => ({ ...x, capacity: cap })); record(`${s.name} capacity → ${cap} slots`, 'ph-sliders'); };
   const toggleSkill = (s: StaffVM, skill: string) => {
     const has = s.skills.includes(skill); patch(s.id, (x) => ({ ...x, skills: has ? x.skills.filter((k) => k !== skill) : [...x.skills, skill] }));
     record(`${s.name} ${has ? 'lost' : 'gained'} ${skillMeta[skill].label} skill`, 'ph-certificate');
   };
+  const reassign = (orderId: string, toName: string, code: string) => { setPlacement((p) => ({ ...p, [orderId]: toName })); record(`Reassigned ${code} → ${toName}`, 'ph-arrows-left-right'); };
   const addStaff = (data: { name: string; role: string; capacity: number; skills: string[] }) => {
     const vm: StaffVM = {
       id: `s${Date.now()}`, name: data.name, role: data.role || 'Specialist', email: `${data.name.split(' ')[0].toLowerCase()}@hevaseo.com`,
@@ -62,34 +83,33 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
     setStaff((l) => [...l, vm]); setAddOpen(false); record(`Added ${vm.name} to the team`, 'ph-user-plus');
   };
 
+  // ---- bulk selection ----
+  const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearSel = () => setSel(new Set());
+  const bulkActive = (active: boolean) => { const ids = [...sel]; setStaff((list) => list.map((s) => (sel.has(s.id) ? { ...s, active } : s))); clearSel(); record(`${ids.length} member${ids.length > 1 ? 's' : ''} ${active ? 'reactivated' : 'paused'}`, active ? 'ph-play-circle' : 'ph-pause-circle'); };
+
   // ---- team aggregates (active staff only for capacity/utilization) ----
   const team = useMemo(() => {
-    const act = staff.filter((s) => s.active);
+    const act = roster.filter((s) => s.active);
     const cap = act.reduce((n, s) => n + s.capacity, 0);
     const load = act.reduce((n, s) => n + s.load, 0);
     return {
-      total: staff.length, active: act.length, paused: staff.length - act.length,
+      total: roster.length, active: act.length, paused: roster.length - act.length,
       avgQuality: act.length ? Math.round(act.reduce((n, s) => n + s.quality, 0) / act.length) : 0,
       avgOnTime: act.length ? Math.round(act.reduce((n, s) => n + s.onTime, 0) / act.length) : 0,
       throughput: act.reduce((n, s) => n + s.throughput, 0),
       cap, load, util: cap ? Math.round((load / cap) * 100) : 0,
       free: Math.max(0, cap - load), overloaded: act.filter((s) => s.load > s.capacity).length,
-      overdue: staff.reduce((n, s) => n + s.overdue, 0),
     };
-  }, [staff]);
+  }, [roster]);
 
   // ---- skill coverage (bus-factor) ----
   const coverage = useMemo(() => allSkills.map((skill) => {
-    const holders = staff.filter((s) => s.active && s.skills.includes(skill));
-    return {
-      skill, count: holders.length,
-      cap: holders.reduce((n, s) => n + s.capacity, 0),
-      load: holders.reduce((n, s) => n + s.load, 0),
-      names: holders.map((s) => s.name),
-    };
-  }), [staff, allSkills]);
+    const holders = roster.filter((s) => s.active && s.skills.includes(skill));
+    return { skill, count: holders.length, cap: holders.reduce((n, s) => n + s.capacity, 0), load: holders.reduce((n, s) => n + s.load, 0), names: holders.map((s) => s.name) };
+  }), [roster, allSkills]);
 
-  const visible = useMemo(() => staff
+  const visible = useMemo(() => roster
     .filter((s) => (!search.trim() || `${s.name} ${s.role}`.toLowerCase().includes(search.toLowerCase()))
       && (!fSkill || s.skills.includes(fSkill))
       && (fStatus === 'all' || (fStatus === 'active' ? s.active : !s.active))
@@ -97,16 +117,16 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
     .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name)
       : sortBy === 'load' ? (b.load / b.capacity) - (a.load / a.capacity)
       : b[sortBy] - a[sortBy]),
-    [staff, search, fSkill, fStatus, fAvail, sortBy]);
+    [roster, search, fSkill, fStatus, fAvail, sortBy]);
 
-  // rank by composite for medals (active staff)
-  const rank = useMemo(() => {
-    const ordered = [...staff].filter((s) => s.active).sort((a, b) => b.composite - a.composite);
-    return new Map(ordered.map((s, i) => [s.id, i] as const));
-  }, [staff]);
+  const stranded = useMemo(() => roster.filter((s) => !s.active && s.load > 0), [roster]);
+  const rank = useMemo(() => new Map([...roster].filter((s) => s.active).sort((a, b) => b.composite - a.composite).map((s, i) => [s.id, i] as const)), [roster]);
+  const teammates: Teammate[] = useMemo(() => roster.map((s) => ({ id: s.id, name: s.name, active: s.active, load: s.load, capacity: s.capacity })), [roster]);
 
-  const panel = panelId ? staff.find((s) => s.id === panelId) ?? null : null;
+  const panel = panelId ? roster.find((s) => s.id === panelId) ?? null : null;
   const filtered = !!(search || fSkill || fStatus !== 'all' || fAvail !== 'all');
+  const allSelected = visible.length > 0 && visible.every((s) => sel.has(s.id));
+  const toggleAll = () => setSel(allSelected ? new Set() : new Set(visible.map((s) => s.id)));
 
   return (
     <section className="space-y-4">
@@ -115,7 +135,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
           <h1 className="display text-2xl font-bold tracking-tight">Staff</h1>
           <p className="text-sm text-muted-foreground">Manage the delivery team — capacity, skills, workload and performance.</p>
         </div>
-        <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" />Add staff</button>
+        <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add staff</button>
       </div>
 
       {/* KPIs */}
@@ -137,9 +157,9 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
               return (
                 <div key={c.skill}>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${meta.icon}`} style={{ color: meta.color }} />{meta.label}</span>
+                    <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${meta.icon}`} style={{ color: meta.color }} aria-hidden />{meta.label}</span>
                     <span className="flex items-center gap-2 text-xs">
-                      {thin && <span className="pill pill-warn"><i className="ph-bold ph-warning" />{c.count === 0 ? 'no cover' : 'single point'}</span>}
+                      {thin && <span className="pill pill-warn"><i className="ph-bold ph-warning" aria-hidden />{c.count === 0 ? 'no cover' : 'single point'}</span>}
                       <span className="text-muted-foreground">{c.count} staff · {c.load}/{c.cap}</span>
                     </span>
                   </div>
@@ -152,59 +172,80 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
         </Card>
 
         <Card icon="ph-scales" title="Workload balance" right={<span className="text-xs text-muted-foreground">{team.util}% team load</span>}>
+          {stranded.length > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs">
+              <i className="ph-bold ph-warning mt-0.5 text-amber-600" aria-hidden />
+              <span><b>{stranded.map((s) => s.name).join(', ')}</b> {stranded.length > 1 ? 'are' : 'is'} paused but still holding {stranded.reduce((n, s) => n + s.load, 0)} order{stranded.reduce((n, s) => n + s.load, 0) > 1 ? 's' : ''} in flight. <button onClick={() => setPanelId(stranded[0].id)} className="font-semibold text-primary hover:underline">Reassign →</button></span>
+            </div>
+          )}
           <div className="space-y-2.5">
-            {[...staff].filter((s) => s.active).sort((a, b) => (b.load / b.capacity) - (a.load / a.capacity)).map((s) => {
+            {[...[...roster].filter((s) => s.active).sort((a, b) => (b.load / b.capacity) - (a.load / a.capacity)), ...stranded].map((s) => {
               const pct = Math.round((s.load / s.capacity) * 100); const t = avail(s);
               return (
                 <button key={s.id} onClick={() => setPanelId(s.id)} className="block w-full text-left">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2"><Avatar name={s.name} size={18} /><span className="font-medium">{s.name}</span></span>
-                    <span className={`text-xs font-semibold ${t === 'over' ? 'text-destructive' : t === 'full' ? 'text-amber-600' : 'text-muted-foreground'}`}>{s.load}/{s.capacity}{t === 'over' ? ' · over' : t === 'full' ? ' · full' : pct < 40 ? ' · idle' : ''}</span>
+                    <span className="flex items-center gap-2"><Avatar name={s.name} size={18} /><span className="font-medium">{s.name}</span>{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}</span>
+                    <span className={`text-xs font-semibold ${!s.active ? 'text-amber-600' : t === 'over' ? 'text-destructive' : t === 'full' ? 'text-amber-600' : 'text-muted-foreground'}`}>{s.load}/{s.capacity}{!s.active ? ' · stranded' : t === 'over' ? ' · over' : t === 'full' ? ' · full' : pct < 40 ? ' · idle' : ''}</span>
                   </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor(s.load, s.capacity) }} /></div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: !s.active ? '#f59e0b' : barColor(s.load, s.capacity) }} /></div>
                 </button>
               );
             })}
-            <p className="pt-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" />{team.free} free slots across the team{team.overloaded ? ` · ${team.overloaded} over capacity` : ''}. Click a row to rebalance.</p>
+            <p className="pt-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />{team.free} free slots across active staff{team.overloaded ? ` · ${team.overloaded} over capacity` : ''}. Click a row to rebalance.</p>
           </div>
         </Card>
       </div>
 
       {/* roster toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name / role" className="w-52 rounded-lg border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus:border-primary" /></div>
-        <select value={fSkill} onChange={(e) => setFSkill(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="">All skills</option>{allSkills.map((k) => <option key={k} value={k}>{skillMeta[k].label}</option>)}</select>
-        <select value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any status</option><option value="active">Active</option><option value="paused">Paused</option></select>
-        <select value={fAvail} onChange={(e) => setFAvail(e.target.value as typeof fAvail)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any load</option><option value="free">Has capacity</option><option value="full">At capacity</option><option value="over">Overloaded</option></select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary">{(Object.keys(SORT_LABEL) as SortKey[]).map((k) => <option key={k} value={k}>Sort: {SORT_LABEL[k]}</option>)}</select>
-        {filtered && <button onClick={() => { setSearch(''); setFSkill(''); setFStatus('all'); setFAvail('all'); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
-        <span className="ml-auto text-xs text-muted-foreground">{visible.length} of {staff.length}</span>
+        <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name / role" aria-label="Search staff by name or role" className="w-44 rounded-lg border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus:border-primary sm:w-52" /></div>
+        <button onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm font-semibold sm:hidden ${filtered ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border'}`}><i className="ph-bold ph-funnel" aria-hidden />Filters{filtered ? ' ·' : ''}</button>
+        <div className={`${showFilters ? 'flex' : 'hidden'} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto`}>
+          <select value={fSkill} onChange={(e) => setFSkill(e.target.value)} aria-label="Filter by skill" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="">All skills</option>{allSkills.map((k) => <option key={k} value={k}>{skillMeta[k].label}</option>)}</select>
+          <select value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)} aria-label="Filter by status" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any status</option><option value="active">Active</option><option value="paused">Paused</option></select>
+          <select value={fAvail} onChange={(e) => setFAvail(e.target.value as typeof fAvail)} aria-label="Filter by load" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any load</option><option value="free">Has capacity</option><option value="full">At capacity</option><option value="over">Overloaded</option></select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} aria-label="Sort staff" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary">{(Object.keys(SORT_LABEL) as SortKey[]).map((k) => <option key={k} value={k}>Sort: {SORT_LABEL[k]}</option>)}</select>
+          {filtered && <button onClick={() => { setSearch(''); setFSkill(''); setFStatus('all'); setFAvail('all'); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
+        </div>
+        <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all staff" className="accent-primary" />All</label>
+        <span className="text-xs text-muted-foreground">{visible.length} of {roster.length}</span>
         <div className="inline-flex rounded-lg border border-border p-0.5 text-sm font-semibold">
           {(['grid', 'table'] as const).map((v) => (
-            <button key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><i className={`ph-bold ${v === 'grid' ? 'ph-squares-four' : 'ph-rows'} mr-1`} />{v}</button>
+            <button key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><i className={`ph-bold ${v === 'grid' ? 'ph-squares-four' : 'ph-rows'} mr-1`} aria-hidden />{v}</button>
           ))}
         </div>
       </div>
+
+      {/* bulk action bar */}
+      {sel.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <span className="text-sm font-semibold">{sel.size} selected</span>
+          <span className="ml-auto" />
+          <button onClick={() => bulkActive(true)} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-play mr-1" aria-hidden />Activate</button>
+          <button onClick={() => bulkActive(false)} className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-pause mr-1" aria-hidden />Pause</button>
+          <button onClick={clearSel} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
+        </div>
+      )}
 
       {visible.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">No staff match these filters.</p>
       ) : view === 'grid' ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((s) => <StaffCard key={s.id} s={s} medal={rank.get(s.id)} skillMeta={skillMeta} onManage={() => setPanelId(s.id)} onToggle={() => toggleActive(s)} />)}
+          {visible.map((s) => <StaffCard key={s.id} s={s} medal={rank.get(s.id)} skillMeta={skillMeta} selected={sel.has(s.id)} onSelect={() => toggleSel(s.id)} onManage={() => setPanelId(s.id)} onToggle={() => toggleActive(s)} onCapacity={(n) => setCapacity(s, n)} />)}
         </div>
       ) : (
-        <StaffTable rows={visible} rankMap={rank} skillMeta={skillMeta} onManage={setPanelId} onToggle={toggleActive} />
+        <StaffTable rows={visible} rankMap={rank} skillMeta={skillMeta} sel={sel} allSelected={allSelected} onToggleAll={toggleAll} onToggleSel={toggleSel} onManage={setPanelId} onToggle={toggleActive} />
       )}
 
       {/* action log */}
       <Card icon="ph-clock-counter-clockwise" title="Recent changes" right={<span className="text-xs text-muted-foreground">{log.length} event{log.length === 1 ? '' : 's'}</span>}>
         {log.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No changes yet — pause a member, tweak capacity or edit skills and it shows up here.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No changes yet — pause a member, tweak capacity, reassign work or edit skills and it shows up here.</p>
         ) : (
           <ul className="scrollbar-thin max-h-60 space-y-2 overflow-y-auto pr-1">
             {log.map((h) => (
               <li key={h.id} className="flex items-center gap-3 text-sm">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted"><i className={`ph-bold ${h.icon} text-primary`} /></span>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted"><i className={`ph-bold ${h.icon} text-primary`} aria-hidden /></span>
                 <span className="min-w-0 flex-1 truncate">{h.text}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{h.at}</span>
               </li>
@@ -215,8 +256,8 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
 
       {panel && (
         <SlideOver open onClose={() => setPanelId(null)} title={panel.name}>
-          <ManagePanel s={panel} skillMeta={skillMeta} allSkills={allSkills}
-            onToggleActive={() => toggleActive(panel)} onCapacity={(n) => setCapacity(panel, n)} onToggleSkill={(k) => toggleSkill(panel, k)} />
+          <ManagePanel s={panel} skillMeta={skillMeta} allSkills={allSkills} teammates={teammates}
+            onToggleActive={() => toggleActive(panel)} onCapacity={(n) => setCapacity(panel, n)} onToggleSkill={(k) => toggleSkill(panel, k)} onReassign={reassign} />
         </SlideOver>
       )}
       {addOpen && <AddStaffModal allSkills={allSkills} skillMeta={skillMeta} onClose={() => setAddOpen(false)} onSave={addStaff} />}
@@ -247,14 +288,14 @@ function Kpi({ icon, label, value, sub, tone }: { icon: string; label: string; v
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
   return (
     <div className="rounded-xl border border-border bg-card p-3 transition hover:border-primary/40">
-      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} /></div>
+      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} aria-hidden /></div>
       <p className="display mt-1 text-xl font-bold tracking-tight">{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
 function Card({ icon, title, right, children }: { icon: string; title: string; right?: ReactNode; children: ReactNode }) {
-  return <div className="rounded-2xl border border-border bg-card p-5"><div className="mb-3 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>{right}</div>{children}</div>;
+  return <div className="rounded-2xl border border-border bg-card p-5"><div className="mb-3 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} aria-hidden /> {title}</p>{right}</div>{children}</div>;
 }
 function Spark({ data, color = 'hsl(var(--primary))', w = 132, h = 36 }: { data: number[]; color?: string; w?: number; h?: number }) {
   if (data.length < 2) return null;
@@ -263,7 +304,7 @@ function Spark({ data, color = 'hsl(var(--primary))', w = 132, h = 36 }: { data:
   const y = (v: number) => h - 4 - ((v - min) / range) * (h - 8);
   const pts = data.map((v, i) => `${x(i)},${y(v)}`).join(' ');
   return (
-    <svg width={w} height={h} className="overflow-visible">
+    <svg width={w} height={h} className="overflow-visible" aria-hidden>
       <polyline points={pts} fill="none" stroke={color} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(data.length - 1)} cy={y(data[data.length - 1])} r={2.75} fill={color} />
     </svg>
@@ -274,13 +315,17 @@ function Medal({ rank }: { rank: number }) {
   const c = rank === 0 ? '#f59e0b' : rank === 1 ? '#94a3b8' : '#b45309';
   return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} />;
 }
+function StepBtn({ dir, onClick }: { dir: 'down' | 'up'; onClick: () => void }) {
+  return <button onClick={onClick} aria-label={dir === 'down' ? 'Decrease capacity' : 'Increase capacity'} className="grid h-5 w-5 place-items-center rounded border border-border text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className={`ph-bold ${dir === 'down' ? 'ph-minus' : 'ph-plus'}`} aria-hidden /></button>;
+}
 
-function StaffCard({ s, medal, skillMeta, onManage, onToggle }: { s: StaffVM; medal?: number; skillMeta: SkillMeta; onManage: () => void; onToggle: () => void }) {
+function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle, onCapacity }: { s: StaffVM; medal?: number; skillMeta: SkillMeta; selected: boolean; onSelect: () => void; onManage: () => void; onToggle: () => void; onCapacity: (n: number) => void }) {
   const pct = Math.round((s.load / s.capacity) * 100);
   return (
-    <div className={`flex flex-col rounded-2xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm ${s.active ? 'border-border' : 'border-border bg-muted/30 opacity-80'}`}>
-      <div className="flex items-start gap-3">
-        <div className="relative"><Avatar name={s.name} />{!s.active && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-card"><i className="ph-fill ph-pause-circle text-amber-500" /></span>}</div>
+    <div className={`flex flex-col rounded-2xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm ${selected ? 'border-primary/50 ring-1 ring-primary/30' : s.active ? 'border-border' : 'border-border bg-muted/30 opacity-80'}`}>
+      <div className="flex items-start gap-2.5">
+        <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select ${s.name}`} className="mt-1 accent-primary" />
+        <div className="relative"><Avatar name={s.name} />{!s.active && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-card"><i className="ph-fill ph-pause-circle text-amber-500" aria-hidden /></span>}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <Link href={`/admin/staff/${s.id}`} className="truncate font-semibold hover:text-primary hover:underline">{s.name}</Link>
@@ -295,13 +340,17 @@ function StaffCard({ s, medal, skillMeta, onManage, onToggle }: { s: StaffVM; me
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1">
-        {s.skills.length ? s.skills.map((k) => <span key={k} className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium"><i className={`ph-fill ${skillMeta[k].icon}`} style={{ color: skillMeta[k].color }} />{skillMeta[k].label}</span>) : <span className="text-[11px] text-muted-foreground">No skills set</span>}
+        {s.skills.length ? s.skills.map((k) => <span key={k} className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium"><i className={`ph-fill ${skillMeta[k].icon}`} style={{ color: skillMeta[k].color }} aria-hidden />{skillMeta[k].label}</span>) : <span className="text-[11px] text-muted-foreground">No skills set</span>}
       </div>
 
       <div className="mt-3">
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Workload</span>
-          <span className={`font-semibold ${s.load > s.capacity ? 'text-destructive' : 'text-foreground'}`}>{s.load}/{s.capacity} · {pct}%</span>
+          <span className="flex items-center gap-1.5">
+            <StepBtn dir="down" onClick={() => onCapacity(s.capacity - 1)} />
+            <span className={`font-semibold ${s.load > s.capacity ? 'text-destructive' : 'text-foreground'}`}>{s.load}/{s.capacity} · {pct}%</span>
+            <StepBtn dir="up" onClick={() => onCapacity(s.capacity + 1)} />
+          </span>
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor(s.load, s.capacity) }} /></div>
       </div>
@@ -314,14 +363,14 @@ function StaffCard({ s, medal, skillMeta, onManage, onToggle }: { s: StaffVM; me
 
       {(s.overdue > 0 || s.dueSoon > 0) && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {s.overdue > 0 && <span className="pill pill-warn" style={{ background: '#ef44441f', color: '#dc2626' }}><i className="ph-bold ph-warning-circle" />{s.overdue} overdue</span>}
-          {s.dueSoon > 0 && <span className="pill pill-warn"><i className="ph-bold ph-timer" />{s.dueSoon} due soon</span>}
+          {s.overdue > 0 && <span className="pill" style={{ background: '#ef44441f', color: '#dc2626' }}><i className="ph-bold ph-warning-circle" aria-hidden />{s.overdue} overdue</span>}
+          {s.dueSoon > 0 && <span className="pill pill-warn"><i className="ph-bold ph-timer" aria-hidden />{s.dueSoon} due soon</span>}
         </div>
       )}
 
       <div className="mt-3 flex items-center gap-2 border-t border-border/60 pt-3">
-        <button onClick={onToggle} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent" title={s.active ? 'Pause new assignments' : 'Reactivate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'} mr-1`} />{s.active ? 'Pause' : 'Activate'}</button>
-        <button onClick={onManage} className="ml-auto rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-sliders-horizontal mr-1" />Manage</button>
+        <button onClick={onToggle} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent" title={s.active ? 'Pause new assignments' : 'Reactivate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'} mr-1`} aria-hidden />{s.active ? 'Pause' : 'Activate'}</button>
+        <button onClick={onManage} className="ml-auto rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-sliders-horizontal mr-1" aria-hidden />Manage</button>
       </div>
     </div>
   );
@@ -330,23 +379,25 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'wa
   return <div><p className={`text-sm font-bold ${tone === 'warn' ? 'text-amber-600' : ''}`}>{value}</p><p className="text-[10px] text-muted-foreground">{label}</p></div>;
 }
 
-function StaffTable({ rows, rankMap, skillMeta, onManage, onToggle }: { rows: StaffVM[]; rankMap: Map<string, number>; skillMeta: SkillMeta; onManage: (id: string) => void; onToggle: (s: StaffVM) => void }) {
+function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, onToggleSel, onManage, onToggle }: { rows: StaffVM[]; rankMap: Map<string, number>; skillMeta: SkillMeta; sel: Set<string>; allSelected: boolean; onToggleAll: () => void; onToggleSel: (id: string) => void; onManage: (id: string) => void; onToggle: (s: StaffVM) => void }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+          <th className="p-3"><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Select all staff" className="accent-primary" /></th>
           <th className="p-3">Staff</th><th className="p-3">Skills</th><th className="p-3 w-40">Workload</th>
           <th className="p-3 text-right">Score</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Manage</th>
         </tr></thead>
         <tbody>
           {rows.map((s) => { const medal = rankMap.get(s.id); const pct = Math.round((s.load / s.capacity) * 100);
             return (
-              <tr key={s.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/40 ${s.active ? '' : 'opacity-70'}`}>
+              <tr key={s.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/40 ${sel.has(s.id) ? 'bg-primary/5' : ''} ${s.active ? '' : 'opacity-70'}`}>
+                <td className="p-3"><input type="checkbox" checked={sel.has(s.id)} onChange={() => onToggleSel(s.id)} aria-label={`Select ${s.name}`} className="accent-primary" /></td>
                 <td className="p-3">
                   <div className="flex items-center gap-2.5">
                     <Avatar name={s.name} size={32} />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5"><Link href={`/admin/staff/${s.id}`} className="font-medium hover:text-primary hover:underline">{s.name}</Link>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" />paused</span>}</div>
+                      <div className="flex items-center gap-1.5"><Link href={`/admin/staff/${s.id}`} className="font-medium hover:text-primary hover:underline">{s.name}</Link>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}</div>
                       <p className="text-xs text-muted-foreground">{s.role}</p>
                     </div>
                   </div>
@@ -362,7 +413,7 @@ function StaffTable({ rows, rankMap, skillMeta, onManage, onToggle }: { rows: St
                 <td className="p-3 text-right text-muted-foreground">{s.throughput}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex items-center gap-1.5">
-                    <button onClick={() => onToggle(s)} className="text-muted-foreground hover:text-foreground" title={s.active ? 'Pause' : 'Activate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'}`} /></button>
+                    <button onClick={() => onToggle(s)} className="text-muted-foreground hover:text-foreground" title={s.active ? 'Pause' : 'Activate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'}`} aria-hidden /></button>
                     <button onClick={() => onManage(s.id)} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent">Manage</button>
                   </div>
                 </td>
@@ -375,10 +426,12 @@ function StaffTable({ rows, rankMap, skillMeta, onManage, onToggle }: { rows: St
   );
 }
 
-function ManagePanel({ s, skillMeta, allSkills, onToggleActive, onCapacity, onToggleSkill }: {
-  s: StaffVM; skillMeta: SkillMeta; allSkills: string[]; onToggleActive: () => void; onCapacity: (n: number) => void; onToggleSkill: (k: string) => void;
+function ManagePanel({ s, skillMeta, allSkills, teammates, onToggleActive, onCapacity, onToggleSkill, onReassign }: {
+  s: StaffVM; skillMeta: SkillMeta; allSkills: string[]; teammates: Teammate[];
+  onToggleActive: () => void; onCapacity: (n: number) => void; onToggleSkill: (k: string) => void; onReassign: (orderId: string, toName: string, code: string) => void;
 }) {
   const pct = Math.round((s.load / s.capacity) * 100);
+  const targets = teammates.filter((t) => t.id !== s.id && t.active);
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -388,9 +441,9 @@ function ManagePanel({ s, skillMeta, allSkills, onToggleActive, onCapacity, onTo
           <p className="truncate text-xs text-muted-foreground">{s.email}</p>
           <p className="text-xs text-muted-foreground">Since {s.since} · {s.tz}</p>
         </div>
-        <button onClick={onToggleActive} role="switch" aria-checked={s.active} className={`relative h-6 w-11 shrink-0 rounded-full transition ${s.active ? 'bg-primary' : 'bg-muted'}`} title={s.active ? 'Active — receiving work' : 'Paused'}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${s.active ? 'left-[22px]' : 'left-0.5'}`} /></button>
+        <button onClick={onToggleActive} role="switch" aria-checked={s.active} aria-label="Toggle active status" className={`relative h-6 w-11 shrink-0 rounded-full transition ${s.active ? 'bg-primary' : 'bg-muted'}`} title={s.active ? 'Active — receiving work' : 'Paused'}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${s.active ? 'left-[22px]' : 'left-0.5'}`} /></button>
       </div>
-      <p className={`-mt-2 text-xs font-semibold ${s.active ? 'text-emerald-600' : 'text-amber-600'}`}><i className={`ph-bold ${s.active ? 'ph-check-circle' : 'ph-pause-circle'} mr-1`} />{s.active ? 'Active — eligible for new assignments' : 'Paused — excluded from auto-routing'}</p>
+      <p className={`-mt-2 text-xs font-semibold ${s.active ? 'text-emerald-600' : 'text-amber-600'}`}><i className={`ph-bold ${s.active ? 'ph-check-circle' : 'ph-pause-circle'} mr-1`} aria-hidden />{s.active ? 'Active — eligible for new assignments' : 'Paused — excluded from auto-routing'}</p>
 
       <div className="grid grid-cols-4 gap-2">
         <Mini label="Score" value={String(s.composite || '—')} />
@@ -414,17 +467,17 @@ function ManagePanel({ s, skillMeta, allSkills, onToggleActive, onCapacity, onTo
 
       <Section title="Capacity">
         <div className="flex items-center gap-3">
-          <button onClick={() => onCapacity(s.capacity - 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-lg hover:bg-accent" aria-label="Decrease capacity"><i className="ph-bold ph-minus" /></button>
+          <button onClick={() => onCapacity(s.capacity - 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-lg hover:bg-accent" aria-label="Decrease capacity"><i className="ph-bold ph-minus" aria-hidden /></button>
           <div className="flex-1 text-center"><p className="display text-2xl font-bold">{s.capacity}</p><p className="text-[11px] text-muted-foreground">concurrent slots</p></div>
-          <button onClick={() => onCapacity(s.capacity + 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-lg hover:bg-accent" aria-label="Increase capacity"><i className="ph-bold ph-plus" /></button>
+          <button onClick={() => onCapacity(s.capacity + 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-lg hover:bg-accent" aria-label="Increase capacity"><i className="ph-bold ph-plus" aria-hidden /></button>
         </div>
-        {s.load > s.capacity && <p className="mt-2 text-xs font-semibold text-destructive"><i className="ph-bold ph-warning mr-1" />Capacity is below current load ({s.load}) — they’re overbooked.</p>}
+        {s.load > s.capacity && <p className="mt-2 text-xs font-semibold text-destructive"><i className="ph-bold ph-warning mr-1" aria-hidden />Capacity is below current load ({s.load}) — they’re overbooked.</p>}
       </Section>
 
       <Section title="Skills">
         <div className="flex flex-wrap gap-1.5">
           {allSkills.map((k) => { const on = s.skills.includes(k); const m = skillMeta[k];
-            return <button key={k} onClick={() => onToggleSkill(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} />{m.label}</button>;
+            return <button key={k} onClick={() => onToggleSkill(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} aria-hidden />{m.label}</button>;
           })}
         </div>
         <p className="mt-1.5 text-[11px] text-muted-foreground">Skills decide which services auto-routing can send this person.</p>
@@ -436,19 +489,32 @@ function ManagePanel({ s, skillMeta, allSkills, onToggleActive, onCapacity, onTo
         ) : (
           <div className="space-y-1.5">
             {s.activeOrders.map((o) => (
-              <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm transition hover:border-primary/50">
-                <PriorityBadge priority={o.priority} />
-                <span className="font-medium">{o.code}</span>
-                <span className="truncate text-xs text-muted-foreground">{o.service}</span>
-                <span className="ml-auto" /><StatusBadge status={o.status} />
-                <Due d={o.daysToDue} />
-              </Link>
+              <div key={o.id} className="rounded-lg border border-border px-2.5 py-1.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <PriorityBadge priority={o.priority} />
+                  <Link href={`/admin/orders/${o.id}`} className="font-medium hover:text-primary hover:underline">{o.code}</Link>
+                  <span className="truncate text-xs text-muted-foreground">{o.service}</span>
+                  <span className="ml-auto" /><StatusBadge status={o.status} /><Due d={o.daysToDue} />
+                </div>
+                {targets.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <i className="ph-bold ph-arrow-bend-down-right text-xs text-muted-foreground" aria-hidden />
+                    <select value="" onChange={(e) => { if (e.target.value) onReassign(o.id, e.target.value, o.code); }} aria-label={`Reassign ${o.code}`} className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs outline-none focus:border-primary">
+                      <option value="">Reassign to…</option>
+                      {targets.map((t) => <option key={t.id} value={t.name}>{t.name} ({t.load}/{t.capacity})</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
       </Section>
 
-      <Link href={`/admin/staff/${s.id}`} className="block rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
+      <div className="flex items-stretch gap-2">
+        <Link href={`/admin/staff/${s.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
+        <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+      </div>
     </div>
   );
 }
@@ -492,7 +558,7 @@ function AddStaffModal({ allSkills, skillMeta, onClose, onSave }: { allSkills: s
           <div><span className="mb-1 block text-xs font-semibold text-muted-foreground">Skills</span>
             <div className="flex flex-wrap gap-1.5">
               {allSkills.map((k) => { const on = skills.includes(k); const m = skillMeta[k];
-                return <button key={k} type="button" onClick={() => toggle(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} />{m.label}</button>;
+                return <button key={k} type="button" onClick={() => toggle(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} aria-hidden />{m.label}</button>;
               })}
             </div>
           </div>

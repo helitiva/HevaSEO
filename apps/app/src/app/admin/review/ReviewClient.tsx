@@ -141,7 +141,10 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 <span className="display text-xl font-bold">{selected.code}</span>
                 <PriorityBadge priority={selected.priority} /><StatusBadge status={selected.status} />
                 {selected.isResubmission && <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600">re-submission · v{selected.latest.version}</span>}
-                <Link href={`/admin/orders/${selected.id}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open full order →</Link>
+                <div className="ml-auto flex items-center gap-2">
+                  <Link href={`/admin/orders/${selected.id}`} className="text-xs font-semibold text-primary hover:underline">Open full order →</Link>
+                  <a href={`/admin/orders/${selected.id}`} target="_blank" rel="noopener noreferrer" title="Open order in a new tab" aria-label="Open order in a new tab" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" /></a>
+                </div>
               </div>
 
               {selected.isResubmission && selected.priorNote && (

@@ -444,11 +444,17 @@ function OrderPanelBody({ item, current, ranked, tierMeta, onAssign, onUnassign 
             <Mini label="Orders" value={String(item.cust.orders)} />
             <Mini label="Credit" value={money(item.cust.balance)} />
           </div>
-          <Link href={`/admin/customers/${item.cust.id}`} className="mt-2 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <Link href={`/admin/customers/${item.cust.id}`} className="font-semibold text-primary hover:underline">Customer profile →</Link>
+            <a href={`/admin/customers/${item.cust.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" /></a>
+          </div>
         </PanelSection>
       )}
 
-      <Link href={`/admin/orders/${item.id}`} className="block rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full order →</Link>
+      <div className="flex items-stretch gap-2">
+        <Link href={`/admin/orders/${item.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full order →</Link>
+        <a href={`/admin/orders/${item.id}`} target="_blank" rel="noopener noreferrer" title="Open order in a new tab" aria-label="Open order in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+      </div>
     </div>
   );
 }
