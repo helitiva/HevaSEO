@@ -192,9 +192,9 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                 <div className="scrollbar-thin max-h-[34rem] space-y-2 overflow-y-auto pr-1">
                   <label className="flex cursor-pointer items-center gap-2 px-1 text-xs text-muted-foreground"><input type="checkbox" checked={visible.length > 0 && selVisible.length === visible.length} onChange={selAll} className="accent-primary" />Select all ({visible.length})</label>
                   {visible.map((q) => { const best = bestFor(q); return (
-                    <div key={q.id} className={`rounded-xl border bg-background/40 p-3 ${sel.has(q.id) ? 'border-primary/50' : 'border-border'}`}>
+                    <div key={q.id} onClick={() => setPanelId(q.id)} title="Open order details" className={`cursor-pointer rounded-xl border bg-background/40 p-3 transition hover:border-primary/40 ${sel.has(q.id) ? 'border-primary/50' : 'border-border'}`}>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                        <input type="checkbox" checked={sel.has(q.id)} onChange={() => toggleSel(q.id)} className="accent-primary" />
+                        <input type="checkbox" checked={sel.has(q.id)} onChange={() => toggleSel(q.id)} onClick={(e) => e.stopPropagation()} className="accent-primary" />
                         <PriorityBadge priority={q.priority} />
                         <button onClick={() => setPanelId(q.id)} className="font-semibold hover:text-primary hover:underline" title="Open order">{q.code}</button>
                         <span className="text-sm text-muted-foreground">{q.service} · {q.pkg}</span>
@@ -207,8 +207,8 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                             <i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{best}
                           </span>
                         )}
-                        {best && <button onClick={() => assignWithGuard(q.id, best, q.code)} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
-                        <button onClick={() => setExpanded((e) => (e === q.id ? null : q.id))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
+                        {best && <button onClick={(e) => { e.stopPropagation(); assignWithGuard(q.id, best, q.code); }} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
+                        <button onClick={(e) => { e.stopPropagation(); setExpanded((x) => (x === q.id ? null : q.id)); }} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1" title="Order value"><i className="ph-bold ph-currency-dollar text-emerald-500" /><b className="text-foreground">{money(q.value)}</b></span>
@@ -226,7 +226,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                         )}
                       </div>
                       {expanded === q.id && (
-                        <div className="mt-2 space-y-1 border-t border-border pt-2">
+                        <div onClick={(e) => e.stopPropagation()} className="mt-2 space-y-1 border-t border-border pt-2">
                           {q.candidates.map((c) => { const load = loadOf(c.name); const over = load >= c.capacity;
                             return (
                               <div key={c.name} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-muted ${c.name === best ? 'bg-primary/5' : ''}`}>
