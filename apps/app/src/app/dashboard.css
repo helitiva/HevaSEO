@@ -27,8 +27,8 @@
 * { border-color: hsl(var(--border)); }
 body { font-feature-settings: "cv11", "ss01"; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes pageReveal { from { opacity: 0; filter: blur(7px); transform: translateY(3px); } to { opacity: 1; filter: blur(0); transform: none; } }
-.page-anim { animation: pageReveal .5s cubic-bezier(.22,.61,.36,1) backwards; }
+@keyframes pageReveal { from { opacity: 0; } to { opacity: 1; } }
+.page-anim { animation: pageReveal .3s ease-out backwards; }
 @media (prefers-reduced-motion: reduce) { .page-anim { animation: none; } }
 .display { font-family: "Inter Tight", Inter, sans-serif; }
 /* sidebar nav item */
