@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { SlideOver } from '@/components/admin/SlideOver';
@@ -45,6 +45,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>('composite');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [panelId, setPanelId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [log, setLog] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
@@ -124,6 +125,24 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
   const teammates: Teammate[] = useMemo(() => roster.map((s) => ({ id: s.id, name: s.name, active: s.active, load: s.load, capacity: s.capacity })), [roster]);
 
   const panel = panelId ? roster.find((s) => s.id === panelId) ?? null : null;
+  // ---- panel prev/next (through the visible list) + copy link + URL deep-link ----
+  const panelIdx = panelId ? visible.findIndex((s) => s.id === panelId) : -1;
+  const prevStaff = panelIdx > 0 ? visible[panelIdx - 1] : null;
+  const nextStaff = panelIdx >= 0 && panelIdx < visible.length - 1 ? visible[panelIdx + 1] : null;
+  const copyStaffLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/staff?staff=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  useEffect(() => { const id = new URLSearchParams(window.location.search).get('staff'); if (id && roster.some((s) => s.id === id)) setPanelId(id); }, [roster]);
+  useEffect(() => { const url = new URL(window.location.href); if (panelId) url.searchParams.set('staff', panelId); else url.searchParams.delete('staff'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [panelId]);
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'j' && nextStaff) setPanelId(nextStaff.id);
+      else if (e.key === 'k' && prevStaff) setPanelId(prevStaff.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panel, nextStaff, prevStaff]);
   const filtered = !!(search || fSkill || fStatus !== 'all' || fAvail !== 'all');
   const allSelected = visible.length > 0 && visible.every((s) => sel.has(s.id));
   const toggleAll = () => setSel(allSelected ? new Set() : new Set(visible.map((s) => s.id)));
@@ -257,6 +276,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
       {panel && (
         <SlideOver open onClose={() => setPanelId(null)} title={panel.name}>
           <ManagePanel s={panel} skillMeta={skillMeta} allSkills={allSkills} teammates={teammates}
+            prev={prevStaff} next={nextStaff} onNav={setPanelId} onCopy={() => copyStaffLink(panel.id)} copied={copied}
             onToggleActive={() => toggleActive(panel)} onCapacity={(n) => setCapacity(panel, n)} onToggleSkill={(k) => toggleSkill(panel, k)} onReassign={reassign} />
         </SlideOver>
       )}
@@ -316,19 +336,20 @@ function Medal({ rank }: { rank: number }) {
   return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} />;
 }
 function StepBtn({ dir, onClick }: { dir: 'down' | 'up'; onClick: () => void }) {
-  return <button onClick={onClick} aria-label={dir === 'down' ? 'Decrease capacity' : 'Increase capacity'} className="grid h-5 w-5 place-items-center rounded border border-border text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className={`ph-bold ${dir === 'down' ? 'ph-minus' : 'ph-plus'}`} aria-hidden /></button>;
+  return <button onClick={(e) => { e.stopPropagation(); onClick(); }} aria-label={dir === 'down' ? 'Decrease capacity' : 'Increase capacity'} className="grid h-5 w-5 place-items-center rounded border border-border text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className={`ph-bold ${dir === 'down' ? 'ph-minus' : 'ph-plus'}`} aria-hidden /></button>;
 }
 
 function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle, onCapacity }: { s: StaffVM; medal?: number; skillMeta: SkillMeta; selected: boolean; onSelect: () => void; onManage: () => void; onToggle: () => void; onCapacity: (n: number) => void }) {
   const pct = Math.round((s.load / s.capacity) * 100);
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
-    <div className={`flex flex-col rounded-2xl border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm ${selected ? 'border-primary/50 ring-1 ring-primary/30' : s.active ? 'border-border' : 'border-border bg-muted/30 opacity-80'}`}>
+    <div role="button" tabIndex={0} onClick={onManage} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onManage(); } }} title="Open quick panel" className={`flex cursor-pointer flex-col rounded-2xl border bg-card p-4 text-left transition hover:border-primary/40 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${selected ? 'border-primary/50 ring-1 ring-primary/30' : s.active ? 'border-border' : 'border-border bg-muted/30 opacity-80'}`}>
       <div className="flex items-start gap-2.5">
-        <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select ${s.name}`} className="mt-1 accent-primary" />
+        <input type="checkbox" checked={selected} onChange={onSelect} onClick={stop} aria-label={`Select ${s.name}`} className="mt-1 accent-primary" />
         <div className="relative"><Avatar name={s.name} />{!s.active && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-card"><i className="ph-fill ph-pause-circle text-amber-500" aria-hidden /></span>}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Link href={`/admin/staff/${s.id}`} className="truncate font-semibold hover:text-primary hover:underline">{s.name}</Link>
+            <Link href={`/admin/staff/${s.id}`} onClick={stop} className="truncate font-semibold hover:text-primary hover:underline">{s.name}</Link>
             {medal !== undefined && medal < 3 && <Medal rank={medal} />}
           </div>
           <p className="truncate text-xs text-muted-foreground">{s.role}</p>
@@ -369,8 +390,9 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
       )}
 
       <div className="mt-3 flex items-center gap-2 border-t border-border/60 pt-3">
-        <button onClick={onToggle} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent" title={s.active ? 'Pause new assignments' : 'Reactivate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'} mr-1`} aria-hidden />{s.active ? 'Pause' : 'Activate'}</button>
-        <button onClick={onManage} className="ml-auto rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-sliders-horizontal mr-1" aria-hidden />Manage</button>
+        <button onClick={(e) => { stop(e); onToggle(); }} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent" title={s.active ? 'Pause new assignments' : 'Reactivate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'} mr-1`} aria-hidden />{s.active ? 'Pause' : 'Activate'}</button>
+        <span className="ml-auto text-[11px] text-muted-foreground"><i className="ph-bold ph-cursor-click mr-0.5" aria-hidden />card = quick panel</span>
+        <Link href={`/admin/staff/${s.id}`} onClick={stop} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-circle mr-1" aria-hidden />Profile</Link>
       </div>
     </div>
   );
@@ -386,18 +408,18 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
         <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
           <th className="p-3"><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Select all staff" className="accent-primary" /></th>
           <th className="p-3">Staff</th><th className="p-3">Skills</th><th className="p-3 w-40">Workload</th>
-          <th className="p-3 text-right">Score</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Manage</th>
+          <th className="p-3 text-right">Score</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Open</th>
         </tr></thead>
         <tbody>
           {rows.map((s) => { const medal = rankMap.get(s.id); const pct = Math.round((s.load / s.capacity) * 100);
             return (
-              <tr key={s.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/40 ${sel.has(s.id) ? 'bg-primary/5' : ''} ${s.active ? '' : 'opacity-70'}`}>
-                <td className="p-3"><input type="checkbox" checked={sel.has(s.id)} onChange={() => onToggleSel(s.id)} aria-label={`Select ${s.name}`} className="accent-primary" /></td>
+              <tr key={s.id} onClick={() => onManage(s.id)} className={`cursor-pointer border-b border-border/50 last:border-0 hover:bg-muted/40 ${sel.has(s.id) ? 'bg-primary/5' : ''} ${s.active ? '' : 'opacity-70'}`}>
+                <td className="p-3"><input type="checkbox" checked={sel.has(s.id)} onChange={() => onToggleSel(s.id)} onClick={(e) => e.stopPropagation()} aria-label={`Select ${s.name}`} className="accent-primary" /></td>
                 <td className="p-3">
                   <div className="flex items-center gap-2.5">
                     <Avatar name={s.name} size={32} />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5"><Link href={`/admin/staff/${s.id}`} className="font-medium hover:text-primary hover:underline">{s.name}</Link>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}</div>
+                      <div className="flex items-center gap-1.5"><Link href={`/admin/staff/${s.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-primary hover:underline">{s.name}</Link>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}</div>
                       <p className="text-xs text-muted-foreground">{s.role}</p>
                     </div>
                   </div>
@@ -413,8 +435,8 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
                 <td className="p-3 text-right text-muted-foreground">{s.throughput}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex items-center gap-1.5">
-                    <button onClick={() => onToggle(s)} className="text-muted-foreground hover:text-foreground" title={s.active ? 'Pause' : 'Activate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'}`} aria-hidden /></button>
-                    <button onClick={() => onManage(s.id)} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent">Manage</button>
+                    <button onClick={(e) => { e.stopPropagation(); onToggle(s); }} className="text-muted-foreground hover:text-foreground" title={s.active ? 'Pause' : 'Activate'}><i className={`ph-bold ${s.active ? 'ph-pause' : 'ph-play'}`} aria-hidden /></button>
+                    <Link href={`/admin/staff/${s.id}`} onClick={(e) => e.stopPropagation()} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent">Profile</Link>
                   </div>
                 </td>
               </tr>
@@ -426,14 +448,20 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
   );
 }
 
-function ManagePanel({ s, skillMeta, allSkills, teammates, onToggleActive, onCapacity, onToggleSkill, onReassign }: {
+function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, onCopy, copied, onToggleActive, onCapacity, onToggleSkill, onReassign }: {
   s: StaffVM; skillMeta: SkillMeta; allSkills: string[]; teammates: Teammate[];
+  prev: StaffVM | null; next: StaffVM | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean;
   onToggleActive: () => void; onCapacity: (n: number) => void; onToggleSkill: (k: string) => void; onReassign: (orderId: string, toName: string, code: string) => void;
 }) {
   const pct = Math.round((s.load / s.capacity) * 100);
   const targets = teammates.filter((t) => t.id !== s.id && t.active);
   return (
     <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+      </div>
       <div className="flex items-center gap-3">
         <Avatar name={s.name} size={48} />
         <div className="min-w-0 flex-1">
