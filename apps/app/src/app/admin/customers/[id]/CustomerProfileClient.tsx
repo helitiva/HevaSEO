@@ -91,7 +91,7 @@ export function CustomerProfileClient(p: Props) {
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* main */}
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card icon="ph-folders" title="Projects & folders">
             <div className="space-y-3">
               {p.projects.map((pr) => (
@@ -160,7 +160,7 @@ export function CustomerProfileClient(p: Props) {
         </div>
 
         {/* sidebar */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card icon="ph-address-book" title="Contact">
             <div className="space-y-1.5 text-sm">
               <Row label="Email" value={<a href={`mailto:${c.email}`} className="text-primary hover:underline">{c.email}</a>} />
@@ -227,7 +227,7 @@ function Card({ icon, title, right, children }: { icon: string; title: string; r
   return <div className="rounded-2xl border border-border bg-card p-5"><div className="mb-3 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>{right}</div>{children}</div>;
 }
 function Row({ label, value }: { label: string; value: ReactNode }) {
-  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="truncate text-right font-medium">{value}</span></div>;
+  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="min-w-0 truncate text-right font-medium">{value}</span></div>;
 }
 function Menu({ items }: { items: { icon: string; label: string; fn: () => void; danger?: boolean }[] }) {
   const [open, setOpen] = useState(false);

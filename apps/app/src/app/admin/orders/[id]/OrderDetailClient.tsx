@@ -109,7 +109,7 @@ export function OrderDetailClient(p: Props) {
   return (
     <section>
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           {/* compact header card */}
           <div className="rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -247,7 +247,7 @@ export function OrderDetailClient(p: Props) {
         </div>
 
         {/* sidebar */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card icon="ph-user" title="Customer">
             <div className="flex items-center gap-2"><span className="font-semibold">{p.cust?.name ?? o.customer}</span>{p.cust && <span className="inline-flex items-center gap-1" title={`${TIER[p.cust.tier].label} customer`}><i className={`ph-fill ${TIER[p.cust.tier].icon}`} style={{ color: TIER[p.cust.tier].color }} /><span className="text-[10px] font-semibold" style={{ color: TIER[p.cust.tier].color }}>{TIER[p.cust.tier].label}</span></span>}</div>
             <p className="text-xs text-muted-foreground">{o.customer}{p.cust ? ` · ${p.cust.email}` : ''}</p>
@@ -382,7 +382,7 @@ function Card({ icon, title, children }: { icon: string; title: string; children
   return <div className="rounded-2xl border border-border bg-card p-5"><p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>{children}</div>;
 }
 function Fact({ label, value }: { label: string; value: ReactNode }) {
-  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="truncate text-right font-medium">{value}</span></div>;
+  return <div className="flex items-center justify-between gap-3"><span className="shrink-0 text-muted-foreground">{label}</span><span className="min-w-0 truncate text-right font-medium">{value}</span></div>;
 }
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
