@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@heva/app", "dev"],
+      "port": 4400
+    }
+  ]
+}

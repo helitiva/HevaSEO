@@ -14,10 +14,32 @@ export interface AdminCustomer {
 export interface AdminStaff {
   id: string; name: string; skills: string[]; capacity: number; openLoad: number;
   composite: number; quality: number; onTime: number; throughput: number; active: boolean;
+  role: string; email: string; since: string; tz: string; trend: number[];
 }
+// Canonical skill taxonomy — shared by the staff roster, assignment, and routing rules.
+export const SKILL_META: Record<string, { label: string; icon: string; color: string }> = {
+  keyword: { label: 'Keyword', icon: 'ph-magnifying-glass', color: '#2563eb' },
+  backlink: { label: 'Backlink', icon: 'ph-link-simple', color: '#a855f7' },
+  content: { label: 'Content', icon: 'ph-article', color: '#0ea5e9' },
+  optimize: { label: 'Optimization', icon: 'ph-gauge', color: '#10b981' },
+};
+// Order service → skill needed to deliver it (used to match active work to a staff's skills).
+export const SERVICE_SKILL: Record<string, string> = {
+  Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize', Indexer: 'optimize', 'Web Design': 'content',
+};
+export type TicketType = 'technical'|'billing'|'consultation';
+export type TicketChannel = 'portal'|'whatsapp'|'messenger'|'email';
+export type TicketStatus = 'open'|'pending'|'resolved'|'closed';
+export type SlaTier = 'urgent'|'standard';
+export interface TicketMessage { from: 'customer'|'staff'; author: string; text: string; at: string; }
 export interface AdminTicket {
-  id: string; subject: string; customer: string; status: 'open'|'pending'|'resolved'|'closed';
-  priority: Priority; assignee: string | null; age: string;
+  id: string; code: string; subject: string;
+  customer: string; customerId: string | null;
+  type: TicketType; channel: TicketChannel; status: TicketStatus;
+  priority: Priority; assignee: string | null; slaTier: SlaTier;
+  orderCode: string | null;
+  createdAt: string; lastReplyAt: string; age: string;
+  thread: TicketMessage[];
 }
 export interface AdminRule { id: string; service: string; pkg: string | null; mode: 'pin'|'auto'; target: string | null; priority: number; active: boolean; }
 export interface AuditEntry { id: string; at: string; actor: string; entity: string; action: string; change: string; }
@@ -135,10 +157,10 @@ export function tierOf(spend: number): Tier {
 
 export const CUSTOMERS: AdminCustomer[] = [
   { id: 'c1', name: 'Jane Doe', company: 'Acme Co', email: 'jane@acme.com', status: 'claimed', orders: 9, spend: 1840, balance: 320, lastActive: '2026-06-24', tier: 'gold' },
-  { id: 'c2', name: 'Sam Lee', company: 'Bright Ltd', email: 'sam@bright.io', status: 'shadow', orders: 2, spend: 198, balance: 0, lastActive: '2026-06-23', tier: 'new' },
+  { id: 'c2', name: 'Sam Lee', company: 'Bright Ltd', email: 'sam@bright.io', status: 'shadow', orders: 2, spend: 198, balance: 0, lastActive: '2026-05-10', tier: 'new' },
   { id: 'c3', name: 'Ana Ruiz', company: 'Nova', email: 'ana@nova.co', status: 'claimed', orders: 14, spend: 3180, balance: 540, lastActive: '2026-06-22', tier: 'vip' },
-  { id: 'c4', name: 'Marco Vidal', company: 'Vértice', email: 'marco@vertice.es', status: 'claimed', orders: 6, spend: 920, balance: 80, lastActive: '2026-06-21', tier: 'silver' },
-  { id: 'c5', name: 'Priya Nair', company: 'Peak Digital', email: 'priya@peak.io', status: 'claimed', orders: 4, spend: 640, balance: 0, lastActive: '2026-06-20', tier: 'silver' },
+  { id: 'c4', name: 'Marco Vidal', company: 'Vértice', email: 'marco@vertice.es', status: 'claimed', orders: 6, spend: 920, balance: 80, lastActive: '2026-05-22', tier: 'silver' },
+  { id: 'c5', name: 'Priya Nair', company: 'Peak Digital', email: 'priya@peak.io', status: 'claimed', orders: 4, spend: 640, balance: 0, lastActive: '2026-06-05', tier: 'silver' },
   { id: 'c6', name: 'Tom Vale', company: 'Lumen', email: 'tom@lumen.co', status: 'shadow', orders: 1, spend: 79, balance: 0, lastActive: '2026-06-24', tier: 'new' },
   { id: 'c7', name: 'Elena Park', company: 'Orbit Labs', email: 'elena@orbit.dev', status: 'claimed', orders: 11, spend: 2460, balance: 410, lastActive: '2026-06-24', tier: 'gold' },
   { id: 'c8', name: 'Raj Mehta', company: 'Pulse Media', email: 'raj@pulse.media', status: 'claimed', orders: 5, spend: 730, balance: 60, lastActive: '2026-06-23', tier: 'silver' },
@@ -182,7 +204,16 @@ export const ORDER_EXTRA: Record<string, OrderExtra> = {
 export interface CustomerExtra { phone: string; timezone: string; memberSince: string; tags: string[]; }
 export const CUSTOMER_EXTRA: Record<string, CustomerExtra> = {
   c1: { phone: '+1 415 555 0132', timezone: 'America/Los_Angeles · PT', memberSince: '2025-02-14', tags: ['Retainer', 'E-commerce'] },
+  c2: { phone: '+44 20 7946 0321', timezone: 'Europe/London · GMT', memberSince: '2026-05-02', tags: ['Trial'] },
   c3: { phone: '+34 91 555 0199', timezone: 'Europe/Madrid · CET', memberSince: '2024-09-03', tags: ['Agency', 'Priority'] },
+  c4: { phone: '+34 93 555 0144', timezone: 'Europe/Madrid · CET', memberSince: '2025-06-18', tags: ['SMB'] },
+  c5: { phone: '+91 22 4000 1188', timezone: 'Asia/Kolkata · IST', memberSince: '2025-11-02', tags: ['Agency'] },
+  c6: { phone: '+1 312 555 0170', timezone: 'America/Chicago · CT', memberSince: '2026-06-22', tags: [] },
+  c7: { phone: '+1 206 555 0119', timezone: 'America/Los_Angeles · PT', memberSince: '2024-12-10', tags: ['Retainer', 'SaaS'] },
+  c8: { phone: '+1 646 555 0188', timezone: 'America/New_York · ET', memberSince: '2025-08-19', tags: ['Media'] },
+  c9: { phone: '+39 02 555 0166', timezone: 'Europe/Rome · CET', memberSince: '2024-05-21', tags: ['Enterprise', 'Priority'] },
+  c10: { phone: '+1 415 555 0101', timezone: 'America/Los_Angeles · PT', memberSince: '2026-06-25', tags: [] },
+  c11: { phone: '+1 503 555 0133', timezone: 'America/Los_Angeles · PT', memberSince: '2025-10-07', tags: ['Studio'] },
 };
 
 export interface CustProject { name: string; site: string; folders: { name: string; orders: number }[]; }
@@ -215,17 +246,135 @@ export const SERVICE_INCLUDED: Record<string, string[]> = {
 };
 
 export const STAFF: AdminStaff[] = [
-  { id: 's1', name: 'Mai T.', skills: ['keyword','optimize','content'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
-  { id: 's2', name: 'Linh P.', skills: ['backlink','keyword'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true },
-  { id: 's3', name: 'Huy N.', skills: ['content','optimize'], capacity: 8, openLoad: 5, composite: 84, quality: 88, onTime: 79, throughput: 40, active: true },
-  { id: 's4', name: 'Diego R.', skills: ['content','optimize'], capacity: 7, openLoad: 4, composite: 86, quality: 90, onTime: 85, throughput: 28, active: true },
-  { id: 's5', name: 'Aria K.', skills: ['keyword','backlink'], capacity: 6, openLoad: 2, composite: 90, quality: 92, onTime: 88, throughput: 26, active: true },
-  { id: 's6', name: 'Tom B.', skills: ['backlink','content'], capacity: 5, openLoad: 3, composite: 82, quality: 84, onTime: 80, throughput: 34, active: true },
+  { id: 's1', name: 'Mai T.', skills: ['keyword','optimize','content'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true, role: 'Senior SEO Specialist', email: 'mai@hevaseo.com', since: '2023-02-14', tz: 'GMT+7', trend: [2,3,4,3,5,4,6,5] },
+  { id: 's2', name: 'Linh P.', skills: ['backlink','keyword'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true, role: 'Backlink Specialist', email: 'linh@hevaseo.com', since: '2023-06-01', tz: 'GMT+7', trend: [3,4,5,4,6,5,7,6] },
+  { id: 's3', name: 'Huy N.', skills: ['content','optimize'], capacity: 8, openLoad: 5, composite: 84, quality: 88, onTime: 79, throughput: 40, active: true, role: 'Content Lead', email: 'huy@hevaseo.com', since: '2022-11-20', tz: 'GMT+7', trend: [4,5,6,5,7,6,8,7] },
+  { id: 's4', name: 'Diego R.', skills: ['content','optimize'], capacity: 7, openLoad: 4, composite: 86, quality: 90, onTime: 85, throughput: 28, active: true, role: 'Content Specialist', email: 'diego@hevaseo.com', since: '2024-01-10', tz: 'GMT-3', trend: [3,3,4,4,5,4,6,5] },
+  { id: 's5', name: 'Aria K.', skills: ['keyword','backlink'], capacity: 6, openLoad: 2, composite: 90, quality: 92, onTime: 88, throughput: 26, active: true, role: 'SEO Analyst', email: 'aria@hevaseo.com', since: '2024-03-22', tz: 'GMT+2', trend: [2,3,3,4,4,5,5,6] },
+  { id: 's6', name: 'Tom B.', skills: ['backlink','content'], capacity: 5, openLoad: 3, composite: 82, quality: 84, onTime: 80, throughput: 34, active: false, role: 'Link Builder', email: 'tom@hevaseo.com', since: '2023-09-05', tz: 'GMT+0', trend: [4,4,5,5,6,5,7,6] },
+];
+
+// SLA response targets by tier (hours to first/next staff reply).
+export const SLA_LIMIT_H: Record<SlaTier, number> = { urgent: 2, standard: 24 };
+export const TICKET_TYPE: Record<TicketType, { label: string; icon: string; color: string }> = {
+  technical: { label: 'Technical', icon: 'ph-wrench', color: '#2563eb' },
+  billing: { label: 'Billing', icon: 'ph-receipt', color: '#f59e0b' },
+  consultation: { label: 'Consultation', icon: 'ph-lightbulb', color: '#a855f7' },
+};
+export const TICKET_CHANNEL: Record<TicketChannel, { label: string; icon: string; color: string }> = {
+  portal: { label: 'Portal', icon: 'ph-browser', color: '#64748b' },
+  whatsapp: { label: 'WhatsApp', icon: 'ph-whatsapp-logo', color: '#25D366' },
+  messenger: { label: 'Messenger', icon: 'ph-messenger-logo', color: '#0084FF' },
+  email: { label: 'Email', icon: 'ph-envelope-simple', color: '#0ea5e9' },
+};
+// Canned replies (macros) the agent can drop into the reply box.
+export const TICKET_MACROS: { label: string; text: string }[] = [
+  { label: 'Acknowledge', text: "Thanks for reaching out — I'm looking into this now and will get back to you shortly." },
+  { label: 'Need info', text: 'Could you share the URL and a screenshot so I can dig in? That will help me resolve this faster.' },
+  { label: 'ETA', text: "Your deliverable is on track — expect it within the next 24 hours. I'll ping you the moment it's ready." },
+  { label: 'Resolve', text: "This is sorted on our end now. I'll mark the ticket resolved, but reply any time if anything else comes up." },
 ];
 
 export const TICKETS: AdminTicket[] = [
-  { id: 't1', subject: 'When will my report be ready?', customer: 'Acme Co', status: 'open', priority: 'high', assignee: null, age: '2h' },
-  { id: 't2', subject: 'Invoice question', customer: 'Nova', status: 'pending', priority: 'med', assignee: 'Mai T.', age: '1d' },
+  {
+    id: 't1', code: 'HV-1042', subject: 'When will my audit report be ready?',
+    customer: 'Acme Co', customerId: 'c1', type: 'technical', channel: 'portal', status: 'open',
+    priority: 'high', assignee: null, slaTier: 'urgent', orderCode: 'AUD-1001',
+    createdAt: '2026-06-25T08:30', lastReplyAt: '2026-06-25T11:05', age: '3h',
+    thread: [
+      { from: 'customer', author: 'Jane Doe', text: "Hi — I ordered the audit (AUD-1001) two days ago and it's marked urgent. Any ETA on the report?", at: '08:30' },
+      { from: 'customer', author: 'Jane Doe', text: 'Following up — we have a board review tomorrow and need at least the headline findings.', at: '11:05' },
+    ],
+  },
+  {
+    id: 't2', code: 'HV-1041', subject: 'May VAT invoice missing tax ID',
+    customer: 'Nova', customerId: 'c3', type: 'billing', channel: 'email', status: 'pending',
+    priority: 'med', assignee: 'Mai T.', slaTier: 'standard', orderCode: null,
+    createdAt: '2026-06-24T09:10', lastReplyAt: '2026-06-24T15:42', age: '1d',
+    thread: [
+      { from: 'customer', author: 'Ana Ruiz', text: 'Our May invoice is missing the company VAT ID. Can you reissue it with ES-B-12345678?', at: 'Jun 24 · 09:10' },
+      { from: 'staff', author: 'Mai T.', text: "Sure — I've queued the corrected invoice with finance. You'll have the PDF by end of day.", at: 'Jun 24 · 15:42' },
+    ],
+  },
+  {
+    id: 't3', code: 'HV-1040', subject: 'Strategy call for a Q3 entity build',
+    customer: 'Vertex AI', customerId: 'c9', type: 'consultation', channel: 'whatsapp', status: 'open',
+    priority: 'high', assignee: null, slaTier: 'urgent', orderCode: null,
+    createdAt: '2026-06-25T12:40', lastReplyAt: '2026-06-25T12:40', age: '1h',
+    thread: [
+      { from: 'customer', author: 'Sofia Bianchi', text: "We're planning a big entity + content push for Q3. Can a strategist hop on a 30-min call this week?", at: '12:40' },
+    ],
+  },
+  {
+    id: 't4', code: 'HV-1039', subject: "Keyword set doesn't match my market",
+    customer: 'Peak Digital', customerId: 'c5', type: 'technical', channel: 'portal', status: 'pending',
+    priority: 'med', assignee: 'Aria K.', slaTier: 'standard', orderCode: 'KW-1007',
+    createdAt: '2026-06-24T13:20', lastReplyAt: '2026-06-25T09:15', age: '5h',
+    thread: [
+      { from: 'customer', author: 'Priya Nair', text: 'The delivered keywords (KW-1007) skew US, but we only sell in the UK. Can we redo the targeting?', at: 'Jun 24 · 13:20' },
+      { from: 'staff', author: 'Aria K.', text: "Good catch — I'll re-run the clusters with a UK locale and exclude US-only intent. Expect a v2 tomorrow.", at: 'Jun 25 · 09:15' },
+    ],
+  },
+  {
+    id: 't5', code: 'HV-1038', subject: "Credit didn't apply after top-up",
+    customer: 'Orbit Labs', customerId: 'c7', type: 'billing', channel: 'messenger', status: 'open',
+    priority: 'low', assignee: null, slaTier: 'standard', orderCode: null,
+    createdAt: '2026-06-25T07:50', lastReplyAt: '2026-06-25T07:50', age: '4h',
+    thread: [
+      { from: 'customer', author: 'Elena Park', text: 'I topped up $200 via Stripe an hour ago but my balance still shows the old amount.', at: '07:50' },
+    ],
+  },
+  {
+    id: 't6', code: 'HV-1037', subject: 'Core Web Vitals still red after optimization',
+    customer: 'Vértice', customerId: 'c4', type: 'technical', channel: 'portal', status: 'resolved',
+    priority: 'med', assignee: 'Huy N.', slaTier: 'standard', orderCode: 'OPT-1005',
+    createdAt: '2026-06-22T10:00', lastReplyAt: '2026-06-23T16:30', age: '2d',
+    thread: [
+      { from: 'customer', author: 'Marco Vidal', text: 'LCP is still red on mobile after the optimization (OPT-1005). Screenshot attached.', at: 'Jun 22 · 10:00' },
+      { from: 'staff', author: 'Huy N.', text: 'The hero image wasn\'t being served as WebP from your CDN. I\'ve fixed the rule — re-test now.', at: 'Jun 22 · 14:12' },
+      { from: 'customer', author: 'Marco Vidal', text: 'LCP is green now, thank you!', at: 'Jun 23 · 16:30' },
+    ],
+  },
+  {
+    id: 't7', code: 'HV-1036', subject: 'Which package fits a brand-new site?',
+    customer: 'Lumen', customerId: 'c6', type: 'consultation', channel: 'portal', status: 'open',
+    priority: 'med', assignee: 'Linh P.', slaTier: 'standard', orderCode: null,
+    createdAt: '2026-06-24T18:05', lastReplyAt: '2026-06-25T08:40', age: '6h',
+    thread: [
+      { from: 'customer', author: 'Tom Vale', text: 'We just launched and have zero backlinks. Do we start with an audit or jump straight to backlinks?', at: 'Jun 24 · 18:05' },
+      { from: 'staff', author: 'Linh P.', text: "For a brand-new domain I'd start with an audit + content foundation, then layer backlinks once you're indexed. Happy to map a 3-month plan.", at: 'Jun 25 · 08:40' },
+    ],
+  },
+  {
+    id: 't8', code: 'HV-1035', subject: 'Refund for a duplicate charge',
+    customer: 'Pulse Media', customerId: 'c8', type: 'billing', channel: 'email', status: 'closed',
+    priority: 'low', assignee: 'Diego R.', slaTier: 'standard', orderCode: null,
+    createdAt: '2026-06-20T11:30', lastReplyAt: '2026-06-21T10:15', age: '5d',
+    thread: [
+      { from: 'customer', author: 'Raj Mehta', text: 'I was charged twice for the same top-up on Jun 20. Please refund the duplicate.', at: 'Jun 20 · 11:30' },
+      { from: 'staff', author: 'Diego R.', text: 'Confirmed the duplicate and refunded $79 to your card — it should land in 3–5 business days.', at: 'Jun 21 · 10:15' },
+    ],
+  },
+  {
+    id: 't9', code: 'HV-1034', subject: 'Backlinks dropped a week after delivery',
+    customer: 'Cobalt Studio', customerId: 'c11', type: 'technical', channel: 'whatsapp', status: 'open',
+    priority: 'high', assignee: 'Tom B.', slaTier: 'urgent', orderCode: null,
+    createdAt: '2026-06-25T06:15', lastReplyAt: '2026-06-25T10:50', age: '5h',
+    thread: [
+      { from: 'staff', author: 'Tom B.', text: 'Looking into the link drop now — pulling the latest index status for each placement.', at: '09:20' },
+      { from: 'customer', author: 'Lina Haddad', text: '3 of the 10 links are gone from the live pages. Can you verify and replace them?', at: '10:50' },
+    ],
+  },
+  {
+    id: 't10', code: 'HV-1033', subject: 'Article tone is off-brand',
+    customer: 'Acme Co', customerId: 'c1', type: 'technical', channel: 'portal', status: 'pending',
+    priority: 'high', assignee: 'Mai T.', slaTier: 'urgent', orderCode: 'CNT-1004',
+    createdAt: '2026-06-25T07:00', lastReplyAt: '2026-06-25T09:30', age: '5h',
+    thread: [
+      { from: 'customer', author: 'Jane Doe', text: 'The first two articles (CNT-1004) read too casual for us — we need a more authoritative B2B tone.', at: '07:00' },
+      { from: 'customer', author: 'Jane Doe', text: "Here's our style guide for reference. Can the writer revise?", at: '09:30' },
+    ],
+  },
 ];
 
 export const RULES: AdminRule[] = [
