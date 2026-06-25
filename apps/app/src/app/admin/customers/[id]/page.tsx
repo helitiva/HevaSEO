@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER } from '@/data/adminMock';
+import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money } from '@/data/adminMock';
 import { CustomerProfileClient } from './CustomerProfileClient';
 
 export default async function CustomerDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,12 @@ export default async function CustomerDetail({ params }: { params: Promise<{ id:
     ...orders.map((o) => ({ at: o.created, delta: -o.value, reason: `${o.code} confirmed` })),
   ];
   const tickets = TICKETS.filter((tk) => tk.customer === c.company).map((tk) => ({ id: tk.id, subject: tk.subject, status: tk.status, priority: tk.priority, age: tk.age }));
-  const activity = orders.slice(0, 6).map((o) => ({ id: o.id, at: o.created, text: `Order ${o.code} · ${o.service} placed` }));
+  const activity = [
+    { id: 'login', at: c.lastActive, type: 'login', text: 'Logged into the dashboard' },
+    ...orders.map((o) => ({ id: `o-${o.id}`, at: o.created, type: 'order', text: `Placed ${o.code} · ${o.service} · ${o.pkg} · ${money(o.value)}` })),
+    ...ledger.map((l, i) => ({ id: `l-${i}`, at: l.at, type: l.delta >= 0 ? 'payment' : 'debit', text: `${l.reason} · ${l.delta >= 0 ? '+' : ''}${money(l.delta)}` })),
+    { id: 'claim', at: extra.memberSince, type: 'account', text: 'Created account & claimed dashboard' },
+  ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 12);
 
   return (
     <CustomerProfileClient

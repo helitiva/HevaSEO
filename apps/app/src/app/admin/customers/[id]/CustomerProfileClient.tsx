@@ -10,7 +10,14 @@ interface Project { name: string; site: string; folders: { name: string; orders:
 interface MixRow { service: string; count: number; value: number }
 interface Ledger { at: string; delta: number; reason: string }
 interface Ticket { id: string; subject: string; status: string; priority: string; age: string }
-interface Activity { id: string; at: string; text: string }
+interface Activity { id: string; at: string; type: string; text: string }
+const ACT_ICON: Record<string, { icon: string; color: string }> = {
+  login: { icon: 'ph-sign-in', color: 'text-sky-500' },
+  order: { icon: 'ph-package', color: 'text-primary' },
+  payment: { icon: 'ph-arrow-down-left', color: 'text-emerald-500' },
+  debit: { icon: 'ph-arrow-up-right', color: 'text-muted-foreground' },
+  account: { icon: 'ph-user-circle-plus', color: 'text-violet-500' },
+};
 
 interface Props {
   cust: { id: string; name: string; company: string; email: string; status: string; tier: Tier; spend: number; orders: number; balance: number; lastActive: string };
@@ -137,7 +144,18 @@ export function CustomerProfileClient(p: Props) {
           </Card>
 
           <Card icon="ph-scroll" title="Activity">
-            <ul className="space-y-1.5 text-xs text-muted-foreground">{p.activity.map((a) => <li key={a.id}><span className="text-foreground">{a.at}</span> — {a.text}</li>)}</ul>
+            <ul className="space-y-2.5">
+              {p.activity.map((a) => {
+                const m = ACT_ICON[a.type] ?? { icon: 'ph-dot', color: 'text-muted-foreground' };
+                return (
+                  <li key={a.id} className="flex items-center gap-3 text-sm">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted"><i className={`ph-bold ${m.icon} ${m.color}`} /></span>
+                    <span className="min-w-0 flex-1 truncate">{a.text}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{a.at}</span>
+                  </li>
+                );
+              })}
+            </ul>
           </Card>
         </div>
 
