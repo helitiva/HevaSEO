@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { SlideOver } from '@/components/admin/SlideOver';
@@ -44,6 +44,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const [ruleModal, setRuleModal] = useState<{ editing: RuleLite | null } | null>(null);
   const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
   const [panelId, setPanelId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
   // record = toast + append to the assignment history log
   const record = (msg: string, icon = 'ph-arrow-right') => { notify(msg); setHistory((h) => [{ id: `${Date.now()}.${h.length}`, at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), text: msg, icon }, ...h].slice(0, 40)); };
@@ -128,6 +129,31 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     record(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced', 'ph-scales');
   };
   const panelItem = panelId ? allItems.find((x) => x.id === panelId) ?? null : null;
+  // panel prev/next (through the full order list) + copy link + URL deep-link
+  const panelIdx = panelId ? allItems.findIndex((x) => x.id === panelId) : -1;
+  const prevItem = panelIdx > 0 ? allItems[panelIdx - 1] : null;
+  const nextItem = panelIdx >= 0 && panelIdx < allItems.length - 1 ? allItems[panelIdx + 1] : null;
+  const copyOrderLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/assignment?order=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('order');
+    if (id && allItems.some((x) => x.id === id)) setPanelId(id);
+  }, [allItems]);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (panelId) url.searchParams.set('order', panelId); else url.searchParams.delete('order');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+  }, [panelId]);
+  useEffect(() => {
+    if (!panelItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'j' && nextItem) setPanelId(nextItem.id);
+      else if (e.key === 'k' && prevItem) setPanelId(prevItem.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panelItem, nextItem, prevItem]);
   const toggleRule = (id: string) => setRuleState((rs) => rs.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
   const saveRule = (r: RuleLite) => { setRuleState((rs) => (rs.some((x) => x.id === r.id) ? rs.map((x) => (x.id === r.id ? r : x)) : [...rs, r])); setRuleModal(null); record(`Rule saved · ${r.service} → ${r.mode === 'pin' ? r.target : 'skill pool'}`, 'ph-git-fork'); };
   const deleteRule = (id: string) => { setRuleState((rs) => rs.filter((x) => x.id !== id)); record('Routing rule removed', 'ph-trash'); };
@@ -344,6 +370,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       {panelItem && (
         <SlideOver open onClose={() => setPanelId(null)} title={panelItem.code}>
           <OrderPanelBody item={panelItem} current={place[panelItem.id] ?? null} ranked={rankStaff(panelItem.service)} tierMeta={tierMeta}
+            prev={prevItem} next={nextItem} onNav={setPanelId} onCopy={() => copyOrderLink(panelItem.id)} copied={copied}
             onAssign={(name) => assignWithGuard(panelItem.id, name, panelItem.code)}
             onUnassign={() => { moveTo(panelItem.id, null); record(`${panelItem.code} returned to queue`, 'ph-arrow-u-up-left'); }} />
         </SlideOver>
@@ -406,13 +433,21 @@ function RuleModal({ editing, staff, onClose, onSave }: { editing: RuleLite | nu
 function Row2({ label, children }: { label: string; children: ReactNode }) {
   return <label className="flex items-center justify-between gap-4"><span className="text-sm text-muted-foreground">{label}</span><div>{children}</div></label>;
 }
-function OrderPanelBody({ item, current, ranked, tierMeta, onAssign, onUnassign }: {
+function OrderPanelBody({ item, current, ranked, tierMeta, prev, next, onNav, onCopy, copied, onAssign, onUnassign }: {
   item: CardItem; current: string | null; ranked: { name: string; skillMatch: boolean; load: number; cap: number }[]; tierMeta: TierMeta;
+  prev: CardItem | null; next: CardItem | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean;
   onAssign: (name: string) => void; onUnassign: () => void;
 }) {
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2"><PriorityBadge priority={item.priority} /><StatusBadge status={item.status} /><Due d={item.daysToDue} /></div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous order" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
+          <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next order" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
+        </div>
+        <PriorityBadge priority={item.priority} /><StatusBadge status={item.status} /><Due d={item.daysToDue} />
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+      </div>
 
       <PanelSection title="Order">
         <KV label="Service" value={`${item.service} · ${item.pkg}`} />
