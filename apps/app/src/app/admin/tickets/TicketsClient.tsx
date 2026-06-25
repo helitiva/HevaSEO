@@ -69,9 +69,12 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
   const [fCustomer, setFCustomer] = useState<'all' | string>('all');
   const [fProject, setFProject] = useState<'all' | string>('all');
   const [search, setSearch] = useState('');
+  const [fFlag, setFFlag] = useState<'none' | 'awaiting' | 'breaching'>('none');
+  const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+  const masterRef = useRef<HTMLInputElement>(null);
   const macroRef = useClickOutside(macroOpen, () => setMacroOpen(false));
 
   const stOf = (t: TicketRow) => statusOf[t.id] ?? t.status;
@@ -101,13 +104,72 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
     if (fAssignee !== 'all' && fAssignee !== 'unassigned' && asgOf(t) !== fAssignee) return false;
     if (fCustomer !== 'all' && t.customer !== fCustomer) return false;
     if (fProject !== 'all' && t.project !== fProject) return false;
+    if (fFlag === 'awaiting' && !awaitingUs(t)) return false;
+    if (fFlag === 'breaching' && !isBreaching(t)) return false;
     if (search.trim() && !`${t.code} ${t.subject} ${t.customer} ${t.project} ${asgOf(t) ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  }), [rows, statusOf, assignOf, fStatus, fChannel, fAssignee, fCustomer, fProject, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [rows, statusOf, assignOf, answered, fStatus, fChannel, fAssignee, fCustomer, fProject, fFlag, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const anyFilter = fStatus !== 'all' || fChannel !== 'all' || fAssignee !== 'all' || fCustomer !== 'all' || fProject !== 'all' || search.trim() !== '';
-  const clearFilters = () => { setFStatus('all'); setFChannel('all'); setFAssignee('all'); setFCustomer('all'); setFProject('all'); setSearch(''); };
+  const anyFilter = fStatus !== 'all' || fChannel !== 'all' || fAssignee !== 'all' || fCustomer !== 'all' || fProject !== 'all' || fFlag !== 'none' || search.trim() !== '';
+  const clearFilters = () => { setFStatus('all'); setFChannel('all'); setFAssignee('all'); setFCustomer('all'); setFProject('all'); setFFlag('none'); setSearch(''); };
   const onCustomer = (v: 'all' | string) => { setFCustomer(v); if (v !== 'all' && !rows.some((t) => t.customer === v && t.project === fProject)) setFProject('all'); };
+
+  // ---- saved views (one-click filter presets) ----
+  const VIEWS = [
+    { key: 'all', label: 'All', icon: 'ph-tray' },
+    { key: 'mine', label: 'My open', icon: 'ph-user' },
+    { key: 'unassigned', label: 'Unassigned', icon: 'ph-user-minus' },
+    { key: 'awaiting', label: 'Awaiting reply', icon: 'ph-chat-dots' },
+    { key: 'breaching', label: 'Breaching SLA', icon: 'ph-timer' },
+  ] as const;
+  const viewCounts = useMemo(() => ({
+    all: rows.length,
+    mine: rows.filter((t) => asgOf(t) === agent && isLive(t)).length,
+    unassigned: rows.filter((t) => !asgOf(t) && isLive(t)).length,
+    awaiting: rows.filter(awaitingUs).length,
+    breaching: rows.filter(isBreaching).length,
+  }), [rows, statusOf, assignOf, answered]); // eslint-disable-line react-hooks/exhaustive-deps
+  const baseFilters = fChannel === 'all' && fCustomer === 'all' && fProject === 'all' && search.trim() === '';
+  const activeView = useMemo(() => {
+    if (!baseFilters) return null;
+    if (fFlag === 'none' && fStatus === 'all' && fAssignee === 'all') return 'all';
+    if (fFlag === 'none' && fStatus === 'live' && fAssignee === agent) return 'mine';
+    if (fFlag === 'none' && fStatus === 'live' && fAssignee === 'unassigned') return 'unassigned';
+    if (fFlag === 'awaiting' && fStatus === 'all' && fAssignee === 'all') return 'awaiting';
+    if (fFlag === 'breaching' && fStatus === 'all' && fAssignee === 'all') return 'breaching';
+    return null;
+  }, [baseFilters, fFlag, fStatus, fAssignee, agent]);
+  const applyView = (key: string) => {
+    setFChannel('all'); setFCustomer('all'); setFProject('all'); setSearch('');
+    setFStatus('all'); setFAssignee('all'); setFFlag('none');
+    if (key === 'mine') { setFAssignee(agent); setFStatus('live'); }
+    else if (key === 'unassigned') { setFAssignee('unassigned'); setFStatus('live'); }
+    else if (key === 'awaiting') setFFlag('awaiting');
+    else if (key === 'breaching') setFFlag('breaching');
+  };
+
+  // ---- bulk selection ----
+  const allVisibleChecked = visible.length > 0 && visible.every((t) => checked.has(t.id));
+  const someChecked = visible.some((t) => checked.has(t.id));
+  const toggleCheck = (id: string) => setChecked((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const toggleAllVisible = () => setChecked((prev) => {
+    const n = new Set(prev);
+    if (visible.every((t) => n.has(t.id))) visible.forEach((t) => n.delete(t.id)); else visible.forEach((t) => n.add(t.id));
+    return n;
+  });
+  const bulkAssign = (who: string) => {
+    if (checked.size === 0) return;
+    setAssignOf((a) => { const n = { ...a }; checked.forEach((id) => { n[id] = who || null; }); return n; });
+    record(`${who ? 'Assigned' : 'Unassigned'} ${checked.size} ticket${checked.size > 1 ? 's' : ''}${who ? ` → ${who}` : ''}`, who ? 'ph-users-three' : 'ph-user-minus');
+    setChecked(new Set());
+  };
+  const bulkStatus = (s: TicketStatus, icon: string) => {
+    if (checked.size === 0) return;
+    setStatusOf((m) => { const n = { ...m }; checked.forEach((id) => { n[id] = s; }); return n; });
+    record(`${STATUS_META[s].label} ${checked.size} ticket${checked.size > 1 ? 's' : ''}`, icon);
+    setChecked(new Set());
+  };
+  useEffect(() => { if (masterRef.current) masterRef.current.indeterminate = someChecked && !allVisibleChecked; }, [someChecked, allVisibleChecked]);
 
   const selected = visible.find((t) => t.id === selectedId) ?? visible[0] ?? null;
 
@@ -123,7 +185,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
     const ro = new ResizeObserver(update); ro.observe(el);
     return () => { el.removeEventListener('scroll', update); ro.disconnect(); };
   }, []);
-  useEffect(() => { if (listRef.current) listRef.current.scrollTop = 0; setScrollTop(0); }, [fStatus, fChannel, fAssignee, fCustomer, fProject, search]);
+  useEffect(() => { if (listRef.current) listRef.current.scrollTop = 0; setScrollTop(0); }, [fStatus, fChannel, fAssignee, fCustomer, fProject, fFlag, search]);
   const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN);
   const end = Math.min(visible.length, Math.ceil((scrollTop + viewportH) / ROW_H) + OVERSCAN);
   const windowed = visible.slice(start, end);
@@ -184,6 +246,18 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
         {/* inbox queue */}
         <div className="min-w-0 rounded-2xl border border-border bg-card p-3 lg:flex lg:h-[44rem] lg:flex-col">
           <div className="mb-2 shrink-0 space-y-1.5">
+            <div className="scrollbar-thin flex gap-1 overflow-x-auto pb-0.5">
+              {VIEWS.map((v) => {
+                const n = viewCounts[v.key];
+                const on = activeView === v.key;
+                return (
+                  <button key={v.key} onClick={() => applyView(v.key)} className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition ${on ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-accent'}`}>
+                    <i className={`ph-bold ${v.icon}`} />{v.label}
+                    {n > 0 && <span className={`rounded px-1 text-[10px] ${on ? 'bg-primary-foreground/20' : v.key === 'breaching' ? 'bg-destructive/15 text-destructive' : 'bg-muted'}`}>{n}</span>}
+                  </button>
+                );
+              })}
+            </div>
             <div className="grid grid-cols-2 gap-1.5">
               <FilterSelect value={fStatus} active={fStatus !== 'all'} onChange={(v) => setFStatus(v as typeof fStatus)} icon="ph-funnel">
                 <option value="all">All status</option><option value="live">Live (open+pending)</option>
@@ -204,7 +278,21 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
               <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search subject, code, customer…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
               {anyFilter && <button onClick={clearFilters} title="Clear all filters" className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" /></button>}
             </div>
-            <p className="px-0.5 text-[11px] text-muted-foreground">Showing <span className="font-semibold text-foreground">{visible.length}</span> of {rows.length}{anyFilter ? ' · filtered' : ''}</p>
+            <div className="flex items-center gap-2 px-0.5">
+              <input ref={masterRef} type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} aria-label="Select all visible tickets" className="accent-primary" disabled={visible.length === 0} />
+              <p className="text-[11px] text-muted-foreground">Showing <span className="font-semibold text-foreground">{visible.length}</span> of {rows.length}{anyFilter ? ' · filtered' : ''}</p>
+            </div>
+            {checked.size > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
+                <span className="px-1 text-[11px] font-semibold text-primary">{checked.size} selected</span>
+                <button onClick={() => bulkAssign(agent)} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-0.5" />To me</button>
+                <SearchSelect value="__none" onChange={bulkAssign} includeAll={false} allLabel="Assign to…" icon="ph-user-switch" className="w-32"
+                  options={[{ value: '', label: 'Unassign' }, ...staff.map((s) => ({ value: s, label: s }))]} />
+                <button onClick={() => bulkStatus('resolved', 'ph-check-circle')} className="rounded-md border border-emerald-500/40 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-500/10"><i className="ph-bold ph-check-circle mr-0.5" />Resolve</button>
+                <button onClick={() => bulkStatus('closed', 'ph-x-circle')} className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent">Close</button>
+                <button onClick={() => setChecked(new Set())} className="ml-auto rounded-md px-1.5 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent" title="Clear selection"><i className="ph-bold ph-x" /></button>
+              </div>
+            )}
           </div>
 
           <div ref={listRef} className="scrollbar-thin max-h-[42rem] overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
@@ -219,8 +307,9 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                   {windowed.map((t) => {
                     const ch = TICKET_CHANNEL[t.channel]; const ty = TICKET_TYPE[t.type]; const breach = isBreaching(t);
                     return (
-                      <div key={t.id} style={{ height: ROW_H }} className="overflow-hidden pb-1">
-                        <button onClick={() => { setSelectedId(t.id); setMacroOpen(false); }} className={`h-full w-full rounded-lg border p-2 text-left transition ${selected?.id === t.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
+                      <div key={t.id} style={{ height: ROW_H }} className="flex items-stretch gap-1.5 overflow-hidden pb-1">
+                        <span className="flex items-center pl-0.5"><input type="checkbox" checked={checked.has(t.id)} onChange={() => toggleCheck(t.id)} aria-label={`Select ${t.code}`} className="accent-primary" /></span>
+                        <button onClick={() => { setSelectedId(t.id); setMacroOpen(false); }} className={`h-full min-w-0 flex-1 rounded-lg border p-2 text-left transition ${selected?.id === t.id ? 'border-primary bg-primary/5' : checked.has(t.id) ? 'border-primary/40 bg-primary/[0.03]' : 'border-border hover:border-primary/40'}`}>
                           <div className="flex items-center gap-1.5">
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.priority === 'high' ? 'bg-destructive' : t.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
                             <span className="text-sm font-semibold">#{t.code}</span>
@@ -498,7 +587,7 @@ function SearchSelect({ value, options, onChange, allLabel, icon, className, inc
   const [activeIndex, setActiveIndex] = useState(0);
   const ref = useClickOutside(open, () => { setOpen(false); setQ(''); });
   const activeRef = useRef<HTMLButtonElement>(null);
-  const active = value !== 'all' && value !== '';
+  const active = value !== 'all' && value !== '' && options.some((o) => o.value === value);
   const current = options.find((o) => o.value === value)?.label ?? allLabel;
 
   const filtered = useMemo(() => {
