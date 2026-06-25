@@ -111,7 +111,7 @@ export function OrderDetailClient(p: Props) {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           {/* compact header card */}
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Link href="/admin/orders" className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
             <span className="display text-xl font-bold tracking-tight">{o.code}</span>
@@ -120,7 +120,7 @@ export function OrderDetailClient(p: Props) {
             <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} /> {banner.text}</span>
         </div>
 
-          <div className="mt-3"><ProgressTracker status={status} /></div>
+          <div className="scrollbar-thin mt-3 min-w-0 overflow-x-auto"><ProgressTracker status={status} /></div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p className="text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
             <div className="flex flex-wrap items-center gap-2">
