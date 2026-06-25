@@ -1,8 +1,9 @@
 'use client';
 
-import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
+import { SlideOver } from '@/components/admin/SlideOver';
 import { statusLabel, money, TIER, STAFF, customerByCompany, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
 
 export interface ExplorerOrder extends AdminOrder {
@@ -61,7 +62,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [sort, setSort] = useState('created_desc');
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [panel, setPanel] = useState<ExplorerOrder | null>(null);
 
   const [colOrder, setColOrder] = useState<ColId[]>(DEFAULT_ORDER);
   const [hidden, setHidden] = useState<Set<ColId>>(new Set());
@@ -154,7 +155,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">{filtered.length} of {rows.length} orders · click a row to expand</p>
+      <p className="text-xs text-muted-foreground">{filtered.length} of {rows.length} orders · click a row for details</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-[13px]">
@@ -165,26 +166,22 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((o) => {
-              const open = expanded === o.id;
-              return (
-                <Fragment key={o.id}>
-                  <tr onClick={() => setExpanded(open ? null : o.id)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${open ? 'bg-muted/30' : ''}`}>
-                    {columns.map((c) => <td key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
-                    <td className="p-2.5 text-muted-foreground"><i className={`ph-bold ${open ? 'ph-caret-up' : 'ph-caret-down'}`} /></td>
-                  </tr>
-                  {open && (
-                    <tr className="border-b border-border bg-background/40">
-                      <td colSpan={columns.length + 1} className="p-0"><ExpandedRow o={o} rows={rows} /></td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
+            {filtered.map((o) => (
+              <tr key={o.id} onClick={() => setPanel(o)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${panel?.id === o.id ? 'bg-muted/30' : ''}`}>
+                {columns.map((c) => <td key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
+                <td className="p-2.5 text-muted-foreground"><i className="ph-bold ph-caret-right" /></td>
+              </tr>
+            ))}
             {filtered.length === 0 && <tr><td colSpan={columns.length + 1} className="p-6 text-center text-muted-foreground">No orders match these filters.</td></tr>}
           </tbody>
         </table>
       </div>
+
+      {panel && (
+        <SlideOver open onClose={() => setPanel(null)} title={panel.code}>
+          <ExpandedRow o={panel} rows={rows} />
+        </SlideOver>
+      )}
     </div>
   );
 }
@@ -204,7 +201,26 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
   const overdue = o.deadline && o.deadline < new Date().toISOString().slice(0, 10) && o.status !== 'completed' && o.status !== 'canceled';
 
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-3">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <PriorityBadge priority={o.priority} /><StatusBadge status={o.status} />
+        <span className="text-sm text-muted-foreground">{o.service} · {o.pkg}</span>
+        <Link href={`/admin/orders/${o.id}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open full order →</Link>
+      </div>
+
+      {/* Order */}
+      <Section icon="ph-package" title="Order details">
+        <div className="space-y-2 text-sm">
+          <Row label="Project" value={`${o.customer} — SEO program`} />
+          <Row label="Site" value={site} />
+          <Row label="Target URL" value={<a href={`https://${site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{site}</a>} />
+          <Row label="Service" value={`${o.service} · ${o.pkg}`} />
+          <Row label="Value" value={<span className="font-semibold">{money(o.value)}</span>} />
+          <Row label="Source" value={o.source} />
+          <Row label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{o.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
+        </div>
+      </Section>
+
       {/* Customer */}
       <Section icon="ph-user" title="Customer">
         <div className="mb-2 flex items-center gap-2">
@@ -258,19 +274,7 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
         )}
       </Section>
 
-      {/* Order */}
-      <Section icon="ph-package" title="Order details">
-        <div className="space-y-2 text-sm">
-          <Row label="Project" value={`${o.customer} — SEO program`} />
-          <Row label="Site" value={site} />
-          <Row label="Target URL" value={<a href={`https://${site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{site}</a>} />
-          <Row label="Service" value={`${o.service} · ${o.pkg}`} />
-          <Row label="Value" value={<span className="font-semibold">{money(o.value)}</span>} />
-          <Row label="Source" value={o.source} />
-          <Row label="Deadline" value={<span className={overdue ? 'font-semibold text-amber-500' : ''}>{o.deadline ?? '—'}{overdue ? ' · overdue' : ''}</span>} />
-        </div>
-        <Link href={`/admin/orders/${o.id}`} className="mt-3 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Open full detail <i className="ph-bold ph-arrow-right" /></Link>
-      </Section>
+      <Link href={`/admin/orders/${o.id}`} className="flex items-center justify-center gap-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full detail <i className="ph-bold ph-arrow-right" /></Link>
     </div>
   );
 }
