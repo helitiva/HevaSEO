@@ -155,18 +155,12 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
                 <option value="all">All channels</option>
                 {Object.entries(TICKET_CHANNEL).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </FilterSelect>
-              <FilterSelect value={fAssignee} active={fAssignee !== 'all'} onChange={(v) => setFAssignee(v)} icon="ph-user-circle">
-                <option value="all">All agents</option><option value="unassigned">Unassigned</option>
-                {assignees.map((a) => <option key={a} value={a}>{a}</option>)}
-              </FilterSelect>
-              <FilterSelect value={fCustomer} active={fCustomer !== 'all'} onChange={onCustomer} icon="ph-buildings">
-                <option value="all">All customers</option>
-                {customers.map((c) => <option key={c} value={c}>{c}</option>)}
-              </FilterSelect>
-              <FilterSelect value={fProject} active={fProject !== 'all'} onChange={(v) => setFProject(v)} icon="ph-folders" className="col-span-2">
-                <option value="all">All projects</option>
-                {projects.map((p) => <option key={p} value={p}>{p}</option>)}
-              </FilterSelect>
+              <SearchSelect value={fAssignee} onChange={setFAssignee} allLabel="All agents" icon="ph-user-circle"
+                options={[{ value: 'unassigned', label: 'Unassigned' }, ...assignees.map((a) => ({ value: a, label: a }))]} />
+              <SearchSelect value={fCustomer} onChange={onCustomer} allLabel="All customers" icon="ph-buildings"
+                options={customers.map((c) => ({ value: c, label: c }))} />
+              <SearchSelect value={fProject} onChange={setFProject} allLabel="All projects" icon="ph-folders" className="col-span-2"
+                options={projects.map((p) => ({ value: p, label: p }))} />
             </div>
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search subject, code, customer…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
@@ -439,6 +433,58 @@ function KV({ label, value }: { label: string; value: string }) {
   return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span><span className="text-sm font-medium">{value}</span></div>;
 }
 
+function SearchSelect({ value, options, onChange, allLabel, icon, className }: {
+  value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; allLabel: string; icon: string; className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const active = value !== 'all';
+  const current = options.find((o) => o.value === value)?.label ?? allLabel;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQ(''); } };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
+  }, [q, options]);
+  const shown = filtered.slice(0, 50);
+  const pick = (v: string) => { onChange(v); setOpen(false); setQ(''); };
+
+  return (
+    <div ref={ref} className={`relative min-w-0 ${className ?? ''}`}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className={`flex w-full items-center gap-1.5 rounded-lg border bg-background py-1.5 pl-2 pr-2 text-xs outline-none transition focus:border-primary ${active ? 'border-primary font-semibold text-primary' : 'border-border'}`}>
+        <i className={`ph-bold ${icon} shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+        <span className="truncate">{current}</span>
+        <i className={`ph-bold ph-caret-down ml-auto shrink-0 text-[10px] text-muted-foreground transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-40 mt-1 w-full min-w-[15rem] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+          <div className="relative border-b border-border p-1.5">
+            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type to search…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+          </div>
+          <div className="scrollbar-thin max-h-60 overflow-y-auto p-1">
+            <button type="button" onClick={() => pick('all')} className={`flex w-full items-center rounded-lg px-2 py-1.5 text-left text-xs hover:bg-accent ${value === 'all' ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{allLabel}</button>
+            {shown.map((o) => (
+              <button key={o.value} type="button" onClick={() => pick(o.value)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-accent ${value === o.value ? 'font-semibold text-primary' : ''}`}>
+                <span className="truncate">{o.label}</span>
+                {value === o.value && <i className="ph-bold ph-check ml-auto shrink-0 text-primary" />}
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">No matches</p>}
+            {filtered.length > shown.length && <p className="px-2 py-1.5 text-center text-[11px] text-muted-foreground">+{filtered.length - shown.length} more — keep typing to narrow</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function FilterSelect({ value, active, onChange, icon, className, children }: { value: string; active: boolean; onChange: (v: string) => void; icon: string; className?: string; children: ReactNode }) {
   return (
     <div className={`relative min-w-0 ${className ?? ''}`}>
