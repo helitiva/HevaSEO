@@ -1,35 +1,41 @@
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/admin/PageHeader';
-import { KpiTile } from '@/components/admin/KpiTile';
-import { StatusBadge } from '@/components/admin/StatBadge';
-import { CUSTOMERS, ORDERS, money } from '@/data/adminMock';
+import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER } from '@/data/adminMock';
+import { CustomerProfileClient } from './CustomerProfileClient';
 
 export default async function CustomerDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const c = CUSTOMERS.find((x) => x.id === id);
   if (!c) notFound();
-  const orders = ORDERS.filter((o) => o.customer === c.company);
+
+  const orders = ORDERS.filter((o) => o.customer === c.company)
+    .map((o) => ({ id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status, value: o.value, created: o.created }));
+  const extra = CUSTOMER_EXTRA[id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
+  const today = new Date('2026-06-24T00:00:00');
+  const churnDays = Math.round((today.getTime() - new Date(c.lastActive).getTime()) / 86400000);
+  const aov = c.orders ? Math.round(c.spend / c.orders) : 0;
+  const active = orders.filter((o) => !['completed', 'canceled'].includes(o.status)).length;
+  const site = c.email.split('@')[1] ?? `${c.company.toLowerCase().replace(/\s+/g, '')}.com`;
+
+  const folderCounts = orders.reduce<Record<string, number>>((a, o) => { a[o.service] = (a[o.service] ?? 0) + 1; return a; }, {});
+  const projects = CUSTOMER_PROJECTS[id] ?? [{ name: 'Main site', site, folders: Object.entries(folderCounts).map(([name, n]) => ({ name, orders: n })) }];
+
+  const mix = Object.values(orders.reduce<Record<string, { service: string; count: number; value: number }>>((a, o) => {
+    a[o.service] = a[o.service] ?? { service: o.service, count: 0, value: 0 };
+    a[o.service].count += 1; a[o.service].value += o.value; return a;
+  }, {})).sort((a, b) => b.value - a.value);
+
+  const ledger = CUSTOMER_LEDGER[id] ?? [
+    { at: extra.memberSince, delta: c.spend + c.balance, reason: 'Top-up · Stripe' },
+    ...orders.map((o) => ({ at: o.created, delta: -o.value, reason: `${o.code} confirmed` })),
+  ];
+  const tickets = TICKETS.filter((tk) => tk.customer === c.company).map((tk) => ({ id: tk.id, subject: tk.subject, status: tk.status, priority: tk.priority, age: tk.age }));
+  const activity = orders.slice(0, 6).map((o) => ({ id: o.id, at: o.created, text: `Order ${o.code} · ${o.service} placed` }));
+
   return (
-    <section className="max-w-4xl">
-      <PageHeader title={c.name} subtitle={`${c.company} · ${c.email}`}
-        actions={<button className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold">Adjust credit</button>} />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <KpiTile icon="ph-coins" label="Total spend (LTV)" value={money(c.spend)} tone="good" />
-        <KpiTile icon="ph-wallet" label="Credit balance" value={money(c.balance)} />
-        <KpiTile icon="ph-package" label="Orders" value={String(c.orders)} />
-      </div>
-      <div className="mt-6 rounded-2xl border border-border bg-card p-4">
-        <p className="mb-3 text-sm font-semibold">Ordered services</p>
-        <ul className="space-y-2">
-          {orders.map((o) => (
-            <li key={o.id} className="flex items-center justify-between text-sm">
-              <a href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.code} · {o.service}</a>
-              <span className="flex items-center gap-2"><StatusBadge status={o.status} /><span>{money(o.value)}</span></span>
-            </li>
-          ))}
-          {orders.length === 0 && <li className="text-sm text-muted-foreground">No orders.</li>}
-        </ul>
-      </div>
-    </section>
+    <CustomerProfileClient
+      cust={{ id: c.id, name: c.name, company: c.company, email: c.email, status: c.status, tier: c.tier, spend: c.spend, orders: c.orders, balance: c.balance, lastActive: c.lastActive }}
+      contact={extra} churnDays={churnDays} aov={aov} active={active}
+      orders={orders} projects={projects} mix={mix} ledger={ledger} tickets={tickets} activity={activity}
+    />
   );
 }

@@ -98,6 +98,32 @@ export const ORDER_EXTRA: Record<string, OrderExtra> = {
   },
 };
 
+// ---- Customer profile extras ----------------------------------------
+export interface CustomerExtra { phone: string; timezone: string; memberSince: string; tags: string[]; }
+export const CUSTOMER_EXTRA: Record<string, CustomerExtra> = {
+  c1: { phone: '+1 415 555 0132', timezone: 'America/Los_Angeles · PT', memberSince: '2025-02-14', tags: ['Retainer', 'E-commerce'] },
+  c3: { phone: '+34 91 555 0199', timezone: 'Europe/Madrid · CET', memberSince: '2024-09-03', tags: ['Agency', 'Priority'] },
+};
+
+export interface CustProject { name: string; site: string; folders: { name: string; orders: number }[]; }
+export const CUSTOMER_PROJECTS: Record<string, CustProject[]> = {
+  c1: [
+    { name: 'Main site', site: 'acme.com', folders: [{ name: 'Money pages', orders: 4 }, { name: 'Blog', orders: 3 }, { name: 'Product pages', orders: 2 }] },
+    { name: 'EU storefront', site: 'acme.eu', folders: [{ name: 'Localization', orders: 1 }] },
+  ],
+};
+
+export interface LedgerEntry { at: string; delta: number; reason: string; }
+export const CUSTOMER_LEDGER: Record<string, LedgerEntry[]> = {
+  c1: [
+    { at: '2026-06-24', delta: -39, reason: 'AUD-1001 confirmed' },
+    { at: '2026-06-20', delta: -120, reason: 'CNT-1004 confirmed' },
+    { at: '2026-06-10', delta: 500, reason: 'Top-up · Stripe' },
+    { at: '2026-05-28', delta: -39, reason: 'KW-1013 confirmed' },
+    { at: '2026-05-15', delta: 1000, reason: 'Top-up · Stripe' },
+  ],
+};
+
 export const SERVICE_INCLUDED: Record<string, string[]> = {
   Audit: ['Full site crawl', 'Technical + on-page audit', 'Competitor snapshot', 'Fix roadmap'],
   Keyword: ['Keyword clusters', 'Volume & difficulty', 'Intent mapping', 'Competitor gap'],
