@@ -1,5 +1,5 @@
 import {
-  TICKETS, ORDERS, CUSTOMERS, CUSTOMER_EXTRA, CUSTOMER_LEDGER, TIER, SLA_LIMIT_H,
+  TICKETS, ORDERS, CUSTOMERS, CUSTOMER_EXTRA, CUSTOMER_LEDGER, STAFF, TIER, SLA_LIMIT_H,
   type AdminCustomer,
 } from '@/data/adminMock';
 import { TicketsClient } from './TicketsClient';
@@ -80,15 +80,7 @@ export default function TicketsPage() {
     new Date(b.lastReplyAt).getTime() - new Date(a.lastReplyAt).getTime(),
   );
 
-  const live = rows.filter((r) => r.status === 'open' || r.status === 'pending');
-  const stats = {
-    open: rows.filter((r) => r.status === 'open').length,
-    pending: rows.filter((r) => r.waitingOnUs).length,
-    resolvedToday: rows.filter((r) => r.status === 'resolved').length,
-    avgFirstResponseH: 1.8,
-    breaches: rows.filter((r) => r.breached).length,
-    unassigned: live.filter((r) => !r.assignee).length,
-  };
+  const staff = STAFF.filter((s) => s.active).map((s) => s.name);
 
-  return <TicketsClient rows={rows} stats={stats} tierMeta={TIER} agent="Mai T." />;
+  return <TicketsClient rows={rows} avgFirstResponseH={1.8} staff={staff} tierMeta={TIER} agent="Mai T." />;
 }

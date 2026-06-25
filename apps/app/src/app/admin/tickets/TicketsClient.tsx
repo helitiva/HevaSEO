@@ -29,9 +29,8 @@ interface TicketRow {
   thread: TicketMessage[]; cust: CustSummary | null; custFull: CustFull | null; order: OrderSummary | null;
   waitingOnUs: boolean; breached: boolean; slaLeftLabel: string;
 }
-interface Stats { open: number; pending: number; resolvedToday: number; avgFirstResponseH: number; breaches: number; unassigned: number }
 type TierMeta = Record<Tier, { label: string; icon: string; color: string }>;
-interface Props { rows: TicketRow[]; stats: Stats; tierMeta: TierMeta; agent: string }
+interface Props { rows: TicketRow[]; avgFirstResponseH: number; staff: string[]; tierMeta: TierMeta; agent: string }
 
 const STATUS_META: Record<TicketStatus, { label: string; cls: string }> = {
   open: { label: 'Open', cls: 'pill-warn' },
@@ -40,14 +39,28 @@ const STATUS_META: Record<TicketStatus, { label: string; cls: string }> = {
   closed: { label: 'Closed', cls: 'pill' },
 };
 const initials = (name: string) => name.split(' ').map((x) => x[0]).join('').slice(0, 2);
+const ROW_H = 84;     // fixed queue-row height for virtualization (subject is single-line/truncated)
+const OVERSCAN = 6;
 
-export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
+// Close a popover when the user clicks outside the returned ref.
+function useClickOutside(active: boolean, onOut: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!active) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onOut(); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [active, onOut]);
+  return ref;
+}
+
+export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent }: Props) {
   const [statusOf, setStatusOf] = useState<Record<string, TicketStatus>>({});
   const [assignOf, setAssignOf] = useState<Record<string, string | null>>({});
   const [extra, setExtra] = useState<Record<string, TicketMessage[]>>({});
   const [answered, setAnswered] = useState<Record<string, boolean>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.id ?? null);
-  const [reply, setReply] = useState('');
   const [macroOpen, setMacroOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [fStatus, setFStatus] = useState<'all' | 'live' | TicketStatus>('all');
@@ -56,9 +69,10 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
   const [fCustomer, setFCustomer] = useState<'all' | string>('all');
   const [fProject, setFProject] = useState<'all' | string>('all');
   const [search, setSearch] = useState('');
-  const threadRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const macroRef = useClickOutside(macroOpen, () => setMacroOpen(false));
 
   const stOf = (t: TicketRow) => statusOf[t.id] ?? t.status;
   const asgOf = (t: TicketRow) => (t.id in assignOf ? assignOf[t.id] : t.assignee);
@@ -73,10 +87,9 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
     setHistory((h) => [{ id: `${Date.now()}.${h.length}`, at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), text, icon }, ...h].slice(0, 40));
   };
 
-  // Filter option lists (assignees are the staff roster; customers/projects derive from the data).
-  const assignees = useMemo(() => [...new Set([agent, 'Linh P.', 'Huy N.', 'Aria K.', 'Diego R.', 'Tom B.', ...rows.map((t) => t.assignee).filter((x): x is string => !!x)])], [rows, agent]);
+  // Filter option lists (agents = staff roster ∪ anyone already assigned in the data).
+  const assignees = useMemo(() => [...new Set([...staff, ...rows.map((t) => t.assignee).filter((x): x is string => !!x)])], [staff, rows]);
   const customers = useMemo(() => [...new Set(rows.map((t) => t.customer))].sort(), [rows]);
-  // Projects narrow to the selected customer when one is picked.
   const projects = useMemo(() => [...new Set(rows.filter((t) => fCustomer === 'all' || t.customer === fCustomer).map((t) => t.project))].sort(), [rows, fCustomer]);
 
   const visible = useMemo(() => rows.filter((t) => {
@@ -94,10 +107,26 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
 
   const anyFilter = fStatus !== 'all' || fChannel !== 'all' || fAssignee !== 'all' || fCustomer !== 'all' || fProject !== 'all' || search.trim() !== '';
   const clearFilters = () => { setFStatus('all'); setFChannel('all'); setFAssignee('all'); setFCustomer('all'); setFProject('all'); setSearch(''); };
-  // When the customer changes, drop a project filter that no longer belongs to them.
   const onCustomer = (v: 'all' | string) => { setFCustomer(v); if (v !== 'all' && !rows.some((t) => t.customer === v && t.project === fProject)) setFProject('all'); };
 
   const selected = visible.find((t) => t.id === selectedId) ?? visible[0] ?? null;
+
+  // ---- queue virtualization (fixed row height) ----
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportH, setViewportH] = useState(640);
+  useEffect(() => {
+    const el = listRef.current; if (!el) return;
+    const update = () => { setScrollTop(el.scrollTop); setViewportH(el.clientHeight); };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update); ro.observe(el);
+    return () => { el.removeEventListener('scroll', update); ro.disconnect(); };
+  }, []);
+  useEffect(() => { if (listRef.current) listRef.current.scrollTop = 0; setScrollTop(0); }, [fStatus, fChannel, fAssignee, fCustomer, fProject, search]);
+  const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN);
+  const end = Math.min(visible.length, Math.ceil((scrollTop + viewportH) / ROW_H) + OVERSCAN);
+  const windowed = visible.slice(start, end);
 
   // Auto-scroll the thread to the newest message when the ticket or its message count changes.
   const msgCount = selected ? selected.thread.length + (extra[selected.id]?.length ?? 0) : 0;
@@ -107,19 +136,28 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
     open: rows.filter((t) => stOf(t) === 'open').length,
     awaiting: rows.filter(awaitingUs).length,
     breaches: rows.filter(isBreaching).length,
-    resolved: rows.filter((t) => stOf(t) === 'resolved').length + stats.resolvedToday - rows.filter((t) => t.status === 'resolved' && stOf(t) !== 'resolved').length,
+    resolved: rows.filter((t) => stOf(t) === 'resolved').length,
   }), [rows, statusOf, answered]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const assignToMe = (t: TicketRow) => { setAssignOf((a) => ({ ...a, [t.id]: agent })); record(`Assigned ${t.code} → ${agent}`, 'ph-user-plus'); };
-  const reassign = (t: TicketRow, who: string) => { setAssignOf((a) => ({ ...a, [t.id]: who || null })); if (who) record(`Reassigned ${t.code} → ${who}`, 'ph-arrows-left-right'); };
+  const draftOf = (t: TicketRow) => drafts[t.id] ?? '';
+  const setDraft = (id: string, v: string) => setDrafts((d) => ({ ...d, [id]: v }));
+
+  const assignToMe = (t: TicketRow) => { if (asgOf(t) === agent) return; setAssignOf((a) => ({ ...a, [t.id]: agent })); record(`Assigned ${t.code} → ${agent}`, 'ph-user-plus'); };
+  const reassign = (t: TicketRow, who: string) => {
+    if ((asgOf(t) ?? '') === who) return;
+    setAssignOf((a) => ({ ...a, [t.id]: who || null }));
+    record(who ? `Reassigned ${t.code} → ${who}` : `Unassigned ${t.code}`, who ? 'ph-arrows-left-right' : 'ph-user-minus');
+  };
   const setStatus = (t: TicketRow, s: TicketStatus, icon: string) => { setStatusOf((m) => ({ ...m, [t.id]: s })); record(`${STATUS_META[s].label} — ${t.code}`, icon); };
   const sendReply = (t: TicketRow) => {
-    if (!reply.trim()) return;
-    const msg: TicketMessage = { from: 'staff', author: asgOf(t) ?? agent, text: reply.trim(), at: 'Just now' };
+    const text = draftOf(t).trim();
+    if (!text) return;
+    const msg: TicketMessage = { from: 'staff', author: asgOf(t) ?? agent, text, at: 'Just now' };
     setExtra((e) => ({ ...e, [t.id]: [...(e[t.id] ?? []), msg] }));
     setAnswered((a) => ({ ...a, [t.id]: true }));
     if (stOf(t) === 'open') setStatusOf((m) => ({ ...m, [t.id]: 'pending' }));
-    setReply(''); setMacroOpen(false);
+    setDrafts((d) => { const n = { ...d }; delete n[t.id]; return n; });
+    setMacroOpen(false);
     record(`Replied to ${t.code}`, 'ph-paper-plane-tilt');
   };
 
@@ -133,12 +171,12 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
         {kpis.breaches > 0 && <span className="pill pill-warn"><i className="ph-bold ph-warning" /> {kpis.breaches} breaching SLA</span>}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi icon="ph-tray" label="Open" value={String(kpis.open)} tone={kpis.open ? 'warn' : 'good'} />
         <Kpi icon="ph-chat-dots" label="Awaiting reply" value={String(kpis.awaiting)} tone={kpis.awaiting ? 'warn' : 'good'} />
         <Kpi icon="ph-timer" label="Breaching SLA" value={String(kpis.breaches)} tone={kpis.breaches ? 'warn' : 'good'} />
         <Kpi icon="ph-check-circle" label="Resolved today" value={String(kpis.resolved)} tone="good" />
-        <Kpi icon="ph-clock" label="Avg first response" value={`${stats.avgFirstResponseH}h`} />
+        <Kpi icon="ph-clock" label="Avg first response" value={`${avgFirstResponseH}h`} />
       </div>
 
       {/* master ↔ detail */}
@@ -168,28 +206,41 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
             </div>
             <p className="px-0.5 text-[11px] text-muted-foreground">Showing <span className="font-semibold text-foreground">{visible.length}</span> of {rows.length}{anyFilter ? ' · filtered' : ''}</p>
           </div>
-          <div className="scrollbar-thin max-h-[42rem] space-y-1 overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
-            {visible.map((t) => {
-              const ch = TICKET_CHANNEL[t.channel]; const ty = TICKET_TYPE[t.type]; const breach = isBreaching(t);
-              return (
-                <button key={t.id} onClick={() => { setSelectedId(t.id); setReply(''); setMacroOpen(false); }} className={`w-full rounded-lg border p-2 text-left transition ${selected?.id === t.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.priority === 'high' ? 'bg-destructive' : t.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
-                    <span className="text-sm font-semibold">#{t.code}</span>
-                    <i className={`ph-fill ${ch.icon} text-xs`} style={{ color: ch.color }} title={ch.label} />
-                    {awaitingUs(t) && <span className="h-1.5 w-1.5 rounded-full bg-primary" title="Awaiting your reply" />}
-                    <span className={`ml-auto text-[11px] ${breach ? 'font-semibold text-destructive' : awaitingUs(t) ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}>{awaitingUs(t) ? t.slaLeftLabel : STATUS_META[stOf(t)].label}</span>
-                  </div>
-                  <p className="mt-1 truncate text-[13px] font-medium">{t.subject}</p>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <span className="inline-flex items-center gap-0.5" style={{ color: ty.color }}><i className={`ph-bold ${ty.icon}`} />{ty.label}</span>
-                    <span className="truncate">· {t.customer}</span>
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <><i className="ph-bold ph-user-circle text-primary" />{asgOf(t)}</> : <span className="text-amber-600">Unassigned</span>}</span>
-                  </div>
-                </button>
-              );
-            })}
-            {visible.length === 0 && <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground"><i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" />No tickets match these filters.</p>}
+
+          <div ref={listRef} className="scrollbar-thin max-h-[42rem] overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
+            {visible.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
+                <i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" />
+                {rows.length === 0 ? 'No tickets yet.' : 'No tickets match these filters.'}
+              </p>
+            ) : (
+              <div style={{ height: visible.length * ROW_H, position: 'relative' }}>
+                <div style={{ position: 'absolute', insetInline: 0, transform: `translateY(${start * ROW_H}px)` }}>
+                  {windowed.map((t) => {
+                    const ch = TICKET_CHANNEL[t.channel]; const ty = TICKET_TYPE[t.type]; const breach = isBreaching(t);
+                    return (
+                      <div key={t.id} style={{ height: ROW_H }} className="overflow-hidden pb-1">
+                        <button onClick={() => { setSelectedId(t.id); setMacroOpen(false); }} className={`h-full w-full rounded-lg border p-2 text-left transition ${selected?.id === t.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.priority === 'high' ? 'bg-destructive' : t.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
+                            <span className="text-sm font-semibold">#{t.code}</span>
+                            <i className={`ph-fill ${ch.icon} text-xs`} style={{ color: ch.color }} title={ch.label} />
+                            {awaitingUs(t) && <span className="h-1.5 w-1.5 rounded-full bg-primary" title="Awaiting your reply" />}
+                            <span className={`ml-auto text-[11px] ${breach ? 'font-semibold text-destructive' : awaitingUs(t) ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}>{awaitingUs(t) ? t.slaLeftLabel : STATUS_META[stOf(t)].label}</span>
+                          </div>
+                          <p className="mt-1 truncate text-[13px] font-medium">{t.subject}</p>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-0.5" style={{ color: ty.color }}><i className={`ph-bold ${ty.icon}`} />{ty.label}</span>
+                            <span className="truncate">· {t.customer}</span>
+                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <><i className="ph-bold ph-user-circle text-primary" />{asgOf(t)}</> : <span className="text-amber-600">Unassigned</span>}</span>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -198,7 +249,7 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
           {!selected ? (
             <div className="grid h-full min-h-[20rem] place-items-center text-center text-sm text-muted-foreground"><div><i className="ph-bold ph-coffee mb-2 block text-3xl text-emerald-500" />Inbox zero. Nice work.</div></div>
           ) : (
-            <div className="grid gap-5 lg:h-full lg:grid-cols-[1fr_17rem] lg:overflow-hidden">
+            <div className="grid gap-5 lg:h-full lg:grid-cols-[1fr_17rem]">
               {/* left: header + thread + reply */}
               <div className="flex min-w-0 flex-col gap-4 lg:min-h-0">
                 <div className="shrink-0">
@@ -224,10 +275,8 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
                   ) : (
                     <button onClick={() => assignToMe(selected)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" />Assign to me</button>
                   )}
-                  <select value={asgOf(selected) ?? ''} onChange={(e) => reassign(selected, e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
-                    <option value="">Unassigned</option>
-                    {[agent, 'Linh P.', 'Huy N.', 'Aria K.', 'Diego R.', 'Tom B.'].filter((v, i, a) => a.indexOf(v) === i).map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  <SearchSelect value={asgOf(selected) ?? ''} onChange={(v) => reassign(selected, v)} includeAll={false} allLabel="Unassigned" icon="ph-user-switch" className="w-44"
+                    options={[{ value: '', label: 'Unassigned' }, ...staff.map((s) => ({ value: s, label: s }))]} />
                   <div className="ml-auto flex items-center gap-2">
                     <button onClick={() => setStatus(selected, 'resolved', 'ph-check-circle')} disabled={stOf(selected) === 'resolved' || stOf(selected) === 'closed'} className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/10 disabled:opacity-40"><i className="ph-bold ph-check-circle mr-1" />Resolve</button>
                     <button onClick={() => setStatus(selected, 'closed', 'ph-x-circle')} disabled={stOf(selected) === 'closed'} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent disabled:opacity-40">Close</button>
@@ -247,12 +296,12 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
                 {/* reply / closed notice */}
                 {isLive(selected) ? (
                   <div className="shrink-0 border-t border-border pt-3">
-                    <div className="relative mb-2">
-                      <button onClick={() => setMacroOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-lightning" />Canned reply<i className="ph-bold ph-caret-down" /></button>
+                    <div ref={macroRef} className="relative mb-2">
+                      <button onClick={() => setMacroOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-lightning" />Canned reply<i className={`ph-bold ph-caret-down transition ${macroOpen ? 'rotate-180' : ''}`} /></button>
                       {macroOpen && (
                         <div className="absolute z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
                           {TICKET_MACROS.map((mc) => (
-                            <button key={mc.label} onClick={() => { setReply(mc.text); setMacroOpen(false); }} className="block w-full border-b border-border px-3 py-2 text-left last:border-0 hover:bg-accent">
+                            <button key={mc.label} onClick={() => { setDraft(selected.id, mc.text); setMacroOpen(false); }} className="block w-full border-b border-border px-3 py-2 text-left last:border-0 hover:bg-accent">
                               <span className="block text-xs font-semibold">{mc.label}</span><span className="block truncate text-[11px] text-muted-foreground">{mc.text}</span>
                             </button>
                           ))}
@@ -260,8 +309,15 @@ export function TicketsClient({ rows, stats, tierMeta, agent }: Props) {
                       )}
                     </div>
                     <div className="flex items-end gap-2">
-                      <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder={`Reply to ${selected.cust?.name ?? selected.customer}…`} className="scrollbar-thin max-h-32 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                      <button onClick={() => sendReply(selected)} disabled={!reply.trim()} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" /></button>
+                      <textarea
+                        value={draftOf(selected)}
+                        onChange={(e) => setDraft(selected.id, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendReply(selected); } }}
+                        rows={2}
+                        placeholder={`Reply to ${selected.cust?.name ?? selected.customer}…  (⌘/Ctrl+Enter to send)`}
+                        className="scrollbar-thin max-h-32 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                      <button onClick={() => sendReply(selected)} disabled={!draftOf(selected).trim()} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" /></button>
                     </div>
                   </div>
                 ) : (
@@ -424,10 +480,7 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
         </ul>
       </div>
 
-      <div className="flex items-stretch gap-2">
-        <Link href={`/admin/customers/${c.id}`} className="flex-1 rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Open full profile page →</Link>
-        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-xl border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
-      </div>
+      <Link href={`/admin/customers/${c.id}`} className="block rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Open full profile page →</Link>
     </div>
   );
 }
@@ -436,32 +489,34 @@ function KV({ label, value }: { label: string; value: string }) {
   return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span><span className="text-sm font-medium">{value}</span></div>;
 }
 
-function SearchSelect({ value, options, onChange, allLabel, icon, className }: {
-  value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; allLabel: string; icon: string; className?: string;
+function SearchSelect({ value, options, onChange, allLabel, icon, className, includeAll = true }: {
+  value: string; options: { value: string; label: string }[]; onChange: (v: string) => void;
+  allLabel: string; icon: string; className?: string; includeAll?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
-  const active = value !== 'all';
+  const [activeIndex, setActiveIndex] = useState(0);
+  const ref = useClickOutside(open, () => { setOpen(false); setQ(''); });
+  const activeRef = useRef<HTMLButtonElement>(null);
+  const active = value !== 'all' && value !== '';
   const current = options.find((o) => o.value === value)?.label ?? allLabel;
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQ(''); } };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options;
   }, [q, options]);
   const shown = filtered.slice(0, 50);
+  const list = useMemo(() => (includeAll ? [{ value: 'all', label: allLabel }, ...shown] : shown), [includeAll, allLabel, shown]);
+
+  useEffect(() => { setActiveIndex(0); }, [q, open]);
+  useEffect(() => { activeRef.current?.scrollIntoView({ block: 'nearest' }); }, [activeIndex]);
+
   const pick = (v: string) => { onChange(v); setOpen(false); setQ(''); };
 
   return (
     <div ref={ref} className={`relative min-w-0 ${className ?? ''}`}>
-      <button type="button" onClick={() => setOpen((v) => !v)} className={`flex w-full items-center gap-1.5 rounded-lg border bg-background py-1.5 pl-2 pr-2 text-xs outline-none transition focus:border-primary ${active ? 'border-primary font-semibold text-primary' : 'border-border'}`}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="listbox" aria-expanded={open}
+        className={`flex w-full items-center gap-1.5 rounded-lg border bg-background py-1.5 pl-2 pr-2 text-xs outline-none transition focus:border-primary ${active ? 'border-primary font-semibold text-primary' : 'border-border'}`}>
         <i className={`ph-bold ${icon} shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
         <span className="truncate">{current}</span>
         <i className={`ph-bold ph-caret-down ml-auto shrink-0 text-[10px] text-muted-foreground transition ${open ? 'rotate-180' : ''}`} />
@@ -470,19 +525,35 @@ function SearchSelect({ value, options, onChange, allLabel, icon, className }: {
         <div className="absolute left-0 top-full z-40 mt-1 w-full min-w-[15rem] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
           <div className="relative border-b border-border p-1.5">
             <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type to search…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+            <input
+              autoFocus value={q} onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex((i) => Math.min(list.length - 1, i + 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex((i) => Math.max(0, i - 1)); }
+                else if (e.key === 'Enter') { e.preventDefault(); const o = list[activeIndex]; if (o) pick(o.value); }
+                else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setQ(''); }
+              }}
+              placeholder="Type to search…"
+              className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary"
+            />
           </div>
-          <div className="scrollbar-thin max-h-60 overflow-y-auto p-1">
-            <button type="button" onClick={() => pick('all')} className={`flex w-full items-center rounded-lg px-2 py-1.5 text-left text-xs hover:bg-accent ${value === 'all' ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{allLabel}</button>
-            {shown.map((o) => (
-              <button key={o.value} type="button" onClick={() => pick(o.value)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-accent ${value === o.value ? 'font-semibold text-primary' : ''}`}>
-                <span className="truncate">{o.label}</span>
-                {value === o.value && <i className="ph-bold ph-check ml-auto shrink-0 text-primary" />}
-              </button>
-            ))}
-            {filtered.length === 0 && <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">No matches</p>}
-            {filtered.length > shown.length && <p className="px-2 py-1.5 text-center text-[11px] text-muted-foreground">+{filtered.length - shown.length} more — keep typing to narrow</p>}
-          </div>
+          <ul role="listbox" className="scrollbar-thin max-h-60 overflow-y-auto p-1">
+            {list.map((o, idx) => {
+              const isSel = value === o.value;
+              const isActive = idx === activeIndex;
+              return (
+                <li key={o.value || '__none'} role="option" aria-selected={isSel}>
+                  <button ref={isActive ? activeRef : undefined} type="button" onMouseEnter={() => setActiveIndex(idx)} onClick={() => pick(o.value)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs ${isActive ? 'bg-accent' : ''} ${isSel ? 'font-semibold text-primary' : o.value === 'all' ? 'text-muted-foreground' : ''}`}>
+                    <span className="truncate">{o.label}</span>
+                    {isSel && <i className="ph-bold ph-check ml-auto shrink-0 text-primary" />}
+                  </button>
+                </li>
+              );
+            })}
+            {shown.length === 0 && <li className="px-2 py-3 text-center text-[11px] text-muted-foreground">No matches</li>}
+            {filtered.length > shown.length && <li className="px-2 py-1.5 text-center text-[11px] text-muted-foreground">+{filtered.length - shown.length} more — keep typing to narrow</li>}
+          </ul>
         </div>
       )}
     </div>
