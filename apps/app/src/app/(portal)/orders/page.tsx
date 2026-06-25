@@ -1,4 +1,5 @@
 import { OrdersBoard } from '@/components/OrdersBoard';
+import { OrdersSummary } from '@/components/OrdersSummary';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
 
 export const metadata = { title: 'Orders' };
@@ -14,6 +15,9 @@ export default function OrdersPage() {
         <QuickOrderButton />
       </div>
       <section className="mt-6">
+        <OrdersSummary />
+      </section>
+      <section className="mt-5">
         <OrdersBoard />
       </section>
     </>

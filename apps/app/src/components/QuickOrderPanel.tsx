@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { PROJECTS, SERVICES, type ServiceKey } from '@/data/mock';
+import { SERVICES, type ServiceKey } from '@/data/mock';
 import { SERVICE_BLURBS, SERVICE_CATALOG, getCatalog } from '@/data/services';
 import { ServiceOrder } from './ServiceOrder';
 
-const PROJECT_OPTIONS = PROJECTS.map((p) => ({ name: p.name, domain: p.domain }));
 const LIVE_KEYS = (Object.keys(SERVICES) as ServiceKey[]).filter((k) => !!SERVICE_CATALOG[k]);
 
 /**
@@ -89,7 +88,7 @@ export function QuickOrderPanel() {
             /* step 2 — the order form */
             <>
               <p className="mb-4 text-sm text-muted-foreground">{catalog.hero}</p>
-              <ServiceOrder catalog={catalog} projects={PROJECT_OPTIONS} onPlaced={close} stacked />
+              <ServiceOrder catalog={catalog} onPlaced={close} stacked />
             </>
           )}
         </div>

@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { PROJECTS, ORDERS, STATUSES, folderPathForDomain, type OrderStatus } from '@/data/mock';
+import { ORDERS, STATUSES, folderPathForDomain, type Order, type OrderStatus } from '@/data/mock';
 import { OrdersBoard } from '@/components/OrdersBoard';
+import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { useOrdersStore } from '@/components/OrdersStore';
+import { useProjects } from '@/components/ProjectsStore';
 
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 function favColor(s: string) {
@@ -25,7 +28,9 @@ const STATUS_PILL: Record<'planned' | 'progress' | 'completed', { label: string;
 
 export default function ProjectDetailPage() {
   const id = useParams().id as string;
-  const project = PROJECTS.find((p) => p.id === id);
+  const { addedOrders, statusOverrides } = useOrdersStore();
+  const { projects } = useProjects();
+  const project = projects.find((p) => p.id === id);
 
   if (!project) {
     return (
@@ -37,8 +42,9 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const orders = ORDERS.filter((o) => o.domain === project.domain);
-  const count = (s: OrderStatus) => orders.filter((o) => o.status === s).length;
+  const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
+  const orders = [...addedOrders, ...ORDERS].filter((o) => o.domain === project.domain);
+  const count = (s: OrderStatus) => orders.filter((o) => effStatus(o) === s).length;
   const totalCost = orders.reduce((a, o) => a + o.cost, 0);
   const path = folderPathForDomain(project.domain);
   const sp = STATUS_PILL[project.status];
@@ -76,7 +82,9 @@ export default function ProjectDetailPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(project.domain) }}>{initials(project.domain)}</span>
           <h1 className="display text-xl font-semibold tracking-tight">{project.domain}</h1>
+          <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" /></a>
           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
+          <QuickOrderButton label="Order a service" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
         </div>
 
         <p className="mt-3 flex gap-1.5 text-sm text-muted-foreground">

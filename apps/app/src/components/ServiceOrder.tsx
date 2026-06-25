@@ -6,8 +6,9 @@ import { resolveAddOns, type AddOn, type AddOnTier } from '@heva/catalog';
 import { BulkKeywordList } from './BulkKeywordList';
 import { UsageLinkList } from './UsageLinkList';
 import { useOrdersStore } from './OrdersStore';
+import { useProjects } from './ProjectsStore';
 import { useToast } from './Toast';
-import { FOLDERS, PROJECTS, type IntakeField, type Order } from '@/data/mock';
+import { FOLDERS, PROJECTS, MEMBERSHIP_DISCOUNT, type IntakeField, type Order } from '@/data/mock';
 import type { SvcCatalog, SvcField, SvcPackage } from '@/data/services';
 
 type ProjectOption = { name: string; domain: string };
@@ -102,9 +103,11 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
   return out;
 }
 
-export function ServiceOrder({ catalog, projects, onPlaced, stacked = false }: { catalog: SvcCatalog; projects: ProjectOption[]; onPlaced?: () => void; stacked?: boolean }) {
+export function ServiceOrder({ catalog, onPlaced, stacked = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean }) {
   const router = useRouter();
   const { addOrder } = useOrdersStore();
+  const { projects: storeProjects } = useProjects();
+  const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
 
   const isUsage = !!catalog.usage;
@@ -153,7 +156,12 @@ export function ServiceOrder({ catalog, projects, onPlaced, stacked = false }: {
   const subtotal = isUsage ? usageRate * qty : catalog.bulk ? (plan?.price ?? 0) * qty : (plan?.price ?? 0);
   const bulkDiscount = catalog.bulk && qty >= catalog.bulk.minDiscountQty ? Math.round(subtotal * catalog.bulk.discountPct) / 100 : 0;
   const total = subtotal - bulkDiscount + bumpsSum;
-  const totalText = isUsage ? `$${total.toFixed(2)}` : (plan?.priceLabel ?? `$${total}`);
+  // VIP membership perk — 15% off, applied only to numeric totals (not "Consult"/"Custom quote" plans).
+  const hasNumericTotal = isUsage || !plan?.priceLabel;
+  const vipOff = hasNumericTotal ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT)) : 0;
+  const finalTotal = total - vipOff;
+  const subtotalText = isUsage ? `$${total.toFixed(2)}` : `$${total}`;
+  const totalText = isUsage ? `$${finalTotal.toFixed(2)}` : (plan?.priceLabel ?? `$${finalTotal}`);
 
   /** Resolve the order's project + folder from the picker, auto-generating when left on "Auto". */
   function resolveAssignment() {
@@ -208,7 +216,7 @@ export function ServiceOrder({ catalog, projects, onPlaced, stacked = false }: {
       detail: 'Awaiting kickoff',
       eta: isUsage ? 'By volume' : (plan?.sla ?? ''),
       owner: 'Unassigned',
-      cost: total,
+      cost: finalTotal,
       pay: 'pending',
       invoice: null,
       intake,
@@ -503,9 +511,17 @@ export function ServiceOrder({ catalog, projects, onPlaced, stacked = false }: {
               </div>
             )}
 
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-              <span className="text-sm font-semibold">Estimated total</span>
-              <span className="display text-xl font-bold tracking-tight">{totalText}</span>
+            <div className="mt-4 space-y-1.5 border-t border-border pt-3">
+              {vipOff > 0 && (
+                <>
+                  {!catalog.bulk && <div className="flex items-center justify-between text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{subtotalText}</span></div>}
+                  <div className="flex items-center justify-between text-[13px] font-semibold text-amber-600"><span className="inline-flex items-center gap-1.5"><i className="ph-fill ph-crown" /> VIP member −15%</span><span>−${vipOff}</span></div>
+                </>
+              )}
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-sm font-semibold">Estimated total</span>
+                <span className="display text-xl font-bold tracking-tight">{totalText}</span>
+              </div>
             </div>
             {saved > 0 && !plan?.priceLabel && (
               <div className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-600">
@@ -520,6 +536,17 @@ export function ServiceOrder({ catalog, projects, onPlaced, stacked = false }: {
           </div>
         </div>
       </aside>
+
+      {/* sticky order bar — mobile only, where the summary sits far below the form */}
+      <div className="sticky inset-x-0 bottom-3 z-40 mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-card/95 px-4 py-2.5 shadow-lg backdrop-blur lg:hidden">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Estimated total</p>
+          <p className="display text-lg font-bold leading-none">{totalText}</p>
+        </div>
+        <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[.98]">
+          Place order <i className="ph-bold ph-arrow-right" />
+        </button>
+      </div>
     </form>
   );
 }

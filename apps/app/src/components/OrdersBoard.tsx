@@ -369,7 +369,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="display text-lg font-semibold tracking-tight">Service order progress</h3>
+          <h2 className="display text-lg font-semibold tracking-tight">Service order progress</h2>
           <p className="text-xs text-muted-foreground">Filter by service · click an order to open the project · switch Kanban / List</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:shrink-0">

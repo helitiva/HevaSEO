@@ -34,6 +34,9 @@ export const PRIORITIES: Record<Priority, string> = { high: 'High', med: 'Med', 
 /** Demo credit balance, in USD. */
 export const CREDIT_BALANCE = 179;
 
+/** Membership perk — VIP gets 15% off every order. */
+export const MEMBERSHIP_DISCOUNT = 0.15;
+
 export interface Order {
   id: string;
   date: string;

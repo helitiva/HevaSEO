@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { OrdersBoard } from '@/components/OrdersBoard';
-import { CountUp } from '@/components/CountUp';
-import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { DashboardTop } from '@/components/DashboardTop';
 import { SpecialistChat } from '@/components/SpecialistChat';
+import { QuickOrderButton } from '@/components/QuickOrderButton';
 import { ACTIVITY } from '@/data/mock';
 
 export const metadata = { title: 'Overview' };
@@ -10,104 +10,7 @@ export const metadata = { title: 'Overview' };
 export default function DashboardPage() {
   return (
     <>
-      {/* page head */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="display text-2xl font-semibold tracking-tight md:text-3xl">Overview</h1>
-            <span className="pill pill-live"><span /> Live</span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">Hi Huy 👋 · 4 active projects · updated 2 minutes ago</p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-accent">
-            <i className="ph-bold ph-calendar-blank" /> 90 days <i className="ph-bold ph-caret-down text-muted-foreground" />
-          </button>
-          <QuickOrderButton className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]" />
-        </div>
-      </div>
-
-      {/* KPI ROW */}
-      <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="kpi kpi-glass">
-          <div className="kpi-glow" />
-          <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-400/30 text-amber-600"><i className="ph-fill ph-crown" /></span>
-            <span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}>VIP</span>
-          </div>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">Membership tier</p>
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-            <div>
-              <p className="display text-2xl font-semibold leading-none tracking-tight">VIP</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">15%* off every order</p>
-            </div>
-            <div className="tier" title="Tier progress">
-              <i className="on" style={{ height: '40%' }} /><i className="on" style={{ height: '58%' }} /><i className="on" style={{ height: '76%' }} /><i className="on" style={{ height: '90%' }} /><i style={{ height: '100%' }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="kpi">
-          <div className="kpi-glow" />
-          <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-package" /></span>
-            <span className="pill pill-good">All</span>
-          </div>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">Services ordered</p>
-          <div className="mt-auto flex items-end justify-between gap-3 pt-2">
-            <p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={32} /> <span className="text-sm text-muted-foreground">services</span></p>
-            <div className="seg w-16 shrink-0 sm:w-28">
-              <i style={{ width: '32%', background: '#3b82f6' }} /><i style={{ width: '30%', background: '#10b981' }} /><i style={{ width: '24%', background: '#f59e0b' }} /><i style={{ width: '14%', background: '#a78bfa' }} />
-            </div>
-          </div>
-          <div className="mt-2 overflow-hidden">
-            <div className="legend-marquee flex w-max">
-              {[0, 1].map((k) => (
-                <div key={k} aria-hidden={k === 1} className="flex shrink-0 items-center gap-x-2.5 pr-2.5 text-[10px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><span className="legend-dot" style={{ background: '#3b82f6' }} />Backlink 4</span>
-                  <span className="inline-flex items-center gap-1"><span className="legend-dot" style={{ background: '#10b981' }} />Content 150</span>
-                  <span className="inline-flex items-center gap-1"><span className="legend-dot" style={{ background: '#f59e0b' }} />Index 32k</span>
-                  <span className="inline-flex items-center gap-1"><span className="legend-dot" style={{ background: '#a78bfa' }} />Other 5</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="kpi">
-          <div className="kpi-glow" />
-          <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-check-circle" /></span>
-            <span className="pill pill-good">+6 today</span>
-          </div>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">Services completed</p>
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-            <div className="flex items-end gap-4">
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={6} /></p><p className="mt-1 text-[11px] text-muted-foreground">Today</p></div>
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={18} /></p><p className="mt-1 text-[11px] text-muted-foreground">This week</p></div>
-            </div>
-            <div className="mini-bars" title="Last 7 days">
-              <i style={{ height: '45%' }} /><i style={{ height: '60%' }} /><i style={{ height: '40%' }} /><i style={{ height: '80%' }} /><i style={{ height: '55%' }} /><i style={{ height: '70%' }} /><i className="on" style={{ height: '100%' }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="kpi">
-          <div className="kpi-glow" />
-          <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-timer" /></span>
-            <span className="pill pill-good">On time</span>
-          </div>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">On-time completion rate</p>
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-            <div className="flex items-end gap-4">
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={96} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">All time</p></div>
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight text-emerald-600"><CountUp value={100} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">This week</p></div>
-            </div>
-            <div className="ring" style={{ ['--p' as string]: 96 }}><b>96%</b></div>
-          </div>
-        </div>
-      </section>
+      <DashboardTop />
 
       {/* ORDERS */}
       <section className="mt-5">
@@ -118,7 +21,7 @@ export default function DashboardPage() {
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="display text-lg font-semibold tracking-tight">Recent activity</h3>
+            <h2 className="display text-lg font-semibold tracking-tight">Recent activity</h2>
             <button className="text-xs font-semibold text-primary hover:underline">All</button>
           </div>
           <div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -135,7 +38,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="display text-lg font-semibold tracking-tight">Your specialist</h3>
+          <h2 className="display text-lg font-semibold tracking-tight">Your specialist</h2>
           <div className="mt-4 flex items-center gap-3">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">OC</span>
             <div>

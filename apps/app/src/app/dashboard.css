@@ -26,17 +26,17 @@
 .dark .kpi, .dark .glass-panel { box-shadow: inset 0 0 0 1px hsl(205 100% 70% / .07); }
 * { border-color: hsl(var(--border)); }
 body { font-feature-settings: "cv11", "ss01"; }
-@keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes pageReveal { from { opacity: 0; } to { opacity: 1; } }
-.page-anim { animation: pageReveal .25s ease-out backwards; }
-/* Cascade the page's top-level sections in for a smooth, staggered entrance. */
-.page-anim > * { animation: pageIn .5s cubic-bezier(.22, .61, .36, 1) backwards; }
+.page-anim { animation: pageReveal .2s ease-out backwards; }
+/* Cascade the page's top-level sections in — tight stagger so content settles fast (~0.55s), no long empty flash. */
+.page-anim > * { animation: pageIn .38s cubic-bezier(.22, .61, .36, 1) backwards; }
 .page-anim > *:nth-child(1) { animation-delay: 0s; }
-.page-anim > *:nth-child(2) { animation-delay: .06s; }
-.page-anim > *:nth-child(3) { animation-delay: .12s; }
-.page-anim > *:nth-child(4) { animation-delay: .18s; }
-.page-anim > *:nth-child(5) { animation-delay: .24s; }
-.page-anim > *:nth-child(n+6) { animation-delay: .3s; }
+.page-anim > *:nth-child(2) { animation-delay: .04s; }
+.page-anim > *:nth-child(3) { animation-delay: .08s; }
+.page-anim > *:nth-child(4) { animation-delay: .12s; }
+.page-anim > *:nth-child(5) { animation-delay: .16s; }
+.page-anim > *:nth-child(n+6) { animation-delay: .18s; }
 @media (prefers-reduced-motion: reduce) { .page-anim, .page-anim > * { animation: none; } }
 .display { font-family: "Inter Tight", Inter, sans-serif; }
 /* sidebar nav item */
@@ -85,6 +85,7 @@ body { font-feature-settings: "cv11", "ss01"; }
 @keyframes ping { 0%{box-shadow:0 0 0 0 #10b98166;} 70%{box-shadow:0 0 0 .4rem #10b98100;} 100%{box-shadow:0 0 0 0 #10b98100;} }
 .pill-good { background:hsl(var(--primary)/.12); color:hsl(var(--primary)); }
 .pill-warn { background:#f59e0b1f; color:#d97706; }
+.pill-bad { background:#ef44441f; color:#dc2626; }
 /* kanban */
     .kcard { border:1px solid hsl(var(--border)); background:hsl(var(--card)); border-radius:.8rem; padding:.85rem .9rem; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:default; }
 .kcard:hover { border-color:hsl(var(--primary)/.45); transform:translateY(-2px); box-shadow:0 14px 28px -18px hsl(var(--foreground)/.35); }

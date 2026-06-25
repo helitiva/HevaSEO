@@ -3,13 +3,12 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FOLDERS, PROJECTS, SERVICES, type ServiceKey, type Project } from '@/data/mock';
+import { SERVICES, type ServiceKey, type Project } from '@/data/mock';
 import { useToast } from '@/components/Toast';
 import { Modal } from '@/components/Modal';
+import { useProjects, type Folder } from '@/components/ProjectsStore';
 import { NewProjectModal, type ProjectInput } from '@/components/NewProjectModal';
 import { NewFolderModal, type FolderInput } from '@/components/NewFolderModal';
-
-type Folder = { id: string; name: string; color: string; parentId: string | null };
 
 /** Gear menu on each project card — edit / open / delete. */
 function ProjectMenu({ project, onEdit, onDelete }: { project: Project; onEdit: () => void; onDelete: () => void }) {
@@ -90,35 +89,19 @@ function ProjectsInner() {
   const [status, setStatus] = useState<string>('all');
   const [svc, setSvc] = useState<string>('all');
 
-  // Session-created folders & projects sit on top of the seed data; edits/deletes are tracked separately.
-  const [extraFolders, setExtraFolders] = useState<Folder[]>([]);
-  const [extraProjects, setExtraProjects] = useState<Project[]>([]);
-  const [overrides, setOverrides] = useState<Record<string, Partial<Project>>>({});
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
-  const [folderOverrides, setFolderOverrides] = useState<Record<string, Partial<Folder>>>({});
-  const [removedFolderIds, setRemovedFolderIds] = useState<Set<string>>(new Set());
+  // Shared store — edits/creates/deletes here also show on the project detail page & order form.
+  const { projects: allProjects, folders: allFolders, addProject, updateProject, removeProject, addFolder, updateFolder, removeFolder: removeFolderFromStore } = useProjects();
   const [modal, setModal] = useState<null | 'project' | 'folder'>(null);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [editFolderTarget, setEditFolderTarget] = useState<Folder | null>(null);
   const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
 
-  const allFolders = useMemo<Folder[]>(
-    () => [...FOLDERS, ...extraFolders]
-      .filter((f) => !removedFolderIds.has(f.id))
-      .map((f) => (folderOverrides[f.id] ? { ...f, ...folderOverrides[f.id] } : f)),
-    [extraFolders, folderOverrides, removedFolderIds]
-  );
-  const allProjects = useMemo(
-    () => [...extraProjects, ...PROJECTS]
-      .filter((p) => !removedIds.has(p.id))
-      .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p)),
-    [extraProjects, overrides, removedIds]
-  );
   const folderName = (id: string) => allFolders.find((f) => f.id === id)?.name;
   const folderColor = (id: string) => allFolders.find((f) => f.id === id)?.color ?? '#94a3b8';
 
-  const createFolder = (f: FolderInput) => { setExtraFolders((prev) => [...prev, f]); toast(`Folder “${f.name}” created`); };
+  const createFolder = (f: FolderInput) => { addFolder(f); toast(`Folder “${f.name}” created`); };
   const createProject = (p: ProjectInput) => {
     const proj: Project = {
       id: `p-${Date.now().toString(36)}`,
@@ -131,30 +114,32 @@ function ProjectsInner() {
       updated: 'Just now',
       tags: {},
     };
-    setExtraProjects((prev) => [proj, ...prev]);
+    addProject(proj);
     setFolder('all');
     toast(`Project ${proj.domain} created`);
   };
   const saveEdit = (p: ProjectInput) => {
     if (!editTarget) return;
-    setOverrides((prev) => ({
-      ...prev,
-      [editTarget.id]: { name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized', folder: p.folderId, status: p.status, note: p.note, updated: 'Just now' },
-    }));
+    updateProject(editTarget.id, { name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized', folder: p.folderId, status: p.status, note: p.note, updated: 'Just now' });
     toast(`Project ${p.domain} updated`);
   };
-  const deleteProject = (p: Project) => { setRemovedIds((prev) => new Set(prev).add(p.id)); toast(`Project ${p.domain} deleted`, 'info'); };
+  const deleteProject = (p: Project) => { removeProject(p.id); toast(`Project ${p.domain} deleted`, 'info'); };
   const saveFolderEdit = (f: FolderInput) => {
     if (!editFolderTarget) return;
-    setFolderOverrides((prev) => ({ ...prev, [editFolderTarget.id]: { name: f.name, color: f.color, parentId: f.parentId } }));
+    updateFolder(editFolderTarget.id, { name: f.name, color: f.color, parentId: f.parentId });
     toast(`Folder “${f.name}” updated`);
   };
   const removeFolder = (f: Folder) => {
-    // cascade to any child folders so none are orphaned
-    const ids = new Set<string>([f.id, ...allFolders.filter((c) => c.parentId === f.id).map((c) => c.id)]);
-    setRemovedFolderIds((prev) => { const n = new Set(prev); ids.forEach((id) => n.add(id)); return n; });
-    if (ids.has(folder)) setFolder('all');
+    const childIds = allFolders.filter((c) => c.parentId === f.id).map((c) => c.id);
+    if (folder === f.id || childIds.includes(folder)) setFolder('all');
+    removeFolderFromStore(f.id);
     toast(`Folder “${f.name}” deleted`, 'info');
+  };
+  const moveProjectToFolder = (projectId: string, folderId: string) => {
+    const p = allProjects.find((x) => x.id === projectId);
+    if (!p || p.folder === folderId) return;
+    updateProject(projectId, { folder: folderId, label: folderName(folderId) ?? 'Uncategorized' });
+    toast(`Moved ${p.domain} → ${folderName(folderId)}`);
   };
 
   // Focus the project opened from an order card link (/projects?p=<domain>).
@@ -184,7 +169,13 @@ function ProjectsInner() {
   const childrenOf = (id: string) => allFolders.filter((f) => f.parentId === id);
 
   const FolderRow = ({ id, name, color, depth = 0 }: { id: string; name: string; color?: string; depth?: number }) => (
-    <div className={`folder-item group w-full${folder === id ? ' active' : ''}`} style={{ paddingLeft: `${0.6 + depth * 0.85}rem` }}>
+    <div
+      className={`folder-item group w-full${folder === id ? ' active' : ''}${dragOverFolder === id ? ' drop-hot' : ''}`}
+      style={{ paddingLeft: `${0.6 + depth * 0.85}rem` }}
+      onDragOver={id === 'all' ? undefined : (e) => { e.preventDefault(); setDragOverFolder(id); }}
+      onDragLeave={() => setDragOverFolder((d) => (d === id ? null : d))}
+      onDrop={id === 'all' ? undefined : (e) => { e.preventDefault(); setDragOverFolder(null); const pid = e.dataTransfer.getData('text/plain'); if (pid) moveProjectToFolder(pid, id); }}
+    >
       <button type="button" onClick={() => setFolder(id)} className="flex min-w-0 flex-1 items-center gap-[.55rem] text-left">
         <i className="ph-bold ph-folder shrink-0" style={{ color: color ?? 'currentColor' }} />
         <span className="truncate">{name}</span>
@@ -264,18 +255,27 @@ function ProjectsInner() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="mt-5 grid place-items-center rounded-2xl border border-dashed border-border py-16 text-center">
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" /></span>
-              <p className="mt-3 font-semibold">No matching projects</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try adjusting the filters, or create a new project.</p>
-            </div>
+            folder !== 'all' && !search && status === 'all' && svc === 'all' ? (
+              <div className="mt-5 grid place-items-center rounded-2xl border border-dashed border-border py-16 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-xl text-xl" style={{ background: `${folderColor(folder)}1a`, color: folderColor(folder) }}><i className="ph-bold ph-folder-open" /></span>
+                <p className="mt-3 font-semibold">{folderName(folder)} is empty</p>
+                <p className="mt-1 text-sm text-muted-foreground">Drag a project here, or create one in this folder.</p>
+                <button onClick={() => setModal('project')} className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" /> New project</button>
+              </div>
+            ) : (
+              <div className="mt-5 grid place-items-center rounded-2xl border border-dashed border-border py-16 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" /></span>
+                <p className="mt-3 font-semibold">No matching projects</p>
+                <p className="mt-1 text-sm text-muted-foreground">Try adjusting the filters, or create a new project.</p>
+              </div>
+            )
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((p) => {
                 const sp = STATUS_PILL[p.status];
                 const tags = Object.keys(p.tags) as ServiceKey[];
                 return (
-                  <Link key={p.id} href={`/projects/${p.id}`} className="pcard block">
+                  <Link key={p.id} href={`/projects/${p.id}`} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', p.id)} className="pcard block" title="Drag to a folder to move it">
                     <div className="flex items-start gap-2.5">
                       <span className="fav" style={{ background: favColor(p.domain) }}>{initials(p.domain)}</span>
                       <div className="min-w-0 flex-1">
