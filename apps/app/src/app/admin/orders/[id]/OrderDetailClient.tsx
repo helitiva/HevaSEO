@@ -104,9 +104,11 @@ export function OrderDetailClient(p: Props) {
   const submitted = ['delivered', 'approved', 'completed', 'changes_requested'].includes(status);
 
   return (
-    <section className="space-y-4">
-      {/* compact header card */}
-      <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
+    <section>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          {/* compact header card */}
+          <div className="rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Link href="/admin/orders" className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
@@ -129,11 +131,9 @@ export function OrderDetailClient(p: Props) {
         </div>
 
         <p className="mt-1 text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
-        <div className="mt-2"><ProgressTracker status={status} /></div>
-      </div>
+            <div className="mt-2"><ProgressTracker status={status} /></div>
+          </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
           <Card icon="ph-package" title="Scope">
             <div className="grid gap-2 text-sm sm:grid-cols-2">
               <Fact label="Project" value={`${o.customer} — SEO program`} />
