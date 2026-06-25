@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlideOver } from '@/components/admin/SlideOver';
@@ -20,6 +20,30 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'payouts', label: 'Payouts', icon: 'ph-hand-coins' },
   { key: 'invoices', label: 'Invoices', icon: 'ph-file-text' },
 ];
+
+// localStorage-backed state for the admin's in-session finance actions
+// (mark-paid, payroll overrides, invoice actions, wallet top-ups). No backend
+// yet — this keeps them across reloads. SSR-safe: starts from `initial` on the
+// server + first client render (no hydration mismatch), then loads any stored
+// value after mount. The `hydrated` guard stops the save effect from clobbering
+// stored data with the default before the load runs.
+const FINANCE_LS_PREFIX = 'heva.finance.';
+function usePersistedState<T>(key: string, initial: T) {
+  const [state, setState] = useState<T>(initial);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FINANCE_LS_PREFIX + key);
+      if (raw != null) setState(JSON.parse(raw) as T);
+    } catch { /* ignore corrupt/unavailable storage */ }
+    setHydrated(true);
+  }, [key]);
+  useEffect(() => {
+    if (!hydrated) return;
+    try { localStorage.setItem(FINANCE_LS_PREFIX + key, JSON.stringify(state)); } catch { /* ignore quota/unavailable */ }
+  }, [key, state, hydrated]);
+  return [state, setState] as const;
+}
 
 export function FinanceClient() {
   const router = useRouter();
@@ -327,7 +351,7 @@ function nowStamp(): string {
 
 function WalletsTab() {
   const [selected, setSelected] = useState<AdminCustomer | null>(null);
-  const [topups, setTopups] = useState<AdminTopup[]>([]);
+  const [topups, setTopups] = usePersistedState<AdminTopup[]>('walletTopups', []);
   const [topup, setTopup] = useState<{ open: boolean; presetId?: string }>({ open: false });
 
   const addedFor = (id: string) => topups.filter((t) => t.customerId === id).reduce((a, t) => a + t.amount, 0);
@@ -583,9 +607,9 @@ const PAYOUT_HISTORY = (() => {
 })();
 
 function PayoutsTab() {
-  const [paid, setPaid] = useState<Record<string, boolean>>({});
+  const [paid, setPaid] = usePersistedState<Record<string, boolean>>('payoutsPaid', {});
   const [selected, setSelected] = useState<Payout | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, PayoutOverride>>({});
+  const [overrides, setOverrides] = usePersistedState<Record<string, PayoutOverride>>('payoutOverrides', {});
   const [period, setPeriod] = useState<string>('current');
   const rows = useMemo(() => [...PAYOUTS].sort((a, b) => b.due - a.due), []);
 
@@ -950,8 +974,8 @@ function PayoutHistoryView({ h }: { h: { date: string; txs: Transaction[]; total
 /* --------------------------------------------------------------- Invoices */
 function InvoicesTab() {
   const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
-  const [paidIds, setPaidIds] = useState<Record<string, boolean>>({});
-  const [remindedIds, setRemindedIds] = useState<Record<string, boolean>>({});
+  const [paidIds, setPaidIds] = usePersistedState<Record<string, boolean>>('invoicePaid', {});
+  const [remindedIds, setRemindedIds] = usePersistedState<Record<string, boolean>>('invoiceReminded', {});
 
   const effStatus = (i: Invoice): InvoiceStatus => (paidIds[i.id] ? 'paid' : i.status);
 
