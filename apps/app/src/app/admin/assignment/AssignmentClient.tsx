@@ -14,7 +14,7 @@ interface QueueItem {
   created: string; ageDays: number; source: 'quick' | 'dashboard'; cust: CustSummary | null; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
 }
 interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline: string | null; daysToDue: number; cust: CustSummary | null; home: string }
-interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline?: string | null; daysToDue: number; cust: CustSummary | null; pinnedTo?: string | null }
+interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline?: string | null; daysToDue: number; cust: CustSummary | null; pinnedTo?: string | null; source?: 'quick' | 'dashboard'; site?: string; targetUrl?: string; project?: string; folder?: string }
 interface StaffLite { id: string; name: string; skills: string[]; capacity: number; openLoad: number; composite: number; quality: number; onTime: number; throughput: number }
 interface RuleLite { id: string; service: string; pkg: string | null; mode: 'pin' | 'auto'; target: string | null; priority: number; active: boolean }
 interface Kpis { unassigned: number; overdueRisk: number; autoRoutablePct: number; utilizationPct: number; throughput: number }
@@ -418,6 +418,10 @@ function OrderPanelBody({ item, current, ranked, tierMeta, onAssign, onUnassign 
         <KV label="Service" value={`${item.service} · ${item.pkg}`} />
         <KV label="Order value" value={money(item.value)} />
         <KV label="Deadline" value={item.deadline ?? '—'} />
+        {item.source && <KV label="Source" value={`via ${item.source}`} />}
+        {item.site && <KV label="Site" value={item.site} />}
+        {item.targetUrl && <KVRow label="Target URL"><a href={item.targetUrl} target="_blank" rel="noopener noreferrer" className="truncate text-sm font-medium text-primary hover:underline">{item.targetUrl}</a></KVRow>}
+        {item.project && <KVRow label="Filed under"><span className="inline-flex items-center gap-1 text-sm font-medium"><i className="ph-bold ph-folders text-muted-foreground" />{item.project}<i className="ph-bold ph-caret-right text-muted-foreground" />{item.folder}</span></KVRow>}
       </PanelSection>
 
       <PanelSection title="Assignment">
@@ -463,6 +467,9 @@ function PanelSection({ title, children }: { title: string; children: ReactNode 
 }
 function KV({ label, value }: { label: string; value: string }) {
   return <div className="flex items-center justify-between border-b border-border/50 py-1.5 text-sm last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+}
+function KVRow({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="flex items-center justify-between gap-3 border-b border-border/50 py-1.5 text-sm last:border-0"><span className="shrink-0 text-muted-foreground">{label}</span><span className="min-w-0 truncate text-right">{children}</span></div>;
 }
 function Mini({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border p-2 text-center"><p className="display text-sm font-bold">{value}</p><p className="text-[10px] text-muted-foreground">{label}</p></div>;

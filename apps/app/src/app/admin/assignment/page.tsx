@@ -1,5 +1,12 @@
-import { ORDERS, STAFF, RULES, TIER, tierOf, customerByCompany, type Tier } from '@/data/adminMock';
+import { ORDERS, STAFF, RULES, TIER, tierOf, customerByCompany, ORDER_EXTRA, type Tier } from '@/data/adminMock';
 import { AssignmentClient } from './AssignmentClient';
+
+const factsOf = (o: (typeof ORDERS)[number]) => {
+  const c = customerByCompany(o.customer);
+  const site = c?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
+  const ex = ORDER_EXTRA[o.id];
+  return { source: o.source, site, targetUrl: `https://${site}`, project: ex?.project ?? `${o.customer} — SEO program`, folder: ex?.folder ?? 'General' };
+};
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
 const seqMap = new Map([...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
@@ -35,7 +42,7 @@ export default function AssignmentPage() {
       id: o.id, seq: seqMap.get(o.id) ?? 0, code: o.code, customer: o.customer, tier,
       service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, value: o.value,
       deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((TODAY.getTime() - new Date(o.created).getTime()) / 86400000),
-      source: o.source, cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
+      ...factsOf(o), cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
@@ -45,7 +52,7 @@ export default function AssignmentPage() {
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
-    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, cust: custOf(o.customer), home: o.staff as string };
+    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, ...factsOf(o), cust: custOf(o.customer), home: o.staff as string };
   });
 
   const staff = STAFF.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: assigned.filter((a) => a.home === s.name).length, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));
