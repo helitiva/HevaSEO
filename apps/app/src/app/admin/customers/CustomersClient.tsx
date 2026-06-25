@@ -373,7 +373,10 @@ function CustomerPanel({ c, notify }: { c: CustomerRow; notify: (m: string) => v
         <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" />Email</a>
         <button onClick={() => notify(`Magic link sent · ${c.name}`)} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" />Impersonate</button>
       </div>
-      <Link href={`/admin/customers/${c.id}`} className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-arrow-square-out" />Open full profile</Link>
+      <div className="flex items-center gap-2">
+        <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" />Open full profile</Link>
+        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+      </div>
 
       {/* KPI grid */}
       <div className="grid grid-cols-3 gap-2">

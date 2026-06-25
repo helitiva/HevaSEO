@@ -274,7 +274,10 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
         )}
       </Section>
 
-      <Link href={`/admin/orders/${o.id}`} className="flex items-center justify-center gap-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full detail <i className="ph-bold ph-arrow-right" /></Link>
+      <div className="flex items-center gap-2">
+        <Link href={`/admin/orders/${o.id}`} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full detail <i className="ph-bold ph-arrow-right" /></Link>
+        <a href={`/admin/orders/${o.id}`} target="_blank" rel="noopener noreferrer" title="Open order in a new tab" aria-label="Open order in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+      </div>
     </div>
   );
 }
