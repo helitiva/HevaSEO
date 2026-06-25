@@ -18,6 +18,20 @@ const fmtLeft = (h: number) => {
   return `${Math.round(h)}h left`;
 };
 
+// Project each ticket is filed under (mirrors how orders are filed by project/folder elsewhere).
+const TICKET_PROJECT: Record<string, string> = {
+  t1: 'Acme · Main site',
+  t2: 'Nova · Brand SEO',
+  t3: 'Vertex · Q3 Entity push',
+  t4: 'Peak · UK Launch',
+  t5: 'Orbit · Account & billing',
+  t6: 'Vértice · Web performance',
+  t7: 'Lumen · New site launch',
+  t8: 'Pulse · Account & billing',
+  t9: 'Cobalt · Link building',
+  t10: 'Acme · Content program',
+};
+
 // Full customer dossier shown in the slide-over panel.
 function custFullOf(c: AdminCustomer) {
   const extra = CUSTOMER_EXTRA[c.id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
@@ -55,6 +69,7 @@ export default function TicketsPage() {
           }
         : null,
       custFull: c ? custFullOf(c) : null,
+      project: TICKET_PROJECT[t.id] ?? 'General',
       order: order ? { id: order.id, code: order.code, service: order.service, pkg: order.pkg, value: order.value } : null,
       waitingOnUs, breached, slaLeftLabel: fmtLeft(slaLeft),
     };
