@@ -135,9 +135,9 @@ export const SERVICE_INCLUDED: Record<string, string[]> = {
 };
 
 export const STAFF: AdminStaff[] = [
-  { id: 's1', name: 'Mai T.', skills: ['keyword','optimize'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
-  { id: 's2', name: 'Linh P.', skills: ['backlink'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true },
-  { id: 's3', name: 'Huy N.', skills: ['content'], capacity: 8, openLoad: 5, composite: 84, quality: 88, onTime: 79, throughput: 40, active: true },
+  { id: 's1', name: 'Mai T.', skills: ['keyword','optimize','content'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
+  { id: 's2', name: 'Linh P.', skills: ['backlink','keyword'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true },
+  { id: 's3', name: 'Huy N.', skills: ['content','optimize'], capacity: 8, openLoad: 5, composite: 84, quality: 88, onTime: 79, throughput: 40, active: true },
 ];
 
 export const TICKETS: AdminTicket[] = [
