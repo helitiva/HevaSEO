@@ -34,7 +34,16 @@ export default function AssignmentPage() {
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
-  const staff = STAFF.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: s.openLoad, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));
+  // Current in-flight work per staff (their real workload, for the board + rebalance).
+  const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
+  const assigned = ORDERS.filter((o) => o.staff && ACTIVE.has(o.status)).map((o) => {
+    const cust = customerByCompany(o.customer);
+    const tier: Tier = cust ? cust.tier : tierOf(o.value);
+    const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
+    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, deadline: o.deadline, daysToDue, home: o.staff as string };
+  });
+
+  const staff = STAFF.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: assigned.filter((a) => a.home === s.name).length, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));
   const rules = RULES.map((r) => ({ id: r.id, service: r.service, pkg: r.pkg, mode: r.mode, target: r.target, priority: r.priority, active: r.active }));
 
   const totalCap = staff.reduce((s, x) => s + x.capacity, 0);
@@ -47,5 +56,5 @@ export default function AssignmentPage() {
     throughput: staff.reduce((s, x) => s + x.throughput, 0),
   };
 
-  return <AssignmentClient queue={queue} staff={staff} rules={rules} kpis={kpis} tierMeta={TIER} />;
+  return <AssignmentClient queue={queue} assigned={assigned} staff={staff} rules={rules} kpis={kpis} tierMeta={TIER} />;
 }

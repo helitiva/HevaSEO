@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
-import { PriorityBadge } from '@/components/admin/StatBadge';
+import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 interface Cand { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skillMatch: boolean }
@@ -10,15 +10,23 @@ interface QueueItem {
   priority: Priority; status: OrderStatus; value: number; deadline: string | null; daysToDue: number;
   suggested: string | null; pinnedTo: string | null; candidates: Cand[];
 }
+interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; deadline: string | null; daysToDue: number; home: string }
+interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; daysToDue: number; pinnedTo?: string | null }
 interface StaffLite { id: string; name: string; skills: string[]; capacity: number; openLoad: number; composite: number; quality: number; onTime: number; throughput: number }
 interface RuleLite { id: string; service: string; pkg: string | null; mode: 'pin' | 'auto'; target: string | null; priority: number; active: boolean }
 interface Kpis { unassigned: number; overdueRisk: number; autoRoutablePct: number; utilizationPct: number; throughput: number }
 type TierMeta = Record<Tier, { label: string; icon: string; color: string }>;
 
-interface Props { queue: QueueItem[]; staff: StaffLite[]; rules: RuleLite[]; kpis: Kpis; tierMeta: TierMeta }
+interface Props { queue: QueueItem[]; assigned: AssignedItem[]; staff: StaffLite[]; rules: RuleLite[]; kpis: Kpis; tierMeta: TierMeta }
 
-export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props) {
-  const [assign, setAssign] = useState<Record<string, string | null>>(() => Object.fromEntries(queue.map((q) => [q.id, null])));
+const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
+
+export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta }: Props) {
+  // Unified placement: queue orders start unassigned (null); in-flight orders start on their home staff.
+  const [place, setPlace] = useState<Record<string, string | null>>(() => ({
+    ...Object.fromEntries(queue.map((q) => [q.id, null])),
+    ...Object.fromEntries(assigned.map((a) => [a.id, a.home])),
+  }));
   const [view, setView] = useState<'list' | 'board'>('list');
   const [ruleState, setRuleState] = useState(rules);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -26,43 +34,51 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
   const [toast, setToast] = useState<string | null>(null);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
 
-  const pending = useMemo(() => queue.filter((q) => !assign[q.id]), [queue, assign]);
-  const byStaff = (name: string) => queue.filter((q) => assign[q.id] === name);
-  const loadOf = (s: StaffLite) => s.openLoad + byStaff(s.name).length;
+  const allItems = useMemo<CardItem[]>(() => [...queue, ...assigned], [queue, assigned]);
+  const pending = useMemo(() => queue.filter((q) => place[q.id] === null), [queue, place]);
+  const itemsAt = (name: string) => allItems.filter((it) => place[it.id] === name);
+  const loadOf = (name: string) => itemsAt(name).length;
   const capOf = (name: string) => staff.find((s) => s.name === name)?.capacity ?? 99;
-  const liveLoad = (name: string) => (staff.find((s) => s.name === name)?.openLoad ?? 0) + byStaff(name).length;
-  // Load-aware suggestion: prefer skill-matched staff but penalise high utilisation,
-  // respect capacity, and round-robin (via the `extra` accumulator) during bulk auto-assign.
+
   const bestFor = (q: QueueItem, extra: Record<string, number> = {}): string | null => {
     if (q.pinnedTo) return q.pinnedTo;
     if (!q.candidates.length) return null;
     const scored = q.candidates.map((c) => {
-      const load = liveLoad(c.name) + (extra[c.name] ?? 0); const cap = capOf(c.name);
+      const load = loadOf(c.name) + (extra[c.name] ?? 0); const cap = capOf(c.name);
       return { name: c.name, full: load >= cap, score: c.composite - 120 * (load / cap) };
     });
     const free = scored.filter((s) => !s.full);
     return (free.length ? free : scored).sort((a, b) => b.score - a.score)[0].name;
   };
 
-  const setOne = (id: string, name: string | null) => setAssign((a) => ({ ...a, [id]: name }));
-  const doAssign = (q: QueueItem, name: string, over: boolean) => { setOne(q.id, name); notify(over ? `⚠ ${name} is over capacity — assigned ${q.code} anyway` : `Assigned ${q.code} → ${name}`); };
-  const unassign = (q: QueueItem) => { setOne(q.id, null); notify(`${q.code} returned to queue`); };
+  const moveTo = (id: string, target: string | null) => setPlace((p) => ({ ...p, [id]: target }));
+  const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); notify(loadOf(name) >= capOf(name) ? `⚠ ${name} is at capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`); };
   const autoAll = () => {
     const extra: Record<string, number> = {}; const picks: Record<string, string> = {};
     for (const q of pending) { const name = bestFor(q, extra); if (name) { picks[q.id] = name; extra[name] = (extra[name] ?? 0) + 1; } }
     const n = Object.keys(picks).length;
-    setAssign((a) => ({ ...a, ...picks }));
+    setPlace((p) => ({ ...p, ...picks }));
     notify(n ? `Auto-routed ${n} order${n > 1 ? 's' : ''} — balanced by load` : 'Nothing to route');
   };
-  const toggleRule = (id: string) => setRuleState((rs) => rs.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
-
-  const drop = (target: string | null) => {
-    const q = queue.find((x) => x.id === dragId); setDragId(null);
-    if (!q) return;
-    if (target === null) { if (assign[q.id]) unassign(q); return; }
-    const s = staff.find((x) => x.name === target)!;
-    if (assign[q.id] !== target) doAssign(q, target, loadOf(s) >= s.capacity);
+  const rebalance = () => {
+    const next = { ...place };
+    const loadIn = (n: string) => allItems.filter((it) => next[it.id] === n).length;
+    const util = (s: StaffLite) => loadIn(s.name) / s.capacity;
+    let moved = 0;
+    for (let i = 0; i < 30; i++) {
+      const hi = staff.filter((s) => allItems.some((it) => next[it.id] === s.name)).sort((a, b) => util(b) - util(a))[0];
+      const lo = staff.filter((s) => loadIn(s.name) < s.capacity).sort((a, b) => util(a) - util(b))[0];
+      if (!hi || !lo || hi.name === lo.name || util(hi) - util(lo) <= 0.16) break;
+      const orders = allItems.filter((it) => next[it.id] === hi.name)
+        .sort((a, b) => (lo.skills.includes(SKILL_OF[b.service]) ? 1 : 0) - (lo.skills.includes(SKILL_OF[a.service]) ? 1 : 0));
+      if (!orders[0]) break;
+      next[orders[0].id] = lo.name; moved++;
+    }
+    setPlace(next);
+    notify(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced');
   };
+  const toggleRule = (id: string) => setRuleState((rs) => rs.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
+  const drop = (target: string | null) => { if (dragId && place[dragId] !== target) { const it = allItems.find((x) => x.id === dragId); moveTo(dragId, target); notify(target ? `Moved ${it?.code} → ${target}` : `${it?.code} returned to queue`); } setDragId(null); };
 
   return (
     <section className="space-y-4">
@@ -77,6 +93,7 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
               <button key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><i className={`ph-bold ${v === 'list' ? 'ph-list-bullets' : 'ph-kanban'} mr-1`} />{v}</button>
             ))}
           </div>
+          <button onClick={rebalance} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-scales mr-1" />Rebalance</button>
           <button onClick={autoAll} disabled={!pending.length} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-magic-wand mr-1" />Auto-assign all</button>
         </div>
       </div>
@@ -85,7 +102,7 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
         <Kpi icon="ph-tray" label="Unassigned" value={String(pending.length)} tone={pending.length ? 'warn' : 'good'} />
         <Kpi icon="ph-timer" label="Due ≤ 1 day" value={String(pending.filter((q) => q.daysToDue <= 1).length)} tone={pending.some((q) => q.daysToDue <= 1) ? 'warn' : undefined} />
         <Kpi icon="ph-magic-wand" label="Auto-routable" value={`${kpis.autoRoutablePct}%`} />
-        <Kpi icon="ph-gauge" label="Team utilization" value={`${Math.round((staff.reduce((s, x) => s + loadOf(x), 0) / staff.reduce((s, x) => s + x.capacity, 0)) * 100)}%`} />
+        <Kpi icon="ph-gauge" label="Team utilization" value={`${Math.round((staff.reduce((s, x) => s + loadOf(x.name), 0) / staff.reduce((s, x) => s + x.capacity, 0)) * 100)}%`} />
         <Kpi icon="ph-lightning" label="Throughput / day" value={String(kpis.throughput)} />
       </div>
 
@@ -111,13 +128,12 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
                             <i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{best}
                           </span>
                         )}
-                        {best && <button onClick={() => doAssign(q, best, liveLoad(best) >= capOf(best))} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
+                        {best && <button onClick={() => doAssign(q.id, best, q.code)} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
                         <button onClick={() => setExpanded((e) => (e === q.id ? null : q.id))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
                       </div>
                       {expanded === q.id && (
                         <div className="mt-2 space-y-1 border-t border-border pt-2">
-                          {q.candidates.map((c) => {
-                            const load = liveLoad(c.name); const over = load >= c.capacity;
+                          {q.candidates.map((c) => { const load = loadOf(c.name); const over = load >= c.capacity;
                             return (
                               <div key={c.name} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-muted ${c.name === best ? 'bg-primary/5' : ''}`}>
                                 <span className="font-medium">{c.name}</span>
@@ -126,7 +142,7 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
                                 {q.pinnedTo === c.name && <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">pinned</span>}
                                 <span className="text-muted-foreground">score {c.composite} · Q{c.quality} · {c.onTime}% on-time</span>
                                 <span className={`ml-auto ${over ? 'text-destructive' : 'text-muted-foreground'}`}>load {load}/{c.capacity}</span>
-                                <button onClick={() => doAssign(q, c.name, over)} className="rounded-md border border-border px-2 py-0.5 font-semibold hover:bg-accent">Assign</button>
+                                <button onClick={() => doAssign(q.id, c.name, q.code)} className="rounded-md border border-border px-2 py-0.5 font-semibold hover:bg-accent">Assign</button>
                               </div>
                             );
                           })}
@@ -136,23 +152,13 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
                   ); })}
                 </div>
               )}
-              {queue.length - pending.length > 0 && (
-                <div className="mt-3 border-t border-border pt-2">
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assigned this session</p>
-                  <div className="space-y-1">
-                    {queue.filter((q) => assign[q.id]).map((q) => (
-                      <div key={q.id} className="flex items-center gap-2 text-xs"><i className="ph-bold ph-check-circle text-emerald-500" /><span className="font-medium">{q.code}</span><span className="text-muted-foreground">→ {assign[q.id]}</span><button onClick={() => unassign(q)} className="ml-auto text-muted-foreground hover:text-foreground hover:underline">undo</button></div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </Card>
           </div>
 
           <div className="min-w-0 space-y-4">
             <Card icon="ph-users-three" title="Staff workload">
               <div className="space-y-3">
-                {staff.map((s) => { const load = loadOf(s); const pct = Math.round((load / s.capacity) * 100); const full = load >= s.capacity;
+                {staff.map((s) => { const load = loadOf(s.name); const pct = Math.round((load / s.capacity) * 100); const full = load >= s.capacity;
                   return (
                     <div key={s.id}>
                       <div className="flex items-center justify-between text-sm"><span className="font-medium">{s.name}</span><span className={`text-xs font-semibold ${full ? 'text-destructive' : 'text-muted-foreground'}`}>{load}/{s.capacity}{full ? ' · full' : ''}</span></div>
@@ -172,11 +178,11 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
               {pending.map((q) => <OrderCard key={q.id} q={q} best={bestFor(q)} tierMeta={tierMeta} onDragStart={() => setDragId(q.id)} />)}
               {pending.length === 0 && <Empty>Queue clear</Empty>}
             </Column>
-            {staff.map((s) => { const load = loadOf(s); const full = load >= s.capacity;
+            {staff.map((s) => { const load = loadOf(s.name); const full = load >= s.capacity; const items = itemsAt(s.name);
               return (
-                <Column key={s.id} title={s.name} sub={`${load}/${s.capacity}`} accent={full ? 'danger' : 'ok'} onDrop={() => drop(s.name)} dragId={dragId} skills={s.skills}>
-                  {byStaff(s.name).map((q) => <OrderCard key={q.id} q={q} tierMeta={tierMeta} assignedTo={s.name} onDragStart={() => setDragId(q.id)} />)}
-                  {byStaff(s.name).length === 0 && <Empty>Drop orders here</Empty>}
+                <Column key={s.id} title={s.name} sub={`${load}/${s.capacity}`} accent={full ? 'danger' : load / s.capacity > 0.8 ? 'warn' : 'ok'} onDrop={() => drop(s.name)} dragId={dragId} skills={s.skills}>
+                  {items.map((it) => <OrderCard key={it.id} q={it} placed tierMeta={tierMeta} onDragStart={() => setDragId(it.id)} />)}
+                  {items.length === 0 && <Empty>Drop orders here</Empty>}
                 </Column>
               );
             })}
@@ -213,7 +219,7 @@ export function AssignmentClient({ queue, staff, rules, kpis, tierMeta }: Props)
 }
 
 function Due({ d }: { d: number }) {
-  if (!Number.isFinite(d)) return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><i className="ph-bold ph-clock" />no deadline</span>;
+  if (!Number.isFinite(d) || d >= 9999) return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><i className="ph-bold ph-clock" />no deadline</span>;
   const tone = d < 0 ? 'text-destructive' : d <= 1 ? 'text-amber-600' : 'text-muted-foreground';
   return <span className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}><i className="ph-bold ph-clock" />{d < 0 ? `${-d}d overdue` : d === 0 ? 'due today' : `${d}d left`}</span>;
 }
@@ -227,9 +233,9 @@ function Card({ icon, title, right, children }: { icon: string; title: string; r
 function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">{children}</p>;
 }
-function Column({ title, sub, accent, skills, children, onDrop, dragId }: { title: string; sub: string; accent: 'muted' | 'ok' | 'danger'; skills?: string[]; children: ReactNode; onDrop: () => void; dragId: string | null }) {
+function Column({ title, sub, accent, skills, children, onDrop, dragId }: { title: string; sub: string; accent: 'muted' | 'ok' | 'warn' | 'danger'; skills?: string[]; children: ReactNode; onDrop: () => void; dragId: string | null }) {
   const [over, setOver] = useState(false);
-  const dot = accent === 'danger' ? 'bg-destructive' : accent === 'ok' ? 'bg-emerald-500' : 'bg-muted-foreground';
+  const dot = accent === 'danger' ? 'bg-destructive' : accent === 'warn' ? 'bg-amber-500' : accent === 'ok' ? 'bg-emerald-500' : 'bg-muted-foreground';
   return (
     <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={() => { setOver(false); onDrop(); }}
       className={`w-64 shrink-0 rounded-2xl border bg-card p-3 transition ${over && dragId ? 'border-primary ring-2 ring-primary/30' : 'border-border'}`}>
@@ -242,7 +248,7 @@ function Column({ title, sub, accent, skills, children, onDrop, dragId }: { titl
     </div>
   );
 }
-function OrderCard({ q, tierMeta, assignedTo, best, onDragStart }: { q: QueueItem; tierMeta: TierMeta; assignedTo?: string; best?: string | null; onDragStart: () => void }) {
+function OrderCard({ q, tierMeta, placed, best, onDragStart }: { q: CardItem; tierMeta: TierMeta; placed?: boolean; best?: string | null; onDragStart: () => void }) {
   return (
     <div draggable onDragStart={onDragStart} className="cursor-grab rounded-xl border border-border bg-background/50 p-2.5 active:cursor-grabbing">
       <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{q.code}</span><PriorityBadge priority={q.priority} /></div>
@@ -251,7 +257,8 @@ function OrderCard({ q, tierMeta, assignedTo, best, onDragStart }: { q: QueueIte
         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
         <Due d={q.daysToDue} />
       </div>
-      {!assignedTo && best && <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-primary"><i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{q.pinnedTo ? 'pinned' : 'best'}: {best}</p>}
+      {placed ? <div className="mt-1.5"><StatusBadge status={q.status} /></div>
+        : best && <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-primary"><i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{q.pinnedTo ? 'pinned' : 'best'}: {best}</p>}
     </div>
   );
 }
