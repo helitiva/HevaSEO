@@ -20,6 +20,7 @@ type TierMeta = Record<Tier, { label: string; icon: string; color: string }>;
 interface Props { queue: QueueItem[]; assigned: AssignedItem[]; staff: StaffLite[]; rules: RuleLite[]; kpis: Kpis; tierMeta: TierMeta }
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
+const SERVICES = ['Keyword', 'Backlink', 'Content', 'Audit', 'Optimization', 'Web Design', 'Indexer'];
 
 export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta }: Props) {
   // Unified placement: queue orders start unassigned (null); in-flight orders start on their home staff.
@@ -36,6 +37,8 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const [search, setSearch] = useState(''); const [sortBy, setSortBy] = useState<'priority' | 'due' | 'age'>('priority');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkTo, setBulkTo] = useState('');
+  const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null);
+  const [ruleModal, setRuleModal] = useState<{ editing: RuleLite | null } | null>(null);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
   const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
@@ -66,12 +69,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const selVisible = visible.filter((q) => sel.has(q.id));
   const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const selAll = () => setSel((s) => (s.size === visible.length && visible.length ? new Set<string>() : new Set(visible.map((q) => q.id))));
-  const bulkAuto = () => {
-    const extra: Record<string, number> = {}; const picks: Record<string, string> = {};
-    for (const q of selVisible) { const name = bestFor(q, extra); if (name) { picks[q.id] = name; extra[name] = (extra[name] ?? 0) + 1; } }
-    const n = Object.keys(picks).length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set());
-    notify(n ? `Auto-routed ${n} selected — balanced by load` : 'Nothing routed');
-  };
+  const bulkAuto = () => routeMany(selVisible, 'selected');
   const bulkAssign = (name: string) => {
     if (!name) return; const picks = Object.fromEntries(selVisible.map((q) => [q.id, name] as const));
     const n = selVisible.length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set()); setBulkTo('');
@@ -80,13 +78,23 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
 
   const moveTo = (id: string, target: string | null) => setPlace((p) => ({ ...p, [id]: target }));
   const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); notify(loadOf(name) >= capOf(name) ? `⚠ ${name} is at capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`); };
-  const autoAll = () => {
-    const extra: Record<string, number> = {}; const picks: Record<string, string> = {};
-    for (const q of pending) { const name = bestFor(q, extra); if (name) { picks[q.id] = name; extra[name] = (extra[name] ?? 0) + 1; } }
-    const n = Object.keys(picks).length;
-    setPlace((p) => ({ ...p, ...picks }));
-    notify(n ? `Auto-routed ${n} order${n > 1 ? 's' : ''} — balanced by load` : 'Nothing to route');
+  // Guardrail: confirm before manually pushing an order onto a staff who is already full.
+  const assignWithGuard = (id: string, name: string, code: string) => {
+    if (loadOf(name) >= capOf(name)) setConfirm({ msg: `${name} is already at capacity (${loadOf(name)}/${capOf(name)}). Assign ${code} anyway?`, onYes: () => { doAssign(id, name, code); setConfirm(null); } });
+    else doAssign(id, name, code);
   };
+  // Auto-routing respects capacity: never push a staff past their limit; hold the rest.
+  const routeMany = (items: QueueItem[], label: string) => {
+    const extra: Record<string, number> = {}; const picks: Record<string, string> = {}; let held = 0;
+    for (const q of items) {
+      const name = bestFor(q, extra);
+      if (name && loadOf(name) + (extra[name] ?? 0) < capOf(name)) { picks[q.id] = name; extra[name] = (extra[name] ?? 0) + 1; } else held++;
+    }
+    const n = Object.keys(picks).length;
+    setPlace((p) => ({ ...p, ...picks })); setSel(new Set());
+    notify(n ? `Auto-routed ${n} ${label}${held ? ` · held ${held} (no free capacity)` : ''} — balanced by load` : held ? `Held ${held} — no free capacity` : 'Nothing to route');
+  };
+  const autoAll = () => routeMany(pending, pending.length === 1 ? 'order' : 'orders');
   const rebalance = () => {
     const next = { ...place };
     const loadIn = (n: string) => allItems.filter((it) => next[it.id] === n).length;
@@ -105,6 +113,8 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     notify(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced');
   };
   const toggleRule = (id: string) => setRuleState((rs) => rs.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
+  const saveRule = (r: RuleLite) => { setRuleState((rs) => (rs.some((x) => x.id === r.id) ? rs.map((x) => (x.id === r.id ? r : x)) : [...rs, r])); setRuleModal(null); notify('Routing rule saved'); };
+  const deleteRule = (id: string) => { setRuleState((rs) => rs.filter((x) => x.id !== id)); notify('Routing rule removed'); };
   const drop = (target: string | null) => { if (dragId && place[dragId] !== target) { const it = allItems.find((x) => x.id === dragId); moveTo(dragId, target); notify(target ? `Moved ${it?.code} → ${target}` : `${it?.code} returned to queue`); } setDragId(null); };
 
   return (
@@ -181,7 +191,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                             <i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{best}
                           </span>
                         )}
-                        {best && <button onClick={() => doAssign(q.id, best, q.code)} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
+                        {best && <button onClick={() => assignWithGuard(q.id, best, q.code)} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
                         <button onClick={() => setExpanded((e) => (e === q.id ? null : q.id))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
                       </div>
                       {expanded === q.id && (
@@ -244,7 +254,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       )}
 
       {/* routing rules */}
-      <Card icon="ph-git-fork" title="Routing rules" right={<button onClick={() => notify('New rule — pick service & target')} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent">New rule</button>}>
+      <Card icon="ph-git-fork" title="Routing rules" right={<button onClick={() => setRuleModal({ editing: null })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-plus mr-1" />New rule</button>}>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground"><th className="p-2">Service</th><th className="p-2">Mode</th><th className="p-2">Target</th><th className="p-2 text-right">Priority</th><th className="p-2 text-right">Active</th></tr></thead>
@@ -255,8 +265,12 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                   <td className="p-2"><span className={`pill ${r.mode === 'pin' ? 'pill-warn' : 'pill-good'}`}><i className={`ph-bold ${r.mode === 'pin' ? 'ph-push-pin' : 'ph-magic-wand'} mr-0.5`} />{r.mode === 'pin' ? 'pinned' : 'skill pool'}</span></td>
                   <td className="p-2">{r.target ?? <span className="text-muted-foreground">auto · best match</span>}</td>
                   <td className="p-2 text-right text-muted-foreground">{r.priority}</td>
-                  <td className="p-2 text-right">
-                    <button onClick={() => toggleRule(r.id)} role="switch" aria-checked={r.active} className={`relative h-5 w-9 rounded-full transition ${r.active ? 'bg-primary' : 'bg-muted'}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${r.active ? 'left-[18px]' : 'left-0.5'}`} /></button>
+                  <td className="p-2">
+                    <div className="flex items-center justify-end gap-2.5">
+                      <button onClick={() => setRuleModal({ editing: r })} className="text-muted-foreground hover:text-foreground" title="Edit rule"><i className="ph-bold ph-pencil-simple" /></button>
+                      <button onClick={() => deleteRule(r.id)} className="text-muted-foreground hover:text-destructive" title="Remove rule"><i className="ph-bold ph-trash" /></button>
+                      <button onClick={() => toggleRule(r.id)} role="switch" aria-checked={r.active} className={`relative h-5 w-9 rounded-full transition ${r.active ? 'bg-primary' : 'bg-muted'}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${r.active ? 'left-[18px]' : 'left-0.5'}`} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -266,6 +280,19 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
         <p className="mt-2 text-xs text-muted-foreground"><b className="text-foreground">Pinned</b> forces one person; <b className="text-foreground">skill pool</b> auto-routes to the best-scoring available staff with the matching skill.</p>
       </Card>
 
+      {confirm && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+          <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setConfirm(null)} />
+          <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" />{confirm.msg}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setConfirm(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+              <button onClick={confirm.onYes} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Assign anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {ruleModal && <RuleModal editing={ruleModal.editing} staff={staff} onClose={() => setRuleModal(null)} onSave={saveRule} />}
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl">{toast}</div>}
     </section>
   );
@@ -288,6 +315,41 @@ function Empty({ children }: { children: ReactNode }) {
 }
 function Sel({ value, onChange, all, opts }: { value: string; onChange: (v: string) => void; all: string; opts: string[] }) {
   return <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1 text-xs capitalize outline-none focus:border-primary"><option value="">{all}</option>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+}
+function RuleModal({ editing, staff, onClose, onSave }: { editing: RuleLite | null; staff: StaffLite[]; onClose: () => void; onSave: (r: RuleLite) => void }) {
+  const [service, setService] = useState(editing?.service ?? SERVICES[0]);
+  const [pkg, setPkg] = useState(editing?.pkg ?? '');
+  const [mode, setMode] = useState<'pin' | 'auto'>(editing?.mode ?? 'auto');
+  const [target, setTarget] = useState(editing?.target ?? staff[0]?.name ?? '');
+  const [priority, setPriority] = useState(String(editing?.priority ?? 50));
+  const inp = 'rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary';
+  const submit = () => onSave({ id: editing?.id ?? `r${Date.now()}`, service, pkg: pkg.trim() || null, mode, target: mode === 'pin' ? target : null, priority: Number(priority) || 50, active: editing?.active ?? true });
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+      <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+        <p className="display mb-4 text-base font-bold">{editing ? 'Edit routing rule' : 'New routing rule'}</p>
+        <div className="space-y-3">
+          <Row2 label="Service"><select value={service} onChange={(e) => setService(e.target.value)} className={inp}>{SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}</select></Row2>
+          <Row2 label="Package"><input value={pkg} onChange={(e) => setPkg(e.target.value)} placeholder="All packages" className={inp} /></Row2>
+          <Row2 label="Mode">
+            <div className="inline-flex rounded-lg border border-border p-0.5 text-sm font-semibold">
+              {(['auto', 'pin'] as const).map((m) => <button key={m} type="button" onClick={() => setMode(m)} className={`rounded-md px-2.5 py-1 transition ${mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{m === 'auto' ? 'Skill pool' : 'Pinned'}</button>)}
+            </div>
+          </Row2>
+          {mode === 'pin' && <Row2 label="Assign to"><select value={target} onChange={(e) => setTarget(e.target.value)} className={inp}>{staff.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select></Row2>}
+          <Row2 label="Priority"><input type="number" value={priority} onChange={(e) => setPriority(e.target.value)} className={`${inp} w-24`} /></Row2>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+          <button onClick={submit} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Save rule</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Row2({ label, children }: { label: string; children: ReactNode }) {
+  return <label className="flex items-center justify-between gap-4"><span className="text-sm text-muted-foreground">{label}</span><div>{children}</div></label>;
 }
 function Column({ title, sub, accent, skills, children, onDrop, dragId }: { title: string; sub: string; accent: 'muted' | 'ok' | 'warn' | 'danger'; skills?: string[]; children: ReactNode; onDrop: () => void; dragId: string | null }) {
   const [over, setOver] = useState(false);
