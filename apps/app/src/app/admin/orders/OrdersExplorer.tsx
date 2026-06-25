@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
 import { SlideOver } from '@/components/admin/SlideOver';
@@ -62,7 +62,8 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [sort, setSort] = useState('created_desc');
-  const [panel, setPanel] = useState<ExplorerOrder | null>(null);
+  const [panelId, setPanelId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [colOrder, setColOrder] = useState<ColId[]>(DEFAULT_ORDER);
   const [hidden, setHidden] = useState<Set<ColId>>(new Set());
@@ -97,6 +98,34 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
 
   const hasFilter = status || service || tier || source || priority || staffF || search || from || to;
   const clear = () => { setStatus(''); setService(''); setTier(''); setSource(''); setPriority(''); setStaffF(''); setSearch(''); setFrom(''); setTo(''); };
+
+  // ---- side-panel: prev/next within the filtered list + URL deep-link ----
+  const panelIdx = panelId ? filtered.findIndex((o) => o.id === panelId) : -1;
+  const panel = panelIdx >= 0 ? filtered[panelIdx] : panelId ? rows.find((o) => o.id === panelId) ?? null : null;
+  const prevOrder = panelIdx > 0 ? filtered[panelIdx - 1] : null;
+  const nextOrder = panelIdx >= 0 && panelIdx < filtered.length - 1 ? filtered[panelIdx + 1] : null;
+  const copyLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/orders?order=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+
+  useEffect(() => { // open from a shared/refreshed URL
+    const id = new URLSearchParams(window.location.search).get('order');
+    if (id && rows.some((o) => o.id === id)) setPanelId(id);
+  }, [rows]);
+  useEffect(() => { // reflect the open order in the URL (shareable, survives refresh)
+    const url = new URL(window.location.href);
+    if (panelId) url.searchParams.set('order', panelId); else url.searchParams.delete('order');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+  }, [panelId]);
+  useEffect(() => { // j/k to move through the queue while the panel is open
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'j' && nextOrder) setPanelId(nextOrder.id);
+      else if (e.key === 'k' && prevOrder) setPanelId(prevOrder.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panel, nextOrder, prevOrder]);
 
   const columns = colOrder.filter((id) => !hidden.has(id)).map((id) => ({ id, ...COLDEF[id], header: id === 'seq' ? '#' : COLDEF[id].label }));
 
@@ -167,7 +196,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
           </thead>
           <tbody>
             {filtered.map((o) => (
-              <tr key={o.id} onClick={() => setPanel(o)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${panel?.id === o.id ? 'bg-muted/30' : ''}`}>
+              <tr key={o.id} onClick={() => setPanelId(o.id)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${panelId === o.id ? 'bg-muted/30' : ''}`}>
                 {columns.map((c) => <td key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
                 <td className="p-2.5 text-muted-foreground"><i className="ph-bold ph-caret-right" /></td>
               </tr>
@@ -178,15 +207,15 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
       </div>
 
       {panel && (
-        <SlideOver open onClose={() => setPanel(null)} title={panel.code}>
-          <ExpandedRow o={panel} rows={rows} />
+        <SlideOver open onClose={() => setPanelId(null)} title={panel.code}>
+          <ExpandedRow o={panel} rows={rows} prev={prevOrder} next={nextOrder} onNav={setPanelId} onCopy={() => copyLink(panel.id)} copied={copied} />
         </SlideOver>
       )}
     </div>
   );
 }
 
-function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
+function ExpandedRow({ o, rows, prev, next, onNav, onCopy, copied }: { o: ExplorerOrder; rows: ExplorerOrder[]; prev: ExplorerOrder | null; next: ExplorerOrder | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean }) {
   const custRows = rows.filter((r) => r.customer === o.customer);
   const totOrders = custRows.length;
   const totValue = custRows.reduce((s, r) => s + r.value, 0);
@@ -215,9 +244,12 @@ function ExpandedRow({ o, rows }: { o: ExplorerOrder; rows: ExplorerOrder[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous order (k)" aria-label="Previous order" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
+          <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next order (j)" aria-label="Next order" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
+        </div>
         <PriorityBadge priority={o.priority} /><StatusBadge status={o.status} />
-        <span className="text-sm text-muted-foreground">{o.service} · {o.pkg}</span>
-        <Link href={`/admin/orders/${o.id}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open full order →</Link>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy link'}</button>
       </div>
 
       {/* Order */}
