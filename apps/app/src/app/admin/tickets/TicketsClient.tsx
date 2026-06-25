@@ -61,6 +61,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
   const [answered, setAnswered] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.id ?? null);
+  const [copied, setCopied] = useState(false);
   const [macroOpen, setMacroOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [fStatus, setFStatus] = useState<'all' | 'live' | TicketStatus>('all');
@@ -172,6 +173,23 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
   useEffect(() => { if (masterRef.current) masterRef.current.indeterminate = someChecked && !allVisibleChecked; }, [someChecked, allVisibleChecked]);
 
   const selected = visible.find((t) => t.id === selectedId) ?? visible[0] ?? null;
+  const selIdx = selected ? visible.findIndex((t) => t.id === selected.id) : -1;
+  const prevTicket = selIdx > 0 ? visible[selIdx - 1] : null;
+  const nextTicket = selIdx >= 0 && selIdx < visible.length - 1 ? visible[selIdx + 1] : null;
+  const copyTicketLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/tickets?ticket=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  useEffect(() => { const id = new URLSearchParams(window.location.search).get('ticket'); if (id && rows.some((t) => t.id === id)) setSelectedId(id); }, [rows]);
+  useEffect(() => { const url = new URL(window.location.href); if (selectedId) url.searchParams.set('ticket', selectedId); else url.searchParams.delete('ticket'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [selectedId]);
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'j' && nextTicket) setSelectedId(nextTicket.id);
+      else if (e.key === 'k' && prevTicket) setSelectedId(prevTicket.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected, nextTicket, prevTicket]);
 
   // ---- queue virtualization (fixed row height) ----
   const listRef = useRef<HTMLDivElement>(null);
@@ -343,11 +361,14 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
               <div className="flex min-w-0 flex-col gap-4 lg:min-h-0">
                 <div className="shrink-0">
                   <div className="flex flex-wrap items-center gap-2">
+                    <button onClick={() => prevTicket && setSelectedId(prevTicket.id)} disabled={!prevTicket} title="Previous (k)" aria-label="Previous ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
+                    <button onClick={() => nextTicket && setSelectedId(nextTicket.id)} disabled={!nextTicket} title="Next (j)" aria-label="Next ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
                     <span className="display text-lg font-bold">#{selected.code}</span>
                     <span className={`pill ${STATUS_META[stOf(selected)].cls}`}>{STATUS_META[stOf(selected)].label}</span>
                     <PriorityBadge priority={selected.priority} />
                     <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: TICKET_TYPE[selected.type].color }}><i className={`ph-bold ${TICKET_TYPE[selected.type].icon}`} />{TICKET_TYPE[selected.type].label}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-bold ${TICKET_CHANNEL[selected.channel].icon}`} />{TICKET_CHANNEL[selected.channel].label}</span>
+                    <button onClick={() => copyTicketLink(selected.id)} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
                   </div>
                   <p className="mt-1 text-[15px] font-semibold">{selected.subject}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
