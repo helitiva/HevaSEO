@@ -1,17 +1,20 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { SlideOver } from '@/components/admin/SlideOver';
+import { money, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
+interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
 interface Cand { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skillMatch: boolean }
 interface QueueItem {
   id: string; seq: number; code: string; customer: string; tier: Tier; service: string; pkg: string;
   priority: Priority; status: OrderStatus; value: number; deadline: string | null; daysToDue: number;
-  created: string; ageDays: number; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
+  created: string; ageDays: number; cust: CustSummary | null; suggested: string | null; pinnedTo: string | null; candidates: Cand[];
 }
-interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; deadline: string | null; daysToDue: number; home: string }
-interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; daysToDue: number; pinnedTo?: string | null }
+interface AssignedItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline: string | null; daysToDue: number; cust: CustSummary | null; home: string }
+interface CardItem { id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; customer: string; tier: Tier; value: number; deadline?: string | null; daysToDue: number; cust: CustSummary | null; pinnedTo?: string | null }
 interface StaffLite { id: string; name: string; skills: string[]; capacity: number; openLoad: number; composite: number; quality: number; onTime: number; throughput: number }
 interface RuleLite { id: string; service: string; pkg: string | null; mode: 'pin' | 'auto'; target: string | null; priority: number; active: boolean }
 interface Kpis { unassigned: number; overdueRisk: number; autoRoutablePct: number; utilizationPct: number; throughput: number }
@@ -39,7 +42,11 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const [bulkTo, setBulkTo] = useState('');
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null);
   const [ruleModal, setRuleModal] = useState<{ editing: RuleLite | null } | null>(null);
+  const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
+  const [panelId, setPanelId] = useState<string | null>(null);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
+  // record = toast + append to the assignment history log
+  const record = (msg: string, icon = 'ph-arrow-right') => { notify(msg); setHistory((h) => [{ id: `${Date.now()}.${h.length}`, at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), text: msg, icon }, ...h].slice(0, 40)); };
   const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
   const allItems = useMemo<CardItem[]>(() => [...queue, ...assigned], [queue, assigned]);
@@ -58,6 +65,14 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     const free = scored.filter((s) => !s.full);
     return (free.length ? free : scored).sort((a, b) => b.score - a.score)[0].name;
   };
+  // Ranked staff list for the side panel (any order, not just queue items).
+  const rankStaff = (service: string) => {
+    const skill = SKILL_OF[service];
+    const pool = skill ? staff.filter((s) => s.skills.includes(skill)) : staff;
+    const scored = (pool.length ? pool : staff).map((s) => ({ name: s.name, skillMatch: skill ? s.skills.includes(skill) : false, load: loadOf(s.name), cap: s.capacity, quality: s.quality, onTime: s.onTime, score: s.composite - 120 * (loadOf(s.name) / s.capacity) }));
+    const free = scored.filter((s) => s.load < s.cap);
+    return (free.length ? free : scored).sort((a, b) => b.score - a.score);
+  };
 
   const services = useMemo(() => [...new Set(queue.map((q) => q.service))], [queue]);
   const tiers = useMemo(() => [...new Set(queue.map((q) => q.tier))], [queue]);
@@ -73,11 +88,11 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const bulkAssign = (name: string) => {
     if (!name) return; const picks = Object.fromEntries(selVisible.map((q) => [q.id, name] as const));
     const n = selVisible.length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set()); setBulkTo('');
-    notify(`Assigned ${n} order${n > 1 ? 's' : ''} → ${name}`);
+    record(`Bulk-assigned ${n} order${n > 1 ? 's' : ''} → ${name}`, 'ph-users-three');
   };
 
   const moveTo = (id: string, target: string | null) => setPlace((p) => ({ ...p, [id]: target }));
-  const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); notify(loadOf(name) >= capOf(name) ? `⚠ ${name} is at capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`); };
+  const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); record(loadOf(name) >= capOf(name) ? `⚠ ${name} over capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`, 'ph-user-plus'); };
   // Guardrail: confirm before manually pushing an order onto a staff who is already full.
   const assignWithGuard = (id: string, name: string, code: string) => {
     if (loadOf(name) >= capOf(name)) setConfirm({ msg: `${name} is already at capacity (${loadOf(name)}/${capOf(name)}). Assign ${code} anyway?`, onYes: () => { doAssign(id, name, code); setConfirm(null); } });
@@ -92,7 +107,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     }
     const n = Object.keys(picks).length;
     setPlace((p) => ({ ...p, ...picks })); setSel(new Set());
-    notify(n ? `Auto-routed ${n} ${label}${held ? ` · held ${held} (no free capacity)` : ''} — balanced by load` : held ? `Held ${held} — no free capacity` : 'Nothing to route');
+    record(n ? `Auto-routed ${n} ${label}${held ? ` · held ${held} (no free capacity)` : ''} — balanced by load` : held ? `Held ${held} — no free capacity` : 'Nothing to route', 'ph-magic-wand');
   };
   const autoAll = () => routeMany(pending, pending.length === 1 ? 'order' : 'orders');
   const rebalance = () => {
@@ -110,12 +125,13 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       next[orders[0].id] = lo.name; moved++;
     }
     setPlace(next);
-    notify(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced');
+    record(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced', 'ph-scales');
   };
+  const panelItem = panelId ? allItems.find((x) => x.id === panelId) ?? null : null;
   const toggleRule = (id: string) => setRuleState((rs) => rs.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
-  const saveRule = (r: RuleLite) => { setRuleState((rs) => (rs.some((x) => x.id === r.id) ? rs.map((x) => (x.id === r.id ? r : x)) : [...rs, r])); setRuleModal(null); notify('Routing rule saved'); };
-  const deleteRule = (id: string) => { setRuleState((rs) => rs.filter((x) => x.id !== id)); notify('Routing rule removed'); };
-  const drop = (target: string | null) => { if (dragId && place[dragId] !== target) { const it = allItems.find((x) => x.id === dragId); moveTo(dragId, target); notify(target ? `Moved ${it?.code} → ${target}` : `${it?.code} returned to queue`); } setDragId(null); };
+  const saveRule = (r: RuleLite) => { setRuleState((rs) => (rs.some((x) => x.id === r.id) ? rs.map((x) => (x.id === r.id ? r : x)) : [...rs, r])); setRuleModal(null); record(`Rule saved · ${r.service} → ${r.mode === 'pin' ? r.target : 'skill pool'}`, 'ph-git-fork'); };
+  const deleteRule = (id: string) => { setRuleState((rs) => rs.filter((x) => x.id !== id)); record('Routing rule removed', 'ph-trash'); };
+  const drop = (target: string | null) => { if (dragId && place[dragId] !== target) { const it = allItems.find((x) => x.id === dragId); moveTo(dragId, target); record(target ? `Moved ${it?.code} → ${target}` : `${it?.code} returned to queue`, 'ph-arrows-left-right'); } setDragId(null); };
 
   return (
     <section className="space-y-4">
@@ -180,7 +196,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <input type="checkbox" checked={sel.has(q.id)} onChange={() => toggleSel(q.id)} className="accent-primary" />
                         <PriorityBadge priority={q.priority} />
-                        <span className="font-semibold">{q.code}</span>
+                        <button onClick={() => setPanelId(q.id)} className="font-semibold hover:text-primary hover:underline" title="Open order">{q.code}</button>
                         <span className="text-sm text-muted-foreground">{q.service} · {q.pkg}</span>
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
                         <Due d={q.daysToDue} />
@@ -238,13 +254,13 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
         <div className="scrollbar-thin overflow-x-auto pb-2">
           <div className="flex gap-3" style={{ minWidth: `${(staff.length + 1) * 16}rem` }}>
             <Column title="Unassigned" sub={`${pending.length}`} accent="muted" onDrop={() => drop(null)} dragId={dragId}>
-              {pending.map((q) => <OrderCard key={q.id} q={q} best={bestFor(q)} tierMeta={tierMeta} onDragStart={() => setDragId(q.id)} />)}
+              {pending.map((q) => <OrderCard key={q.id} q={q} best={bestFor(q)} tierMeta={tierMeta} onDragStart={() => setDragId(q.id)} onOpen={() => setPanelId(q.id)} />)}
               {pending.length === 0 && <Empty>Queue clear</Empty>}
             </Column>
             {staff.map((s) => { const load = loadOf(s.name); const full = load >= s.capacity; const items = itemsAt(s.name);
               return (
                 <Column key={s.id} title={s.name} sub={`${load}/${s.capacity}`} accent={full ? 'danger' : load / s.capacity > 0.8 ? 'warn' : 'ok'} onDrop={() => drop(s.name)} dragId={dragId} skills={s.skills}>
-                  {items.map((it) => <OrderCard key={it.id} q={it} placed tierMeta={tierMeta} onDragStart={() => setDragId(it.id)} />)}
+                  {items.map((it) => <OrderCard key={it.id} q={it} placed tierMeta={tierMeta} onDragStart={() => setDragId(it.id)} onOpen={() => setPanelId(it.id)} />)}
                   {items.length === 0 && <Empty>Drop orders here</Empty>}
                 </Column>
               );
@@ -252,6 +268,23 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
           </div>
         </div>
       )}
+
+      {/* assignment history */}
+      <Card icon="ph-clock-counter-clockwise" title="Assignment history" right={<span className="text-xs text-muted-foreground">{history.length} event{history.length === 1 ? '' : 's'}</span>}>
+        {history.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">No actions yet — assign, auto-route or rebalance and it shows up here.</p>
+        ) : (
+          <ul className="space-y-2">
+            {history.map((h) => (
+              <li key={h.id} className="flex items-center gap-3 text-sm">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted"><i className={`ph-bold ${h.icon} text-primary`} /></span>
+                <span className="min-w-0 flex-1 truncate">{h.text}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{h.at}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {/* routing rules */}
       <Card icon="ph-git-fork" title="Routing rules" right={<button onClick={() => setRuleModal({ editing: null })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-plus mr-1" />New rule</button>}>
@@ -293,6 +326,13 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
         </div>
       )}
       {ruleModal && <RuleModal editing={ruleModal.editing} staff={staff} onClose={() => setRuleModal(null)} onSave={saveRule} />}
+      {panelItem && (
+        <SlideOver open onClose={() => setPanelId(null)} title={panelItem.code}>
+          <OrderPanelBody item={panelItem} current={place[panelItem.id] ?? null} ranked={rankStaff(panelItem.service)} tierMeta={tierMeta}
+            onAssign={(name) => assignWithGuard(panelItem.id, name, panelItem.code)}
+            onUnassign={() => { moveTo(panelItem.id, null); record(`${panelItem.code} returned to queue`, 'ph-arrow-u-up-left'); }} />
+        </SlideOver>
+      )}
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl">{toast}</div>}
     </section>
   );
@@ -351,6 +391,61 @@ function RuleModal({ editing, staff, onClose, onSave }: { editing: RuleLite | nu
 function Row2({ label, children }: { label: string; children: ReactNode }) {
   return <label className="flex items-center justify-between gap-4"><span className="text-sm text-muted-foreground">{label}</span><div>{children}</div></label>;
 }
+function OrderPanelBody({ item, current, ranked, tierMeta, onAssign, onUnassign }: {
+  item: CardItem; current: string | null; ranked: { name: string; skillMatch: boolean; load: number; cap: number }[]; tierMeta: TierMeta;
+  onAssign: (name: string) => void; onUnassign: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2"><PriorityBadge priority={item.priority} /><StatusBadge status={item.status} /><Due d={item.daysToDue} /></div>
+
+      <PanelSection title="Order">
+        <KV label="Service" value={`${item.service} · ${item.pkg}`} />
+        <KV label="Order value" value={money(item.value)} />
+        <KV label="Deadline" value={item.deadline ?? '—'} />
+      </PanelSection>
+
+      <PanelSection title="Assignment">
+        <p className="mb-2 text-sm">Currently: {current ? <b>{current}</b> : <span className="font-semibold text-amber-600">Unassigned</span>}{current && <button onClick={onUnassign} className="ml-2 text-xs text-muted-foreground hover:underline">return to queue</button>}</p>
+        <div className="space-y-1.5">
+          {ranked.map((c, i) => (
+            <div key={c.name} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm ${current === c.name ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
+              <span className="font-medium">{c.name}</span>
+              {i === 0 && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">recommended</span>}
+              {c.skillMatch && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">skill</span>}
+              <span className={`ml-auto text-xs ${c.load >= c.cap ? 'text-destructive' : 'text-muted-foreground'}`}>{c.load}/{c.cap}</span>
+              <button onClick={() => onAssign(c.name)} disabled={current === c.name} className="rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">{current === c.name ? 'Assigned' : 'Assign'}</button>
+            </div>
+          ))}
+        </div>
+      </PanelSection>
+
+      {item.cust && (
+        <PanelSection title="Customer">
+          <div className="flex items-center gap-2"><span className="font-semibold">{item.cust.name}</span><span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: tierMeta[item.cust.tier].color }}><i className={`ph-fill ${tierMeta[item.cust.tier].icon}`} />{tierMeta[item.cust.tier].label}</span></div>
+          <p className="text-xs text-muted-foreground">{item.cust.company} · {item.cust.email}</p>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Mini label="LTV" value={money(item.cust.spend)} />
+            <Mini label="Orders" value={String(item.cust.orders)} />
+            <Mini label="Credit" value={money(item.cust.balance)} />
+          </div>
+          <Link href={`/admin/customers/${item.cust.id}`} className="mt-2 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>
+        </PanelSection>
+      )}
+
+      <Link href={`/admin/orders/${item.id}`} className="block rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full order →</Link>
+    </div>
+  );
+}
+function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+  return <div><p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>{children}</div>;
+}
+function KV({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between border-b border-border/50 py-1.5 text-sm last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+}
+function Mini({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border border-border p-2 text-center"><p className="display text-sm font-bold">{value}</p><p className="text-[10px] text-muted-foreground">{label}</p></div>;
+}
 function Column({ title, sub, accent, skills, children, onDrop, dragId }: { title: string; sub: string; accent: 'muted' | 'ok' | 'warn' | 'danger'; skills?: string[]; children: ReactNode; onDrop: () => void; dragId: string | null }) {
   const [over, setOver] = useState(false);
   const dot = accent === 'danger' ? 'bg-destructive' : accent === 'warn' ? 'bg-amber-500' : accent === 'ok' ? 'bg-emerald-500' : 'bg-muted-foreground';
@@ -366,9 +461,9 @@ function Column({ title, sub, accent, skills, children, onDrop, dragId }: { titl
     </div>
   );
 }
-function OrderCard({ q, tierMeta, placed, best, onDragStart }: { q: CardItem; tierMeta: TierMeta; placed?: boolean; best?: string | null; onDragStart: () => void }) {
+function OrderCard({ q, tierMeta, placed, best, onDragStart, onOpen }: { q: CardItem; tierMeta: TierMeta; placed?: boolean; best?: string | null; onDragStart: () => void; onOpen?: () => void }) {
   return (
-    <div draggable onDragStart={onDragStart} className="cursor-grab rounded-xl border border-border bg-background/50 p-2.5 active:cursor-grabbing">
+    <div draggable onDragStart={onDragStart} onClick={onOpen} className="cursor-pointer rounded-xl border border-border bg-background/50 p-2.5 transition hover:border-primary/50 active:cursor-grabbing">
       <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{q.code}</span><PriorityBadge priority={q.priority} /></div>
       <p className="mt-0.5 truncate text-xs text-muted-foreground">{q.service} · {q.pkg}</p>
       <div className="mt-1.5 flex items-center justify-between">

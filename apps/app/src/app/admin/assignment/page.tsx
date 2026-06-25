@@ -19,6 +19,11 @@ function rank(service: string, pkg: string) {
   };
 }
 
+const custOf = (company: string) => {
+  const c = customerByCompany(company);
+  return c ? { id: c.id, name: c.name, company: c.company, email: c.email, tier: c.tier, spend: c.spend, orders: c.orders, balance: c.balance } : null;
+};
+
 export default function AssignmentPage() {
   const unassigned = ORDERS.filter((o) => o.staff === null && o.status !== 'canceled');
   const queue = unassigned.map((o) => {
@@ -30,7 +35,7 @@ export default function AssignmentPage() {
       id: o.id, seq: seqMap.get(o.id) ?? 0, code: o.code, customer: o.customer, tier,
       service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, value: o.value,
       deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((TODAY.getTime() - new Date(o.created).getTime()) / 86400000),
-      suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
+      cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
@@ -40,7 +45,7 @@ export default function AssignmentPage() {
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
-    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, deadline: o.deadline, daysToDue, home: o.staff as string };
+    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, cust: custOf(o.customer), home: o.staff as string };
   });
 
   const staff = STAFF.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: assigned.filter((a) => a.home === s.name).length, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));
