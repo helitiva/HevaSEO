@@ -189,7 +189,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
               ) : visible.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No orders match these filters.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="scrollbar-thin max-h-[34rem] space-y-2 overflow-y-auto pr-1">
                   <label className="flex cursor-pointer items-center gap-2 px-1 text-xs text-muted-foreground"><input type="checkbox" checked={visible.length > 0 && selVisible.length === visible.length} onChange={selAll} className="accent-primary" />Select all ({visible.length})</label>
                   {visible.map((q) => { const best = bestFor(q); return (
                     <div key={q.id} className={`rounded-xl border bg-background/40 p-3 ${sel.has(q.id) ? 'border-primary/50' : 'border-border'}`}>
@@ -274,7 +274,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
         {history.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No actions yet — assign, auto-route or rebalance and it shows up here.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="scrollbar-thin max-h-72 space-y-2 overflow-y-auto pr-1">
             {history.map((h) => (
               <li key={h.id} className="flex items-center gap-3 text-sm">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-muted"><i className={`ph-bold ${h.icon} text-primary`} /></span>
@@ -457,7 +457,7 @@ function Column({ title, sub, accent, skills, children, onDrop, dragId }: { titl
         <span className="text-xs font-semibold text-muted-foreground">{sub}</span>
       </div>
       {skills && <p className="mb-2 px-1 text-[10px] text-muted-foreground">{skills.join(' · ')}</p>}
-      <div className="space-y-2">{children}</div>
+      <div className="scrollbar-thin max-h-[62vh] space-y-2 overflow-y-auto pr-0.5">{children}</div>
     </div>
   );
 }

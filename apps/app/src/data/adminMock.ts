@@ -44,6 +44,31 @@ export const ORDERS: AdminOrder[] = [
   { id: 'o14', code: 'BL-1014', customer: 'Bright Ltd', service: 'Backlink', pkg: 'Starter', status: 'changes_requested', priority: 'high', source: 'quick', value: 36, staff: 'Linh P.', deadline: '2026-06-24', created: '2026-06-12' },
   { id: 'o15', code: 'CNT-1015', customer: 'Nova', service: 'Content', pkg: '3 articles', status: 'delivered', priority: 'med', source: 'dashboard', value: 36, staff: 'Huy N.', deadline: '2026-06-26', created: '2026-06-11' },
   { id: 'o16', code: 'AUD-1016', customer: 'Vértice', service: 'Audit', pkg: 'Standard', status: 'canceled', priority: 'low', source: 'quick', value: 39, staff: null, deadline: '2026-06-15', created: '2026-06-09' },
+  // --- unassigned queue (staff: null) ---
+  { id: 'o17', code: 'KW-1017', customer: 'Orbit Labs', service: 'Keyword', pkg: 'Pro', status: 'confirmed', priority: 'high', source: 'quick', value: 79, staff: null, deadline: '2026-06-26', created: '2026-06-23' },
+  { id: 'o18', code: 'BL-1018', customer: 'Vertex AI', service: 'Backlink', pkg: 'Power', status: 'new', priority: 'high', source: 'dashboard', value: 104, staff: null, deadline: '2026-06-27', created: '2026-06-24' },
+  { id: 'o19', code: 'CNT-1019', customer: 'Pulse Media', service: 'Content', pkg: '5 articles', status: 'confirmed', priority: 'med', source: 'dashboard', value: 60, staff: null, deadline: '2026-06-28', created: '2026-06-22' },
+  { id: 'o20', code: 'OPT-1020', customer: 'Cobalt Studio', service: 'Optimization', pkg: 'Standard', status: 'new', priority: 'med', source: 'quick', value: 79, staff: null, deadline: '2026-06-29', created: '2026-06-25' },
+  { id: 'o21', code: 'AUD-1021', customer: 'Greenfield', service: 'Audit', pkg: 'Basic', status: 'new', priority: 'low', source: 'quick', value: 19, staff: null, deadline: '2026-06-30', created: '2026-06-25' },
+  { id: 'o22', code: 'BL-1022', customer: 'Acme Co', service: 'Backlink', pkg: 'Growth', status: 'confirmed', priority: 'high', source: 'dashboard', value: 64, staff: null, deadline: '2026-06-25', created: '2026-06-20' },
+  { id: 'o23', code: 'KW-1023', customer: 'Nova', service: 'Keyword', pkg: 'Standard', status: 'new', priority: 'med', source: 'quick', value: 39, staff: null, deadline: '2026-06-28', created: '2026-06-24' },
+  { id: 'o24', code: 'CNT-1024', customer: 'Vertex AI', service: 'Content', pkg: '10 articles', status: 'confirmed', priority: 'high', source: 'dashboard', value: 120, staff: null, deadline: '2026-06-26', created: '2026-06-21' },
+  { id: 'o25', code: 'WD-1025', customer: 'Orbit Labs', service: 'Web Design', pkg: 'Landing', status: 'new', priority: 'med', source: 'dashboard', value: 159, staff: null, deadline: '2026-07-03', created: '2026-06-25' },
+  // --- active work on staff ---
+  { id: 'o26', code: 'CNT-1026', customer: 'Pulse Media', service: 'Content', pkg: '5 articles', status: 'in_progress', priority: 'med', source: 'dashboard', value: 60, staff: 'Diego R.', deadline: '2026-06-27', created: '2026-06-21' },
+  { id: 'o27', code: 'OPT-1027', customer: 'Vértice', service: 'Optimization', pkg: 'Ultra', status: 'assigned', priority: 'high', source: 'dashboard', value: 140, staff: 'Diego R.', deadline: '2026-06-29', created: '2026-06-22' },
+  { id: 'o28', code: 'KW-1028', customer: 'Cobalt Studio', service: 'Keyword', pkg: 'Pro', status: 'in_progress', priority: 'med', source: 'quick', value: 79, staff: 'Aria K.', deadline: '2026-06-26', created: '2026-06-20' },
+  { id: 'o29', code: 'BL-1029', customer: 'Vertex AI', service: 'Backlink', pkg: 'Power', status: 'internal_review', priority: 'high', source: 'dashboard', value: 104, staff: 'Aria K.', deadline: '2026-06-25', created: '2026-06-19' },
+  { id: 'o30', code: 'BL-1030', customer: 'Orbit Labs', service: 'Backlink', pkg: 'Growth', status: 'assigned', priority: 'med', source: 'dashboard', value: 64, staff: 'Tom B.', deadline: '2026-06-28', created: '2026-06-21' },
+  { id: 'o31', code: 'CNT-1031', customer: 'Acme Co', service: 'Content', pkg: '3 articles', status: 'changes_requested', priority: 'high', source: 'dashboard', value: 36, staff: 'Tom B.', deadline: '2026-06-24', created: '2026-06-18' },
+  { id: 'o32', code: 'KW-1032', customer: 'Bright Ltd', service: 'Keyword', pkg: 'Standard', status: 'in_progress', priority: 'med', source: 'dashboard', value: 39, staff: 'Mai T.', deadline: '2026-06-27', created: '2026-06-22' },
+  { id: 'o33', code: 'BL-1033', customer: 'Nova', service: 'Backlink', pkg: 'Starter', status: 'assigned', priority: 'low', source: 'quick', value: 36, staff: 'Linh P.', deadline: '2026-06-30', created: '2026-06-23' },
+  { id: 'o34', code: 'CNT-1034', customer: 'Vertex AI', service: 'Content', pkg: '10 articles', status: 'in_progress', priority: 'high', source: 'dashboard', value: 120, staff: 'Huy N.', deadline: '2026-06-26', created: '2026-06-20' },
+  { id: 'o35', code: 'OPT-1035', customer: 'Pulse Media', service: 'Optimization', pkg: 'Standard', status: 'delivered', priority: 'med', source: 'dashboard', value: 79, staff: 'Diego R.', deadline: '2026-06-25', created: '2026-06-17' },
+  { id: 'o36', code: 'KW-1036', customer: 'Orbit Labs', service: 'Keyword', pkg: 'Pro', status: 'assigned', priority: 'med', source: 'dashboard', value: 79, staff: 'Aria K.', deadline: '2026-06-29', created: '2026-06-24' },
+  // --- closed (history/analytics) ---
+  { id: 'o37', code: 'AUD-1037', customer: 'Cobalt Studio', service: 'Audit', pkg: 'Standard', status: 'completed', priority: 'low', source: 'quick', value: 39, staff: 'Mai T.', deadline: '2026-06-21', created: '2026-06-15' },
+  { id: 'o38', code: 'CNT-1038', customer: 'Lumen', service: 'Content', pkg: '5 articles', status: 'approved', priority: 'med', source: 'dashboard', value: 60, staff: 'Huy N.', deadline: '2026-06-23', created: '2026-06-16' },
 ];
 
 // Customer tiers (shown by icon in the orders/customers tables).
@@ -65,6 +90,11 @@ export const CUSTOMERS: AdminCustomer[] = [
   { id: 'c4', name: 'Marco Vidal', company: 'Vértice', email: 'marco@vertice.es', status: 'claimed', orders: 6, spend: 920, balance: 80, lastActive: '2026-06-21', tier: 'silver' },
   { id: 'c5', name: 'Priya Nair', company: 'Peak Digital', email: 'priya@peak.io', status: 'claimed', orders: 4, spend: 640, balance: 0, lastActive: '2026-06-20', tier: 'silver' },
   { id: 'c6', name: 'Tom Vale', company: 'Lumen', email: 'tom@lumen.co', status: 'shadow', orders: 1, spend: 79, balance: 0, lastActive: '2026-06-24', tier: 'new' },
+  { id: 'c7', name: 'Elena Park', company: 'Orbit Labs', email: 'elena@orbit.dev', status: 'claimed', orders: 11, spend: 2460, balance: 410, lastActive: '2026-06-24', tier: 'gold' },
+  { id: 'c8', name: 'Raj Mehta', company: 'Pulse Media', email: 'raj@pulse.media', status: 'claimed', orders: 5, spend: 730, balance: 60, lastActive: '2026-06-23', tier: 'silver' },
+  { id: 'c9', name: 'Sofia Bianchi', company: 'Vertex AI', email: 'sofia@vertex.ai', status: 'claimed', orders: 17, spend: 4120, balance: 900, lastActive: '2026-06-25', tier: 'vip' },
+  { id: 'c10', name: 'Noah Berg', company: 'Greenfield', email: 'noah@greenfield.co', status: 'shadow', orders: 1, spend: 39, balance: 0, lastActive: '2026-06-25', tier: 'new' },
+  { id: 'c11', name: 'Lina Haddad', company: 'Cobalt Studio', email: 'lina@cobalt.studio', status: 'claimed', orders: 7, spend: 1180, balance: 150, lastActive: '2026-06-22', tier: 'silver' },
 ];
 export const customerByCompany = (company: string) => CUSTOMERS.find((c) => c.company === company);
 
@@ -138,6 +168,9 @@ export const STAFF: AdminStaff[] = [
   { id: 's1', name: 'Mai T.', skills: ['keyword','optimize','content'], capacity: 6, openLoad: 3, composite: 92, quality: 95, onTime: 90, throughput: 22, active: true },
   { id: 's2', name: 'Linh P.', skills: ['backlink','keyword'], capacity: 5, openLoad: 4, composite: 88, quality: 86, onTime: 92, throughput: 31, active: true },
   { id: 's3', name: 'Huy N.', skills: ['content','optimize'], capacity: 8, openLoad: 5, composite: 84, quality: 88, onTime: 79, throughput: 40, active: true },
+  { id: 's4', name: 'Diego R.', skills: ['content','optimize'], capacity: 7, openLoad: 4, composite: 86, quality: 90, onTime: 85, throughput: 28, active: true },
+  { id: 's5', name: 'Aria K.', skills: ['keyword','backlink'], capacity: 6, openLoad: 2, composite: 90, quality: 92, onTime: 88, throughput: 26, active: true },
+  { id: 's6', name: 'Tom B.', skills: ['backlink','content'], capacity: 5, openLoad: 3, composite: 82, quality: 84, onTime: 80, throughput: 34, active: true },
 ];
 
 export const TICKETS: AdminTicket[] = [
