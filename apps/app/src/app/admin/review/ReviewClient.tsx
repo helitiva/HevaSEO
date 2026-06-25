@@ -10,6 +10,8 @@ interface QueueItem {
   id: string; code: string; service: string; pkg: string; priority: Priority; status: OrderStatus; value: number;
   deadline: string | null; customer: string; tier: Tier; cust: CustSummary | null; staff: string | null;
   versions: AdminDeliverable[]; latest: AdminDeliverable; isResubmission: boolean; ageDays: number; criteria: string[];
+  brief: { label: string; value: string }[]; customerNote: string | null; project: string; folder: string;
+  source: 'quick' | 'dashboard'; created: string; memberSince: string | null;
 }
 interface SentBack { id: string; code: string; service: string; staff: string | null; reviewNote: string | null; ageDays: number }
 interface StaffQ { name: string; reviewed: number; changeRate: number }
@@ -78,8 +80,11 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                   {q.isResubmission && <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">re-sub v{q.latest.version}</span>}
                   <span className={`ml-auto text-[11px] ${q.ageDays >= 4 ? 'font-semibold text-destructive' : q.ageDays >= 2 ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}>{q.ageDays}d</span>
                 </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{q.service} · {q.pkg} · {q.staff}</p>
-                <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{q.service} · {q.pkg}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
+                </div>
               </button>
             ))}
             {visible.length === 0 && <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground"><i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" />Inbox zero — nothing to review.</p>}
@@ -99,13 +104,47 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 <Link href={`/admin/orders/${selected.id}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open full order →</Link>
               </div>
 
-              <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+              {/* customer card */}
+              {selected.cust && (
+                <div className="rounded-xl border border-border bg-background/40 p-3">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{selected.cust.name.split(' ').map((x) => x[0]).join('')}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{selected.cust.name}</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: tierMeta[selected.cust.tier].color }}><i className={`ph-fill ${tierMeta[selected.cust.tier].icon}`} />{tierMeta[selected.cust.tier].label}</span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">{selected.cust.company} · {selected.cust.email}{selected.memberSince ? ` · since ${selected.memberSince}` : ''}</p>
+                    </div>
+                    <Link href={`/admin/customers/${selected.cust.id}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">Profile →</Link>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-3 gap-2">
+                    <Mini label="Lifetime value" value={money(selected.cust.spend)} />
+                    <Mini label="Total orders" value={String(selected.cust.orders)} />
+                    <Mini label="Credit" value={money(selected.cust.balance)} />
+                  </div>
+                </div>
+              )}
+
+              {/* order scope */}
+              <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 <KV label="Service" value={`${selected.service} · ${selected.pkg}`} />
                 <KV label="Order value" value={money(selected.value)} />
                 <KV label="Deadline" value={selected.deadline ?? '—'} />
                 <KV label="Submitted by" value={selected.staff ?? '—'} />
-                {selected.cust && <KV label="Customer" value={`${selected.cust.name} · ${tierMeta[selected.cust.tier].label}`} />}
-                {selected.cust && <KV label="Customer LTV" value={`${money(selected.cust.spend)} · ${selected.cust.orders} orders`} />}
+                <KVNode label="Filed under"><span className="inline-flex items-center gap-1 text-sm font-medium"><i className="ph-bold ph-folders text-muted-foreground" />{selected.project}<i className="ph-bold ph-caret-right text-muted-foreground" />{selected.folder}</span></KVNode>
+                <KV label="Source" value={`via ${selected.source}`} />
+              </div>
+
+              {/* customer brief & note */}
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Customer brief</p>
+                <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+                  {selected.brief.map((f) => <KV key={f.label} label={f.label} value={f.value} />)}
+                </div>
+                {selected.customerNote
+                  ? <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm"><p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-chat-circle-text" />Note from customer</p>{selected.customerNote}</div>
+                  : <p className="mt-2 text-xs text-muted-foreground">No note from the customer.</p>}
               </div>
 
               {/* versions */}
@@ -213,6 +252,12 @@ function Card({ icon, title, right, children }: { icon: string; title: string; r
 }
 function KV({ label, value }: { label: string; value: string }) {
   return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span><span className="text-sm font-medium">{value}</span></div>;
+}
+function KVNode({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>{children}</div>;
+}
+function Mini({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border border-border p-2 text-center"><p className="display text-sm font-bold">{value}</p><p className="text-[10px] text-muted-foreground">{label}</p></div>;
 }
 function StatusChip({ status }: { status: AdminDeliverable['status'] }) {
   const map = { submitted: { c: 'bg-sky-500/10 text-sky-600', t: 'submitted' }, approved: { c: 'bg-emerald-500/10 text-emerald-600', t: 'approved' }, changes_requested: { c: 'bg-amber-500/10 text-amber-600', t: 'changes requested' } }[status];

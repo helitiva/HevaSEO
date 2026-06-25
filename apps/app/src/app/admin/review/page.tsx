@@ -1,4 +1,4 @@
-import { ORDERS, DELIVERABLES, STAFF, TIER, tierOf, customerByCompany, qaCriteriaFor, type Tier } from '@/data/adminMock';
+import { ORDERS, DELIVERABLES, STAFF, TIER, tierOf, customerByCompany, qaCriteriaFor, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier } from '@/data/adminMock';
 import { ReviewClient } from './ReviewClient';
 
 const TODAY = new Date('2026-06-25T00:00:00');
@@ -20,11 +20,23 @@ export default function ReviewPage() {
       const latest = versions[0];
       const cust = customerByCompany(o.customer);
       const tier: Tier = cust ? cust.tier : tierOf(o.value);
+      const extra = ORDER_EXTRA[o.id];
+      const site = cust?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
+      const brief = extra?.brief ?? [
+        { label: 'Website', value: `https://${site}` },
+        { label: 'Target URL', value: `https://${site}/` },
+        { label: 'Primary goal', value: 'Improve organic visibility' },
+        { label: 'Target market', value: 'US · English' },
+      ];
+      const customerNote = ORDER_NOTE[o.id] ?? extra?.brief.find((b) => /note/i.test(b.label))?.value ?? null;
       return {
         id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status,
         value: o.value, deadline: o.deadline, customer: o.customer, tier, cust: custOf(o.customer), staff: o.staff,
         versions, latest, isResubmission: versions.length > 1 || versions.some((v) => v.status === 'changes_requested'),
         ageDays: days(latest.submittedAt, TODAY), criteria: qaCriteriaFor(o.service),
+        brief: brief.filter((b) => !/note/i.test(b.label)), customerNote,
+        project: extra?.project ?? `${o.customer} — SEO program`, folder: extra?.folder ?? 'General',
+        source: o.source, created: o.created, memberSince: cust ? CUSTOMER_EXTRA[cust.id]?.memberSince ?? null : null,
       };
     })
     .sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || b.ageDays - a.ageDays);

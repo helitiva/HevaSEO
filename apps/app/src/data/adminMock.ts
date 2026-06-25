@@ -101,6 +101,14 @@ export const DELIVERABLES: AdminDeliverable[] = [
 ];
 
 // Acceptance criteria per service — review is checklist-driven, not vibes.
+// Free-text note the customer left on the order (optional).
+export const ORDER_NOTE: Record<string, string> = {
+  o3: 'Avoid casino/gambling sources — prefer fintech & SaaS publications.',
+  o4: 'Match our brand voice and link each post to /pricing.',
+  o29: 'Tech / SaaS publications only; DR 50+ preferred.',
+  o35: 'Mobile LCP is the priority — desktop already passes.',
+};
+
 export const QA_CRITERIA: Record<string, string[]> = {
   Content: ['Matches the brief & target keyword', 'Original (passes plagiarism)', 'Internal links added', 'Meta title & description set', 'Formatting & readability'],
   Backlink: ['Domain relevance', 'DR / authority threshold met', 'Link live & dofollow', 'Anchor text natural & diversified'],
