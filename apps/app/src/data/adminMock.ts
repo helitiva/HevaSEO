@@ -71,6 +71,48 @@ export const ORDERS: AdminOrder[] = [
   { id: 'o38', code: 'CNT-1038', customer: 'Lumen', service: 'Content', pkg: '5 articles', status: 'approved', priority: 'med', source: 'dashboard', value: 60, staff: 'Huy N.', deadline: '2026-06-23', created: '2026-06-16' },
 ];
 
+// ---- Deliverable Review (module 4): versioned submissions per order ----
+export interface AdminDeliverable {
+  id: string; orderId: string; version: number; kind: 'file' | 'link';
+  fileName: string | null; url: string | null; note: string; staff: string;
+  status: 'submitted' | 'approved' | 'changes_requested';
+  submittedAt: string; reviewedAt: string | null; reviewNote: string | null;
+}
+export const DELIVERABLES: AdminDeliverable[] = [
+  // CNT-1004 — re-submission (v1 was sent back, v2 awaiting review)
+  { id: 'd1', orderId: 'o4', version: 1, kind: 'file', fileName: 'acme-blog-v1.docx', url: null, note: 'First draft — 5 posts.', staff: 'Huy N.', status: 'changes_requested', submittedAt: '2026-06-22', reviewedAt: '2026-06-23', reviewNote: 'Add internal links and fill meta titles/descriptions.' },
+  { id: 'd2', orderId: 'o4', version: 2, kind: 'file', fileName: 'acme-blog-v2.docx', url: null, note: 'Added internal links + meta on all 5 posts as requested.', staff: 'Huy N.', status: 'submitted', submittedAt: '2026-06-24', reviewedAt: null, reviewNote: null },
+  // CNT-1015 — first-pass, awaiting review
+  { id: 'd3', orderId: 'o15', version: 1, kind: 'link', fileName: null, url: 'https://docs.google.com/document/d/nova-3-articles', note: 'Nova — 3 articles, published as drafts.', staff: 'Huy N.', status: 'submitted', submittedAt: '2026-06-24', reviewedAt: null, reviewNote: null },
+  // OPT-1035 — awaiting review
+  { id: 'd4', orderId: 'o35', version: 1, kind: 'file', fileName: 'pulse-optimization-report.pdf', url: null, note: 'On-page fixes applied; before/after metrics inside.', staff: 'Diego R.', status: 'submitted', submittedAt: '2026-06-23', reviewedAt: null, reviewNote: null },
+  // BL-1003 — awaiting review
+  { id: 'd5', orderId: 'o3', version: 1, kind: 'link', fileName: null, url: 'https://nova.co/blog/guest-seo-trends', note: 'Guest post live · DR 58 · dofollow.', staff: 'Linh P.', status: 'submitted', submittedAt: '2026-06-23', reviewedAt: null, reviewNote: null },
+  // BL-1029 — awaiting review
+  { id: 'd6', orderId: 'o29', version: 1, kind: 'file', fileName: 'vertex-backlinks.xlsx', url: null, note: '8 links built, all live and indexed.', staff: 'Aria K.', status: 'submitted', submittedAt: '2026-06-24', reviewedAt: null, reviewNote: null },
+  // changes_requested (awaiting staff re-submission — feeds quality stats)
+  { id: 'd7', orderId: 'o14', version: 1, kind: 'link', fileName: null, url: 'https://example.com/starter-links', note: 'Starter pack — 4 links.', staff: 'Linh P.', status: 'changes_requested', submittedAt: '2026-06-22', reviewedAt: '2026-06-23', reviewNote: 'Anchors too exact-match; diversify.' },
+  { id: 'd8', orderId: 'o31', version: 1, kind: 'file', fileName: 'acme-3-articles.docx', url: null, note: '3 articles draft.', staff: 'Tom B.', status: 'changes_requested', submittedAt: '2026-06-22', reviewedAt: '2026-06-23', reviewNote: 'Tone is off-brand — rework the intros.' },
+  // closed / approved (for first-pass approval stats)
+  { id: 'd9', orderId: 'o10', version: 1, kind: 'file', fileName: 'vertice-opt.pdf', url: null, note: 'Ultra optimization complete.', staff: 'Mai T.', status: 'approved', submittedAt: '2026-06-21', reviewedAt: '2026-06-22', reviewNote: null },
+  { id: 'd10', orderId: 'o38', version: 1, kind: 'link', fileName: null, url: 'https://docs.google.com/document/d/lumen-5', note: 'Lumen 5 articles.', staff: 'Huy N.', status: 'approved', submittedAt: '2026-06-21', reviewedAt: '2026-06-22', reviewNote: null },
+  { id: 'd11', orderId: 'o13', version: 1, kind: 'file', fileName: 'acme-kw-v1.xlsx', url: null, note: 'Keyword map v1.', staff: 'Mai T.', status: 'changes_requested', submittedAt: '2026-06-17', reviewedAt: '2026-06-18', reviewNote: 'Add search intent column.' },
+  { id: 'd12', orderId: 'o13', version: 2, kind: 'file', fileName: 'acme-kw-v2.xlsx', url: null, note: 'Added intent classification.', staff: 'Mai T.', status: 'approved', submittedAt: '2026-06-18', reviewedAt: '2026-06-19', reviewNote: null },
+];
+
+// Acceptance criteria per service — review is checklist-driven, not vibes.
+export const QA_CRITERIA: Record<string, string[]> = {
+  Content: ['Matches the brief & target keyword', 'Original (passes plagiarism)', 'Internal links added', 'Meta title & description set', 'Formatting & readability'],
+  Backlink: ['Domain relevance', 'DR / authority threshold met', 'Link live & dofollow', 'Anchor text natural & diversified'],
+  Audit: ['All sections complete', 'Issues prioritised by impact', 'Action items are clear'],
+  Optimization: ['Changes implemented & verified', 'No regressions introduced', 'Before/after captured'],
+  Keyword: ['Volume & difficulty included', 'Mapped to target pages', 'Search intent classified'],
+  'Web Design': ['Matches approved mockup', 'Responsive on mobile', 'Lighthouse / performance ok'],
+  Indexer: ['Submission confirmed', 'Per-link status reported'],
+  _default: ['Meets the order scope', 'Quality is acceptable', 'Ready to deliver to the customer'],
+};
+export const qaCriteriaFor = (service: string): string[] => QA_CRITERIA[service] ?? QA_CRITERIA._default;
+
 // Customer tiers (shown by icon in the orders/customers tables).
 export type Tier = 'new' | 'silver' | 'gold' | 'vip';
 export const TIER: Record<Tier, { label: string; icon: string; color: string }> = {
