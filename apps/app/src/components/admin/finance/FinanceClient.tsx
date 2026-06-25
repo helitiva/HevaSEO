@@ -47,7 +47,7 @@ export function FinanceClient() {
         <Kpi icon="ph-chart-line-up" label="Net · MTD" value={money(f.netMtd)} tone="good" hint="after refunds" />
         <Kpi icon="ph-wallet" label="Wallet liability" value={money(f.walletLiability)} hint="prepaid customer credit" />
         <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(f.refundsMtd)} hint="3% of gross" />
-        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(f.payoutsDue)} tone="warn" hint="staff commission" />
+        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(f.payoutsDue)} tone="warn" hint="salary + commission" />
         <Kpi icon="ph-receipt" label="Outstanding AR" value={money(f.outstandingAr)} tone="warn" hint="unpaid invoices" />
       </div>
 
@@ -437,7 +437,16 @@ function WalletDetail({ c }: { c: AdminCustomer }) {
 }
 
 /* ---------------------------------------------------------------- Payouts */
-type PayoutOverride = { rate: number; adj: number };
+type PayoutOverride = { base: number; rate: number; bonus: number };
+
+// Effective comp for a payout, applying any admin override.
+function effComp(p: Payout, ov?: PayoutOverride) {
+  const base = ov ? ov.base : p.base;
+  const rate = ov ? ov.rate / 100 : p.rate;
+  const bonus = ov ? ov.bonus : p.bonus;
+  const commission = Math.round(p.basis * rate);
+  return { base, rate, bonus, commission, total: base + commission + bonus };
+}
 
 // Prior payroll runs, derived from settled payout transactions grouped by
 // settlement date — gives the period selector its read-only history.
@@ -460,11 +469,7 @@ function PayoutsTab() {
   const [period, setPeriod] = useState<string>('current');
   const rows = useMemo(() => [...PAYOUTS].sort((a, b) => b.due - a.due), []);
 
-  const effDue = (p: Payout): number => {
-    const ov = overrides[p.staffId];
-    if (!ov) return p.due;
-    return Math.round((p.basis + ov.adj) * (ov.rate / 100));
-  };
+  const effDue = (p: Payout): number => effComp(p, overrides[p.staffId]).total;
 
   const remaining = rows.filter((p) => !paid[p.staffId]).reduce((a, p) => a + effDue(p), 0);
   const activeHistory = PAYOUT_HISTORY.find((h) => h.date === period) ?? null;
@@ -506,47 +511,50 @@ function PayoutsTab() {
         ))}
       </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Commission on billable (delivered+) work this period · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay. Click a row to see breakdown or edit.</p>
+      <p className="px-1 text-xs text-muted-foreground">Fixed salary + commission on billable (delivered+) work + bonus · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay. Click a row to edit salary, rate or bonus.</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3">Orders</th><th className="p-3">Basis</th>
-              <th className="p-3">Rate</th><th className="p-3">Due</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
+              <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Commission</th>
+              <th className="p-3">Bonus</th><th className="p-3">Total</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
             {rows.map((p) => {
               const isPaid = paid[p.staffId];
               const ov = overrides[p.staffId];
-              const due = effDue(p);
-              const dispRate = ov ? ov.rate : Math.round(p.rate * 100);
-              const dispBasis = ov ? p.basis + ov.adj : p.basis;
+              const e = effComp(p, ov);
+              const dispRate = Math.round(e.rate * 100);
+              const baseChanged = !!ov && ov.base !== p.base;
+              const rateChanged = !!ov && Math.round(ov.rate) !== Math.round(p.rate * 100);
               return (
                 <tr key={p.staffId} onClick={() => setSelected(p)}
                   role="button" tabIndex={0} aria-label={`View payout breakdown for ${p.staff}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(p); } }}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(p); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
                   <td className="p-3">
-                    <Link href={`/admin/staff/${p.staffId}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{p.staff}</Link>
+                    <Link href={`/admin/staff/${p.staffId}`} className="font-medium hover:underline" onClick={(ev) => ev.stopPropagation()}>{p.staff}</Link>
                     <span className="text-muted-foreground"> · {p.role}</span>
+                    {!p.active && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">inactive</span>}
                   </td>
-                  <td className="p-3 text-muted-foreground">{p.completedOrders}</td>
                   <td className="p-3 tabular-nums">
-                    {money(dispBasis)}
-                    {ov && ov.adj !== 0 && <span className={`ml-1 text-[10px] font-bold ${ov.adj > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{ov.adj > 0 ? '+' : ''}{money(ov.adj)}</span>}
+                    {money(e.base)}
+                    {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" />}
                   </td>
-                  <td className="p-3">
-                    <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold ${ov ? 'bg-amber-500/10 text-amber-700' : 'bg-primary/8 text-primary'}`}>
-                      {dispRate}%{ov && ov.rate !== Math.round(p.rate * 100) && <i className="ph-bold ph-pencil-simple text-[9px]" />}
-                    </span>
+                  <td className="p-3 tabular-nums">
+                    {money(e.commission)}
+                    <span className={`ml-1 text-[10px] font-semibold ${rateChanged ? 'text-amber-700' : 'text-muted-foreground'}`}>@ {dispRate}%</span>
                   </td>
-                  <td className="p-3 font-semibold tabular-nums">{money(due)}</td>
-                  <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td className="p-3 tabular-nums">
+                    {e.bonus ? <span className="font-semibold text-emerald-600">+{money(e.bonus)}</span> : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="p-3 font-semibold tabular-nums">{money(e.total)}</td>
+                  <td className="p-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                     {isPaid
                       ? <span className="pill pill-live">Paid</span>
-                      : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={due === 0}
+                      : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={e.total === 0}
                           className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">Mark paid</button>}
                   </td>
                   <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
@@ -554,6 +562,16 @@ function PayoutsTab() {
               );
             })}
           </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
+              <td className="p-3 text-muted-foreground">{rows.length} staff</td>
+              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).base, 0))}</td>
+              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0))}</td>
+              <td className="p-3 tabular-nums text-emerald-600">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0))}</td>
+              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effDue(p), 0))}</td>
+              <td className="p-3" /><td className="p-3" />
+            </tr>
+          </tfoot>
         </table>
       </div>
 
@@ -580,18 +598,25 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   const orders: AdminOrder[] = ORDERS.filter((o) => o.staff === p.staff && PAYABLE_STATES.includes(o.status));
   const roleRate = Math.round(p.rate * 100);
   const [editing, setEditing] = useState(false);
+  const [draftBase, setDraftBase] = useState(override?.base ?? p.base);
   const [draftRate, setDraftRate] = useState(override?.rate ?? roleRate);
-  const [draftAdj, setDraftAdj] = useState(override?.adj ?? 0);
+  const [draftBonus, setDraftBonus] = useState(override?.bonus ?? p.bonus);
 
-  const effectiveRate = override?.rate ?? roleRate;
-  const effectiveAdj = override?.adj ?? 0;
-  const effectiveBasis = p.basis + effectiveAdj;
-  const effectiveDue = Math.round(effectiveBasis * (effectiveRate / 100));
-  const isOverridden = !!override && (override.rate !== roleRate || override.adj !== 0);
-  const previewDue = Math.round((p.basis + draftAdj) * (draftRate / 100));
+  const e = effComp(p, override);
+  const effRatePct = Math.round(e.rate * 100);
+  const baseChanged = !!override && override.base !== p.base;
+  const rateChanged = !!override && Math.round(override.rate) !== roleRate;
+  const bonusSet = e.bonus !== 0;
+  const previewCommission = Math.round(p.basis * (draftRate / 100));
+  const previewTotal = draftBase + previewCommission + draftBonus;
 
-  const startEditing = () => { setDraftRate(override?.rate ?? roleRate); setDraftAdj(override?.adj ?? 0); setEditing(true); };
-  const saveEdit = () => { onSaveOverride({ rate: draftRate, adj: draftAdj }); setEditing(false); };
+  const startEditing = () => {
+    setDraftBase(override?.base ?? p.base);
+    setDraftRate(override?.rate ?? roleRate);
+    setDraftBonus(override?.bonus ?? p.bonus);
+    setEditing(true);
+  };
+  const saveEdit = () => { onSaveOverride({ base: draftBase, rate: draftRate, bonus: draftBonus }); setEditing(false); };
 
   return (
     <div className="space-y-5">
@@ -602,65 +627,84 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
         </span>
         <div className="min-w-0">
           <p className="display text-xl font-bold leading-none">{p.staff}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{p.role}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{p.role}{!p.active && ' · inactive'}</p>
         </div>
         <div className="ml-auto shrink-0">
           {paid ? <span className="pill pill-live">Paid</span> : <span className="pill pill-warn">Due</span>}
         </div>
       </div>
 
-      {/* commission rule / edit form */}
+      {/* compensation summary / edit form */}
       {!editing ? (
         <div className="rounded-xl border border-border bg-muted/30 p-3">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Commission rule</p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Compensation this period</p>
             {!paid && (
               <button onClick={startEditing} className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground">
                 <i className="ph-bold ph-pencil-simple text-[10px]" /> Edit
               </button>
             )}
           </div>
-          <p className="text-sm font-semibold">
-            <span className="text-primary">{effectiveRate}%</span> of order value
-            {isOverridden && <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">override</span>}
-            {!isOverridden && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(role default)</span>}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Applies to: delivered, in review, approved, completed orders</p>
-          {effectiveAdj !== 0 && (
-            <p className={`mt-1 text-xs font-semibold ${effectiveAdj > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-              Basis adjustment: {effectiveAdj > 0 ? '+' : ''}{money(effectiveAdj)}
-            </p>
-          )}
+          <dl className="space-y-1 text-sm">
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Fixed salary{baseChanged && <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</dt>
+              <dd className="font-semibold tabular-nums">{money(e.base)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Commission <span className="text-xs">({effRatePct}% × {money(p.basis)} billable){rateChanged && <span className="ml-1 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</span></dt>
+              <dd className="font-semibold tabular-nums">{money(e.commission)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Bonus</dt>
+              <dd className={`font-semibold tabular-nums ${bonusSet ? 'text-emerald-600' : 'text-muted-foreground'}`}>{bonusSet ? `+${money(e.bonus)}` : money(0)}</dd>
+            </div>
+            <div className="mt-1 flex items-center justify-between border-t border-border pt-1.5">
+              <dt className="font-semibold">Total due</dt>
+              <dd className="display text-base font-bold tabular-nums text-primary">{money(e.total)}</dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-[11px] text-muted-foreground">Commission applies to delivered, in review, approved &amp; completed orders.</p>
         </div>
       ) : (
         <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Edit commission</p>
-          <div className="grid grid-cols-2 gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Edit pay</p>
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Rate <span className="font-normal">(default {roleRate}%)</span></label>
-              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
-                <input type="number" min={0} max={100} step={1} value={draftRate}
-                  onChange={(e) => setDraftRate(Math.max(0, Math.min(100, Number(e.target.value))))}
-                  className="w-full bg-transparent px-3 py-1.5 text-sm font-semibold tabular-nums outline-none" />
-                <span className="shrink-0 border-l border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Basis adjustment</label>
+              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Fixed salary</label>
               <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
                 <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
-                <input type="number" step={1} value={draftAdj}
-                  onChange={(e) => setDraftAdj(Number(e.target.value))}
-                  className="w-full bg-transparent px-3 py-1.5 text-sm font-semibold tabular-nums outline-none" />
+                <input type="number" min={0} step={50} value={draftBase}
+                  onChange={(ev) => setDraftBase(Math.max(0, Number(ev.target.value)))}
+                  className="w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none" />
               </div>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">+ bonus · − deduction</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">role {money(p.base)}</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Comm. rate</label>
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <input type="number" min={0} max={100} step={1} value={draftRate}
+                  onChange={(ev) => setDraftRate(Math.max(0, Math.min(100, Number(ev.target.value))))}
+                  className="w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none" />
+                <span className="shrink-0 border-l border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">%</span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">role {roleRate}%</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Bonus</label>
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
+                <input type="number" step={25} value={draftBonus}
+                  onChange={(ev) => setDraftBonus(Number(ev.target.value))}
+                  className="w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none" />
+              </div>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">+ reward / − dock</p>
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-xs">
-            <span className="font-mono text-muted-foreground">
-              ({money(p.basis)}{draftAdj !== 0 ? ` ${draftAdj > 0 ? '+' : '−'} ${money(Math.abs(draftAdj))}` : ''}) × {draftRate}% =
-            </span>
-            <span className="font-bold text-foreground">{money(previewDue)}</span>
+          <div className="space-y-0.5 rounded-lg bg-background px-3 py-2 text-xs">
+            <div className="flex items-center justify-between font-mono text-muted-foreground"><span>Salary</span><span>{money(draftBase)}</span></div>
+            <div className="flex items-center justify-between font-mono text-muted-foreground"><span>Commission ({draftRate}% × {money(p.basis)})</span><span>{money(previewCommission)}</span></div>
+            <div className="flex items-center justify-between font-mono text-muted-foreground"><span>Bonus</span><span>{draftBonus >= 0 ? '+' : '−'}{money(Math.abs(draftBonus))}</span></div>
+            <div className="flex items-center justify-between border-t border-border pt-1 font-semibold text-foreground"><span>Total</span><span>{money(previewTotal)}</span></div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setEditing(false)} className="flex-1 rounded-lg border border-border py-1.5 text-xs font-semibold transition hover:bg-accent">Cancel</button>
@@ -670,22 +714,23 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
       )}
 
       {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-4 gap-2 text-center">
         {([
-          { label: 'Orders', val: String(p.completedOrders) },
-          { label: 'Basis', val: money(effectiveBasis) },
-          { label: 'Commission', val: money(effectiveDue), accent: !paid },
-        ] as { label: string; val: string; accent?: boolean }[]).map(({ label, val, accent }) => (
-          <div key={label} className="rounded-xl border border-border p-3">
-            <p className={`display text-xl font-bold ${accent ? 'text-amber-600' : paid && label === 'Commission' ? 'text-muted-foreground line-through' : ''}`}>{val}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
+          { label: 'Fixed', val: money(e.base) },
+          { label: 'Commission', val: money(e.commission) },
+          { label: 'Bonus', val: bonusSet ? `+${money(e.bonus)}` : money(0), tone: bonusSet ? 'text-emerald-600' : '' },
+          { label: 'Total', val: money(e.total), accent: !paid },
+        ] as { label: string; val: string; accent?: boolean; tone?: string }[]).map(({ label, val, accent, tone }) => (
+          <div key={label} className="rounded-xl border border-border p-2.5">
+            <p className={`display text-base font-bold ${accent ? 'text-amber-600' : paid && label === 'Total' ? 'text-muted-foreground line-through' : tone ?? ''}`}>{val}</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* orders breakdown */}
+      {/* orders breakdown (commission basis) */}
       <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Qualifying orders</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Commission basis · {p.completedOrders} qualifying order{p.completedOrders !== 1 ? 's' : ''}</p>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full border-collapse text-xs">
             <thead>
@@ -702,21 +747,19 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
                   <td className="p-2.5 text-muted-foreground">{o.service}</td>
                   <td className="p-2.5 font-medium">{o.customer}</td>
                   <td className="p-2.5 text-right tabular-nums">{money(o.value)}</td>
-                  <td className="p-2.5 text-right tabular-nums font-semibold text-amber-600">{money(Math.round(o.value * (effectiveRate / 100)))}</td>
+                  <td className="p-2.5 text-right tabular-nums font-semibold text-amber-600">{money(Math.round(o.value * e.rate))}</td>
                 </tr>
               ))}
               {orders.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No qualifying orders this period.</td></tr>
+                <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No qualifying orders — salary{bonusSet ? ' + bonus' : ''} only.</td></tr>
               )}
             </tbody>
             {orders.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                  <td colSpan={3} className="p-2.5 text-muted-foreground">
-                    Total{effectiveAdj !== 0 && <span className={`ml-1.5 text-[10px] ${effectiveAdj > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>({effectiveAdj > 0 ? '+' : ''}{money(effectiveAdj)} adj)</span>}
-                  </td>
-                  <td className="p-2.5 text-right tabular-nums">{money(effectiveBasis)}</td>
-                  <td className="p-2.5 text-right tabular-nums text-amber-600">{money(effectiveDue)}</td>
+                  <td colSpan={3} className="p-2.5 text-muted-foreground">Total @ {effRatePct}%</td>
+                  <td className="p-2.5 text-right tabular-nums">{money(p.basis)}</td>
+                  <td className="p-2.5 text-right tabular-nums text-amber-600">{money(e.commission)}</td>
                 </tr>
               </tfoot>
             )}
@@ -729,7 +772,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
         <div className="border-t border-border pt-4">
           <button onClick={onMarkPaid}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110">
-            <i className="ph-bold ph-check-circle" /> Mark {money(effectiveDue)} as paid
+            <i className="ph-bold ph-check-circle" /> Mark {money(e.total)} as paid
           </button>
         </div>
       ) : (
