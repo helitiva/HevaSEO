@@ -345,10 +345,10 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
   const idx = STAGE_OF[status];
   const changes = status === 'changes_requested';
   return (
-    <div className="flex items-center">
+    <div className="flex items-start">
       {FLOW.map((s, i) => (
         <Fragment key={s.label}>
-          {i > 0 && <span className={`mx-1.5 h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
+          {i > 0 && <span className={`mx-1.5 mt-[11px] h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
           <div className="flex shrink-0 flex-col items-center gap-1">
             <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
             <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}{changes && i === idx ? ' ·changes' : ''}</span>
