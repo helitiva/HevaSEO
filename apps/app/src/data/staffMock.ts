@@ -61,16 +61,31 @@ export const deliverablesFor = (orderId: string): StaffDeliverable[] =>
 
 // Submission history across every task on the staffer's board — newest first for the table.
 export interface MyDeliverable {
-  d: StaffDeliverable; taskId: string; taskCode: string; service: string;
+  d: StaffDeliverable; taskId: string; taskCode: string; service: string; customer: string;
 }
 export const myDeliverables = (): MyDeliverable[] =>
   MY_TASKS.flatMap((t) =>
-    deliverablesFor(t.id).map((d) => ({ d, taskId: t.id, taskCode: t.code, service: t.service })),
+    deliverablesFor(t.id).map((d) => ({ d, taskId: t.id, taskCode: t.code, service: t.service, customer: t.customer })),
   ).sort((a, b) => (b.d.submittedAt ?? '').localeCompare(a.d.submittedAt ?? ''));
 
 // Rework rounds for a task = number of versions that were sent back for changes.
 export const reworkCount = (orderId: string): number =>
   deliverablesFor(orderId).filter((d) => d.status === 'changes_requested').length;
+
+// Headline quality stats for the deliverables workspace.
+export interface DeliverableStats { total: number; approved: number; inReview: number; reworking: number; firstPassRate: number | null; }
+export function deliverableStats(): DeliverableStats {
+  const rows = myDeliverables();
+  const approvedTaskIds = [...new Set(rows.filter((r) => r.d.status === 'approved').map((r) => r.taskId))];
+  const firstPass = approvedTaskIds.filter((id) => reworkCount(id) === 0).length;
+  return {
+    total: rows.length,
+    approved: rows.filter((r) => r.d.status === 'approved').length,
+    inReview: rows.filter((r) => r.d.status === 'submitted').length,
+    reworking: rows.filter((r) => r.d.status === 'changes_requested').length,
+    firstPassRate: approvedTaskIds.length ? Math.round((firstPass / approvedTaskIds.length) * 100) : null,
+  };
+}
 
 // ---- Own earnings (the staffer's OWN pay — not customer prices) ----
 // Pulls aggregates from the admin payroll. Deliberately exposes ONLY base/commission/bonus/
