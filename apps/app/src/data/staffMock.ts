@@ -1,0 +1,150 @@
+// Staff-surface mock. Single source of truth = adminMock's ORDERS/DELIVERABLES.
+// StaffTask deliberately OMITS money (value/price) at the type level, so a leak is a
+// compile error, not a runtime check. Staff sees tasks, never prices or credit.
+import {
+  ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, qaCriteriaFor, briefFor,
+  PAYOUTS, TRANSACTIONS,
+  type OrderStatus, type Priority, type AdminDeliverable,
+} from './adminMock';
+
+export type { OrderStatus, Priority } from './adminMock';
+export type StaffDeliverable = AdminDeliverable; // already money-free
+
+export interface StaffTask {
+  id: string; code: string; customer: string; service: string; pkg: string;
+  status: OrderStatus; priority: Priority; skill: string | null;
+  deadline: string | null; created: string;
+  site: string | null; keywords: string[]; note: string | null; qa: string[];
+  brief: { label: string; value: string }[]; // full customer intake from checkout
+}
+
+export interface StaffMessage { who: string; body: string; internal: boolean; at: string; }
+
+// The signed-in staff member (mock). Swapped for the session user when auth lands.
+export const CURRENT_STAFF = { id: 's3', name: 'Huy N.', role: 'Content Lead' };
+
+// Curated board: one task per actionable status so every column has signal in the demo.
+const MY_TASK_IDS = ['o30', 'o8', 'o34', 'o31', 'o4', 'o15', 'o38'];
+
+const siteOf = (b: { label: string; value: string }[]): string | null =>
+  b.find((x) => /website|site|url/i.test(x.label))?.value ?? null;
+// Keywords for the board chips, pulled from the brief's keyword/anchor field.
+const keywordsOf = (b: { label: string; value: string }[]): string[] => {
+  const field = b.find((x) => /keyword|anchor/i.test(x.label))?.value;
+  return field ? field.split(/[,;]/).map((k) => k.trim()).filter(Boolean).slice(0, 6) : [];
+};
+
+export const MY_TASKS: StaffTask[] = MY_TASK_IDS
+  .map((id) => ORDERS.find((o) => o.id === id))
+  .filter((o): o is NonNullable<typeof o> => Boolean(o))
+  .map((o) => {
+    const brief = briefFor(o.id);
+    return {
+      id: o.id, code: o.code, customer: o.customer, service: o.service, pkg: o.pkg,
+      status: o.status, priority: o.priority, skill: SERVICE_SKILL[o.service] ?? null,
+      deadline: o.deadline, created: o.created,
+      site: siteOf(brief), keywords: keywordsOf(brief),
+      note: ORDER_NOTE[o.id] ?? null, qa: qaCriteriaFor(o.service), brief,
+    };
+  });
+
+export const taskById = (id: string): StaffTask | undefined => MY_TASKS.find((t) => t.id === id);
+
+// Deliverables for a task, oldest → newest (newest is the "current" submission).
+export const deliverablesFor = (orderId: string): StaffDeliverable[] =>
+  DELIVERABLES.filter((d) => d.orderId === orderId).sort((a, b) => a.version - b.version);
+
+// Submission history across every task on the staffer's board — newest first for the table.
+export interface MyDeliverable {
+  d: StaffDeliverable; taskId: string; taskCode: string; service: string;
+}
+export const myDeliverables = (): MyDeliverable[] =>
+  MY_TASKS.flatMap((t) =>
+    deliverablesFor(t.id).map((d) => ({ d, taskId: t.id, taskCode: t.code, service: t.service })),
+  ).sort((a, b) => (b.d.submittedAt ?? '').localeCompare(a.d.submittedAt ?? ''));
+
+// Rework rounds for a task = number of versions that were sent back for changes.
+export const reworkCount = (orderId: string): number =>
+  deliverablesFor(orderId).filter((d) => d.status === 'changes_requested').length;
+
+// ---- Own earnings (the staffer's OWN pay — not customer prices) ----
+// Pulls aggregates from the admin payroll. Deliberately exposes ONLY base/commission/bonus/
+// take-home — never the Payout's `basis`/`rate`, so commission can't be reverse-engineered into
+// the customer revenue behind it. This is the one place money is intentionally shown to staff.
+export interface StaffEarnings {
+  base: number; commission: number; bonus: number; takeHome: number;
+  lastPaid: { month: string; amount: number } | null;
+}
+export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | null {
+  const p = PAYOUTS.find((x) => x.staffId === staffId);
+  if (!p) return null;
+  const past = TRANSACTIONS
+    .filter((t) => t.kind === 'payout' && t.partyId === staffId)
+    .sort((a, b) => b.at.localeCompare(a.at))[0];
+  const lastPaid = past
+    ? { month: past.note?.split(' ')[0] ?? past.at.slice(0, 7), amount: Math.abs(past.amount) }
+    : null;
+  return { base: p.base, commission: p.commission, bonus: p.bonus, takeHome: p.due, lastPaid };
+}
+
+// ---- Customers the staffer is actively caring for (derived from their board; no money) ----
+export interface CaredCustomer { name: string; active: number; services: string[]; }
+export function myCustomers(): CaredCustomer[] {
+  const map = new Map<string, CaredCustomer>();
+  for (const t of MY_TASKS) {
+    if (t.status === 'completed' || t.status === 'canceled') continue;
+    const c = map.get(t.customer) ?? { name: t.customer, active: 0, services: [] };
+    map.set(t.customer, {
+      name: c.name,
+      active: c.active + 1,
+      services: c.services.includes(t.service) ? c.services : [...c.services, t.service],
+    });
+  }
+  return [...map.values()].sort((a, b) => b.active - a.active);
+}
+
+// Two-thread seed: customer-visible vs internal. Per-task in real life; shared seed for the mock.
+export const MESSAGES: Record<string, StaffMessage[]> = {
+  o4: [
+    { who: 'Jane Doe', body: 'Hi, any update on the articles?', internal: false, at: '2d' },
+    { who: 'You', body: 'Batch 2 is in review now, you’ll have it today.', internal: false, at: '1d' },
+    { who: 'Admin', body: 'Add internal links + meta on all 5 before resubmitting.', internal: true, at: '1d' },
+  ],
+};
+export const messagesFor = (orderId: string): StaffMessage[] => MESSAGES[orderId] ?? [];
+
+// ---- Notifications inbox (mock) ----
+export type StaffNotifKind = 'assignment' | 'changes' | 'reminder' | 'approved';
+export interface StaffNotification {
+  id: string; kind: StaffNotifKind; title: string; body: string;
+  taskId: string | null; at: string; read: boolean;
+}
+export const STAFF_NOTIFICATIONS: StaffNotification[] = [
+  { id: 'n1', kind: 'changes', title: 'Changes requested · CNT-1004', body: 'Add internal links and fill meta titles/descriptions before resubmitting.', taskId: 'o4', at: '2h ago', read: false },
+  { id: 'n2', kind: 'assignment', title: 'New task assigned · KW-1031', body: 'A keyword map landed on your board — due in 3 days.', taskId: 'o31', at: '5h ago', read: false },
+  { id: 'n3', kind: 'reminder', title: 'Deadline soon · BL-1008', body: 'Backlink batch is due tomorrow. Submit when ready.', taskId: 'o8', at: 'Yesterday', read: false },
+  { id: 'n4', kind: 'approved', title: 'Approved · CNT-1015', body: 'Your Nova articles passed review — nice work. Scorecard updated.', taskId: 'o15', at: 'Yesterday', read: true },
+  { id: 'n5', kind: 'reminder', title: 'Capacity check', body: 'You have 5 open tasks. Update availability if you need a lighter week.', taskId: null, at: '2d ago', read: true },
+];
+
+export const NOTIF_META: Record<StaffNotifKind, { icon: string; tone: string; label: string }> = {
+  assignment: { icon: 'ph-tray-arrow-down', tone: 'text-primary', label: 'Assignment' },
+  changes: { icon: 'ph-arrow-counter-clockwise', tone: 'text-amber-500', label: 'Changes requested' },
+  reminder: { icon: 'ph-alarm', tone: 'text-sky-500', label: 'Reminder' },
+  approved: { icon: 'ph-seal-check', tone: 'text-emerald-500', label: 'Approved' },
+};
+
+export const statusLabel: Record<OrderStatus, string> = {
+  new: 'New', confirmed: 'Confirmed', assigned: 'Assigned', in_progress: 'In progress',
+  internal_review: 'Internal review', delivered: 'Delivered', changes_requested: 'Changes requested',
+  approved: 'Approved', completed: 'Completed', canceled: 'Canceled',
+};
+
+// Columns staff actually work through (no New/Confirmed — that's admin intake).
+export const BOARD_COLUMNS: { status: OrderStatus; label: string }[] = [
+  { status: 'assigned', label: 'Assigned' },
+  { status: 'in_progress', label: 'In progress' },
+  { status: 'internal_review', label: 'In review' },
+  { status: 'changes_requested', label: 'Changes requested' },
+  { status: 'delivered', label: 'Delivered' },
+];

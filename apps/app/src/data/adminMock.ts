@@ -209,6 +209,98 @@ export const ORDER_EXTRA: Record<string, OrderExtra> = {
   },
 };
 
+// Full customer intake (the order brief the customer filled in at checkout), keyed by order.
+// Lightweight vs OrderExtra so any order can carry a rich brief. Read via briefFor().
+export const ORDER_BRIEF: Record<string, { label: string; value: string }[]> = {
+  o30: [
+    { label: 'Website', value: 'https://orbitlabs.io' },
+    { label: 'Campaign goal', value: 'Grow domain authority and rank /platform for “observability platform”' },
+    { label: 'Pages to boost', value: '/platform, /pricing, /blog/distributed-tracing' },
+    { label: 'Anchor keywords', value: 'observability platform, distributed tracing, OpenTelemetry monitoring' },
+    { label: 'Volume / month', value: '8 referring domains (Growth package)' },
+    { label: 'Minimum Domain Rating', value: 'DR 45+' },
+    { label: 'Niche / relevance', value: 'DevOps, SRE, cloud infrastructure' },
+    { label: 'Target market', value: 'North America + EU · English' },
+    { label: 'Competitors', value: 'datadog.com, honeycomb.io' },
+    { label: 'Disallowed sources', value: 'No PBNs, link farms, gambling or adult sites' },
+    { label: 'Special instructions', value: 'Prefer guest posts on engineering blogs; vary anchor text so the profile stays natural.' },
+  ],
+  o8: [
+    { label: 'Website', value: 'https://acme.com' },
+    { label: 'Content goal', value: 'Top-of-funnel articles to capture early-stage buyers' },
+    { label: 'Article topics', value: 'Ecommerce SEO checklist; WooCommerce speed; Product-page optimization; Abandoned-cart recovery; Shopping-feed optimization' },
+    { label: 'Primary keywords', value: 'ecommerce seo, woocommerce speed, product page seo' },
+    { label: 'Word count', value: '~1,500 words per article' },
+    { label: 'Brand voice', value: 'Practical and friendly, no fluff' },
+    { label: 'Audience', value: 'SMB online-store owners' },
+    { label: 'Internal links', value: 'Link to /pricing and /shop where relevant' },
+    { label: 'Style reference', value: 'https://acme.com/blog' },
+    { label: 'Deliverable format', value: 'Google Doc · H2/H3 outline · meta title + description each' },
+    { label: 'Notes', value: 'Suggest one original image idea per article.' },
+  ],
+  o34: [
+    { label: 'Website', value: 'https://vertex.ai' },
+    { label: 'Content goal', value: 'Educational thought-leadership to build authority in MLOps' },
+    { label: 'Article topics', value: 'Feature stores; Model monitoring; Vector databases; RAG pipelines; LLM evaluation (+5 from the keyword map)' },
+    { label: 'Primary keywords', value: 'mlops platform, model monitoring, vector database, rag pipeline' },
+    { label: 'Word count', value: '1,800–2,200 words per article' },
+    { label: 'Brand voice', value: 'Technical, precise, credible — written for ML engineers' },
+    { label: 'Audience', value: 'ML engineers and data-platform leads' },
+    { label: 'SME review', value: 'Drafts reviewed by their staff engineer before publish' },
+    { label: 'Deliverable format', value: 'Markdown + code blocks · meta + suggested internal links' },
+    { label: 'Notes', value: 'Cite primary sources; avoid hype words like “revolutionary”.' },
+  ],
+  o31: [
+    { label: 'Website', value: 'https://acme.com' },
+    { label: 'Content goal', value: 'Comparison + bottom-funnel pages to drive signups' },
+    { label: 'Article topics', value: 'Acme vs RivalCo; Best WooCommerce SEO plugins; Migrating to Acme' },
+    { label: 'Primary keywords', value: 'woocommerce seo plugin, acme alternative' },
+    { label: 'Word count', value: '~1,200 words per article' },
+    { label: 'Brand voice', value: 'Confident but fair to competitors' },
+    { label: 'Internal links', value: 'CTA to /pricing in each piece' },
+    { label: 'Deliverable format', value: 'Google Doc · comparison tables where useful' },
+    { label: 'Notes', value: 'Revision round: tighten intros and add a summary table (per admin feedback).' },
+  ],
+  o4: [
+    { label: 'Website', value: 'https://acme.com' },
+    { label: 'Content goal', value: 'Evergreen how-to library for organic traffic' },
+    { label: 'Article topics', value: 'Batch of 10 how-to guides from the approved keyword map' },
+    { label: 'Primary keywords', value: 'how to set up woocommerce, ecommerce shipping, store seo basics' },
+    { label: 'Word count', value: '1,500–2,000 words per article' },
+    { label: 'Brand voice', value: 'Friendly, step-by-step, beginner-safe' },
+    { label: 'Internal links', value: '2–3 internal links per article' },
+    { label: 'Deliverable format', value: 'Google Doc · screenshot placeholders · meta each' },
+    { label: 'Notes', value: 'Admin asked for internal links + meta on all 5 of batch 2 before resubmitting.' },
+  ],
+  o15: [
+    { label: 'Website', value: 'https://novahq.com' },
+    { label: 'Content goal', value: 'Launch-support articles for a new analytics product' },
+    { label: 'Article topics', value: 'Product analytics 101; Event tracking guide; North-star metrics' },
+    { label: 'Primary keywords', value: 'product analytics, event tracking, north star metric' },
+    { label: 'Word count', value: '~1,600 words per article' },
+    { label: 'Brand voice', value: 'Sharp, modern, data-driven' },
+    { label: 'Audience', value: 'PMs and growth teams at startups' },
+    { label: 'Deliverable format', value: 'Notion export · meta + social blurb each' },
+    { label: 'Notes', value: 'Approved — passed review on the first pass.' },
+  ],
+  o38: [
+    { label: 'Website', value: 'https://lumen.energy' },
+    { label: 'Content goal', value: 'SEO articles for residential solar lead-gen' },
+    { label: 'Article topics', value: 'Solar payback period; Battery storage basics; Net metering by state; Solar tax credits; Choosing an installer' },
+    { label: 'Primary keywords', value: 'solar payback, home battery storage, net metering, solar tax credit' },
+    { label: 'Word count', value: '~1,400 words per article' },
+    { label: 'Brand voice', value: 'Clear, trustworthy, lightly optimistic' },
+    { label: 'Audience', value: 'US homeowners considering solar' },
+    { label: 'Compliance', value: 'Avoid guaranteed-savings claims; cite figures' },
+    { label: 'Deliverable format', value: 'Google Doc · FAQ-schema suggestions · meta each' },
+    { label: 'Notes', value: 'Approved and live — keep as a style reference for future batches.' },
+  ],
+};
+
+// Single source for an order's customer brief: dedicated map → OrderExtra → empty.
+export const briefFor = (orderId: string): { label: string; value: string }[] =>
+  ORDER_BRIEF[orderId] ?? ORDER_EXTRA[orderId]?.brief ?? [];
+
 // ---- Customer profile extras ----------------------------------------
 export interface CustomerExtra { phone: string; timezone: string; memberSince: string; tags: string[]; }
 export const CUSTOMER_EXTRA: Record<string, CustomerExtra> = {
@@ -262,6 +354,21 @@ export const STAFF: AdminStaff[] = [
   { id: 's5', name: 'Aria K.', skills: ['keyword','backlink'], capacity: 6, openLoad: 2, composite: 90, quality: 92, onTime: 88, throughput: 26, active: true, role: 'SEO Analyst', email: 'aria@hevaseo.com', since: '2024-03-22', tz: 'GMT+2', trend: [2,3,3,4,4,5,5,6] },
   { id: 's6', name: 'Tom B.', skills: ['backlink','content'], capacity: 5, openLoad: 3, composite: 82, quality: 84, onTime: 80, throughput: 34, active: false, role: 'Link Builder', email: 'tom@hevaseo.com', since: '2023-09-05', tz: 'GMT+0', trend: [4,4,5,5,6,5,7,6] },
 ];
+
+// Team managers — ops leads who own a slice of the delivery roster. (Same people as
+// the manager-tier admin accounts; see ADMIN_SETTINGS.admins.)
+export interface AdminManager { id: string; name: string; email: string; title: string; }
+export const MANAGERS: AdminManager[] = [
+  { id: 'mgr1', name: 'Sofia Marin', email: 'sofia@hevaseo.com', title: 'Operations Manager' },
+  { id: 'mgr2', name: 'Ken Rivera',  email: 'ken@hevaseo.com',   title: 'Delivery Manager' },
+];
+// Which manager owns which staff member (staff id → manager id).
+export const STAFF_MANAGER: Record<string, string> = {
+  s1: 'mgr1', s2: 'mgr1', s5: 'mgr1',  // Sofia — search & links pod
+  s3: 'mgr2', s4: 'mgr2', s6: 'mgr2',  // Ken — content & optimization pod
+};
+export const managerOf = (staffId: string): AdminManager | null =>
+  MANAGERS.find((m) => m.id === STAFF_MANAGER[staffId]) ?? null;
 
 // SLA response targets by tier (hours to first/next staff reply).
 export const SLA_LIMIT_H: Record<SlaTier, number> = { urgent: 2, standard: 24 };
@@ -770,3 +877,19 @@ export const ADMIN_SETTINGS: AdminSettings = {
     { id: 'ad3', name: 'Ken Rivera', email: 'ken@hevaseo.com', role: 'Admin', lastActive: 'pending invite', status: 'invited', twoFA: false },
   ],
 };
+
+// ---- Time-off / leave requests (decision 3 / §9) ----
+// Staff submit these from /staff/settings; admin approves/declines in the leave queue.
+export type LeaveStatus = 'pending' | 'approved' | 'declined';
+export interface LeaveRequest {
+  id: string; staffId: string; staffName: string; role: string;
+  from: string; to: string; days: number; reason: string;
+  status: LeaveStatus; requestedAt: string;
+}
+export const LEAVE_REQUESTS: LeaveRequest[] = [
+  { id: 'lv1', staffId: 's2', staffName: 'Linh P.', role: 'Backlink Specialist', from: '2026-07-03', to: '2026-07-07', days: 5, reason: 'Family trip — planned months ago.', status: 'pending', requestedAt: '2026-06-25' },
+  { id: 'lv2', staffId: 's4', staffName: 'Diego R.', role: 'Content Specialist', from: '2026-06-30', to: '2026-06-30', days: 1, reason: 'Medical appointment in the afternoon.', status: 'pending', requestedAt: '2026-06-26' },
+  { id: 'lv3', staffId: 's5', staffName: 'Aria K.', role: 'SEO Analyst', from: '2026-07-14', to: '2026-07-18', days: 5, reason: 'Annual leave.', status: 'pending', requestedAt: '2026-06-24' },
+  { id: 'lv4', staffId: 's1', staffName: 'Mai T.', role: 'Senior SEO Specialist', from: '2026-06-19', to: '2026-06-20', days: 2, reason: 'Conference attendance.', status: 'approved', requestedAt: '2026-06-12' },
+  { id: 'lv5', staffId: 's6', staffName: 'Tom B.', role: 'Link Builder', from: '2026-06-10', to: '2026-06-14', days: 5, reason: 'Personal time.', status: 'declined', requestedAt: '2026-06-02' },
+];
