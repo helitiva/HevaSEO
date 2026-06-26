@@ -84,6 +84,9 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
   return (
     <section className="mx-auto max-w-5xl">
+      <Link href="/staff/tasks" className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
+        <i className="ph-bold ph-arrow-left" /> Back to tasks
+      </Link>
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <NavBtn href={prevId ? `/staff/tasks/${prevId}` : null} icon="ph-caret-left" label="Previous task" />
         <span className="font-mono text-xs text-muted-foreground">{task.code}</span>
