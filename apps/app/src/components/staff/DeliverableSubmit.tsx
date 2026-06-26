@@ -5,6 +5,12 @@ import type { StaffDeliverable } from '@/data/staffMock';
 
 const ACCEPT = 'PDF · DOCX · XLSX · CSV · PNG · JPG · ZIP · max 25MB';
 
+// Grow a textarea to fit its content as the user types (min height held by CSS).
+function autoGrow(el: HTMLTextAreaElement) {
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 // Versioned deliverable submission (D6). Each submit is a new version; older ones stay read-only
 // with their changes-requested note pinned. A required note gates the submit button.
 export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, lockReason = null, status }: {
@@ -69,12 +75,12 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
       <p className="mb-1 mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-lock-simple" aria-hidden /> Note for the reviewer <span className="font-normal opacity-70">· internal, required</span></p>
-      <textarea id="deliverable-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="What changed, what to check, anything risky…"
-        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      <textarea id="deliverable-note" value={note} onChange={(e) => { setNote(e.target.value); autoGrow(e.target); }} placeholder="What changed, what to check, anything risky…"
+        className="min-h-[9.5rem] w-full resize-none overflow-hidden rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
       <p className="mb-1 mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-primary"><i className="ph-bold ph-chats-circle" aria-hidden /> Message to the customer <span className="font-normal text-muted-foreground">· the client will see this (optional)</span></p>
-      <textarea value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} rows={2} placeholder="e.g. Here's your report — I focused on the money pages first. Let me know any tweaks."
-        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      <textarea value={customerNote} onChange={(e) => { setCustomerNote(e.target.value); autoGrow(e.target); }} placeholder="e.g. Here's your report — I focused on the money pages first. Let me know any tweaks."
+        className="min-h-[9.5rem] w-full resize-none overflow-hidden rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
       {qaTotal > 0 && !qaComplete && (
         <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
