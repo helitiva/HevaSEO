@@ -104,11 +104,13 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
               const overdue = (task.days ?? 0) < 0;
               return (
                 <li key={task.id} className={`-mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${i === sel ? 'ring-2 ring-primary/50' : ''}`}>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
-                    <SlaChip daysToDue={task.days} />
-                    <Link href={`/staff/tasks/${task.id}`} className="font-medium hover:underline">{task.code}</Link>
-                    <span className="text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
-                    <span className="ml-auto flex items-center gap-1.5">
+                  <div className="flex items-center gap-x-3 py-2.5">
+                    <Link href={`/staff/tasks/${task.id}`} className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80">
+                      <SlaChip daysToDue={task.days} />
+                      <span className="font-medium">{task.code}</span>
+                      <span className="text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
+                    </Link>
+                    <span className="flex shrink-0 items-center gap-1.5">
                       <PriorityBadge priority={task.priority} />
                       <StatusBadge status={task.status} />
                       {action && (
