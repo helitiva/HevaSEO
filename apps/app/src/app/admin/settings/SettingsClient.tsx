@@ -43,6 +43,33 @@ export function SettingsClient({ settings }: Props) {
 
   const setBiz = (k: keyof AdminSettings['business'], v: string) => setS((p) => ({ ...p, business: { ...p.business, [k]: v } }));
 
+  // which sections differ from the last saved state (drives the nav dots)
+  const sliceOf = (st: AdminSettings, id: string) => id === 'general' ? st.business : id === 'sla' ? st.sla : id === 'routing' ? { r: st.routing, sc: st.scoring } : id === 'email' ? st.email : id === 'integrations' ? st.integrations : st.admins;
+  const sectionDirty = (id: string) => JSON.stringify(sliceOf(s, id)) !== JSON.stringify(sliceOf(saved, id));
+
+  // hard validation — blocks Save
+  const errors = [
+    !s.business.name.trim() && 'Business name is required',
+    !/.+@.+\..+/.test(s.business.supportEmail) && 'Support email is invalid',
+  ].filter(Boolean) as string[];
+  const canSave = dirty && errors.length === 0;
+
+  const scoreSum = s.scoring.quality + s.scoring.onTime + s.scoring.throughput;
+  const balanceScoring = () => setS((p) => { const sum = p.scoring.quality + p.scoring.onTime + p.scoring.throughput || 1; const q = Math.round((p.scoring.quality / sum) * 100); const t = Math.round((p.scoring.onTime / sum) * 100); return { ...p, scoring: { quality: q, onTime: t, throughput: 100 - q - t } }; });
+
+  // Cmd/Ctrl+S saves; warn before leaving with unsaved edits
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (canSave) save(); } };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [s, canSave]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!dirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
+
   return (
     <div className="relative">
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr]">
@@ -55,6 +82,7 @@ export function SettingsClient({ settings }: Props) {
                 <span className="block text-sm font-semibold">{sec.label}</span>
                 <span className="hidden text-[11px] opacity-70 lg:block">{sec.desc}</span>
               </span>
+              {sectionDirty(sec.id) && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-amber-500" title="Unsaved changes in this section" />}
             </button>
           ))}
         </nav>
@@ -72,7 +100,7 @@ export function SettingsClient({ settings }: Props) {
                 <Field label="Locale"><select className={inp} value={s.business.locale} onChange={(e) => setBiz('locale', e.target.value)}>{LOCALES.map((t) => <option key={t}>{t}</option>)}</select></Field>
                 <Field label="Brand color">
                   <div className="flex items-center gap-2">
-                    <input type="color" value={s.business.brandColor} onChange={(e) => setBiz('brandColor', e.target.value)} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-transparent" />
+                    <input type="color" aria-label="Brand color" value={s.business.brandColor} onChange={(e) => setBiz('brandColor', e.target.value)} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-transparent" />
                     <input className={inp} value={s.business.brandColor} onChange={(e) => setBiz('brandColor', e.target.value)} />
                   </div>
                 </Field>
@@ -100,7 +128,10 @@ export function SettingsClient({ settings }: Props) {
                 <Toggle on={s.routing.roundRobin} onToggle={() => setS((p) => ({ ...p, routing: { ...p.routing, roundRobin: !p.routing.roundRobin } }))} />
               </label>
 
-              <p className="mb-2 mt-6 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Composite score weights <span className={`ml-1 ${s.scoring.quality + s.scoring.onTime + s.scoring.throughput === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>(sum {s.scoring.quality + s.scoring.onTime + s.scoring.throughput}%)</span></p>
+              <div className="mb-2 mt-6 flex items-center gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Composite score weights <span className={`ml-1 ${scoreSum === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>(sum {scoreSum}%)</span></p>
+                {scoreSum !== 100 && <button onClick={balanceScoring} className="ml-auto rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/20"><i className="ph-bold ph-scales mr-1" />Auto-balance to 100%</button>}
+              </div>
               <Slider label="Quality" value={s.scoring.quality} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, quality: v } }))} />
               <Slider label="On-time" value={s.scoring.onTime} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, onTime: v } }))} />
               <Slider label="Throughput" value={s.scoring.throughput} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, throughput: v } }))} />
@@ -141,12 +172,14 @@ export function SettingsClient({ settings }: Props) {
 
       {/* unsaved-changes bar */}
       {dirty && (
-        <div className="modal-in fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:left-[var(--sidebar-w,0)]">
-          <div className="mx-auto flex max-w-5xl items-center gap-3">
-            <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· changes are logged to the audit log</span></span>
+        <div className="modal-in fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:left-52">
+          <div className="mx-auto flex max-w-5xl items-center gap-3 pl-12 sm:pl-0">
+            {errors.length > 0
+              ? <span className="flex items-center gap-2 text-sm font-medium text-destructive"><i className="ph-fill ph-x-circle" />{errors[0]}</span>
+              : <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· logged to the audit log · ⌘S to save</span></span>}
             <div className="ml-auto flex gap-2">
               <button onClick={discard} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Discard</button>
-              <button onClick={save} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90">Save changes</button>
+              <button onClick={save} disabled={!canSave} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" title={errors.length ? errors[0] : 'Save changes'}>Save changes</button>
             </div>
           </div>
         </div>
@@ -184,7 +217,7 @@ function Slider({ label, hint, value, onChange, max = 100, suffix = '' }: { labe
   return (
     <div className="mb-3">
       <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium">{label}{hint && <span className="ml-1 text-xs text-muted-foreground">{hint}</span>}</span><span className="font-semibold tabular-nums">{value}{suffix}</span></div>
-      <input type="range" min={0} max={max} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[hsl(var(--primary))]" />
+      <input type="range" aria-label={label} min={0} max={max} value={value} onChange={(e) => onChange(+e.target.value)} className="w-full accent-[hsl(var(--primary))]" />
     </div>
   );
 }
@@ -194,11 +227,14 @@ function SlaTable({ title, rows, get, set }: { title: string; rows: [string, str
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
       <div className="overflow-hidden rounded-xl border border-border">
         <div className="grid grid-cols-[1fr_8rem_8rem] bg-muted/40 px-3 py-2 text-[11px] font-semibold text-muted-foreground"><span>Level</span><span>First response (h)</span><span>Resolution (h)</span></div>
-        {rows.map(([k, label]) => { const t = get(k); return (
-          <div key={k} className="grid grid-cols-[1fr_8rem_8rem] items-center border-t border-border px-3 py-2 text-sm">
-            <span className="font-medium">{label}</span>
-            <input type="number" min={0} value={t.firstResponseH} onChange={(e) => set(k, 'firstResponseH', +e.target.value)} className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary" />
-            <input type="number" min={0} value={t.resolutionH} onChange={(e) => set(k, 'resolutionH', +e.target.value)} className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary" />
+        {rows.map(([k, label]) => { const t = get(k); const bad = t.firstResponseH > t.resolutionH; return (
+          <div key={k} className="border-t border-border px-3 py-2">
+            <div className="grid grid-cols-[1fr_8rem_8rem] items-center text-sm">
+              <span className="font-medium">{label}</span>
+              <input type="number" min={0} aria-label={`${label} first response hours`} value={t.firstResponseH} onChange={(e) => set(k, 'firstResponseH', +e.target.value)} className={`w-20 rounded-lg border bg-background px-2 py-1 text-sm outline-none focus:border-primary ${bad ? 'border-amber-500' : 'border-border'}`} />
+              <input type="number" min={0} aria-label={`${label} resolution hours`} value={t.resolutionH} onChange={(e) => set(k, 'resolutionH', +e.target.value)} className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary" />
+            </div>
+            {bad && <p className="mt-1 text-[11px] font-medium text-amber-600"><i className="ph-bold ph-warning mr-1" />First response ({t.firstResponseH}h) exceeds resolution ({t.resolutionH}h)</p>}
           </div>
         ); })}
       </div>
