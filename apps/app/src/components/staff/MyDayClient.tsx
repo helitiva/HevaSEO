@@ -75,7 +75,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
   const submitTask = submitId ? state.focus.find((x) => x.id === submitId) : null;
 
   return (
-    <section>
+    <section className="max-w-4xl">
       <div className="mb-3">
         <h1 className="display text-2xl font-bold tracking-tight">{greeting}</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
