@@ -318,7 +318,7 @@ export interface DeliverableFeedback {
 export const DELIVERABLE_FEEDBACK: Record<string, DeliverableFeedback> = {
   d10: { managerRating: 5, reviewer: 'Ken Rivera', managerNote: 'Polished and on-brief — meta and internal links all in place. Nice work.',
     customerRating: 5, customerNote: 'Exactly what we needed — clear, on-brand, and ready to publish. Thank you!', customerRatedAt: '2026-06-24' },
-  d1: { managerRating: 3, reviewer: 'Ken Rivera' },
+  d1: { managerRating: 3, reviewer: 'Ken Rivera', customerNote: 'Also — could we make the intros a bit punchier? Otherwise loving the direction!', customerRatedAt: '2026-06-19' },
   d8: { managerRating: 2, reviewer: 'Ken Rivera' },
 };
 export const feedbackFor = (deliverableId: string): DeliverableFeedback => DELIVERABLE_FEEDBACK[deliverableId] ?? {};
