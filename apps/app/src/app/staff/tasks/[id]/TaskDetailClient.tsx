@@ -106,7 +106,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         </div>
 
         <div className="flex flex-col gap-4">
-          <MessageThread initial={messages} />
+          <MessageThread initial={messages} className="flex-1" />
           <div className="kcard">
             <p className="mb-2 text-sm font-semibold">Activity</p>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
