@@ -331,3 +331,55 @@ export const DELIVERABLE_EXTRA: Record<string, DeliverableExtra> = {
   d2: { file: 'acme-3-articles-v2.docx', link: 'https://docs.google.com/document/d/acme-articles-v2', staffMessage: 'Revised: punchier intros, internal links + meta added, and a summary table per the notes.' },
 };
 export const extraFor = (deliverableId: string): DeliverableExtra => DELIVERABLE_EXTRA[deliverableId] ?? {};
+
+// ── Self-notes (personal work log) ─────────────────────────────────────
+// A private running log the assigned staff keeps on a task — "where am I, what's
+// left, what am I waiting on" — so multi-step work survives context switches.
+// Money-free. Visible to the staff who wrote it + their manager + admin; NEVER the
+// customer (this is NOT the customer-facing message thread).
+export type SelfNoteAttachmentKind = 'image' | 'video' | 'link' | 'file';
+export interface SelfNoteAttachment { kind: SelfNoteAttachmentKind; url: string; name?: string }
+export interface SelfNote {
+  id: string;
+  author: string; // staff display name
+  at: string; // human-readable timestamp (auto-filled "now" or hand-entered)
+  body: string;
+  attachments: SelfNoteAttachment[];
+}
+
+export const SELF_NOTES: Record<string, SelfNote[]> = {
+  o31: [
+    {
+      id: 'sn-o31-1', author: CURRENT_STAFF.name, at: 'Jun 24, 09:40',
+      body: 'Outlined all 3 articles + pulled SERP competitors. /pricing draft done. Paused — waiting on the client to confirm the product names before I write /shop.',
+      attachments: [{ kind: 'link', url: 'https://docs.google.com/document/d/acme-outline', name: 'Working outline (Google Doc)' }],
+    },
+    {
+      id: 'sn-o31-2', author: CURRENT_STAFF.name, at: 'Jun 25, 14:10',
+      body: 'Client confirmed names. Resumed /shop article — first pass written, need to add internal links + meta description, then self-QA pass before submitting.',
+      attachments: [],
+    },
+  ],
+  o14: [
+    {
+      id: 'sn-o14-1', author: CURRENT_STAFF.name, at: 'Jun 26, 08:05',
+      body: 'Audit crawl running (large site ~4k URLs). Will come back when it finishes to triage the Core Web Vitals issues.',
+      attachments: [],
+    },
+  ],
+};
+export const selfNotesFor = (orderId: string): SelfNote[] => SELF_NOTES[orderId] ?? [];
+
+// ---- Canned snippets for the submit form — staff tap to fill instead of retyping ----
+export const REVIEWER_NOTE_SNIPPETS: string[] = [
+  'Resubmitting after addressing all the feedback — internal links + meta added on every page.',
+  'No risky changes this round — copy edits and formatting only.',
+  'Self-QA done: passes plagiarism, links are live, meta titles/descriptions set.',
+  'Heads up — one section needs a fact-check on the stats before it goes out.',
+];
+export const CUSTOMER_MSG_SNIPPETS: string[] = [
+  'Here’s your deliverable — I focused on the money pages first. Let me know any tweaks!',
+  'Revised per your notes: punchier intros and a summary table added. Hope this hits the mark!',
+  'All set — everything’s optimised and ready to publish. Happy to adjust anything.',
+  'Thanks for your patience! The updated version is attached — let me know what you think.',
+];
