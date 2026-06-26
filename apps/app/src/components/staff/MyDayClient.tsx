@@ -36,7 +36,7 @@ const COLS = 'grid grid-cols-[8rem_7rem_10.5rem_minmax(0,1fr)_auto] items-center
 export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, overview }: Props) {
   const router = useRouter();
   const [state, setState] = useState<MyDayState>({ focus: initialFocus, log: [] });
-  const [sel, setSel] = useState(0);
+  const [sel, setSel] = useState(-1); // -1 = nothing selected; first j/k enters the list
   const [submitId, setSubmitId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; entryId: string } | null>(null);
   const [query, setQuery] = useState('');
@@ -170,7 +170,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
                   {STATUS_CHIPS.map((c) => {
                     const n = c.key === 'all' ? state.focus.length : state.focus.filter((t) => t.status === c.key).length;
                     return (
-                      <button key={c.key} onClick={() => { setStatusFilter(c.key); setSel(0); }}
+                      <button key={c.key} onClick={() => { setStatusFilter(c.key); setSel(-1); }}
                         className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${statusFilter === c.key ? 'bg-primary text-primary-foreground' : 'border border-border hover:border-primary/50'}`}>
                         {c.label} <span className="opacity-70">{n}</span>
                       </button>
