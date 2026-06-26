@@ -7,7 +7,7 @@ import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
-import { SKILL_META, feedbackFor } from '@/data/staffMock';
+import { SKILL_META, feedbackFor, extraFor } from '@/data/staffMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo } from '@/data/staffMock';
 
 interface Props {
@@ -157,8 +157,8 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         </div>
 
         <div className="flex flex-col gap-4">
-          <MessageThread initial={messages} className="flex-1" />
-          <RevisionThread deliverables={deliverables} sessionLog={log} fallbackReviewer={manager.name} created={task.created} />
+          <MessageThread initial={messages} />
+          <RevisionThread deliverables={deliverables} sessionLog={log} fallbackReviewer={manager.name} created={task.created} className="min-h-[28rem] flex-1" />
         </div>
       </div>
 
@@ -171,14 +171,21 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
 const ini = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
 
-interface RevEvent { side: 'you' | 'them'; who: string; role?: 'manager' | 'customer'; v?: number; at: string; status?: string; rating?: number; body?: string; attachment?: { kind: string; fileName: string | null; url: string | null } }
+interface RevEvent {
+  side: 'you' | 'them'; who: string; role?: 'manager' | 'customer'; v?: number; at: string;
+  status?: string; rating?: number; body?: string; // feedback (manager/customer)
+  note?: string; customerMsg?: string; files?: string[]; links?: string[]; // submission (you)
+}
 
 // Fiverr-style revision conversation: each delivered version + the manager review and/or
 // customer feedback it drew, interleaved chronologically into a thread.
-function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created }: { deliverables: StaffDeliverable[]; sessionLog: Activity[]; fallbackReviewer: string; created: string }) {
+function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created, className }: { deliverables: StaffDeliverable[]; sessionLog: Activity[]; fallbackReviewer: string; created: string; className?: string }) {
   const events: RevEvent[] = [];
   [...deliverables].sort((a, b) => a.version - b.version).forEach((d) => {
-    events.push({ side: 'you', who: 'You', v: d.version, at: d.submittedAt, body: d.note || undefined, attachment: { kind: d.kind, fileName: d.fileName, url: d.url }, });
+    const ex = extraFor(d.id);
+    const files = [d.kind === 'file' ? d.fileName : null, ex.file ?? null].filter((x): x is string => Boolean(x));
+    const links = [d.kind === 'link' ? d.url : null, ex.link ?? null].filter((x): x is string => Boolean(x));
+    events.push({ side: 'you', who: 'You', v: d.version, at: d.submittedAt, note: d.note || undefined, customerMsg: ex.staffMessage, files, links });
     const fb = feedbackFor(d.id);
     if (d.reviewedAt) events.push({ side: 'them', who: fb.reviewer ?? fallbackReviewer, role: 'manager', v: d.version, at: d.reviewedAt, status: d.status, rating: fb.managerRating, body: fb.managerNote ?? d.reviewNote ?? undefined });
     if (fb.customerRating || fb.customerNote) events.push({ side: 'them', who: 'Customer', role: 'customer', v: d.version, at: fb.customerRatedAt ?? d.reviewedAt ?? d.submittedAt, status: 'customer', rating: fb.customerRating, body: fb.customerNote });
@@ -186,18 +193,18 @@ function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created }:
   const ordered = events.map((e, i) => ({ e, i })).sort((a, b) => (a.e.at === b.e.at ? a.i - b.i : a.e.at < b.e.at ? -1 : 1)).map((x) => x.e);
 
   return (
-    <div className="kcard flex flex-col">
-      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chats-circle text-primary" /> Revisions & feedback
+    <div className={`kcard flex flex-col ${className ?? ''}`}>
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chats-circle text-primary" /> Revisions & feedback
         {deliverables.length > 0 && <span className="ml-auto text-[11px] font-normal text-muted-foreground">{deliverables.length} version{deliverables.length === 1 ? '' : 's'}</span>}
       </p>
-      <p className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-flag-pennant" /> Order created · {created}</p>
-      {ordered.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">No revisions yet — submit your first version to start the thread.</p>
-      ) : (
-        <div className="space-y-3">{ordered.map((e, i) => <RevBubble key={i} e={e} />)}</div>
-      )}
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-flag-pennant" /> Order created · {created}</p>
+      <div className="scrollbar-thin -mr-1 flex-1 space-y-3 overflow-y-auto pr-1">
+        {ordered.length === 0
+          ? <p className="grid h-full place-content-center rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">No revisions yet — submit your first version to start the thread.</p>
+          : ordered.map((e, i) => <RevBubble key={i} e={e} />)}
+      </div>
       {sessionLog.length > 0 && (
-        <div className="mt-3 space-y-1 border-t border-border pt-2">
+        <div className="mt-2 space-y-1 border-t border-border pt-2">
           {sessionLog.map((l, i) => <p key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className={`ph-bold ${l.icon}`} />{l.title} · {l.at}</p>)}
         </div>
       )}
@@ -213,14 +220,28 @@ function RevBubble({ e }: { e: RevEvent }) {
   return (
     <div className={`flex gap-2 ${mine ? 'flex-row-reverse' : ''}`}>
       <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[9px] font-bold ${mine ? 'bg-primary/15 text-primary' : isCustomer ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>{mine ? 'You' : isCustomer ? 'C' : ini(e.who)}</span>
-      <div className={`min-w-0 max-w-[85%] ${mine ? 'text-right' : ''}`}>
+      <div className={`min-w-0 max-w-[88%] ${mine ? 'text-right' : ''}`}>
         <p className="text-[11px] text-muted-foreground">{e.who} <span className="font-semibold">· v{e.v}</span> · {e.at}</p>
-        <div className={`mt-0.5 inline-block rounded-2xl px-3 py-2 text-left text-sm ${mine ? 'bg-primary/10' : changes ? 'bg-amber-500/10' : approved ? 'bg-emerald-500/10' : 'bg-muted'}`}>
-          {mine && <p className="flex items-center gap-1 text-[11px] font-semibold text-primary"><i className="ph-bold ph-file-arrow-up" />Submitted v{e.v}</p>}
-          {(changes || approved) && <p className={`flex items-center gap-1 text-[11px] font-semibold ${changes ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}><i className={`ph-bold ${changes ? 'ph-arrow-counter-clockwise' : 'ph-seal-check'}`} />{changes ? 'Changes requested' : 'Approved'}</p>}
-          {e.rating ? <Stars value={e.rating} /> : null}
-          {e.body && <p className={e.rating || changes || approved || mine ? 'mt-1' : ''}>{e.body}</p>}
-          {e.attachment && (e.attachment.fileName || e.attachment.url) && <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-bold ${e.attachment.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} /><span className="truncate">{e.attachment.fileName ?? e.attachment.url}</span></p>}
+        <div className={`mt-0.5 inline-block space-y-1.5 rounded-2xl px-3 py-2 text-left text-sm ${mine ? 'bg-primary/10' : changes ? 'bg-amber-500/10' : approved ? 'bg-emerald-500/10' : 'bg-muted'}`}>
+          {mine ? (
+            <>
+              <p className="flex items-center gap-1 text-[11px] font-semibold text-primary"><i className="ph-bold ph-file-arrow-up" />Submitted v{e.v}</p>
+              {e.note && <p><span className="text-[11px] font-semibold text-muted-foreground">To reviewer · </span>{e.note}</p>}
+              {e.customerMsg && <p><span className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">To customer · </span>{e.customerMsg}</p>}
+              {((e.files?.length ?? 0) + (e.links?.length ?? 0) > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {e.files?.map((f) => <span key={f} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px]"><i className="ph-bold ph-file-text text-muted-foreground" /><span className="max-w-[11rem] truncate">{f}</span></span>)}
+                  {e.links?.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:underline"><i className="ph-bold ph-link" />Open link<i className="ph-bold ph-arrow-square-out" /></a>)}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {(changes || approved) && <p className={`flex items-center gap-1 text-[11px] font-semibold ${changes ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}><i className={`ph-bold ${changes ? 'ph-arrow-counter-clockwise' : 'ph-seal-check'}`} />{changes ? 'Changes requested' : 'Approved'}</p>}
+              {e.rating ? <Stars value={e.rating} /> : null}
+              {e.body && <p>{e.body}</p>}
+            </>
+          )}
         </div>
       </div>
     </div>

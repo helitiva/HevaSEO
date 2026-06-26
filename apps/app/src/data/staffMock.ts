@@ -322,3 +322,12 @@ export const DELIVERABLE_FEEDBACK: Record<string, DeliverableFeedback> = {
   d8: { managerRating: 2, reviewer: 'Ken Rivera' },
 };
 export const feedbackFor = (deliverableId: string): DeliverableFeedback => DELIVERABLE_FEEDBACK[deliverableId] ?? {};
+
+// Extra attachments + the customer-facing message a submission carried (a round can ship a file
+// AND a link plus a note-to-reviewer and a message-to-customer).
+export interface DeliverableExtra { file?: string; link?: string; staffMessage?: string }
+export const DELIVERABLE_EXTRA: Record<string, DeliverableExtra> = {
+  d1: { link: 'https://docs.google.com/document/d/acme-articles-v1', staffMessage: 'First draft — focused on the money pages (/pricing, /shop). Let me know any tweaks!' },
+  d2: { file: 'acme-3-articles-v2.docx', link: 'https://docs.google.com/document/d/acme-articles-v2', staffMessage: 'Revised: punchier intros, internal links + meta added, and a summary table per the notes.' },
+};
+export const extraFor = (deliverableId: string): DeliverableExtra => DELIVERABLE_EXTRA[deliverableId] ?? {};
