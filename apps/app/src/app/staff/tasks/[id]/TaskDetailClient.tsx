@@ -22,6 +22,15 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   const [toast, setToast] = useState<string | null>(null);
   const actions = nextStaffActions(status);
 
+  // The latest review that bounced the work back — drives the prominent banner.
+  const changeRequest = deliverables.filter((d) => d.status === 'changes_requested').sort((a, b) => b.version - a.version)[0] ?? null;
+
+  // Interactive self-QA. Seed checked once the work has already passed into review.
+  const reviewed = ['internal_review', 'delivered', 'approved', 'completed'].includes(task.status);
+  const [qaChecked, setQaChecked] = useState<boolean[]>(() => task.qa.map(() => reviewed));
+  const qaDone = qaChecked.filter(Boolean).length;
+  const toggleQa = (i: number) => setQaChecked((arr) => arr.map((v, j) => (j === i ? !v : v)));
+
   // Keyboard nav through the visible queue (parity with admin power-ups).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -75,6 +84,16 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         </div>
       )}
 
+      {status === 'changes_requested' && (
+        <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+            <i className="ph-bold ph-arrow-counter-clockwise" /> Changes requested{changeRequest ? ` · v${changeRequest.version}` : ''}
+          </p>
+          <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">{changeRequest?.reviewNote ?? task.note ?? 'The reviewer asked for changes before this can be approved.'}</p>
+          <p className="mt-1.5 text-[11px] text-amber-700/80 dark:text-amber-400/70">— {manager.name}{changeRequest?.reviewedAt ? ` · ${changeRequest.reviewedAt}` : ''}. Address the notes, then Resume and resubmit a new version.</p>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
           <div className="kcard">
@@ -91,18 +110,24 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
                 ))}
               </dl>
             )}
-            <p className="mb-1 mt-4 text-xs font-medium text-muted-foreground">Acceptance checklist</p>
-            <ul className="space-y-1 text-sm">
+            <div className="mb-1.5 mt-4 flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">Acceptance checklist <span className="font-normal">· self-check before you submit</span></p>
+              <span className={`text-[11px] font-semibold ${qaDone === task.qa.length ? 'text-emerald-500' : 'text-muted-foreground'}`}>{qaDone}/{task.qa.length}</span>
+            </div>
+            <ul className="space-y-0.5 text-sm">
               {task.qa.map((c, i) => (
-                <li key={c} className="flex items-center gap-2">
-                  <i className={`ph-bold ${i < 2 ? 'ph-check-square text-emerald-500' : 'ph-square text-muted-foreground'}`} /> {c}
+                <li key={c}>
+                  <button onClick={() => toggleQa(i)} aria-pressed={qaChecked[i]} className="flex w-full items-center gap-2 rounded-md py-0.5 text-left transition hover:bg-muted/50">
+                    <i className={`ph-bold shrink-0 ${qaChecked[i] ? 'ph-check-square text-emerald-500' : 'ph-square text-muted-foreground'}`} />
+                    <span className={qaChecked[i] ? 'text-muted-foreground line-through' : ''}>{c}</span>
+                  </button>
                 </li>
               ))}
             </ul>
             {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" /> {task.note}</p>}
           </div>
 
-          <DeliverableSubmit history={deliverables} onSubmit={submit} />
+          <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} />
         </div>
 
         <div className="flex flex-col gap-4">
