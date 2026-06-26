@@ -1,10 +1,11 @@
 import { PageHeader } from '@/components/admin/PageHeader';
-import { SettingsTabs } from './Tabs';
+import { ADMIN_SETTINGS } from '@/data/adminMock';
+import { SettingsClient } from './SettingsClient';
 export default function SettingsPage() {
   return (
-    <section className="max-w-3xl">
-      <PageHeader title="Settings" subtitle="Templates, SLA, integrations, admins" />
-      <SettingsTabs />
+    <section>
+      <PageHeader title="Settings" subtitle="Business, SLA, routing, email, integrations & admins" />
+      <SettingsClient settings={ADMIN_SETTINGS} />
     </section>
   );
 }

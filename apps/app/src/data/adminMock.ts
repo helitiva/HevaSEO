@@ -728,3 +728,45 @@ export const FINANCE = {
   payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0),
   outstandingAr: INVOICES.filter((i) => i.status !== 'paid').reduce((a, i) => a + i.amount, 0),
 };
+
+// ---- Settings (module 13): global config the other modules read ----
+export interface SlaTarget { firstResponseH: number; resolutionH: number }
+export interface EmailTemplate { id: string; name: string; subject: string; body: string; vars: string[] }
+export interface Integration { key: string; name: string; status: 'connected' | 'disconnected'; detail: string; icon: string }
+export interface AdminAccount { id: string; name: string; email: string; role: 'Master admin' | 'Admin'; lastActive: string; status: 'active' | 'invited' | 'disabled'; twoFA: boolean }
+export interface AdminSettings {
+  business: { name: string; supportEmail: string; address: string; timezone: string; currency: string; locale: string; brandColor: string };
+  sla: { orders: Record<'high' | 'med' | 'low', SlaTarget>; tickets: Record<'urgent' | 'standard', SlaTarget> };
+  routing: { skillWeight: number; capacityPenalty: number; roundRobin: boolean };
+  scoring: { quality: number; onTime: number; throughput: number };
+  email: EmailTemplate[];
+  integrations: Integration[];
+  admins: AdminAccount[];
+}
+
+export const ADMIN_SETTINGS: AdminSettings = {
+  business: { name: 'HevaSEO', supportEmail: 'support@hevaseo.com', address: '123 Market St, San Francisco, CA 94103', timezone: 'America/Los_Angeles', currency: 'USD', locale: 'en-US', brandColor: '#2563eb' },
+  sla: {
+    orders: { high: { firstResponseH: 2, resolutionH: 24 }, med: { firstResponseH: 4, resolutionH: 48 }, low: { firstResponseH: 8, resolutionH: 72 } },
+    tickets: { urgent: { firstResponseH: 1, resolutionH: 8 }, standard: { firstResponseH: 4, resolutionH: 24 } },
+  },
+  routing: { skillWeight: 60, capacityPenalty: 120, roundRobin: true },
+  scoring: { quality: 50, onTime: 30, throughput: 20 },
+  email: [
+    { id: 'order_confirmed', name: 'Order confirmed', subject: 'Your order {{order_code}} is confirmed', body: 'Hi {{customer}},\n\nWe’ve confirmed {{order_code}} ({{service}}). You can track progress anytime in your dashboard.\n\n— The {{business}} team', vars: ['customer', 'order_code', 'service', 'business'] },
+    { id: 'deliverable_ready', name: 'Deliverable ready', subject: '{{order_code}} is ready for your review', body: 'Hi {{customer}},\n\nYour deliverable for {{order_code}} is ready. Review and approve it in your dashboard.\n\n— {{business}}', vars: ['customer', 'order_code', 'business'] },
+    { id: 'refund_issued', name: 'Refund issued', subject: 'A refund of {{amount}} has been issued', body: 'Hi {{customer}},\n\nWe’ve issued a refund of {{amount}} for {{order_code}}. It should appear in 5–10 business days.\n\n— {{business}}', vars: ['customer', 'amount', 'order_code', 'business'] },
+    { id: 'ticket_reply', name: 'Support reply', subject: 'Re: {{ticket_subject}}', body: 'Hi {{customer}},\n\n{{reply_body}}\n\n— {{agent}}, {{business}} support', vars: ['customer', 'ticket_subject', 'reply_body', 'agent', 'business'] },
+  ],
+  integrations: [
+    { key: 'stripe', name: 'Stripe', status: 'connected', detail: 'acct_1Hx9Qz · live mode', icon: 'ph-credit-card' },
+    { key: 'smtp', name: 'Email · Postmark', status: 'connected', detail: 'smtp.postmarkapp.com', icon: 'ph-envelope-simple' },
+    { key: 'turnstile', name: 'Cloudflare Turnstile', status: 'connected', detail: 'bot protection on public forms', icon: 'ph-shield-check' },
+    { key: 'slack', name: 'Slack', status: 'disconnected', detail: 'route ops alerts to a channel', icon: 'ph-chats-circle' },
+  ],
+  admins: [
+    { id: 'ad1', name: 'You', email: 'admin@hevaseo.com', role: 'Master admin', lastActive: 'just now', status: 'active', twoFA: true },
+    { id: 'ad2', name: 'Sofia Marin', email: 'sofia@hevaseo.com', role: 'Admin', lastActive: '2h ago', status: 'active', twoFA: true },
+    { id: 'ad3', name: 'Ken Rivera', email: 'ken@hevaseo.com', role: 'Admin', lastActive: 'pending invite', status: 'invited', twoFA: false },
+  ],
+};
