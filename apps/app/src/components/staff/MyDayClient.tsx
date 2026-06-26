@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SlideOver } from '@/components/shared/SlideOver';
-import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { StatusBadge } from '@/components/shared/StatBadge';
+import type { Priority } from '@/data/adminMock';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { EmptyState, emptyKindFor } from '@/components/staff/EmptyState';
@@ -103,25 +104,23 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
               const action = primaryActionFor(task.status);
               const overdue = (task.days ?? 0) < 0;
               return (
-                <li key={task.id} className={`-mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${i === sel ? 'ring-2 ring-primary/50' : ''}`}>
-                  <div className="flex items-center gap-x-3 py-2.5">
-                    <Link href={`/staff/tasks/${task.id}`} className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80">
+                <li key={task.id} className={`group -mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${i === sel ? 'ring-2 ring-primary/50' : ''}`}>
+                  <div className="flex items-center gap-3 py-2.5">
+                    <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 hover:opacity-80">
+                      <PriorityDot priority={task.priority} />
                       <SlaChip daysToDue={task.days} />
-                      <span className="font-medium">{task.code}</span>
-                      <span className="text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
-                    </Link>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      <PriorityBadge priority={task.priority} />
+                      <span className="shrink-0 font-medium">{task.code}</span>
                       <StatusBadge status={task.status} />
-                      {action && (
-                        <button onClick={() => act(task.id)}
-                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 ${action.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
-                          <i className={`ph-bold ${action.icon}`} aria-hidden /> {shortLabel(action.label)}
-                        </button>
-                      )}
-                      <button onClick={() => copyLink(task.id, () => flash(`${task.code} · link copied`, makeId()))} aria-label="Copy link"
-                        className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent"><i className="ph-bold ph-link" aria-hidden /></button>
-                    </span>
+                      <span className="truncate text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
+                    </Link>
+                    {action && (
+                      <button onClick={() => act(task.id)}
+                        className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 ${action.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
+                        <i className={`ph-bold ${action.icon}`} aria-hidden /> {shortLabel(action.label)}
+                      </button>
+                    )}
+                    <button onClick={() => copyLink(task.id, () => flash(`${task.code} · link copied`, makeId()))} aria-label="Copy link"
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground opacity-0 transition hover:bg-accent focus:opacity-100 group-hover:opacity-100"><i className="ph-bold ph-link" aria-hidden /></button>
                   </div>
                 </li>
               );
@@ -141,11 +140,11 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="My load" value={`${kpis.load}/${capacity}`} icon="ph-gauge" tone={kpis.load >= capacity ? 'warn' : undefined} />
-        <Stat label="Overdue" value={String(kpis.overdue)} icon="ph-warning" tone={kpis.overdue ? 'bad' : undefined} />
-        <Stat label="Due today" value={String(kpis.dueToday)} icon="ph-calendar-check" tone={kpis.dueToday ? 'warn' : undefined} />
-        <Stat label="Cleared" value={String(kpis.cleared)} icon="ph-check-circle" tone={kpis.cleared ? 'good' : undefined} />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
+        <KpiInline icon="ph-gauge" label="Load" value={`${kpis.load}/${capacity}`} tone={kpis.load >= capacity ? 'warn' : 'primary'} />
+        <KpiInline icon="ph-warning" label="Overdue" value={String(kpis.overdue)} tone={kpis.overdue ? 'bad' : 'muted'} />
+        <KpiInline icon="ph-calendar-check" label="Due today" value={String(kpis.dueToday)} tone={kpis.dueToday ? 'warn' : 'muted'} />
+        <KpiInline icon="ph-check-circle" label="Cleared" value={String(kpis.cleared)} tone={kpis.cleared ? 'good' : 'muted'} />
       </div>
 
       <SlideOver open={!!submitId} onClose={() => setSubmitId(null)} title={submitTask ? `Submit ${submitTask.code}` : 'Submit'}>
@@ -169,15 +168,19 @@ function copyLink(id: string, done: () => void) {
   navigator.clipboard?.writeText(`${window.location.origin}/staff/tasks/${id}`).then(done, done);
 }
 
-function Stat({ label, value, icon, tone }: { label: string; value: string; icon: string; tone?: 'bad' | 'warn' | 'good' }) {
-  const color = tone === 'bad' ? 'text-destructive' : tone === 'warn' ? 'text-amber-500' : tone === 'good' ? 'text-emerald-500' : 'text-primary';
+function PriorityDot({ priority }: { priority: Priority }) {
+  const c = priority === 'high' ? 'bg-destructive' : priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground';
+  const label = `${priority === 'high' ? 'High' : priority === 'med' ? 'Medium' : 'Low'} priority`;
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${c}`} title={label} aria-label={label} />;
+}
+
+function KpiInline({ icon, label, value, tone }: { icon: string; label: string; value: string; tone: 'bad' | 'warn' | 'good' | 'primary' | 'muted' }) {
+  const color = tone === 'bad' ? 'text-destructive' : tone === 'warn' ? 'text-amber-500' : tone === 'good' ? 'text-emerald-500' : tone === 'muted' ? 'text-muted-foreground' : 'text-primary';
   return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
-        <i className={`ph-bold ${icon} ${color}`} aria-hidden />
-      </div>
-      <p className="display mt-1 text-2xl font-bold">{value}</p>
-    </div>
+    <span className="flex items-center gap-1.5">
+      <i className={`ph-bold ${icon} ${color}`} aria-hidden />
+      <span className="text-muted-foreground">{label}</span>
+      <span className="display font-bold">{value}</span>
+    </span>
   );
 }
