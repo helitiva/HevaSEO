@@ -4,7 +4,7 @@
 import {
   ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, SKILL_META, qaCriteriaFor, briefFor,
   PAYOUTS, TRANSACTIONS,
-  CUSTOMER_EXTRA, customerByCompany, CLIENT_NOTE, managerOf,
+  CUSTOMER_EXTRA, customerByCompany, CLIENT_NOTE, managerOf, TIER,
   type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
 
@@ -106,6 +106,18 @@ export function myCustomers(): CaredCustomer[] {
     });
   }
   return [...map.values()].sort((a, b) => b.active - a.active);
+}
+
+// ---- Latest review feedback on my work (reviewer/admin QA note on a deliverable) ----
+export interface LatestReview { taskCode: string; note: string; at: string; changesRequested: boolean; }
+export function latestReview(): LatestReview | null {
+  const mine = new Set(MY_TASK_IDS);
+  const d = DELIVERABLES
+    .filter((x) => mine.has(x.orderId) && x.reviewNote && x.reviewedAt)
+    .sort((a, b) => (b.reviewedAt ?? '').localeCompare(a.reviewedAt ?? ''))[0];
+  if (!d) return null;
+  const task = MY_TASKS.find((t) => t.id === d.orderId);
+  return { taskCode: task?.code ?? d.orderId, note: d.reviewNote as string, at: d.reviewedAt as string, changesRequested: d.status === 'changes_requested' };
 }
 
 // Two-thread seed: customer-visible vs internal. Per-task in real life; shared seed for the mock.
@@ -250,3 +262,34 @@ export function offDaysSet(timeOff: TimeOff[]): Set<string> {
   }
   return set;
 }
+
+// ---- Client care signals: how much priority / care an order's customer warrants ----
+// Higher tier = prioritise. New, particular, or priority-tagged clients = handle carefully / first.
+const CLIENT_TRAITS: Record<string, { demanding?: boolean }> = {
+  'Vertex AI': { demanding: true }, // technical; drafts go through their staff engineer, accuracy over speed
+  'Orbit Labs': { demanding: true }, // detail-oriented CEO; picky about anchors
+};
+export interface ClientCare {
+  tier: Tier | null;
+  tierMeta: { label: string; icon: string; color: string } | null;
+  isNew: boolean; isDemanding: boolean; isPriority: boolean;
+  rank: number; // 0 standard · 1 elevated · 2 top priority
+  hint: string;
+}
+export function clientCare(company: string): ClientCare {
+  const c = customerByCompany(company);
+  const ex = c ? CUSTOMER_EXTRA[c.id] : undefined;
+  const tier = c?.tier ?? null;
+  const tags = ex?.tags ?? [];
+  const isNew = tier === 'new';
+  const isDemanding = CLIENT_TRAITS[company]?.demanding ?? false;
+  const isPriority = tier === 'vip' || tier === 'gold' || tags.some((t) => /priority|enterprise/i.test(t));
+  const rank = isPriority || isDemanding ? 2 : isNew || tier === 'silver' || tags.some((t) => /retainer/i.test(t)) ? 1 : 0;
+  const hint = rank === 2
+    ? 'Top priority — high-rank or particular client. Do this first and double-check QA before sending.'
+    : isNew ? 'New client — make a strong first impression and over-communicate.'
+    : rank === 1 ? 'Valued client — keep the bar high.'
+    : 'Standard care.';
+  return { tier, tierMeta: tier ? TIER[tier] : null, isNew, isDemanding, isPriority, rank, hint };
+}
+export const careRankOf = (company: string): number => clientCare(company).rank;

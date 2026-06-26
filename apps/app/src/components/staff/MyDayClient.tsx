@@ -8,10 +8,17 @@ import type { Priority } from '@/data/adminMock';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { EmptyState, emptyKindFor } from '@/components/staff/EmptyState';
-import { deliverablesFor, statusLabel, type OrderStatus } from '@/data/staffMock';
+import { deliverablesFor, statusLabel, type OrderStatus, type StaffEarnings, type LatestReview } from '@/data/staffMock';
+import { money } from '@/data/adminMock';
 import { primaryActionFor, applyAction, undoAction, deriveKpis, groupFocus, filterFocus, type MyDayTask, type MyDayState } from '@/lib/myDay';
 
-interface Props { greeting: string; capacity: number; everHadTasks: boolean; initialFocus: MyDayTask[]; }
+export interface OverviewData {
+  earnings: StaffEarnings | null;
+  manager: { name: string; title: string; message: string | null; at: string | null };
+  review: LatestReview | null;
+}
+
+interface Props { greeting: string; capacity: number; everHadTasks: boolean; initialFocus: MyDayTask[]; overview: OverviewData; }
 
 const VERB_TONE: Record<string, string> = { Submitted: 'text-emerald-500', Started: 'text-primary', Resumed: 'text-amber-500' };
 const STATUS_CHIPS: Array<{ key: 'all' | OrderStatus; label: string }> = [
@@ -21,7 +28,7 @@ const STATUS_CHIPS: Array<{ key: 'all' | OrderStatus; label: string }> = [
   { key: 'changes_requested', label: statusLabel.changes_requested },
 ];
 
-export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: Props) {
+export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, overview }: Props) {
   const router = useRouter();
   const [state, setState] = useState<MyDayState>({ focus: initialFocus, log: [] });
   const [sel, setSel] = useState(0);
@@ -92,9 +99,8 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
 
   function renderRow(task: MyDayTask, index: number) {
     const action = primaryActionFor(task.status);
-    const overdue = (task.days ?? 0) < 0;
     return (
-      <li key={task.id} className={`group -mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${index === sel ? 'ring-2 ring-primary/50' : ''}`}>
+      <li key={task.id} className={`group -mx-2 rounded-lg px-2 transition hover:bg-muted/40 ${index === sel ? 'bg-primary/10' : ''}`}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
           <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden hover:opacity-80">
             <PriorityDot priority={task.priority} />
@@ -178,6 +184,34 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
             </div>
           ))
         )}
+      </div>
+
+      <div className="mb-3 grid gap-3 sm:grid-cols-3">
+        <Link href="/staff/performance" className="kcard transition hover:border-primary/40">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-wallet text-emerald-500" aria-hidden /> Recent pay</p>
+          {overview.earnings ? (
+            <>
+              <p className="display text-xl font-bold">{money(overview.earnings.takeHome)} <span className="text-xs font-normal text-muted-foreground">this month</span></p>
+              {overview.earnings.lastPaid && <p className="mt-0.5 text-xs text-muted-foreground">Last paid {overview.earnings.lastPaid.month} · {money(overview.earnings.lastPaid.amount)}</p>}
+            </>
+          ) : <p className="text-sm text-muted-foreground">No payout yet.</p>}
+        </Link>
+
+        <div className="kcard">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-user-circle text-primary" aria-hidden /> From {overview.manager.name}</p>
+          <p className="text-sm">{overview.manager.message ?? 'No note yet.'}</p>
+          {overview.manager.at && <p className="mt-1 text-[11px] text-muted-foreground">{overview.manager.at}</p>}
+        </div>
+
+        <div className="kcard">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className={`ph-bold ${overview.review?.changesRequested ? 'ph-arrow-counter-clockwise text-amber-500' : 'ph-seal-check text-emerald-500'}`} aria-hidden /> Latest review</p>
+          {overview.review ? (
+            <>
+              <p className="text-sm">{overview.review.note}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{overview.review.taskCode} · {overview.review.at}</p>
+            </>
+          ) : <p className="text-sm text-muted-foreground">No review feedback yet.</p>}
+        </div>
       </div>
 
       {state.log.length > 0 && (

@@ -1,5 +1,5 @@
-import { MyDayClient } from '@/components/staff/MyDayClient';
-import { MY_TASKS, CURRENT_STAFF } from '@/data/staffMock';
+import { MyDayClient, type OverviewData } from '@/components/staff/MyDayClient';
+import { MY_TASKS, CURRENT_STAFF, myEarnings, myManager, managerThread, latestReview } from '@/data/staffMock';
 import { STAFF } from '@/data/adminMock';
 import { daysToDue, PRIORITY_RANK } from '@/lib/staff';
 import type { MyDayTask } from '@/lib/myDay';
@@ -21,12 +21,22 @@ export default function MyDayPage() {
 
   const firstName = CURRENT_STAFF.name.split(' ')[0];
 
+  // Overview data computed server-side; only the staffer's OWN slice is passed to the client.
+  const m = myManager();
+  const lastMsg = managerThread(m.id).at(-1);
+  const overview: OverviewData = {
+    earnings: myEarnings(),
+    manager: { name: m.name, title: m.title, message: lastMsg?.body ?? m.note, at: lastMsg?.at ?? null },
+    review: latestReview(),
+  };
+
   return (
     <MyDayClient
       greeting={`${greeting(new Date().getHours())}, ${firstName}`}
       capacity={CAPACITY}
       everHadTasks={MY_TASKS.length > 0}
       initialFocus={focus}
+      overview={overview}
     />
   );
 }
