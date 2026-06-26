@@ -2,14 +2,17 @@
 // StaffTask deliberately OMITS money (value/price) at the type level, so a leak is a
 // compile error, not a runtime check. Staff sees tasks, never prices or credit.
 import {
-  ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, qaCriteriaFor, briefFor,
+  ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, SKILL_META, qaCriteriaFor, briefFor,
   PAYOUTS, TRANSACTIONS,
   CUSTOMER_EXTRA, customerByCompany, CLIENT_NOTE, managerOf,
   type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
 
 export type { OrderStatus, Priority } from './adminMock';
-export { SKILL_META } from './adminMock'; // safe (icon/label/color only) — re-export for staff client
+export { SKILL_META }; // safe (icon/label/color only) — re-export for staff client
+// Visual meta for a service (icon/label/color), via its skill. Safe for staff surface.
+export const serviceMeta = (service: string): { label: string; icon: string; color: string } =>
+  SKILL_META[SERVICE_SKILL[service] ?? ''] ?? { label: service, icon: 'ph-circle', color: '#64748b' };
 export type StaffDeliverable = AdminDeliverable; // already money-free
 
 export interface StaffTask {
