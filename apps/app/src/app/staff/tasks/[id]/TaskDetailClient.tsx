@@ -7,14 +7,16 @@ import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
-import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage } from '@/data/staffMock';
+import { SKILL_META } from '@/data/staffMock';
+import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo } from '@/data/staffMock';
 
 interface Props {
   task: StaffTask; deliverables: StaffDeliverable[]; messages: StaffMessage[];
   days: number | null; prevId: string | null; nextId: string | null;
+  client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
 }
 
-export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId }: Props) {
+export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(task.status);
   const [toast, setToast] = useState<string | null>(null);
@@ -55,6 +57,11 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         </span>
       </div>
       <p className="mb-4 text-xs text-muted-foreground">{task.customer} · <i className="ph-bold ph-eye-slash align-middle" /> pricing hidden from staff</p>
+
+      <div className="mb-4 grid gap-4 md:grid-cols-2">
+        <ClientCard c={client} />
+        <ManagerPanel m={manager} seed={managerMessages} />
+      </div>
 
       {actions.length > 0 && (
         <div className="kcard mb-4 flex flex-wrap items-center gap-2">
@@ -115,6 +122,91 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         <div className="fixed bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg">{toast}</div>
       )}
     </section>
+  );
+}
+
+const ini = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
+
+// Client context: order history, service mix, prior staff, and the account note.
+function ClientCard({ c }: { c: ClientSummary }) {
+  const top = c.byService[0]?.count ?? 1;
+  return (
+    <div className="kcard">
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-buildings text-primary" /> Client <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">{c.company}</span></p>
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
+        {c.tier && <span className="rounded-md bg-muted px-2 py-0.5 font-semibold capitalize">{c.tier} tier</span>}
+        {c.since && <span className="text-muted-foreground">client since {c.since}</span>}
+        {c.tags.map((t) => <span key={t} className="rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary">{t}</span>)}
+      </div>
+      <div className="mb-3 flex items-baseline gap-1.5">
+        <span className="display text-2xl font-bold leading-none">{c.orders}</span>
+        <span className="text-xs text-muted-foreground">orders placed{c.topService && <> · mostly <b className="text-foreground">{c.topService}</b></>}</span>
+      </div>
+      {c.byService.length > 0 && (
+        <div className="mb-3 space-y-1">
+          {c.byService.map((s) => (
+            <div key={s.service} className="flex items-center gap-2 text-xs">
+              <span className="w-20 shrink-0 text-muted-foreground">{s.service}</span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${(s.count / top) * 100}%` }} /></div>
+              <span className="w-5 text-right tabular-nums">{s.count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="mb-1 text-xs text-muted-foreground">Previously handled by</p>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {c.staff.length > 0 ? c.staff.map((s) => (
+          <span key={s} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+            <span className="grid h-4 w-4 place-items-center rounded-full bg-primary/15 text-[8px] font-bold text-primary">{ini(s)}</span>{s}
+          </span>
+        )) : <span className="text-xs text-muted-foreground">No prior staff on record.</span>}
+      </div>
+      {c.note && <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-note-pencil mr-1 text-muted-foreground" />{c.note}</p>}
+    </div>
+  );
+}
+
+// Manager context: the ops lead who reviews this work — profile, note, and a chat box.
+function ManagerPanel({ m, seed }: { m: ManagerInfo; seed: StaffMessage[] }) {
+  const [msgs, setMsgs] = useState<StaffMessage[]>(seed);
+  const [draft, setDraft] = useState('');
+  const first = m.name.split(' ')[0];
+  function send() {
+    const body = draft.trim();
+    if (!body) return;
+    setMsgs((x) => [...x, { who: 'You', body, internal: true, at: 'now' }]);
+    setDraft('');
+  }
+  return (
+    <div className="kcard flex flex-col">
+      <div className="mb-3 flex items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{ini(m.name)}</span>
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">{m.name} <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">{m.rank}</span></p>
+          <p className="text-xs text-muted-foreground">{m.title} · reviews your work</p>
+        </div>
+      </div>
+      {m.skills.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {m.skills.map((s) => { const meta = SKILL_META[s]; return meta ? (
+            <span key={s} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${meta.color}1a`, color: meta.color }}><i className={`ph-bold ${meta.icon}`} />{meta.label}</span>
+          ) : null; })}
+        </div>
+      )}
+      {m.note && <p className="mb-3 rounded-lg border-l-2 border-primary bg-primary/5 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-quotes mr-1 text-primary" />{m.note}</p>}
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">Chat with {first}</p>
+      <div className="mb-2 max-h-40 space-y-2 overflow-y-auto">
+        {msgs.length === 0 ? <p className="text-xs text-muted-foreground">No messages yet — say hi.</p> : msgs.map((x, i) => (
+          <div key={i} className={`flex ${x.who === 'You' ? 'justify-end' : ''}`}>
+            <span className={`max-w-[80%] rounded-lg px-2.5 py-1.5 text-xs ${x.who === 'You' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{x.body} <span className="opacity-60">· {x.at}</span></span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto flex gap-2">
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder={`Message ${first}…`} aria-label={`Message ${first}`} className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary" />
+        <button onClick={send} aria-label="Send message" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"><i className="ph-bold ph-paper-plane-tilt" /></button>
+      </div>
+    </div>
   );
 }
 

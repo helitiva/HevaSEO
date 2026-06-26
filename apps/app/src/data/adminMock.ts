@@ -357,11 +357,20 @@ export const STAFF: AdminStaff[] = [
 
 // Team managers — ops leads who own a slice of the delivery roster. (Same people as
 // the manager-tier admin accounts; see ADMIN_SETTINGS.admins.)
-export interface AdminManager { id: string; name: string; email: string; title: string; }
+export interface AdminManager { id: string; name: string; email: string; title: string; rank: string; skills: string[]; }
 export const MANAGERS: AdminManager[] = [
-  { id: 'mgr1', name: 'Sofia Marin', email: 'sofia@hevaseo.com', title: 'Operations Manager' },
-  { id: 'mgr2', name: 'Ken Rivera',  email: 'ken@hevaseo.com',   title: 'Delivery Manager' },
+  { id: 'mgr1', name: 'Sofia Marin', email: 'sofia@hevaseo.com', title: 'Operations Manager', rank: 'Senior Manager', skills: ['keyword', 'backlink'] },
+  { id: 'mgr2', name: 'Ken Rivera',  email: 'ken@hevaseo.com',   title: 'Delivery Manager',   rank: 'Lead Manager',   skills: ['content', 'optimize'] },
 ];
+// Account-level note about a client / their project, shown to whoever works their orders.
+export const CLIENT_NOTE: Record<string, string> = {
+  'Orbit Labs': 'Technical SaaS client — white-hat links only. The CEO is detail-oriented: keep anchor text natural and share target domains before any outreach.',
+  'Acme Co': 'Long-term retainer. Prioritise the money pages (/pricing, /shop). House style guide is on file — match it.',
+  'Vertex AI': 'Highly technical; drafts go through their staff engineer. Accuracy over speed — cite primary sources.',
+  'Nova': 'Fast-moving startup, very responsive. Happy with punchy, data-led copy.',
+  'Lumen': 'Solar / energy — compliance-sensitive. Avoid guaranteed-savings claims and cite figures.',
+  'Vertex': 'Highly technical; drafts go through their staff engineer. Accuracy over speed.',
+};
 // Which manager owns which staff member (staff id → manager id).
 export const STAFF_MANAGER: Record<string, string> = {
   s1: 'mgr1', s2: 'mgr1', s5: 'mgr1',  // Sofia — search & links pod

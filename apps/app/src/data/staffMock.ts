@@ -4,10 +4,12 @@
 import {
   ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, qaCriteriaFor, briefFor,
   PAYOUTS, TRANSACTIONS,
-  type OrderStatus, type Priority, type AdminDeliverable,
+  CUSTOMER_EXTRA, customerByCompany, CLIENT_NOTE, managerOf,
+  type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
 
 export type { OrderStatus, Priority } from './adminMock';
+export { SKILL_META } from './adminMock'; // safe (icon/label/color only) — re-export for staff client
 export type StaffDeliverable = AdminDeliverable; // already money-free
 
 export interface StaffTask {
@@ -112,6 +114,49 @@ export const MESSAGES: Record<string, StaffMessage[]> = {
   ],
 };
 export const messagesFor = (orderId: string): StaffMessage[] => MESSAGES[orderId] ?? [];
+
+// ---- Client context (money-free): order history + who worked it + account note ----
+export interface ClientSummary {
+  company: string; tier: Tier | null; since: string | null; tags: string[];
+  orders: number; byService: { service: string; count: number }[]; topService: string | null;
+  staff: string[]; note: string | null;
+}
+export const clientSummary = (customer: string): ClientSummary => {
+  const all = ORDERS.filter((o) => o.customer === customer);
+  const counts = new Map<string, number>();
+  all.forEach((o) => counts.set(o.service, (counts.get(o.service) ?? 0) + 1));
+  const byService = [...counts.entries()].map(([service, count]) => ({ service, count })).sort((a, b) => b.count - a.count);
+  const staff = [...new Set(all.map((o) => o.staff).filter((s): s is string => Boolean(s)))];
+  const c = customerByCompany(customer);
+  const ex = c ? CUSTOMER_EXTRA[c.id] : undefined;
+  return {
+    company: customer, tier: c?.tier ?? null, since: ex?.memberSince ?? null, tags: ex?.tags ?? [],
+    orders: all.length, byService, topService: byService[0]?.service ?? null, staff, note: CLIENT_NOTE[customer] ?? null,
+  };
+};
+
+// ---- Manager context: the ops lead who reviews this staffer's work ----
+export interface ManagerInfo { id: string; name: string; rank: string; title: string; skills: string[]; note: string | null; }
+const MANAGER_NOTE: Record<string, string> = {
+  mgr2: 'On content tasks: always fill the meta title + description and add 2–3 internal links before sending for review. Ping me early if a brief is unclear — that beats a rework round.',
+  mgr1: 'For link work: share the target domains with me before outreach. Quality over volume — one DR50 placement beats three weak ones.',
+};
+export const myManager = (): ManagerInfo => {
+  const m = managerOf(CURRENT_STAFF.id);
+  return m
+    ? { id: m.id, name: m.name, rank: m.rank, title: m.title, skills: m.skills, note: MANAGER_NOTE[m.id] ?? null }
+    : { id: '', name: 'Unassigned', rank: '—', title: 'No manager assigned', skills: [], note: null };
+};
+const MANAGER_THREAD: Record<string, StaffMessage[]> = {
+  mgr2: [
+    { who: 'Ken Rivera', body: 'Saw the Orbit brief land on your board — they’re picky about anchors, keep it natural.', internal: true, at: '3h' },
+    { who: 'You', body: 'Got it. I’ll send the source domains before any outreach.', internal: true, at: '2h' },
+  ],
+  mgr1: [
+    { who: 'Sofia Marin', body: 'Nice turnaround on the last batch. Keep the momentum.', internal: true, at: '1d' },
+  ],
+};
+export const managerThread = (mgrId: string): StaffMessage[] => MANAGER_THREAD[mgrId] ?? [];
 
 // ---- Notifications inbox (mock) ----
 export type StaffNotifKind = 'assignment' | 'changes' | 'reminder' | 'approved';

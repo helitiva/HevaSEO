@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { MY_TASKS, taskById, deliverablesFor, messagesFor } from '@/data/staffMock';
+import { MY_TASKS, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread } from '@/data/staffMock';
 import { daysToDue } from '@/lib/staff';
 import { TaskDetailClient } from './TaskDetailClient';
 
@@ -12,6 +12,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   const prev = idx > 0 ? MY_TASKS[idx - 1].id : null;
   const next = idx < MY_TASKS.length - 1 ? MY_TASKS[idx + 1].id : null;
 
+  const manager = myManager();
+
   return (
     <TaskDetailClient
       task={task}
@@ -20,6 +22,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       days={daysToDue(task.deadline)}
       prevId={prev}
       nextId={next}
+      client={clientSummary(task.customer)}
+      manager={manager}
+      managerMessages={managerThread(manager.id)}
     />
   );
 }
