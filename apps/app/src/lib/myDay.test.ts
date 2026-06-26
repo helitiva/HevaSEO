@@ -70,3 +70,39 @@ describe('deriveKpis', () => {
     expect(k.cleared).toBe(1);
   });
 });
+
+import { urgencyGroup, groupFocus, matchesQuery, filterFocus } from './myDay';
+
+describe('urgencyGroup', () => {
+  it('buckets by days-to-due', () => {
+    expect(urgencyGroup(-2)).toBe('overdue');
+    expect(urgencyGroup(0)).toBe('today');
+    expect(urgencyGroup(3)).toBe('week');
+    expect(urgencyGroup(30)).toBe('later');
+    expect(urgencyGroup(null)).toBe('later');
+  });
+});
+
+describe('groupFocus', () => {
+  it('returns only non-empty groups in urgency order', () => {
+    const tasks = [t({ id: 'a', days: -1 }), t({ id: 'b', days: 0 }), t({ id: 'c', days: 2 })];
+    const g = groupFocus(tasks);
+    expect(g.map((x) => x.key)).toEqual(['overdue', 'today', 'week']);
+    expect(g[0].items[0].id).toBe('a');
+  });
+});
+
+describe('filter + search', () => {
+  const tasks = [t({ id: 'a', code: 'CNT-1', service: 'Content', status: 'assigned' }), t({ id: 'b', code: 'BL-2', service: 'Backlink', status: 'in_progress' })];
+  it('matchesQuery hits code, service, pkg (case-insensitive); empty matches all', () => {
+    expect(matchesQuery(tasks[0], '')).toBe(true);
+    expect(matchesQuery(tasks[0], 'cnt')).toBe(true);
+    expect(matchesQuery(tasks[1], 'back')).toBe(true);
+    expect(matchesQuery(tasks[0], 'zzz')).toBe(false);
+  });
+  it('filterFocus combines status + query', () => {
+    expect(filterFocus(tasks, 'all', '').length).toBe(2);
+    expect(filterFocus(tasks, 'in_progress', '').map((x) => x.id)).toEqual(['b']);
+    expect(filterFocus(tasks, 'all', 'cnt').map((x) => x.id)).toEqual(['a']);
+  });
+});

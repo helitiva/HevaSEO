@@ -8,12 +8,18 @@ import type { Priority } from '@/data/adminMock';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { EmptyState, emptyKindFor } from '@/components/staff/EmptyState';
-import { deliverablesFor } from '@/data/staffMock';
-import { primaryActionFor, applyAction, undoAction, deriveKpis, type MyDayTask, type MyDayState } from '@/lib/myDay';
+import { deliverablesFor, statusLabel, type OrderStatus } from '@/data/staffMock';
+import { primaryActionFor, applyAction, undoAction, deriveKpis, groupFocus, filterFocus, type MyDayTask, type MyDayState } from '@/lib/myDay';
 
 interface Props { greeting: string; capacity: number; everHadTasks: boolean; initialFocus: MyDayTask[]; }
 
 const VERB_TONE: Record<string, string> = { Submitted: 'text-emerald-500', Started: 'text-primary', Resumed: 'text-amber-500' };
+const STATUS_CHIPS: Array<{ key: 'all' | OrderStatus; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'assigned', label: statusLabel.assigned },
+  { key: 'in_progress', label: statusLabel.in_progress },
+  { key: 'changes_requested', label: statusLabel.changes_requested },
+];
 
 export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: Props) {
   const router = useRouter();
@@ -21,9 +27,15 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
   const [sel, setSel] = useState(0);
   const [submitId, setSubmitId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; entryId: string } | null>(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const searchRef = useRef<HTMLInputElement>(null);
   const idc = useRef(0);
   const makeId = () => `c${idc.current++}`;
   const kpis = deriveKpis(state);
+
+  const visible = filterFocus(state.focus, statusFilter, query);
+  const groups = groupFocus(visible);
 
   const subtitle =
     kpis.overdue > 0 ? `${kpis.overdue} overdue — clear ${kpis.overdue === 1 ? 'it' : 'these'} first`
@@ -57,23 +69,54 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
   }
 
   function undo(entryId: string) { setState((s) => undoAction(s, entryId)); setToast(null); }
+  function clearFilters() { setQuery(''); setStatusFilter('all'); }
 
-  // Keyboard: j/k move, enter open, space = run the selected row's primary action.
+  // Keyboard: '/' focus search, j/k move (over the filtered list), enter open, space act.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement;
-      if (submitId || el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-      const max = state.focus.length - 1;
+      const typing = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+      if (e.key === '/' && !typing && !submitId) { e.preventDefault(); searchRef.current?.focus(); return; }
+      if (submitId || typing) return;
+      const max = visible.length - 1;
       if (e.key === 'j') { e.preventDefault(); setSel((i) => Math.min(i + 1, max)); }
       else if (e.key === 'k') { e.preventDefault(); setSel((i) => Math.max(i - 1, 0)); }
-      else if (e.key === 'Enter' && state.focus[sel]) router.push(`/staff/tasks/${state.focus[sel].id}`);
-      else if (e.key === ' ' && state.focus[sel]) { e.preventDefault(); act(state.focus[sel].id); }
+      else if (e.key === 'Enter' && visible[sel]) router.push(`/staff/tasks/${visible[sel].id}`);
+      else if (e.key === ' ' && visible[sel]) { e.preventDefault(); act(visible[sel].id); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [state, sel, submitId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, sel, submitId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitTask = submitId ? state.focus.find((x) => x.id === submitId) : null;
+
+  function renderRow(task: MyDayTask, index: number) {
+    const action = primaryActionFor(task.status);
+    const overdue = (task.days ?? 0) < 0;
+    return (
+      <li key={task.id} className={`group -mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${index === sel ? 'ring-2 ring-primary/50' : ''}`}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
+          <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden hover:opacity-80">
+            <PriorityDot priority={task.priority} />
+            <SlaChip daysToDue={task.days} />
+            <span className="shrink-0 font-medium">{task.code}</span>
+            <StatusBadge status={task.status} />
+            <span className="truncate text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
+          </Link>
+          {action && (
+            <button onClick={() => act(task.id)}
+              className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 ${action.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
+              <i className={`ph-bold ${action.icon}`} aria-hidden /> {shortLabel(action.label)}
+            </button>
+          )}
+          <button onClick={() => copyLink(task.id, () => flash(`${task.code} · link copied`, makeId()))} aria-label="Copy link"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground opacity-0 transition hover:bg-accent focus:opacity-100 group-hover:opacity-100"><i className="ph-bold ph-link" aria-hidden /></button>
+        </div>
+      </li>
+    );
+  }
+
+  let flatIndex = -1;
 
   return (
     <section className="max-w-4xl">
@@ -89,43 +132,51 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus }: 
             {state.focus.length > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{state.focus.length}</span>}
           </p>
           <span className="hidden text-[11px] text-muted-foreground sm:inline">
-            <kbd className="rounded border border-border bg-muted px-1">j</kbd>/<kbd className="rounded border border-border bg-muted px-1">k</kbd> move · <kbd className="rounded border border-border bg-muted px-1">space</kbd> act
+            <kbd className="rounded border border-border bg-muted px-1">j</kbd>/<kbd className="rounded border border-border bg-muted px-1">k</kbd> · <kbd className="rounded border border-border bg-muted px-1">space</kbd> act · <kbd className="rounded border border-border bg-muted px-1">/</kbd> search
           </span>
         </div>
+
+        {state.focus.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm">
+              <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
+              <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search my tasks…  (press /)" aria-label="Search my tasks" className="w-full bg-transparent outline-none" />
+              {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground" /></button>}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {STATUS_CHIPS.map((c) => {
+                const n = c.key === 'all' ? state.focus.length : state.focus.filter((t) => t.status === c.key).length;
+                return (
+                  <button key={c.key} onClick={() => { setStatusFilter(c.key); setSel(0); }}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${statusFilter === c.key ? 'bg-primary text-primary-foreground' : 'border border-border hover:border-primary/50'}`}>
+                    {c.label} <span className="opacity-70">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {state.focus.length === 0 ? (
           <div>
             {kpis.cleared > 0 && <p className="mb-3 text-center text-sm font-semibold text-emerald-500">You cleared {kpis.cleared} today 🎉</p>}
             <EmptyState kind={emptyKindFor(everHadTasks || kpis.cleared > 0)} />
           </div>
+        ) : visible.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <i className="ph-bold ph-funnel-x text-2xl text-muted-foreground" aria-hidden />
+            <p className="text-sm text-muted-foreground">No tasks match your search or filter.</p>
+            <button onClick={clearFilters} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Clear filters</button>
+          </div>
         ) : (
-          <ul className="divide-y divide-border/60">
-            {state.focus.map((task, i) => {
-              const action = primaryActionFor(task.status);
-              const overdue = (task.days ?? 0) < 0;
-              return (
-                <li key={task.id} className={`group -mx-2 rounded-lg px-2 ${overdue ? 'bg-destructive/5' : ''} ${i === sel ? 'ring-2 ring-primary/50' : ''}`}>
-                  <div className="flex items-center gap-3 py-2.5">
-                    <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 hover:opacity-80">
-                      <PriorityDot priority={task.priority} />
-                      <SlaChip daysToDue={task.days} />
-                      <span className="shrink-0 font-medium">{task.code}</span>
-                      <StatusBadge status={task.status} />
-                      <span className="truncate text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
-                    </Link>
-                    {action && (
-                      <button onClick={() => act(task.id)}
-                        className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 ${action.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
-                        <i className={`ph-bold ${action.icon}`} aria-hidden /> {shortLabel(action.label)}
-                      </button>
-                    )}
-                    <button onClick={() => copyLink(task.id, () => flash(`${task.code} · link copied`, makeId()))} aria-label="Copy link"
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground opacity-0 transition hover:bg-accent focus:opacity-100 group-hover:opacity-100"><i className="ph-bold ph-link" aria-hidden /></button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          groups.map((g) => (
+            <div key={g.key} className="mb-1">
+              <p className="px-1 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
+              <ul className="divide-y divide-border/60">
+                {g.items.map((task) => { flatIndex += 1; return renderRow(task, flatIndex); })}
+              </ul>
+            </div>
+          ))
         )}
       </div>
 

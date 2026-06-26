@@ -68,3 +68,38 @@ export function deriveKpis(state: MyDayState): MyDayKpis {
     cleared: state.log.length,
   };
 }
+
+export type UrgencyKey = 'overdue' | 'today' | 'week' | 'later';
+export interface FocusGroup { key: UrgencyKey; label: string; items: MyDayTask[]; }
+
+const GROUP_ORDER: { key: UrgencyKey; label: string }[] = [
+  { key: 'overdue', label: 'Overdue' },
+  { key: 'today', label: 'Due today' },
+  { key: 'week', label: 'This week' },
+  { key: 'later', label: 'Later' },
+];
+
+export function urgencyGroup(days: number | null): UrgencyKey {
+  if (days === null) return 'later';
+  if (days < 0) return 'overdue';
+  if (days === 0) return 'today';
+  if (days <= 7) return 'week';
+  return 'later';
+}
+
+// Non-empty urgency groups, in order. Items keep the caller's sort.
+export function groupFocus(tasks: MyDayTask[]): FocusGroup[] {
+  return GROUP_ORDER
+    .map(({ key, label }) => ({ key, label, items: tasks.filter((t) => urgencyGroup(t.days) === key) }))
+    .filter((g) => g.items.length > 0);
+}
+
+export function matchesQuery(t: MyDayTask, q: string): boolean {
+  const s = q.trim().toLowerCase();
+  if (!s) return true;
+  return t.code.toLowerCase().includes(s) || t.service.toLowerCase().includes(s) || t.pkg.toLowerCase().includes(s);
+}
+
+export function filterFocus(tasks: MyDayTask[], status: 'all' | OrderStatus, q: string): MyDayTask[] {
+  return tasks.filter((t) => (status === 'all' || t.status === status) && matchesQuery(t, q));
+}
