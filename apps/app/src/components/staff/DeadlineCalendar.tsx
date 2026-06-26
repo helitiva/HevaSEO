@@ -24,6 +24,7 @@ function shiftMonth(month: string, delta: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 const longDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const isWeekend = (date: string) => { const d = new Date(`${date}T00:00:00Z`).getUTCDay(); return d === 0 || d === 6; };
 
 export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { tasks: CalTask[]; initialMonth: string; today: string; offDays?: Set<string> }) {
   const router = useRouter();
@@ -77,7 +78,7 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { task
               {...(clickable ? { onClick: () => setPanelDate(c.date), 'aria-label': `${items.length} task${items.length === 1 ? '' : 's'} on ${longDate(c.date)}` } : {})}
               title={isOff ? 'Time off' : undefined}
               className={`min-h-[78px] w-full rounded-lg border p-1.5 text-left transition ${
-                c.inMonth ? 'border-border bg-background' : 'border-transparent bg-muted/30'
+                c.inMonth ? (isWeekend(c.date) ? 'border-border bg-muted/20' : 'border-border bg-background') : 'border-transparent bg-muted/30'
               } ${isOff && c.inMonth ? 'bg-[repeating-linear-gradient(135deg,hsl(var(--muted))_0_6px,transparent_6px_12px)]' : ''} ${c.isToday ? 'ring-2 ring-primary/50' : ''} ${conflict ? 'ring-2 ring-amber-500/60' : ''} ${clickable ? 'cursor-pointer hover:border-primary/60' : ''}`}
             >
               <span className="flex items-center justify-between">
@@ -86,7 +87,8 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { task
                 </span>
                 {isOff && c.inMonth && <i className={`ph-bold ${conflict ? 'ph-warning text-amber-500' : 'ph-moon text-muted-foreground'} text-[11px]`} title={conflict ? 'Deadline on your day off' : 'Time off'} />}
               </span>
-              <div className="mt-1 space-y-1">
+              {/* desktop: labelled chips */}
+              <div className="mt-1 hidden space-y-1 sm:block">
                 {items.slice(0, 2).map((t) => {
                   const sla = slaChip(daysToDue(t.deadline, today));
                   const m = serviceMeta(t.service);
@@ -98,6 +100,11 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { task
                   );
                 })}
                 {items.length > 2 && <span className="block px-1.5 text-[10px] font-semibold text-primary">+{items.length - 2} more</span>}
+              </div>
+              {/* mobile: service-coloured dots (tap the day to see details) */}
+              <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
+                {items.slice(0, 5).map((t) => <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ background: serviceMeta(t.service).color }} aria-hidden />)}
+                {items.length > 5 && <span className="text-[9px] font-semibold text-muted-foreground">+{items.length - 5}</span>}
               </div>
             </Tag>
           );

@@ -42,7 +42,9 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
   const [view, setView] = useState<View>('month');
   const [service, setService] = useState<string>('');
   const [avail, setAvail] = useState(MY_AVAILABILITY);
+  const [focus, setFocus] = useState<string | null>(null);
   const offDays = useMemo(() => offDaysSet(avail.timeOff), [avail.timeOff]);
+  const goto = (bucket: string) => { setService(''); setView('agenda'); setFocus(bucket); };
 
   // view is URL state — shareable / survives refresh
   useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'agenda' || v === 'month' || v === 'availability') setView(v); }, []);
@@ -65,10 +67,10 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi icon="ph-warning-octagon" label="Overdue" value={kpis.overdue} tone={kpis.overdue ? 'bad' : undefined} />
-        <Kpi icon="ph-calendar-check" label="Due today" value={kpis.today} tone={kpis.today ? 'warn' : undefined} />
-        <Kpi icon="ph-calendar-dots" label="Next 7 days" value={kpis.week} />
-        <Kpi icon="ph-clock-afternoon" label="Later" value={kpis.later} />
+        <Kpi icon="ph-warning-octagon" label="Overdue" value={kpis.overdue} tone={kpis.overdue ? 'bad' : undefined} onClick={() => goto('overdue')} />
+        <Kpi icon="ph-calendar-check" label="Due today" value={kpis.today} tone={kpis.today ? 'warn' : undefined} onClick={() => goto('today')} />
+        <Kpi icon="ph-calendar-dots" label="Next 7 days" value={kpis.week} onClick={() => goto('today')} />
+        <Kpi icon="ph-clock-afternoon" label="Later" value={kpis.later} onClick={() => goto('later')} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -92,14 +94,17 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
         {showFilters && <span className="ml-auto text-xs text-muted-foreground">{shown.length} deadline{shown.length === 1 ? '' : 's'}</span>}
       </div>
 
-      {view === 'month' && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} />}
-      {view === 'agenda' && <AgendaList tasks={shown} today={today} />}
+      {view !== 'availability' && shown.length === 0 && (
+        <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-funnel mb-1 block text-xl" />No deadlines match this filter.</div>
+      )}
+      {view === 'month' && shown.length > 0 && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} />}
+      {view === 'agenda' && shown.length > 0 && <AgendaList tasks={shown} today={today} focus={focus} />}
       {view === 'availability' && <AvailabilityPanel value={avail} onSave={setAvail} today={today} />}
     </div>
   );
 }
 
-function AgendaList({ tasks, today }: { tasks: CalTask[]; today: string }) {
+function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; focus: string | null }) {
   const router = useRouter();
   const sorted = [...tasks].sort((a, b) => (a.deadline < b.deadline ? -1 : 1));
   // Within a day-bucket, surface the highest-care clients first.
@@ -108,19 +113,22 @@ function AgendaList({ tasks, today }: { tasks: CalTask[]; today: string }) {
     items: sorted.filter((t) => bk.test(daysToDue(t.deadline, today) ?? 0)).sort((a, b) => careRankOf(b.customer) - careRankOf(a.customer)),
   })).filter((g) => g.items.length > 0);
 
+  // Scroll to the bucket a KPI card jumped to.
+  useEffect(() => { if (focus) document.getElementById(`bucket-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [focus]);
+
   if (groups.length === 0) return <div className="kcard text-center text-sm text-muted-foreground">No deadlines match this filter.</div>;
 
   return (
     <div className="space-y-4">
       {groups.map((g) => (
-        <div key={g.key} className="kcard">
+        <div key={g.key} id={`bucket-${g.key}`} className={`kcard scroll-mt-4 ${focus === g.key ? 'ring-2 ring-primary/40' : ''}`}>
           <p className={`mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide ${g.key === 'overdue' ? 'text-destructive' : g.key === 'today' ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
             {g.label} <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{g.items.length}</span>
           </p>
           <ul className="space-y-1.5">
-            {g.items.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); return (
+            {g.items.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); const top = careRankOf(t.customer) === 2; return (
               <li key={t.id}>
-                <button onClick={() => router.push(`/staff/tasks/${t.id}`)} className="flex w-full items-center gap-3 rounded-lg border border-border px-3 py-2 text-left transition hover:bg-muted/40">
+                <button onClick={() => router.push(`/staff/tasks/${t.id}`)} className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
                   <span className="w-12 shrink-0 text-center">
                     <span className="block text-[10px] uppercase text-muted-foreground">{new Date(`${t.deadline}T00:00:00`).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}</span>
                     <span className="block text-base font-bold leading-none">{t.deadline.slice(8)}</span>
@@ -140,19 +148,27 @@ function AgendaList({ tasks, today }: { tasks: CalTask[]; today: string }) {
           </ul>
         </div>
       ))}
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-muted-foreground">
+        <span className="font-semibold">Care:</span>
+        <span className="flex items-center gap-1"><i className="ph-fill ph-crown text-[#a855f7]" /> VIP / <i className="ph-fill ph-medal text-[#f59e0b]" /> Gold = higher rank</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-seal-warning text-rose-500" /> Particular = handle carefully</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-0.5 rounded bg-amber-500" /> = do first</span>
+        <span className="ml-auto">Highest-care clients are listed first.</span>
+      </p>
     </div>
   );
 }
 
-function Kpi({ icon, label, value, tone }: { icon: string; label: string; value: number; tone?: 'bad' | 'warn' }) {
+function Kpi({ icon, label, value, tone, onClick }: { icon: string; label: string; value: number; tone?: 'bad' | 'warn'; onClick?: () => void }) {
   const col = tone === 'bad' ? 'text-destructive' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div className="kcard !p-3">
+    <Tag onClick={onClick} className={`kcard !p-3 w-full text-left ${onClick ? 'cursor-pointer transition hover:border-primary/50' : ''}`}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
         <i className={`ph-bold ${icon} ${col}`} />
       </div>
       <p className="display mt-1 text-2xl font-bold leading-none">{value}</p>
-    </div>
+    </Tag>
   );
 }

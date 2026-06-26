@@ -33,7 +33,11 @@ export function AvailabilityPanel({ value, onSave, today }: { value: StaffAvaila
     <div className="grid gap-4 lg:grid-cols-2">
       {/* status + working hours */}
       <div className="kcard">
-        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" /> Working hours</p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" /> Working hours</p>
+          <button onClick={() => setD((p) => { const mon = p.hours.find((h) => h.day === 0); return mon ? { ...p, hours: p.hours.map((h) => (h.day >= 1 && h.day <= 4 ? { ...h, on: mon.on, start: mon.start, end: mon.end } : h)) } : p; })}
+            className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-copy mr-1" />Copy Mon → weekdays</button>
+        </div>
         <div className="mb-4 grid grid-cols-3 gap-1.5">
           {(Object.keys(STATUS) as AvailStatus[]).map((s) => (
             <button key={s} onClick={() => setD((p) => ({ ...p, status: s }))} className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${d.status === s ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
