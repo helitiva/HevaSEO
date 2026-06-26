@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { CareTags } from '@/components/staff/CareTags';
-import { serviceMeta, deliverablesFor, reworkCount } from '@/data/staffMock';
+import { serviceMeta, deliverablesFor, reworkCount, feedbackFor } from '@/data/staffMock';
 import type { MyDeliverable, DeliverableStats } from '@/data/staffMock';
 
 const PILL: Record<string, string> = { approved: 'pill-live', submitted: 'pill-good', changes_requested: 'pill-warn' };
@@ -67,7 +67,7 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
         <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-tray mb-1 block text-xl" />Nothing here.</div>
       ) : (
         <ul className="space-y-2">
-          {shown.map((r) => { const m = serviceMeta(r.service); const needs = r.d.status === 'changes_requested'; const rework = reworkCount(r.taskId); return (
+          {shown.map((r) => { const m = serviceMeta(r.service); const needs = r.d.status === 'changes_requested'; const rework = reworkCount(r.taskId); const fb = feedbackFor(r.d.id); return (
             <li key={r.d.id}>
               <button onClick={() => setSel(r)} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${needs ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
@@ -78,6 +78,7 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
                     <span className="hidden items-center gap-1 sm:flex"><i className={`ph-bold ${r.d.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} /><span className="max-w-[14rem] truncate">{r.d.fileName ?? r.d.url}</span></span>
                   </span>
                 </span>
+                {fb.customerRating && <span className="hidden shrink-0 items-center gap-0.5 text-[11px] font-semibold text-amber-500 sm:flex" title={`Customer rated ${fb.customerRating}/5`}><i className="ph-fill ph-star" />{fb.customerRating}.0</span>}
                 <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">{r.d.submittedAt}</span>
                 {rework > 0 && <span className="hidden shrink-0 text-[11px] font-semibold text-amber-600 dark:text-amber-400 sm:block" title="Rework rounds">{rework}×</span>}
                 <span className={`pill ${PILL[r.d.status] ?? 'pill'} shrink-0`}>{LABEL[r.d.status] ?? r.d.status}</span>
@@ -97,7 +98,10 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
 function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void }) {
   const { d, taskId, taskCode, customer } = row;
   const history = deliverablesFor(taskId); // oldest → newest
-  const reviewTone = d.status === 'approved' ? 'emerald' : d.status === 'changes_requested' ? 'amber' : null;
+  const fb = feedbackFor(d.id);
+  const managerNote = fb.managerNote ?? d.reviewNote;
+  const changes = d.status === 'changes_requested';
+  const [toast, setToast] = useState('');
   return (
     <SlideOver open onClose={onClose} title={`${taskCode} · v${d.version}`}>
       <div className="space-y-5">
@@ -105,7 +109,7 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
           <span className={`pill ${PILL[d.status] ?? 'pill'}`}>{LABEL[d.status] ?? d.status}</span>
           <span className="text-xs text-muted-foreground">{customer}</span>
           <CareTags company={customer} />
-          <Link href={`/staff/tasks/${taskId}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open task →</Link>
+          <Link href={`/staff/tasks/${taskId}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open order →</Link>
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -116,10 +120,18 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
         </div>
 
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Attachment</p>
-          <p className="flex items-center gap-1.5 break-all rounded-lg border border-border px-2.5 py-1.5 text-sm">
-            <i className={`ph-bold ${d.kind === 'link' ? 'ph-link' : 'ph-file-text'} text-muted-foreground`} />{d.fileName ?? d.url}
-          </p>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The deliverable</p>
+          {d.kind === 'link' ? (
+            <a href={d.url ?? '#'} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary/60 hover:bg-muted/40">
+              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-link text-primary" /><span className="truncate">{d.url}</span></span>
+              <span className="shrink-0 font-semibold text-primary">Open link <i className="ph-bold ph-arrow-square-out" /></span>
+            </a>
+          ) : (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5 text-sm">
+              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-file-text text-muted-foreground" /><span className="truncate">{d.fileName}</span></span>
+              <button onClick={() => { setToast('Demo build — the file isn’t stored.'); setTimeout(() => setToast(''), 2000); }} className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Download</button>
+            </div>
+          )}
         </div>
 
         {d.note && (
@@ -130,13 +142,29 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
         )}
 
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Reviewer feedback</p>
-          {d.reviewNote ? (
-            <p className={`rounded-lg px-2.5 py-2 text-sm ${reviewTone === 'amber' ? 'border-l-2 border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-100' : 'border-l-2 border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100'}`}>
-              <i className={`ph-bold ${d.status === 'changes_requested' ? 'ph-arrow-counter-clockwise' : 'ph-seal-check'} mr-1`} />{d.reviewNote}
-            </p>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Manager / QA review</p>
+          {fb.managerRating || managerNote ? (
+            <div className={`rounded-lg px-2.5 py-2 text-sm ${changes ? 'border-l-2 border-amber-500 bg-amber-500/10' : 'border-l-2 border-emerald-500 bg-emerald-500/10'}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                {fb.managerRating ? <Stars value={fb.managerRating} /> : <span className="text-xs font-semibold">{changes ? 'Changes requested' : 'Reviewed'}</span>}
+                {fb.reviewer && <span className="ml-auto text-xs text-muted-foreground">{fb.reviewer}{d.reviewedAt ? ` · ${d.reviewedAt}` : ''}</span>}
+              </div>
+              {managerNote && <p className="mt-1.5">{managerNote}</p>}
+            </div>
           ) : <p className="rounded-lg border border-dashed border-border px-2.5 py-1.5 text-sm text-muted-foreground">Awaiting review — no feedback yet.</p>}
         </div>
+
+        {(d.status === 'approved' || fb.customerRating) && (
+          <div>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Customer rating</p>
+            {fb.customerRating ? (
+              <div className="rounded-lg border border-border px-2.5 py-2 text-sm">
+                <div className="flex items-center gap-2"><Stars value={fb.customerRating} />{fb.customerRatedAt && <span className="ml-auto text-xs text-muted-foreground">{fb.customerRatedAt}</span>}</div>
+                {fb.customerNote && <p className="mt-1.5 italic text-muted-foreground">“{fb.customerNote}”</p>}
+              </div>
+            ) : <p className="rounded-lg border border-dashed border-border px-2.5 py-1.5 text-sm text-muted-foreground">No customer rating yet — they’re reviewing the delivery.</p>}
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Version history</p>
@@ -154,7 +182,17 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
           </ul>
         </div>
       </div>
+      {toast && <div className="toast-in fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg">{toast}</div>}
     </SlideOver>
+  );
+}
+
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`${value} out of 5`}>
+      {[1, 2, 3, 4, 5].map((i) => <i key={i} className={`ph-fill ph-star text-sm ${i <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} />)}
+      <span className="ml-1 text-xs font-semibold">{value}.0</span>
+    </span>
   );
 }
 

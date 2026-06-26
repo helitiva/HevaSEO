@@ -308,3 +308,17 @@ export function clientCare(company: string): ClientCare {
   return { tier, tierMeta: tier ? TIER[tier] : null, isNew, isDemanding, isPriority, rank, hint };
 }
 export const careRankOf = (company: string): number => clientCare(company).rank;
+
+// ---- Structured evaluation on a deliverable: manager/QA rating + customer rating ----
+// reviewNote (the text) lives on the deliverable; this adds the star ratings + customer voice.
+export interface DeliverableFeedback {
+  managerRating?: number; reviewer?: string; managerNote?: string; // QA score 1–5
+  customerRating?: number; customerNote?: string; customerRatedAt?: string; // customer stars 1–5
+}
+export const DELIVERABLE_FEEDBACK: Record<string, DeliverableFeedback> = {
+  d10: { managerRating: 5, reviewer: 'Ken Rivera', managerNote: 'Polished and on-brief — meta and internal links all in place. Nice work.',
+    customerRating: 5, customerNote: 'Exactly what we needed — clear, on-brand, and ready to publish. Thank you!', customerRatedAt: '2026-06-24' },
+  d1: { managerRating: 3, reviewer: 'Ken Rivera' },
+  d8: { managerRating: 2, reviewer: 'Ken Rivera' },
+};
+export const feedbackFor = (deliverableId: string): DeliverableFeedback => DELIVERABLE_FEEDBACK[deliverableId] ?? {};
