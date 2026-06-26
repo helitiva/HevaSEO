@@ -28,8 +28,8 @@ export interface StaffMessage { who: string; body: string; internal: boolean; at
 // The signed-in staff member (mock). Swapped for the session user when auth lands.
 export const CURRENT_STAFF = { id: 's3', name: 'Huy N.', role: 'Content Lead' };
 
-// Curated board: one task per actionable status so every column has signal in the demo.
-const MY_TASK_IDS = ['o30', 'o8', 'o34', 'o31', 'o4', 'o15', 'o38'];
+// Curated board for the demo — a fuller spread of actionable tasks across urgency buckets.
+const MY_TASK_IDS = ['o31', 'o14', 'o2', 'o8', 'o34', 'o28', 'o6', 'o27', 'o32', 'o36', 'o26', 'o33', 'o11', 'o4', 'o15', 'o38'];
 
 const siteOf = (b: { label: string; value: string }[]): string | null =>
   b.find((x) => /website|site|url/i.test(x.label))?.value ?? null;

@@ -105,7 +105,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
     const action = primaryActionFor(task.status);
     return (
       <li key={task.id} onClick={() => router.push(`/staff/tasks/${task.id}`)}
-        className={`${COLS} group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-muted/50 ${index === sel ? 'bg-primary/10' : ''}`}>
+        className={`${COLS} group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-muted/60 ${index === sel ? 'bg-primary/10' : index % 2 === 1 ? 'bg-muted/30' : ''}`}>
         <div className="flex items-center gap-2 overflow-hidden">
           <PriorityDot priority={task.priority} />
           <span className="truncate font-medium">{task.code}</span>
