@@ -16,6 +16,8 @@ interface Props {
   client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
 }
 
+interface Activity { icon: string; color: string; title: string; detail?: string; at: string }
+
 export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(task.status);
@@ -31,20 +33,49 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   const qaDone = qaChecked.filter(Boolean).length;
   const toggleQa = (i: number) => setQaChecked((arr) => arr.map((v, j) => (j === i ? !v : v)));
 
-  // Keyboard nav through the visible queue (parity with admin power-ups).
+  // Activity feed: this session's actions (newest) on top of the deliverable history.
+  const [log, setLog] = useState<Activity[]>([]);
+  const history: Activity[] = [];
+  [...deliverables].sort((a, b) => a.version - b.version).forEach((d) => {
+    history.push({ icon: 'ph-file-arrow-up', color: 'text-primary', title: `Submitted v${d.version}`, detail: d.note || undefined, at: d.submittedAt });
+    if (d.reviewedAt && d.status === 'approved') history.push({ icon: 'ph-seal-check', color: 'text-emerald-500', title: `Approved v${d.version}`, detail: d.reviewNote || undefined, at: d.reviewedAt });
+    else if (d.reviewedAt && d.status === 'changes_requested') history.push({ icon: 'ph-arrow-counter-clockwise', color: 'text-amber-500', title: `Changes requested · v${d.version}`, detail: d.reviewNote || undefined, at: d.reviewedAt });
+  });
+  history.push({ icon: 'ph-plus-circle', color: 'text-muted-foreground', title: 'Order created', at: task.created });
+  history.sort((a, b) => (a.at < b.at ? 1 : -1));
+  const timeline = [...log, ...history];
+
+  // Deliverable submit is only open while there's work to do; otherwise show why it's locked.
+  const lockReason =
+    status === 'assigned' ? 'Start the task to upload your work.' :
+    status === 'internal_review' ? 'Submitted — waiting on review. You’ll be notified if changes are needed.' :
+    status === 'approved' ? 'Approved — no new version needed. Nice work. 🎉' :
+    status === 'delivered' ? 'Delivered to the customer.' :
+    status === 'completed' ? 'Task completed.' : null;
+
+  // Keyboard: j/k move through the queue; s jumps to the deliverable note.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if ((e.key === 'k' || e.key === '[') && prevId) router.push(`/staff/tasks/${prevId}`);
       if ((e.key === 'j' || e.key === ']') && nextId) router.push(`/staff/tasks/${nextId}`);
+      if (e.key === 's') { const el = document.getElementById('deliverable-note'); if (el) { e.preventDefault(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLTextAreaElement).focus(); } }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [prevId, nextId, router]);
 
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2400); }
-  function transition(to: OrderStatus, label: string) { setStatus(to); flash(`${task.code} → ${label}`); }
-  function submit(note: string) { setStatus('internal_review'); flash(`Submitted for review — ${note.slice(0, 40)}${note.length > 40 ? '…' : ''}`); }
+  function transition(to: OrderStatus, label: string) {
+    setStatus(to);
+    setLog((l) => [{ icon: 'ph-arrow-right', color: 'text-primary', title: `Moved to ${label}`, at: 'just now' }, ...l]);
+    flash(`${task.code} → ${label}`);
+  }
+  function submit(note: string) {
+    setStatus('internal_review');
+    setLog((l) => [{ icon: 'ph-paper-plane-tilt', color: 'text-primary', title: 'Submitted for review', detail: note, at: 'just now' }, ...l]);
+    flash(`Submitted for review — ${note.slice(0, 40)}${note.length > 40 ? '…' : ''}`);
+  }
 
   function copyLink() {
     navigator.clipboard?.writeText(`${window.location.origin}/staff/tasks/${task.id}`);
@@ -60,6 +91,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         <StatusBadge status={status} />
         <PriorityBadge priority={task.priority} />
         <span className="ml-auto flex items-center gap-2">
+          {task.deadline && <span className={`hidden items-center gap-1 text-xs sm:flex ${days !== null && days < 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}><i className="ph-bold ph-calendar-blank" />due {task.deadline}</span>}
           <SlaChip daysToDue={days} />
           <button onClick={copyLink} aria-label="Copy share link" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-link" /></button>
           <NavBtn href={nextId ? `/staff/tasks/${nextId}` : null} icon="ph-caret-right" label="Next task" />
@@ -80,7 +112,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
               <i className={`ph-bold ${a.icon}`} /> {a.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-muted-foreground"><kbd className="rounded border border-border bg-muted px-1">j</kbd>/<kbd className="rounded border border-border bg-muted px-1">k</kbd> to move</span>
+          <span className="ml-auto text-xs text-muted-foreground"><kbd className="rounded border border-border bg-muted px-1">j</kbd>/<kbd className="rounded border border-border bg-muted px-1">k</kbd> move · <kbd className="rounded border border-border bg-muted px-1">s</kbd> submit</span>
         </div>
       )}
 
@@ -127,18 +159,24 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
             {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" /> {task.note}</p>}
           </div>
 
-          <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} />
+          <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} lockReason={lockReason} status={status} />
         </div>
 
         <div className="flex flex-col gap-4">
           <MessageThread initial={messages} className="flex-1" />
           <div className="kcard">
-            <p className="mb-2 text-sm font-semibold">Activity</p>
-            <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li><i className="ph-bold ph-paper-plane-tilt" /> You · created {task.created}</li>
-              {status === 'changes_requested' && <li><i className="ph-bold ph-arrow-counter-clockwise text-amber-500" /> Admin requested changes</li>}
-              {status === 'internal_review' && <li><i className="ph-bold ph-eye text-primary" /> Sent to internal review</li>}
-            </ul>
+            <p className="mb-3 text-sm font-semibold">Activity</p>
+            <ol className="space-y-3">
+              {timeline.map((e, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-muted ${e.color}`}><i className={`ph-bold ${e.icon} text-[11px]`} /></span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium">{e.title} <span className="font-normal text-muted-foreground">· {e.at}</span></p>
+                    {e.detail && <p className="mt-0.5 text-[11px] text-muted-foreground">{e.detail}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </div>

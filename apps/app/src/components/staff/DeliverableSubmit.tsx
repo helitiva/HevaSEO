@@ -7,11 +7,13 @@ const ACCEPT = 'PDF · DOCX · XLSX · CSV · PNG · JPG · ZIP · max 25MB';
 
 // Versioned deliverable submission (D6). Each submit is a new version; older ones stay read-only
 // with their changes-requested note pinned. A required note gates the submit button.
-export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0 }: {
+export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, lockReason = null, status }: {
   history: StaffDeliverable[];
   onSubmit: (note: string) => void;
   qaDone?: number;
   qaTotal?: number;
+  lockReason?: string | null;
+  status?: string;
 }) {
   const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState('');
@@ -25,7 +27,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0 }
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-file-arrow-up text-primary" /> Deliverable</p>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-          {history.length ? `resubmission · v${nextV}` : 'first submission · v1'}
+          {lockReason ? (status ?? '').replace('_', ' ') : history.length ? `resubmission · v${nextV}` : 'first submission · v1'}
         </span>
       </div>
 
@@ -42,6 +44,12 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0 }
         </ul>
       )}
 
+      {lockReason ? (
+        <div className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-5 text-center text-sm ${status === 'approved' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-border bg-muted/40 text-muted-foreground'}`}>
+          <i className={`ph-bold text-2xl ${status === 'approved' ? 'ph-seal-check' : status === 'internal_review' ? 'ph-hourglass-medium' : 'ph-lock-simple'}`} aria-hidden />
+          {lockReason}
+        </div>
+      ) : (<>
       <label className="flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-dashed border-border px-4 py-6 text-center transition hover:border-primary/50">
         <i className="ph-bold ph-upload text-2xl text-muted-foreground" aria-hidden />
         <span className="text-sm">{file ? <span className="font-medium">{file}</span> : <>Drag report here or <span className="text-primary">browse</span></>}</span>
@@ -59,7 +67,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0 }
       <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste an external link (Google Doc / Drive)"
         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
-      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Note for the reviewer (required)"
+      <textarea id="deliverable-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Note for the reviewer (required)"
         className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
       {qaTotal > 0 && !qaComplete && (
@@ -73,6 +81,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0 }
         <i className="ph-bold ph-paper-plane-tilt" /> Submit v{nextV} for review
       </button>
       {!canSubmit && <p className="mt-1 text-center text-[11px] text-muted-foreground">Attach a file or link, and add a note.</p>}
+      </>)}
     </div>
   );
 }
