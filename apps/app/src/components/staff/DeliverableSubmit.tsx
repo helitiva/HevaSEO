@@ -9,7 +9,7 @@ const ACCEPT = 'PDF · DOCX · XLSX · CSV · PNG · JPG · ZIP · max 25MB';
 // with their changes-requested note pinned. A required note gates the submit button.
 export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, lockReason = null, status }: {
   history: StaffDeliverable[];
-  onSubmit: (note: string) => void;
+  onSubmit: (note: string, customerNote?: string) => void;
   qaDone?: number;
   qaTotal?: number;
   lockReason?: string | null;
@@ -18,6 +18,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
   const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState('');
   const [note, setNote] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
   const nextV = bumpVersion(history);
   const canSubmit = note.trim().length > 0 && (Boolean(file) || link.trim().length > 0);
   const qaComplete = qaTotal === 0 || qaDone >= qaTotal;
@@ -67,8 +68,13 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
       <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste an external link (Google Doc / Drive)"
         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
-      <textarea id="deliverable-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Note for the reviewer (required)"
-        className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      <p className="mb-1 mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-lock-simple" aria-hidden /> Note for the reviewer <span className="font-normal opacity-70">· internal, required</span></p>
+      <textarea id="deliverable-note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="What changed, what to check, anything risky…"
+        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+
+      <p className="mb-1 mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-primary"><i className="ph-bold ph-chats-circle" aria-hidden /> Message to the customer <span className="font-normal text-muted-foreground">· the client will see this (optional)</span></p>
+      <textarea value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} rows={2} placeholder="e.g. Here's your report — I focused on the money pages first. Let me know any tweaks."
+        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
 
       {qaTotal > 0 && !qaComplete && (
         <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
@@ -76,7 +82,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
         </p>
       )}
 
-      <button disabled={!canSubmit} onClick={() => onSubmit(note.trim())}
+      <button disabled={!canSubmit} onClick={() => onSubmit(note.trim(), customerNote.trim() || undefined)}
         className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
         <i className="ph-bold ph-paper-plane-tilt" /> Submit v{nextV} for review
       </button>
