@@ -2,10 +2,11 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { monthGrid, monthLabel, WEEKDAYS } from '@/lib/calendar';
-import { daysToDue, slaChip } from '@/lib/staff';
-import { serviceMeta } from '@/data/staffMock';
+import { daysToDue, slaChip, PRIORITY_RANK } from '@/lib/staff';
+import { serviceMeta, careRankOf } from '@/data/staffMock';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { CareTags } from '@/components/staff/CareTags';
 import type { OrderStatus, Priority } from '@/data/staffMock';
 
 export interface CalTask { id: string; code: string; service: string; deadline: string; status: OrderStatus; priority: Priority; customer: string }
@@ -42,7 +43,10 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { task
 
   const cells = useMemo(() => monthGrid(month, today), [month, today]);
   const monthTaskCount = tasks.filter((t) => t.deadline.startsWith(month)).length;
-  const panelTasks = panelDate ? (byDate.get(panelDate) ?? []) : [];
+  // Order the day's tasks by who needs care first: client rank, then task priority.
+  const panelTasks = (panelDate ? (byDate.get(panelDate) ?? []) : [])
+    .slice()
+    .sort((a, b) => careRankOf(b.customer) - careRankOf(a.customer) || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
   const open = (id: string) => { setPanelDate(null); router.push(`/staff/tasks/${id}`); };
 
   return (
@@ -110,15 +114,16 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { task
       </div>
 
       <SlideOver open={panelDate !== null} onClose={() => setPanelDate(null)} title={panelDate ? longDate(panelDate) : ''}>
-        <p className="mb-3 text-sm text-muted-foreground">{panelTasks.length} task{panelTasks.length === 1 ? '' : 's'} due {offDays?.has(panelDate ?? '') && <span className="font-semibold text-amber-600 dark:text-amber-400">· on your day off</span>}</p>
+        <p className="mb-1 text-sm text-muted-foreground">{panelTasks.length} task{panelTasks.length === 1 ? '' : 's'} due {offDays?.has(panelDate ?? '') && <span className="font-semibold text-amber-600 dark:text-amber-400">· on your day off</span>}</p>
+        {panelTasks.length > 1 && <p className="mb-3 text-[11px] text-muted-foreground"><i className="ph-bold ph-sort-ascending" /> Sorted by client priority — highest-rank / most particular first.</p>}
         <ul className="space-y-2">
-          {panelTasks.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); return (
+          {panelTasks.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); const top = careRankOf(t.customer) === 2; return (
             <li key={t.id}>
-              <button onClick={() => open(t.id)} className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left transition hover:bg-muted/40">
+              <button onClick={() => open(t.id)} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{t.code}</span>{t.service}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{t.customer}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5"><span className="truncate text-xs text-muted-foreground">{t.customer}</span><CareTags company={t.customer} /></span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-1">
                   <span className="flex items-center gap-1"><PriorityBadge priority={t.priority} /><StatusBadge status={t.status} /></span>

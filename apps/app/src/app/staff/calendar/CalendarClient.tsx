@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { DeadlineCalendar } from '@/components/staff/DeadlineCalendar';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { AvailabilityPanel } from './AvailabilityPanel';
-import { serviceMeta, offDaysSet, MY_AVAILABILITY } from '@/data/staffMock';
+import { CareTags } from '@/components/staff/CareTags';
+import { serviceMeta, offDaysSet, MY_AVAILABILITY, careRankOf } from '@/data/staffMock';
 import { daysToDue, slaChip } from '@/lib/staff';
 import type { OrderStatus, Priority } from '@/data/staffMock';
 
@@ -101,7 +102,11 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
 function AgendaList({ tasks, today }: { tasks: CalTask[]; today: string }) {
   const router = useRouter();
   const sorted = [...tasks].sort((a, b) => (a.deadline < b.deadline ? -1 : 1));
-  const groups = BUCKETS.map((bk) => ({ ...bk, items: sorted.filter((t) => bk.test(daysToDue(t.deadline, today) ?? 0)) })).filter((g) => g.items.length > 0);
+  // Within a day-bucket, surface the highest-care clients first.
+  const groups = BUCKETS.map((bk) => ({
+    ...bk,
+    items: sorted.filter((t) => bk.test(daysToDue(t.deadline, today) ?? 0)).sort((a, b) => careRankOf(b.customer) - careRankOf(a.customer)),
+  })).filter((g) => g.items.length > 0);
 
   if (groups.length === 0) return <div className="kcard text-center text-sm text-muted-foreground">No deadlines match this filter.</div>;
 
@@ -123,7 +128,7 @@ function AgendaList({ tasks, today }: { tasks: CalTask[]; today: string }) {
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{t.code}</span>{t.service}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{t.customer}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5"><span className="truncate text-xs text-muted-foreground">{t.customer}</span><CareTags company={t.customer} /></span>
                   </span>
                   <PriorityBadge priority={t.priority} />
                   <StatusBadge status={t.status} />
