@@ -30,6 +30,9 @@ const STATUS_CHIPS: Array<{ key: 'all' | OrderStatus; label: string }> = [
   { key: 'changes_requested', label: statusLabel.changes_requested },
 ];
 
+// Shared column template so every row + the header line up as a real table.
+const COLS = 'grid grid-cols-[8rem_7rem_10.5rem_minmax(0,1fr)_auto] items-center gap-x-3';
+
 export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, overview }: Props) {
   const router = useRouter();
   const [state, setState] = useState<MyDayState>({ focus: initialFocus, log: [] });
@@ -101,22 +104,23 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
   function renderRow(task: MyDayTask, index: number) {
     const action = primaryActionFor(task.status);
     return (
-      <li key={task.id} className={`group rounded-lg px-2 transition hover:bg-muted/50 ${index === sel ? 'bg-primary/10' : ''}`}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
-          <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden hover:opacity-80">
-            <PriorityDot priority={task.priority} />
-            <SlaChip daysToDue={task.days} />
-            <span className="shrink-0 font-medium">{task.code}</span>
-            <StatusBadge status={task.status} />
-            <span className="truncate text-sm text-muted-foreground">{task.service} · {task.pkg}</span>
-          </Link>
+      <li key={task.id} onClick={() => router.push(`/staff/tasks/${task.id}`)}
+        className={`${COLS} group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-muted/50 ${index === sel ? 'bg-primary/10' : ''}`}>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <PriorityDot priority={task.priority} />
+          <span className="truncate font-medium">{task.code}</span>
+        </div>
+        <div><SlaChip daysToDue={task.days} /></div>
+        <div className="overflow-hidden"><StatusBadge status={task.status} /></div>
+        <div className="truncate text-sm text-muted-foreground">{task.service} · {task.pkg}</div>
+        <div className="flex items-center justify-end gap-1.5">
           {action && (
-            <button onClick={() => act(task.id)}
+            <button onClick={(e) => { e.stopPropagation(); act(task.id); }}
               className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90 ${action.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
               <i className={`ph-bold ${action.icon}`} aria-hidden /> {shortLabel(action.label)}
             </button>
           )}
-          <button onClick={() => copyLink(task.id, () => flash(`${task.code} · link copied`, makeId()))} aria-label="Copy link"
+          <button onClick={(e) => { e.stopPropagation(); copyLink(task.id, () => flash(`${task.code} · link copied`, makeId())); }} aria-label="Copy link"
             className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground opacity-0 transition hover:bg-accent focus:opacity-100 group-hover:opacity-100"><i className="ph-bold ph-link" aria-hidden /></button>
         </div>
       </li>
@@ -188,14 +192,21 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
                 <button onClick={clearFilters} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Clear filters</button>
               </div>
             ) : (
-              groups.map((g) => (
-                <div key={g.key} className="mb-1">
-                  <p className="px-2 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
-                  <ul className="space-y-0.5">
-                    {g.items.map((task) => { flatIndex += 1; return renderRow(task, flatIndex); })}
-                  </ul>
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px]">
+                  <div className={`${COLS} border-b border-border px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground`}>
+                    <span>Task</span><span>Due</span><span>Status</span><span>Brief</span><span className="text-right">Action</span>
+                  </div>
+                  {groups.map((g) => (
+                    <div key={g.key} className="mb-1">
+                      <p className="px-2 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
+                      <ul className="space-y-0.5">
+                        {g.items.map((task) => { flatIndex += 1; return renderRow(task, flatIndex); })}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-              ))
+              </div>
             )}
           </div>
 
