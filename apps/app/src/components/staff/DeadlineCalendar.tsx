@@ -20,7 +20,7 @@ function shiftMonth(month: string, delta: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-export function DeadlineCalendar({ tasks, initialMonth, today }: { tasks: CalTask[]; initialMonth: string; today: string }) {
+export function DeadlineCalendar({ tasks, initialMonth, today, offDays }: { tasks: CalTask[]; initialMonth: string; today: string; offDays?: Set<string> }) {
   const router = useRouter();
   const [month, setMonth] = useState(initialMonth);
 
@@ -56,15 +56,21 @@ export function DeadlineCalendar({ tasks, initialMonth, today }: { tasks: CalTas
         ))}
         {cells.map((c) => {
           const items = byDate.get(c.date) ?? [];
+          const isOff = offDays?.has(c.date) ?? false;
+          const conflict = isOff && items.length > 0;
           return (
             <div
               key={c.date}
+              title={isOff ? 'Time off' : undefined}
               className={`min-h-[78px] rounded-lg border p-1.5 text-left transition ${
                 c.inMonth ? 'border-border bg-background' : 'border-transparent bg-muted/30'
-              } ${c.isToday ? 'ring-2 ring-primary/50' : ''}`}
+              } ${isOff && c.inMonth ? 'bg-[repeating-linear-gradient(135deg,hsl(var(--muted))_0_6px,transparent_6px_12px)]' : ''} ${c.isToday ? 'ring-2 ring-primary/50' : ''} ${conflict ? 'ring-2 ring-amber-500/60' : ''}`}
             >
-              <span className={`text-[11px] font-semibold ${c.isToday ? 'text-primary' : c.inMonth ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                {c.day}
+              <span className="flex items-center justify-between">
+                <span className={`text-[11px] font-semibold ${c.isToday ? 'text-primary' : c.inMonth ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                  {c.day}
+                </span>
+                {isOff && c.inMonth && <i className={`ph-bold ${conflict ? 'ph-warning text-amber-500' : 'ph-moon text-muted-foreground'} text-[11px]`} title={conflict ? 'Deadline on your day off' : 'Time off'} />}
               </span>
               <div className="mt-1 space-y-1">
                 {items.slice(0, 2).map((t) => {
@@ -93,6 +99,8 @@ export function DeadlineCalendar({ tasks, initialMonth, today }: { tasks: CalTas
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-destructive/40" /> Overdue</span>
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-amber-500/40" /> Due soon</span>
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-primary/30" /> Upcoming</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-moon" /> Time off</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-warning text-amber-500" /> Deadline on a day off</span>
         <span className="ml-auto">Click a chip to open the task.</span>
       </div>
     </div>

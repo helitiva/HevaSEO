@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DeadlineCalendar } from '@/components/staff/DeadlineCalendar';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
-import { serviceMeta } from '@/data/staffMock';
+import { AvailabilityPanel } from './AvailabilityPanel';
+import { serviceMeta, offDaysSet, MY_AVAILABILITY } from '@/data/staffMock';
 import { daysToDue, slaChip } from '@/lib/staff';
 import type { OrderStatus, Priority } from '@/data/staffMock';
 
@@ -12,7 +13,13 @@ export interface CalTask {
   id: string; code: string; service: string; deadline: string;
   status: OrderStatus; priority: Priority; customer: string;
 }
-type View = 'month' | 'agenda';
+type View = 'month' | 'agenda' | 'availability';
+
+const VIEW_META: Record<View, { icon: string; label: string }> = {
+  month: { icon: 'ph-calendar-blank', label: 'Month' },
+  agenda: { icon: 'ph-list-bullets', label: 'Agenda' },
+  availability: { icon: 'ph-user-circle-gear', label: 'Availability' },
+};
 
 const TONE: Record<string, string> = {
   bad: 'bg-destructive/15 text-destructive',
@@ -33,13 +40,16 @@ const BUCKETS: { key: string; label: string; test: (d: number) => boolean }[] = 
 export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[]; initialMonth: string; today: string }) {
   const [view, setView] = useState<View>('month');
   const [service, setService] = useState<string>('');
+  const [avail, setAvail] = useState(MY_AVAILABILITY);
+  const offDays = useMemo(() => offDaysSet(avail.timeOff), [avail.timeOff]);
 
   // view is URL state — shareable / survives refresh
-  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'agenda' || v === 'month') setView(v); }, []);
+  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'agenda' || v === 'month' || v === 'availability') setView(v); }, []);
   useEffect(() => { const url = new URL(window.location.href); url.searchParams.set('view', view); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [view]);
 
   const services = useMemo(() => [...new Set(tasks.map((t) => t.service))].sort(), [tasks]);
   const shown = service ? tasks.filter((t) => t.service === service) : tasks;
+  const showFilters = view !== 'availability';
 
   const kpis = useMemo(() => {
     const d = (t: CalTask) => daysToDue(t.deadline, today) ?? 0;
@@ -62,26 +72,28 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border p-0.5">
-          {(['month', 'agenda'] as View[]).map((v) => (
-            <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-sm font-semibold capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <i className={`ph-bold ${v === 'month' ? 'ph-calendar-blank' : 'ph-list-bullets'} mr-1`} />{v}
+          {(['month', 'agenda', 'availability'] as View[]).map((v) => (
+            <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-sm font-semibold transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <i className={`ph-bold ${VIEW_META[v].icon} mr-1`} />{VIEW_META[v].label}
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button onClick={() => setService('')} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${!service ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>All</button>
-          {services.map((s) => { const m = serviceMeta(s); const on = service === s; return (
-            <button key={s} onClick={() => setService(on ? '' : s)} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition" style={on ? { background: m.color, color: '#fff' } : { background: `${m.color}1a`, color: m.color }}>
-              <i className={`ph-bold ${m.icon}`} />{s}
-            </button>
-          ); })}
-        </div>
-        <span className="ml-auto text-xs text-muted-foreground">{shown.length} deadline{shown.length === 1 ? '' : 's'}</span>
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button onClick={() => setService('')} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${!service ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>All</button>
+            {services.map((s) => { const m = serviceMeta(s); const on = service === s; return (
+              <button key={s} onClick={() => setService(on ? '' : s)} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition" style={on ? { background: m.color, color: '#fff' } : { background: `${m.color}1a`, color: m.color }}>
+                <i className={`ph-bold ${m.icon}`} />{s}
+              </button>
+            ); })}
+          </div>
+        )}
+        {showFilters && <span className="ml-auto text-xs text-muted-foreground">{shown.length} deadline{shown.length === 1 ? '' : 's'}</span>}
       </div>
 
-      {view === 'month'
-        ? <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} />
-        : <AgendaList tasks={shown} today={today} />}
+      {view === 'month' && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} />}
+      {view === 'agenda' && <AgendaList tasks={shown} today={today} />}
+      {view === 'availability' && <AvailabilityPanel value={avail} onSave={setAvail} today={today} />}
     </div>
   );
 }

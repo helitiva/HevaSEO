@@ -196,3 +196,57 @@ export const BOARD_COLUMNS: { status: OrderStatus; label: string }[] = [
   { status: 'changes_requested', label: 'Changes requested' },
   { status: 'delivered', label: 'Delivered' },
 ];
+
+// ---- Availability: working hours, time off, and the away-handoff policy ----
+export type AvailStatus = 'available' | 'away' | 'focus';
+export type HandoffPolicy = 'speed' | 'continuity' | 'balanced';
+export interface WorkHours { day: number; on: boolean; start: string; end: string } // day 0=Mon … 6=Sun
+export interface TimeOff { id: string; from: string; to: string; reason: string }
+export interface StaffAvailability { status: AvailStatus; hours: WorkHours[]; timeOff: TimeOff[]; handoff: HandoffPolicy }
+
+export const MY_AVAILABILITY: StaffAvailability = {
+  status: 'available',
+  hours: [
+    { day: 0, on: true, start: '09:00', end: '17:00' },
+    { day: 1, on: true, start: '09:00', end: '17:00' },
+    { day: 2, on: true, start: '09:00', end: '17:00' },
+    { day: 3, on: true, start: '09:00', end: '17:00' },
+    { day: 4, on: true, start: '09:00', end: '15:00' },
+    { day: 5, on: false, start: '09:00', end: '17:00' },
+    { day: 6, on: false, start: '09:00', end: '17:00' },
+  ],
+  timeOff: [{ id: 'to1', from: '2026-06-30', to: '2026-07-02', reason: 'Personal' }],
+  handoff: 'balanced',
+};
+
+export const HANDOFF_META: Record<HandoffPolicy, { label: string; icon: string; blurb: string }> = {
+  speed: { label: 'Speed-first', icon: 'ph-lightning', blurb: 'Never make a customer wait — hand my tasks to whoever is free when I’m away.' },
+  continuity: { label: 'Continuity-first', icon: 'ph-heart', blurb: 'Keep my customers with me — hold non-urgent work until I’m back; only true emergencies get reassigned.' },
+  balanced: { label: 'Balanced', icon: 'ph-scales', blurb: 'Reassign rush work and new customers; hold non-urgent work for the customers who prefer me.' },
+};
+
+// When I'm away/at capacity, should an incoming task be reassigned or held for me?
+export function resolveHandoff(policy: HandoffPolicy, urgent: boolean, loyal: boolean): 'reassign' | 'hold' {
+  if (urgent) return 'reassign';
+  if (policy === 'speed') return 'reassign';
+  if (policy === 'continuity') return 'hold';
+  return loyal ? 'hold' : 'reassign'; // balanced
+}
+
+// Sample scenarios that make the handoff policy concrete in the UI preview.
+export const HANDOFF_SCENARIOS: { label: string; urgent: boolean; loyal: boolean }[] = [
+  { label: 'Rush order, tight deadline', urgent: true, loyal: false },
+  { label: 'Returning client who asked for you', urgent: false, loyal: true },
+  { label: 'New client, standard timeline', urgent: false, loyal: false },
+];
+
+// Expand time-off ranges into a set of ISO dates for calendar marking.
+export function offDaysSet(timeOff: TimeOff[]): Set<string> {
+  const set = new Set<string>();
+  for (const t of timeOff) {
+    let d = new Date(`${t.from}T00:00:00Z`);
+    const end = new Date(`${t.to}T00:00:00Z`);
+    while (d.getTime() <= end.getTime()) { set.add(d.toISOString().slice(0, 10)); d = new Date(d.getTime() + 86_400_000); }
+  }
+  return set;
+}
