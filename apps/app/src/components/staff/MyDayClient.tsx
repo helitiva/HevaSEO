@@ -101,8 +101,8 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
   function renderRow(task: MyDayTask, index: number) {
     const action = primaryActionFor(task.status);
     return (
-      <li key={task.id} className={`group -mx-2 rounded-lg px-2 transition hover:bg-muted/40 ${index === sel ? 'bg-primary/10' : ''}`}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
+      <li key={task.id} className={`group rounded-lg px-2 transition hover:bg-muted/50 ${index === sel ? 'bg-primary/10' : ''}`}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
           <Link href={`/staff/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden hover:opacity-80">
             <PriorityDot priority={task.priority} />
             <SlaChip daysToDue={task.days} />
@@ -190,8 +190,8 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
             ) : (
               groups.map((g) => (
                 <div key={g.key} className="mb-1">
-                  <p className="px-1 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
-                  <ul className="divide-y divide-border/60">
+                  <p className="px-2 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
+                  <ul className="space-y-0.5">
                     {g.items.map((task) => { flatIndex += 1; return renderRow(task, flatIndex); })}
                   </ul>
                 </div>
