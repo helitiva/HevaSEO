@@ -14,6 +14,27 @@ const SECTIONS = [
   { id: 'admins', label: 'Admins', icon: 'ph-users-three', desc: 'Who can sign in' },
 ] as const;
 
+const SETTINGS_INDEX: { label: string; section: string; kw?: string }[] = [
+  { label: 'Business name', section: 'general', kw: 'company brand identity' },
+  { label: 'Support email', section: 'general', kw: 'contact' },
+  { label: 'Address', section: 'general' },
+  { label: 'Timezone', section: 'general' },
+  { label: 'Currency display', section: 'general', kw: 'money usd' },
+  { label: 'Locale / language', section: 'general' },
+  { label: 'Brand color', section: 'general', kw: 'theme accent' },
+  { label: 'Order SLA targets', section: 'sla', kw: 'priority response resolution hours' },
+  { label: 'Ticket SLA targets', section: 'sla', kw: 'urgent standard support' },
+  { label: 'Skill match weight', section: 'routing', kw: 'assignment routing' },
+  { label: 'Capacity penalty', section: 'routing', kw: 'load balance busy' },
+  { label: 'Round-robin tie-break', section: 'routing' },
+  { label: 'Composite score weights', section: 'routing', kw: 'quality on-time throughput scoring' },
+  { label: 'Email templates', section: 'email', kw: 'order confirmed deliverable refund ticket reply subject body' },
+  { label: 'Stripe / payments', section: 'integrations', kw: 'billing' },
+  { label: 'Email / SMTP', section: 'integrations', kw: 'postmark sending' },
+  { label: 'Turnstile', section: 'integrations', kw: 'captcha security bot' },
+  { label: 'Slack', section: 'integrations', kw: 'alerts notifications' },
+  { label: 'Admin accounts', section: 'admins', kw: 'invite deactivate 2fa role permission' },
+];
 const TIMEZONES = ['America/Los_Angeles', 'America/New_York', 'Europe/London', 'Asia/Singapore', 'Asia/Ho_Chi_Minh'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'SGD', 'VND'];
 const LOCALES = ['en-US', 'en-GB', 'vi-VN'];
@@ -30,6 +51,8 @@ export function SettingsClient({ settings }: Props) {
   const [saved, setSaved] = useState<AdminSettings>(settings);
   const [tab, setTab] = useState<string>('general');
   const [toast, setToast] = useState('');
+  const [query, setQuery] = useState('');
+  const results = query.trim() ? SETTINGS_INDEX.filter((r) => `${r.label} ${r.kw ?? ''} ${r.section}`.toLowerCase().includes(query.toLowerCase())).slice(0, 8) : [];
 
   const dirty = useMemo(() => JSON.stringify(s) !== JSON.stringify(saved), [s, saved]);
 
@@ -54,6 +77,18 @@ export function SettingsClient({ settings }: Props) {
   ].filter(Boolean) as string[];
   const canSave = dirty && errors.length === 0;
 
+  // reset one section to the seeded defaults (the initial settings prop)
+  const resetSection = (id: string) => setS((p) => {
+    const d = clone(settings);
+    if (id === 'general') return { ...p, business: d.business };
+    if (id === 'sla') return { ...p, sla: d.sla };
+    if (id === 'routing') return { ...p, routing: d.routing, scoring: d.scoring };
+    if (id === 'email') return { ...p, email: d.email };
+    if (id === 'integrations') return { ...p, integrations: d.integrations };
+    if (id === 'admins') return { ...p, admins: d.admins };
+    return p;
+  });
+
   const scoreSum = s.scoring.quality + s.scoring.onTime + s.scoring.throughput;
   const balanceScoring = () => setS((p) => { const sum = p.scoring.quality + p.scoring.onTime + p.scoring.throughput || 1; const q = Math.round((p.scoring.quality / sum) * 100); const t = Math.round((p.scoring.onTime / sum) * 100); return { ...p, scoring: { quality: q, onTime: t, throughput: 100 - q - t } }; });
 
@@ -72,6 +107,23 @@ export function SettingsClient({ settings }: Props) {
 
   return (
     <div className="relative">
+      <div className="relative mb-4 max-w-md">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setQuery('')} placeholder="Search settings…" aria-label="Search settings" className="w-full bg-transparent outline-none" />
+          {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground hover:text-foreground" /></button>}
+        </div>
+        {query.trim() && (
+          <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+            {results.length === 0 ? <p className="px-3 py-2 text-xs text-muted-foreground">No settings match “{query}”.</p> : results.map((r) => (
+              <button key={r.label} onClick={() => { setTab(r.section); setQuery(''); }} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted">
+                <span className="font-medium">{r.label}</span>
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><i className={`ph-bold ${SECTIONS.find((x) => x.id === r.section)?.icon}`} />{SECTIONS.find((x) => x.id === r.section)?.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr]">
         {/* section nav */}
         <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
@@ -90,7 +142,7 @@ export function SettingsClient({ settings }: Props) {
         {/* content */}
         <div className="min-w-0 pb-20">
           {tab === 'general' && (
-            <Card title="General" hint="Business identity shown to customers and used across emails & invoices.">
+            <Card title="General" hint="Business identity shown to customers and used across emails & invoices." onReset={() => resetSection('general')}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Business name"><input className={inp} value={s.business.name} onChange={(e) => setBiz('name', e.target.value)} /></Field>
                 <Field label="Support email" hint={!/.+@.+\..+/.test(s.business.supportEmail) ? 'Enter a valid email' : undefined}><input className={inp} value={s.business.supportEmail} onChange={(e) => setBiz('supportEmail', e.target.value)} /></Field>
@@ -103,13 +155,18 @@ export function SettingsClient({ settings }: Props) {
                     <input type="color" aria-label="Brand color" value={s.business.brandColor} onChange={(e) => setBiz('brandColor', e.target.value)} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-transparent" />
                     <input className={inp} value={s.business.brandColor} onChange={(e) => setBiz('brandColor', e.target.value)} />
                   </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button type="button" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ background: s.business.brandColor }}>Primary button</button>
+                    <span className="text-xs font-semibold" style={{ color: s.business.brandColor }}>Accent link</span>
+                    <span className="text-[11px] text-muted-foreground">— how it looks in the customer portal</span>
+                  </div>
                 </Field>
               </div>
             </Card>
           )}
 
           {tab === 'sla' && (
-            <Card title="SLA targets" hint="Goal hours read by the Order SLA timers and the Tickets queue. First response = time to first touch; resolution = time to close.">
+            <Card title="SLA targets" hint="Goal hours read by the Order SLA timers and the Tickets queue. First response = time to first touch; resolution = time to close." onReset={() => resetSection('sla')}>
               <SlaTable title="Orders — by priority" rows={[['high', 'High'], ['med', 'Medium'], ['low', 'Low']]} get={(k) => s.sla.orders[k as 'high' | 'med' | 'low']}
                 set={(k, m, v) => setS((p) => ({ ...p, sla: { ...p.sla, orders: { ...p.sla.orders, [k]: { ...p.sla.orders[k as 'high' | 'med' | 'low'], [m]: v } } } }))} />
               <div className="h-5" />
@@ -119,7 +176,7 @@ export function SettingsClient({ settings }: Props) {
           )}
 
           {tab === 'routing' && (
-            <Card title="Routing & scoring" hint="The tunables the Assignment engine reads. Adjust after a trial period — changes take effect for new orders only.">
+            <Card title="Routing & scoring" hint="The tunables the Assignment engine reads. Adjust after a trial period — changes take effect for new orders only." onReset={() => resetSection('routing')}>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Routing</p>
               <Slider label="Skill match weight" value={s.routing.skillWeight} suffix="%" onChange={(v) => setS((p) => ({ ...p, routing: { ...p.routing, skillWeight: v } }))} />
               <Slider label="Capacity penalty" hint="Higher = avoid loading busy staff" max={300} value={s.routing.capacityPenalty} onChange={(v) => setS((p) => ({ ...p, routing: { ...p.routing, capacityPenalty: v } }))} />
@@ -143,10 +200,10 @@ export function SettingsClient({ settings }: Props) {
             </Card>
           )}
 
-          {tab === 'email' && <EmailSection s={s} setS={setS} />}
+          {tab === 'email' && <EmailSection s={s} setS={setS} onReset={() => resetSection('email')} />}
 
           {tab === 'integrations' && (
-            <Card title="Integrations" hint="Connection status & non-secret config. API keys & secrets live in environment variables — never stored here.">
+            <Card title="Integrations" hint="Connection status & non-secret config. API keys & secrets live in environment variables — never stored here." onReset={() => resetSection('integrations')}>
               <div className="space-y-2.5">
                 {s.integrations.map((it) => (
                   <div key={it.key} className="flex items-center gap-3 rounded-xl border border-border p-3">
@@ -166,7 +223,7 @@ export function SettingsClient({ settings }: Props) {
             </Card>
           )}
 
-          {tab === 'admins' && <AdminsSection s={s} setS={setS} />}
+          {tab === 'admins' && <AdminsSection s={s} setS={setS} onReset={() => resetSection('admins')} />}
         </div>
       </div>
 
@@ -192,11 +249,16 @@ export function SettingsClient({ settings }: Props) {
 
 const inp = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary';
 
-function Card({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function Card({ title, hint, onReset, children }: { title: string; hint?: string; onReset?: () => void; children: ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
-      {hint && <p className="mb-4 mt-0.5 max-w-prose text-sm text-muted-foreground">{hint}</p>}
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+          {hint && <p className="mt-0.5 max-w-prose text-sm text-muted-foreground">{hint}</p>}
+        </div>
+        {onReset && <button onClick={onReset} title="Reset this section to defaults" className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-counter-clockwise mr-1" />Reset</button>}
+      </div>
       {children}
     </div>
   );
@@ -262,13 +324,13 @@ function ScorePreview({ weights }: { weights: { quality: number; onTime: number;
 const EMAIL_SAMPLE: Record<string, string> = { customer: 'Acme Co', order_code: 'ORD-2042', service: 'Backlink Builder', business: 'HevaSEO', amount: '$140.00', ticket_subject: 'Cannot access dashboard', reply_body: 'We’ve reset your access — please try signing in again.', agent: 'Sofia' };
 function renderTpl(str: string, business: string): string { return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (k === 'business' ? business : EMAIL_SAMPLE[k]) ?? `{{${k}}}`); }
 
-function EmailSection({ s, setS }: { s: AdminSettings; setS: React.Dispatch<React.SetStateAction<AdminSettings>> }) {
+function EmailSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Dispatch<React.SetStateAction<AdminSettings>>; onReset: () => void }) {
   const [sel, setSel] = useState(s.email[0].id);
   const t = s.email.find((x) => x.id === sel) ?? s.email[0];
   const setT = (field: 'subject' | 'body', v: string) => setS((p) => ({ ...p, email: p.email.map((x) => x.id === t.id ? { ...x, [field]: v } : x) }));
   const unknownVars = [...t.body.matchAll(/\{\{(\w+)\}\}/g), ...t.subject.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]).filter((v) => v !== 'business' && !EMAIL_SAMPLE[v]);
   return (
-    <Card title="Email templates" hint="Edit the customer-facing copy. Insert variables with the chips — the preview renders them with sample data.">
+    <Card title="Email templates" hint="Edit the customer-facing copy. Insert variables with the chips — the preview renders them with sample data." onReset={onReset}>
       <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
         <div className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
           {s.email.map((e) => (
@@ -295,7 +357,7 @@ function EmailSection({ s, setS }: { s: AdminSettings; setS: React.Dispatch<Reac
 }
 
 const ini = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
-function AdminsSection({ s, setS }: { s: AdminSettings; setS: React.Dispatch<React.SetStateAction<AdminSettings>> }) {
+function AdminsSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Dispatch<React.SetStateAction<AdminSettings>>; onReset: () => void }) {
   const [inviting, setInviting] = useState(false);
   const [email, setEmail] = useState('');
   const validEmail = /.+@.+\..+/.test(email);
@@ -306,7 +368,7 @@ function AdminsSection({ s, setS }: { s: AdminSettings; setS: React.Dispatch<Rea
     setEmail(''); setInviting(false);
   };
   return (
-    <Card title="Admins" hint="People who can sign in to this dashboard. Master admin can invite or deactivate others.">
+    <Card title="Admins" hint="People who can sign in to this dashboard. Master admin can invite or deactivate others." onReset={onReset}>
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{s.admins.filter((a) => a.status === 'active').length} active · {s.admins.length} total</span>
         <button onClick={() => setInviting((v) => !v)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"><i className="ph-bold ph-user-plus mr-1" />Invite admin</button>
