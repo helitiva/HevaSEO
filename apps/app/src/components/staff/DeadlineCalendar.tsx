@@ -53,7 +53,16 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
   }, [tasks]);
 
   const cells = useMemo(() => monthGrid(month, today), [month, today]);
-  const monthTaskCount = tasks.filter((t) => t.deadline.startsWith(month)).length;
+  const monthTasks = tasks.filter((t) => t.deadline.startsWith(month));
+  const monthTaskCount = monthTasks.length;
+  const monthDone = monthTasks.filter((t) => DONE.has(t.status)).length;
+  // Scheduled working hours per week, from the availability schedule.
+  const weeklyHours = Math.round((hours ?? []).reduce((sum, h) => {
+    if (!h.on) return sum;
+    const [sh, sm] = h.start.split(':').map(Number);
+    const [eh, em] = h.end.split(':').map(Number);
+    return sum + Math.max(0, eh * 60 + em - (sh * 60 + sm)) / 60;
+  }, 0) * 10) / 10;
   // Order the day's tasks by who needs care first: client rank, then task priority.
   const panelTasks = (panelDate ? (byDate.get(panelDate) ?? []) : [])
     .slice()
@@ -70,6 +79,12 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
           <button onClick={() => setMonth(initialMonth)} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-accent">Today</button>
           <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-caret-right" aria-hidden /></button>
         </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-600 dark:text-emerald-400" title="Deadlines this month already done"><i className="ph-bold ph-check-circle" />{monthDone} done</span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-primary" title="Deadlines still to deliver"><i className="ph-bold ph-circle-dashed" />{monthTaskCount - monthDone} to go</span>
+        {hours && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground" title="Scheduled working hours per week"><i className="ph-bold ph-clock" />{weeklyHours}h / week</span>}
       </div>
 
       <div className="grid grid-cols-7 gap-1.5">
