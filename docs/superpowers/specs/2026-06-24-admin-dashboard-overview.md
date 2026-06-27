@@ -56,7 +56,8 @@ Nothing operational works without this. Build first, once:
 | 5 | **Ticket / Support** | Support inbox: status/priority/assignee, SLA, linked to order/customer | 0 (links 2, 6) |
 | 6 | **Customer & User Management** | Customer accounts + profiles (user info), account status (shadow/claimed), **ordered-services history**, **total spend / LTV**, credit balance & ledger, projects/domains, tickets, internal notes; actions: edit, adjust credit, magic-link/impersonate, merge, suspend | 0 (reads 2, 9) |
 | 7 | **Staff Management** | Staff accounts, skills, capacity; **performance scoring** — auto (quality from approval/changes-requested ratio + on-time vs SLA + throughput) **and** manual admin rating per order/period; composite staff score + per-order scores + aggregate profile | 0 (reads 2, 4) |
-| 8 | **Catalog Management** | Services/packages/prices/add-ons → apply to marketing + dashboard | 0 |
+| 7b | **Managers** | Team lead directory (`/admin/managers`): KPI strip, per-manager cards with team metrics, **editable staff ↔ manager assignment** (dropdowns + **drag-and-drop staff chips**), leave approvals, skill-coverage gap detection, URL deep-linking | 7 |
+| 8 | **Catalog Management** | Services/packages/prices/add-ons → apply to marketing + dashboard; **per-package analytics** (Orders/Customers/Revenue/LTV) with **7D–YTD time-range filter** | 0 |
 | 9 | **Finance** | Credit ledger, invoices, Stripe, revenue, refunds | 2, 6 |
 | 10 | **Messaging / Notifications** | Two-tier messages (internal/customer) + notification center (Realtime) | 2 |
 | 11 | **Analytics & Reports** | Revenue trends, service performance, staff productivity, quick-checkout conversion, churn | reads 2, 6, 9 |
@@ -94,21 +95,23 @@ are derived (read) from `orders` + `credit_ledger`, not stored on the customer r
 2. **Catalog Management** — `2026-06-24-admin-editable-catalog.md` (foundation) + refined design:
    versioned `catalog_versions` jsonb document, `@heva/catalog` becomes a JSON-artifact loader,
    data-driven marketing landing template, draft → Publish (~1–2 min) → rebuild. Full CRUD incl.
-   creating new services (generic landing template).
+   creating new services (generic landing template). Also includes per-package analytics UI with
+   time-range filter (built 2026-06-26).
 3. **Order Management** — `2026-06-24-order-management-design.md` (+ implementation plan `plans/2026-06-24-admin-foundation-order-management.md`).
 4. **Assignment & Workload** — `2026-06-24-assignment-routing-design.md`.
 5. **Staff Management & Performance** — `2026-06-24-staff-performance-design.md`.
-6. **Deliverable Review** — `2026-06-24-deliverable-review-design.md`.
-7. **Customer & User Management** — `2026-06-24-customer-management-design.md`.
-8. **Finance** — `2026-06-24-finance-design.md`.
-9. **Ticket / Support** — `2026-06-24-ticket-support-design.md`.
-10. **Messaging / Notifications** — `2026-06-24-messaging-notifications-design.md`.
-11. **Command Center / Overview** — `2026-06-24-command-center-design.md`.
-12. **Analytics & Reports** — `2026-06-24-analytics-reports-design.md`.
-13. **Audit Log** — `2026-06-24-audit-log-design.md`.
-14. **Settings** — `2026-06-24-settings-design.md`.
+6. **Managers** — `2026-06-26-managers-page-design.md` (built 2026-06-26). Team lead directory, editable staff assignment, DnD, leave approvals.
+7. **Deliverable Review** — `2026-06-24-deliverable-review-design.md`.
+8. **Customer & User Management** — `2026-06-24-customer-management-design.md`.
+9. **Finance** — `2026-06-24-finance-design.md`.
+10. **Ticket / Support** — `2026-06-24-ticket-support-design.md`.
+11. **Messaging / Notifications** — `2026-06-24-messaging-notifications-design.md`.
+12. **Command Center / Overview** — `2026-06-24-command-center-design.md`.
+13. **Analytics & Reports** — `2026-06-24-analytics-reports-design.md`.
+14. **Audit Log** — `2026-06-24-audit-log-design.md`.
+15. **Settings** — `2026-06-24-settings-design.md`.
 
-All 13 modules now have specs. Each → implementation plan → build, in wave order (the Foundation +
+All 14 modules now have specs. Each → implementation plan → build, in wave order (the Foundation +
 Order Management plan exists; the rest follow).
 
 ## 8. Out of scope (this suite)

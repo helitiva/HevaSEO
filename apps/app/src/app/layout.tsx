@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter, Inter_Tight } from 'next/font/google';
-import Script from 'next/script';
 import { ThemeProvider } from 'next-themes';
+// Phosphor icon font, self-hosted (no CDN). Only the weights actually used:
+// ph-bold (679×), ph-fill (70×), ph-light (13×). Bundler fingerprints + caches the woff2.
+import '@phosphor-icons/web/bold';
+import '@phosphor-icons/web/fill';
+import '@phosphor-icons/web/light';
 import './globals.css';
 import './dashboard.css';
 
@@ -39,9 +43,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </ThemeProvider>
-        {/* Phosphor icon font (same icon set as the marketing site).
-            TODO(self-host): swap for a local copy or @phosphor-icons/react. */}
-        <Script src="https://unpkg.com/@phosphor-icons/web@2.1.1" strategy="beforeInteractive" />
       </body>
     </html>
   );

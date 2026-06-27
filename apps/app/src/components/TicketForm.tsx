@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useToast } from './Toast';
 
 const PRIORITIES = [
   { key: 'low', label: 'Low' },
@@ -8,29 +9,46 @@ const PRIORITIES = [
   { key: 'urgent', label: 'Urgent' },
 ];
 
-export function TicketForm() {
+export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string) => void }) {
   const [prio, setPrio] = useState('normal');
   const [svc, setSvc] = useState('BLEN-1042');
+  const [files, setFiles] = useState<string[]>([]);
+  const toast = useToast();
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const subject = String(fd.get('subject') ?? '').trim();
+    if (!subject) return;
+    const type = String(fd.get('type') ?? 'Other');
+    onSubmit?.(subject, type);
+    toast("Ticket submitted — we'll reply within business hours");
+    form.reset();
+    setPrio('normal');
+    setSvc('BLEN-1042');
+    setFiles([]);
+  };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
+    <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
       <h3 className="display text-lg font-semibold tracking-tight">Create a support ticket</h3>
       <p className="text-xs text-muted-foreground">The clearer your description, the faster an advisor can help.</p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
           <label className="lbl">Issue type</label>
-          <select className="field">
-            <option>Technical / Service issue</option>
-            <option>Billing &amp; Credit</option>
-            <option>Orders &amp; progress</option>
-            <option>Service consultation</option>
-            <option>Other</option>
+          <select name="type" className="field">
+            <option value="Technical">Technical / Service issue</option>
+            <option value="Billing">Billing &amp; Credit</option>
+            <option value="Orders">Orders &amp; progress</option>
+            <option value="Consultation">Service consultation</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         <div>
           <label className="lbl">Related project</label>
-          <select className="field">
+          <select name="project" className="field">
             <option>hevashop.com</option>
             <option>clinicpro.com</option>
             <option>anphat.com</option>
@@ -58,7 +76,7 @@ export function TicketForm() {
           {PRIORITIES.map((p) => {
             const on = prio === p.key;
             return (
-              <button key={p.key} onClick={() => setPrio(p.key)} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}>
+              <button key={p.key} type="button" onClick={() => setPrio(p.key)} className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'}`}>
                 {p.label}
               </button>
             );
@@ -68,27 +86,30 @@ export function TicketForm() {
 
       <div className="mt-4">
         <label className="lbl">Subject</label>
-        <input className="field" placeholder="e.g. Links not indexed after 5 days" />
+        <input name="subject" required className="field" placeholder="e.g. Links not indexed after 5 days" />
       </div>
 
       <div className="mt-4">
         <label className="lbl">Detailed description</label>
-        <textarea rows={4} className="field" placeholder="Describe the issue, what you've tried, related links/orders…" />
+        <textarea name="description" rows={4} className="field" placeholder="Describe the issue, what you've tried, related links/orders…" />
       </div>
 
       <div className="mt-4">
         <label className="lbl">Attachments <span className="font-normal text-muted-foreground">(optional)</span></label>
-        <div className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-3 text-sm text-muted-foreground transition hover:border-primary/50">
-          <i className="ph-bold ph-paperclip" /> <span>Drag &amp; drop or click to upload screenshots, files…</span>
-        </div>
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-3 text-sm text-muted-foreground transition hover:border-primary/50">
+          <i className="ph-bold ph-paperclip" />
+          <span>{files.length ? `${files.length} file${files.length > 1 ? 's' : ''} attached` : 'Drag & drop or click to upload screenshots, files…'}</span>
+          <input type="file" multiple className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []).map((f) => f.name))} />
+        </label>
+        {files.length > 0 && <p className="mt-1.5 truncate text-[11px] text-muted-foreground">{files.join(', ')}</p>}
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-3">
         <p className="text-[11px] text-muted-foreground">You&apos;ll get updates by email &amp; dashboard notifications.</p>
-        <button className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
+        <button type="submit" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
           <i className="ph-bold ph-paper-plane-tilt" /> Submit ticket
         </button>
       </div>
-    </div>
+    </form>
   );
 }

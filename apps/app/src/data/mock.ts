@@ -29,10 +29,33 @@ export const STATUSES: Record<OrderStatus, { label: string; color: string }> = {
   completed: { label: 'Completed', color: '#10b981' },
 };
 
+/** Account managers / team leads who oversee — and review — orders. */
+export const MANAGERS = ['Olivia Chen', 'Marcus Tran', 'Priya Nair', 'Leo Park'];
+/** Deterministic manager-in-charge for an order (stable across renders, no field needed on each order). */
+export function managerFor(orderId: string): string {
+  let h = 0;
+  for (let i = 0; i < orderId.length; i++) h = (h * 31 + orderId.charCodeAt(i)) >>> 0;
+  return MANAGERS[h % MANAGERS.length];
+}
+
+/** The specialist's job title — derived from the service the order belongs to. */
+export const STAFF_ROLE: Record<ServiceKey, string> = {
+  backlink: 'Backlink Specialist',
+  content: 'Content Writer',
+  indexer: 'Indexer Specialist',
+  audit: 'SEO Auditor',
+  optimize: 'Optimization Specialist',
+  keyword: 'Keyword Strategist',
+  design: 'Web Designer',
+};
+
 export const PRIORITIES: Record<Priority, string> = { high: 'High', med: 'Med', low: 'Low' };
 
 /** Demo credit balance, in USD. */
 export const CREDIT_BALANCE = 179;
+
+/** Membership perk — VIP gets 15% off every order. */
+export const MEMBERSHIP_DISCOUNT = 0.15;
 
 export interface Order {
   id: string;
@@ -55,7 +78,12 @@ export interface Order {
   cost: number;
   pay: PayStatus;
   invoice: string | null;
+  /** the brief the customer submitted at order time (captured from the order form) */
+  intake?: IntakeField[];
 }
+
+/** One answer from the order-time brief. `full` spans the full width when rendered. */
+export interface IntakeField { label: string; value: string; full?: boolean; }
 
 export const ORDERS: Order[] = [
   { id: 'BLEN-1042', date: '06/05/2026', title: 'Entity Growth', service: 'backlink', domain: 'hevashop.com', sub: '80 profiles · NAP, citations', status: 'planned', priority: 'high', progress: null, detail: 'NAP · social', eta: '3 days', owner: 'Daniel Brooks', cost: 356, pay: 'pending', invoice: null },
@@ -142,18 +170,77 @@ export function folderForDomain(domain: string): { name: string; color: string }
 }
 
 // ── Order detail (slide-over panel) ───────────────────────────────────────────
-export interface Deliverable { name: string; version: string; status: 'approved' | 'review' | 'rejected'; date: string; }
+/** A file or external link delivered within a deliverable revision. */
+export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; }
+/** One submitted version of a deliverable — staff submits, customer approves or asks for changes. */
+export interface DeliverableRevision {
+  version: string;                               // 'v1', 'v2', 'v3', 'final'
+  date: string;
+  status: 'approved' | 'review' | 'rejected';    // rejected = customer requested changes
+  note?: string;                                 // staff's note when submitting this version
+  files?: DeliverableFile[];                     // files + links in this version
+  feedback?: string;                             // customer's feedback (esp. when changes were requested)
+}
+export interface Deliverable { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DeliverableRevision[]; }
 export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; }
 export interface Activity { label: string; date: string; }
 
 const DELIVERABLES: Record<string, Deliverable[]> = {
   'CT-1033': [
-    { name: 'Batch 1 — 5 articles', version: 'v1', status: 'approved', date: '06/02/2026' },
-    { name: 'Batch 2 — 5 articles', version: 'v1', status: 'review', date: '06/08/2026' },
+    {
+      name: 'Batch 1 — 5 articles', status: 'approved', date: '06/02/2026',
+      revisions: [
+        { version: 'v1', date: '05/29/2026', status: 'rejected', note: 'First 5 articles · 1,500+ words each · E-E-A-T structured.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 1 docs', meta: 'drive.google.com' }],
+          feedback: 'Good draft. Tighten the intros and add internal links to the product pages.' },
+        { version: 'v2', date: '06/02/2026', status: 'approved', note: 'Tightened intros, added internal links per feedback.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 1 (final)', meta: 'drive.google.com' }, { kind: 'file', name: 'batch-1-summary.pdf', meta: '180 KB' }] },
+      ],
+    },
+    {
+      name: 'Batch 2 — 5 articles', status: 'review', date: '06/08/2026',
+      revisions: [
+        { version: 'v1', date: '06/08/2026', status: 'review', note: 'Second 5 articles submitted for your review.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 2 docs', meta: 'drive.google.com' }] },
+      ],
+    },
   ],
-  'AD-1027': [{ name: 'Audit report', version: 'v2', status: 'review', date: '05/23/2026' }],
-  'AD-1015': [{ name: 'Audit report (final)', version: 'final', status: 'approved', date: '05/12/2026' }],
-  'IDX-1009': [{ name: 'Index coverage export', version: 'final', status: 'approved', date: '05/05/2026' }],
+  'AD-1027': [
+    {
+      name: 'Audit report', status: 'review', date: '05/23/2026',
+      revisions: [
+        { version: 'v1', date: '05/18/2026', status: 'rejected', note: 'Full technical audit · 200+ checks.',
+          files: [{ kind: 'file', name: 'audit-report-v1.pdf', meta: '2.2 MB' }],
+          feedback: 'Please add a prioritized action list and a mobile Core Web Vitals section.' },
+        { version: 'v2', date: '05/23/2026', status: 'review', note: 'Added prioritized action list + mobile CWV deep-dive.',
+          files: [{ kind: 'file', name: 'audit-report-v2.pdf', meta: '2.9 MB' }, { kind: 'file', name: 'action-list.xlsx', meta: '52 KB' }] },
+      ],
+    },
+  ],
+  'AD-1015': [
+    {
+      name: 'Audit report (final)', status: 'approved', date: '05/12/2026',
+      revisions: [
+        { version: 'v1', date: '05/06/2026', status: 'rejected', note: 'First full audit — 200+ checks, prioritized fixes.',
+          files: [{ kind: 'file', name: 'audit-report-v1.pdf', meta: '2.4 MB' }, { kind: 'link', name: 'Live Looker dashboard', meta: 'looker.example.com' }],
+          feedback: 'Great start. Please dig deeper into Core Web Vitals (LCP on mobile) and add competitor benchmarks before we sign off.' },
+        { version: 'v2', date: '05/10/2026', status: 'rejected', note: 'Added CWV deep-dive + competitor benchmark section.',
+          files: [{ kind: 'file', name: 'audit-report-v2.pdf', meta: '3.1 MB' }],
+          feedback: 'Almost there — fix the typo on p.12 and export the action list as a separate sheet.' },
+        { version: 'final', date: '05/12/2026', status: 'approved', note: 'Fixed p.12, added a standalone action-list sheet.',
+          files: [{ kind: 'file', name: 'audit-report-final.pdf', meta: '3.2 MB' }, { kind: 'file', name: 'action-list.xlsx', meta: '48 KB' }] },
+      ],
+    },
+  ],
+  'IDX-1009': [
+    {
+      name: 'Index coverage export', status: 'approved', date: '05/05/2026',
+      revisions: [
+        { version: 'final', date: '05/05/2026', status: 'approved', note: '9,820 / 10,000 URLs indexed. CSV export attached.',
+          files: [{ kind: 'file', name: 'index-coverage.csv', meta: '1.1 MB' }] },
+      ],
+    },
+  ],
 };
 export function deliverablesFor(id: string): Deliverable[] { return DELIVERABLES[id] ?? []; }
 
@@ -174,9 +261,68 @@ export function activityFor(o: Order): Activity[] {
   return acts.reverse();
 }
 
-/** Scope bullet points seeded from the order's sub/detail. */
-export function scopeFor(o: Order): string[] {
-  return [o.sub, o.detail].filter((x): x is string => Boolean(x));
+/**
+ * The brief the customer submitted at order time. Real for orders placed in this
+ * session (captured from the order form into `o.intake`); for seed/demo orders we
+ * return representative per-service answers, so each service shows a different,
+ * fully-filled request — matching the fields its order form actually collects.
+ */
+export function intakeFor(o: Order): IntakeField[] {
+  if (o.intake && o.intake.length) return o.intake;
+  const url = `https://${o.domain}`;
+  switch (o.service) {
+    case 'backlink':
+      return [
+        { label: 'Target URL(s) to boost', value: `${url}\n${url}/products`, full: true },
+        { label: 'Preferred anchors / keywords', value: 'brand name · primary keyword · naked URL', full: true },
+        { label: 'Niche / industry', value: 'E-commerce · retail' },
+        { label: 'Language / market', value: 'United States · English' },
+      ];
+    case 'audit':
+      return [
+        { label: 'What should the audit focus on?', value: 'A recent organic traffic drop and Core Web Vitals after the last redesign.', full: true },
+        { label: 'GSC / Analytics access', value: "I'll share after we confirm" },
+        { label: 'Target market / language', value: 'United States · English' },
+        { label: 'Competitors to benchmark', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+      ];
+    case 'content':
+      return [
+        { label: 'Tone / brand voice', value: 'Friendly expert' },
+        { label: 'Language', value: 'English (US)' },
+        { label: 'Style & guidelines for the batch', value: 'Lead with practical value, cite real sources, avoid hype. Audience: SMB owners researching options.', full: true },
+      ];
+    case 'keyword':
+      return [
+        { label: 'Website URL', value: url, full: true },
+        { label: 'What does your site offer?', value: 'Products and services for our core customers, plus an SEO-driven blog to capture top-of-funnel search.', full: true },
+        { label: 'Target market / language', value: 'United States · English' },
+        { label: 'Primary goal', value: 'Grow organic traffic' },
+        { label: 'Known competitors', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+      ];
+    case 'optimize':
+      return [
+        { label: 'Website URL', value: url, full: true },
+        { label: 'Platform / CMS', value: 'WordPress' },
+        { label: 'Source / hosting access', value: "I'll grant access after we confirm" },
+        { label: 'What do you most want to improve?', value: 'Page speed, Core Web Vitals (LCP / INP / CLS) and AI-readiness (GEO).', full: true },
+      ];
+    case 'design':
+      return [
+        { label: 'Existing website / domain', value: url },
+        { label: 'Google Maps listing', value: 'Shared — pull info & photos' },
+        { label: 'Tell us about your business', value: 'What we do, who we serve, and the goal for the new site.', full: true },
+        { label: 'Reference sites you like', value: 'competitor-one.com\ncompetitor-two.com', full: true },
+        { label: 'Brand colors / fonts', value: 'Navy + gold · modern sans' },
+        { label: 'Logo & image links', value: 'Shared via Drive folder' },
+      ];
+    case 'indexer':
+      return [
+        { label: 'Links submitted', value: o.urls != null ? `${o.urls.toLocaleString('en-US')} URLs` : 'Pasted URL list' },
+        { label: 'Anything we should know?', value: 'Links built elsewhere — please prioritize the money pages first.', full: true },
+      ];
+    default:
+      return [];
+  }
 }
 
 export interface CreditTx {

@@ -11,3 +11,7 @@ dist/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+.gstack/
+
+# Brainstorm visual-companion scratch
+.superpowers/

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from './Toast';
+import { useCredit } from './CreditStore';
 
 const PRESETS = [20, 80, 200, 400, 800];
 type Method = 'card' | 'paypal';
@@ -21,7 +23,12 @@ function BrandMark({ brand }: { brand: string }) {
   return null;
 }
 
-export function TopUp() {
+/**
+ * Top-up form with amount + payment method (card / PayPal / express wallets).
+ * `embedded` drops the outer card + heading so it can live inside a modal;
+ * `onDone` fires after a successful (mock) payment.
+ */
+export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone?: () => void } = {}) {
   const [amount, setAmount] = useState(80);
   const [custom, setCustom] = useState('');
   const [method, setMethod] = useState<Method>('card');
@@ -29,6 +36,8 @@ export function TopUp() {
   const [exp, setExp] = useState('');
   const [cvc, setCvc] = useState('');
   const [name, setName] = useState('');
+  const toast = useToast();
+  const { topUp } = useCredit();
 
   const pick = (n: number) => { setAmount(n); setCustom(''); };
   const onCustom = (v: string) => {
@@ -45,16 +54,24 @@ export function TopUp() {
     return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
   };
 
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-      <h2 className="display text-lg font-semibold tracking-tight">Top up credits</h2>
-      <p className="text-xs text-muted-foreground">Pay securely by card or PayPal. Credits are added to your balance instantly.</p>
+  const pay = (label: string) => {
+    if (tooLow || !(amount > 0)) return;
+    topUp(amount, label);
+    toast(`Topped up $${amount} — added to your balance`);
+    onDone?.();
+  };
+  const cardLabel = () => {
+    const last4 = card.replace(/\D/g, '').slice(-4);
+    return last4 ? `${brand ? brand[0].toUpperCase() + brand.slice(1) : 'Card'} •••• ${last4}` : 'Card payment';
+  };
 
+  const body = (
+    <>
       {/* amount */}
-      <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Choose an amount</p>
+      <p className={`${embedded ? '' : 'mt-5'} mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground`}>Choose an amount</p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {PRESETS.map((n) => (
-          <button key={n} onClick={() => pick(n)} className={`amt${amount === n && custom === '' ? ' active' : ''}`}>${n}</button>
+          <button key={n} type="button" onClick={() => pick(n)} className={`amt${amount === n && custom === '' ? ' active' : ''}`}>${n}</button>
         ))}
       </div>
       <div className="mt-3">
@@ -67,12 +84,14 @@ export function TopUp() {
       <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
       <div className="grid grid-cols-2 gap-2">
         <button
+          type="button"
           onClick={() => setMethod('card')}
           className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition ${method === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40'}`}
         >
           <i className="ph-bold ph-credit-card text-base" /> Card
         </button>
         <button
+          type="button"
           onClick={() => setMethod('paypal')}
           className={`flex items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition ${method === 'paypal' ? 'border-primary bg-primary/5' : 'border-border bg-background hover:border-primary/40'}`}
         >
@@ -84,10 +103,10 @@ export function TopUp() {
         <>
           {/* express wallets */}
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <button className="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+            <button type="button" onClick={() => pay('Apple Pay')} className="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
               <i className="ph-fill ph-apple-logo text-base" /> Pay
             </button>
-            <button className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent">
+            <button type="button" onClick={() => pay('Google Pay')} className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent">
               <span className="font-bold"><span className="text-[#4285f4]">G</span> Pay</span>
             </button>
           </div>
@@ -112,7 +131,7 @@ export function TopUp() {
             <div><label className="lbl">Name on card</label><input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder="Full name" /></div>
           </div>
 
-          <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
+          <button type="button" onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
             <i className="ph-bold ph-lock-simple" /> Pay ${amount}
           </button>
         </>
@@ -122,7 +141,7 @@ export function TopUp() {
             <p className="text-3xl font-bold"><span className="text-[#003087]">Pay</span><span className="text-[#0070e0]">Pal</span></p>
             <p className="mt-2 text-sm text-muted-foreground">You&apos;ll be redirected to PayPal to complete your <b className="text-foreground">${amount}</b> payment, then sent right back here.</p>
           </div>
-          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#ffc439] px-5 py-3 text-sm font-bold text-[#003087] shadow-lg transition hover:-translate-y-0.5 hover:brightness-95 active:scale-[.98]">
+          <button type="button" onClick={() => pay('PayPal')} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#ffc439] px-5 py-3 text-sm font-bold text-[#003087] shadow-lg transition hover:-translate-y-0.5 hover:brightness-95 active:scale-[.98]">
             Continue with <span><span className="text-[#003087]">Pay</span><span className="text-[#0070e0]">Pal</span></span>
           </button>
         </div>
@@ -137,6 +156,16 @@ export function TopUp() {
           <BrandMark brand="visa" /><BrandMark brand="mastercard" /><BrandMark brand="amex" />
         </div>
       </div>
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
+      <h2 className="display text-lg font-semibold tracking-tight">Top up credits</h2>
+      <p className="text-xs text-muted-foreground">Pay securely by card or PayPal. Credits are added to your balance instantly.</p>
+      {body}
     </div>
   );
 }

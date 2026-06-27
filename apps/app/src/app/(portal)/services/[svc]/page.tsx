@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getCatalog } from '@/data/services';
-import { PROJECTS, SERVICES, type ServiceKey } from '@/data/mock';
+import { SERVICES, type ServiceKey } from '@/data/mock';
 import { ServiceOrder } from '@/components/ServiceOrder';
 
 export async function generateMetadata({ params }: { params: Promise<{ svc: string }> }) {
@@ -41,8 +41,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  const projects = PROJECTS.map((p) => ({ name: p.name, domain: p.domain }));
-
   return (
     <>
       {crumb}
@@ -60,7 +58,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       {/* what's included + how it works */}
       <section className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-sm font-semibold">What we check</p>
+          <p className="text-sm font-semibold">What&apos;s included</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {catalog.included.map((b) => (
               <div key={b.title} className="flex items-start gap-3">
@@ -94,7 +92,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         <h2 className="display text-lg font-semibold tracking-tight">Place your order</h2>
         <p className="mt-1 text-sm text-muted-foreground">Pick a plan and tell us about the project — it lands on your board as a new order.</p>
         <div className="mt-4">
-          <ServiceOrder catalog={catalog} projects={projects} />
+          <ServiceOrder catalog={catalog} />
         </div>
       </section>
 

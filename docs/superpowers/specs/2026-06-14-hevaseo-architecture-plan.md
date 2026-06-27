@@ -246,13 +246,18 @@ hevaseo.com (island: email+website+gói) ─POST(CORS+Turnstile)→ /api/public/
 
 | Hạng mục | Trạng thái |
 |---|---|
-| `(portal)` UI khách (mock) | ✅ shell |
-| `(admin)`, `(staff)`, auth, middleware | ❌ |
-| `packages/core`, schema, RLS, DB functions, tenant_id | ❌ (chưa tồn tại) |
-| Stripe wiring, pooler, replica, partition | ❌ |
-| Nguồn dữ liệu | ⚠️ `src/data/mock.ts` |
+| `(portal)` UI khách (mock) | ✅ shell + full portal pages |
+| `(admin)` UI — toàn bộ modules (mock) | ✅ **đầy đủ** (dashboard, orders, customers, staff, analytics, finance, audit, catalog, assignment, tickets, review, settings, managers) |
+| `(staff)` UI — Phase 0 mock | ✅ **đầy đủ** (My Day overview, My Tasks board, Task detail, DeliverableSubmit, revision thread, saved-reply snippets, notifications, performance, settings, calendar placeholder) |
+| `(staff)` pure logic — `lib/myDay.ts` | ✅ **shipped** — 8 exported functions, 55 tests |
+| auth, middleware, RLS | ❌ (Phase 1) |
+| `packages/core`, schema, DB functions, tenant_id | ❌ (Phase 1 vertical slice — §14.1) |
+| Stripe wiring, pooler, replica, partition | ❌ (Phase 2+) |
+| Nguồn dữ liệu | ⚠️ `src/data/adminMock.ts` + `staffMock.ts` (Phase 0 mock-first) |
 
 > ⚠️ Seam `mock.ts` "swap → UI untouched" là **lạc quan quá**: query thật async, phân trang, **scope theo role + tenant**, shape khác theo vai → Server Components phải tái cấu trúc. Lường trước viết lại tầng đọc.
+
+**Phase 0 (mock UI) đã hoàn thành** — mọi màn hình admin + staff đã build trên mock data. Bước tiếp theo: vertical slice backend thật (§14.1) — Supabase auth + bảng lõi + 1 vòng order end-to-end.
 
 ---
 
@@ -283,3 +288,235 @@ v3 giữ nguyên hướng vững của master-plan, siết 5 chỗ "tầng giữ
 **(A) Lõi tái dùng** — ranh giới `core/product` nghiêm ngặt + workflow data-driven + RBAC capability + `tenant_id` từ ngày 1 → fork sang SaaS khác và white-label mà không sửa engine.
 **(B) Scale self-host ngang** — balance O(1) thay `SUM`, pooler + read replica, partition bảng append-only, index mọi cột RLS, realtime thu hẹp, topology đa node stateless → phục vụ 100k users / 10k đồng thời.
 Hai trục này phải vào **Phase 0** vì đều thuộc loại "đắt để retrofit": tenant_id, ranh giới core, và mô hình balance không thể nhồi sau khi đã có dữ liệu và code.
+
+---
+
+## 13. Eng review 2026-06-26 — chốt scope & siết (SUPERSEDES Phase 0 ở §10)
+
+> Phiên `/plan-eng-review`. **Trim Phase 0**: chỉ giữ thứ "rẻ-bây-giờ / đau-retrofit"; hoãn thứ speculative không đau khi thêm sau.
+
+### 13.1 Phase 0 GIỮ (đắt để retrofit)
+- `tenant_id` + RLS scope tenant trên mọi bảng (white-label xác nhận là thật → giữ).
+- Balance authoritative O(1) (D13) + `credit_ledger` audit append-only.
+- RLS-first + DB functions SECURITY DEFINER; `service_role` chỉ 3 nơi (D18).
+- Index mọi cột RLS predicate; schema **sẵn sàng** partition tháng (chưa bật).
+- Webhook idempotent (`stripe_event_id` UNIQUE).
+
+### 13.2 Phase 0 HOÃN (không đau khi thêm sau)
+- **Workflow data-driven** (`workflow_states`/`allowed_transitions`) → **thay bằng typed state machine** (TS union + Postgres enum/CHECK, transition validate trong `advance_order()`). Trích bảng data-driven khi fork product thứ 2.
+- **Tách `packages/core`** thật → Phase 4 (trích TỪ HevaSEO, không vẽ khung trừu tượng trước). Phase 0 chỉ giữ lint chặn `apps/* → core`.
+- **Read-replica routing (D19)** → chừa seam read-client, chạy single-primary tới khi tải đòi.
+- **Realtime cluster** → 1 node; chỉ notifications (D14).
+
+### 13.3 Siết bắt buộc (outside voice surface — đều là đúng/bảo mật)
+- **C1 — `_apply_ledger_entry(tenant, customer, amount, kind, order_id)`**: 1 helper SECURITY DEFINER lo balance+ledger+audit nguyên tử; `create_order`/`cancel_order`/`topup` gọi nó. Chống trôi lệch.
+- **H1 — refund-on-cancel guard**: `cancel_order` cần **idempotency key + status guard** (`where status='active'`) → double-cancel/retry KHÔNG credit 2 lần. (Bề mặt gian lận thật.)
+- **H2 — `materialize_order` 1 transaction**: find-create-topup-order bọc chung tx (hoặc saga + bù). Topup commit mà order fail = bán credit không đơn → cấm.
+- **H3 — reconciliation phát hiện orphaned topup**: job hiện chỉ check `balance==SUM(ledger)` → topup mồ côi VẪN PASS. Thêm check: mọi topup phải có order/ý định tương ứng.
+- **H4 — email-proof trước merge**: match-by-email chỉ merge SAU khi magic link chứng minh sở hữu email; tài khoản đã claim không bao giờ auto-merge.
+- **H5 — worker tenant guard**: worker chạy `service_role` (RLS off) → thêm assertion/wrapper bắt buộc filter `tenant_id`; thiếu = rò rỉ cross-tenant im lặng.
+
+### 13.4 Messages transport
+Polling cho MVP (đúng, ít infra khi tải nhỏ) → **chuyển realtime cluster ở Phase 3** khi scale-out (ở 10k concurrent polling tệ hơn realtime).
+
+### 13.5 NOT in scope (cân nhắc & hoãn có chủ đích)
+- HA/failover cho PG primary (SPOF ghi) — Phase 3+, sau khi có tải thật.
+- Bảng workflow data-driven & core extraction — Phase 4 (forkability).
+- Read-replica routing, realtime cluster, bật partition — Phase 3 scale-out.
+- Tải thử 10k concurrent — Phase 3.
+
+### 13.6 Failure modes (codepath mới × rủi ro production)
+| Codepath | Cách hỏng | Test? | Error handling? | User thấy gì |
+|---|---|---|---|---|
+| `create_order` đồng thời | race → balance âm | **bắt buộc** concurrency test | `UPDATE..WHERE balance>=price` (lock+guard) | INSUFFICIENT_CREDIT rõ ràng |
+| `cancel_order` retry | double-refund (đúc credit) | **bắt buộc** (H1) | idempotency key + status guard | — (chặn ngầm) |
+| webhook `materialize_order` | topup commit, order fail | **bắt buộc** (H2) | 1 transaction + reconcile (H3) | email magic link trễ |
+| worker `service_role` | quên filter tenant → leak | **bắt buộc** RLS-off guard test | assertion wrapper (H5) | leak IM LẶNG nếu thiếu → **critical** |
+| match-by-email | account takeover | **bắt buộc** (H4) | email-proof trước merge | — |
+
+**Critical gap nếu bỏ H5:** leak cross-tenant qua worker là *im lặng* (không RLS đỡ, không lỗi user thấy) → phải có guard + test.
+
+### 13.7 Implementation Tasks (từ findings phiên này)
+- [ ] **T1 (P1)** — DB functions — `_apply_ledger_entry` helper + refactor `create_order`/`cancel_order`/`topup` gọi nó. Verify: unit test 3 function cho cùng 1 ledger+audit shape.
+- [ ] **T2 (P1)** — `cancel_order` — idempotency key + `status='active'` guard (H1). Verify: double-cancel test → 1 refund.
+- [ ] **T3 (P1)** — webhook — `materialize_order` trong 1 transaction (H2) + reconciliation bắt orphaned topup (H3). Verify: inject order-fail → không còn credit mồ côi.
+- [ ] **T4 (P1)** — auth/checkout — email-proof trước merge, cấm auto-merge tài khoản đã claim (H4). Verify: takeover attempt test.
+- [ ] **T5 (P1)** — worker — assertion wrapper bắt buộc `tenant_id` filter (H5). Verify: RLS-off cross-tenant leak test.
+- [ ] **T6 (P1)** — schema/functions — typed state machine (enum/CHECK + `advance_order` validate). Verify: invalid transition test.
+- [ ] **T7 (P2)** — lint — chặn `apps/* → packages/core` + `service_role` ngoài 3 nơi (D18).
+- [ ] **T8 (P2)** — read path — seam read-client (chừa chỗ cho replica, chạy primary). Verify: 1 điểm đổi connection.
+- [ ] **T9 (P2)** — dashboard — query join/batch tránh N+1 khi list orders+assignee+latest message.
+
+### 13.8 Parallel lanes (Phase 0)
+- **Lane A (sequential, `packages/core` DB):** T6 → T1 → T2 → T3. Cùng đụng DB functions/ledger.
+- **Lane B (independent):** T5 (worker) — module riêng.
+- **Lane C (independent):** T4 (auth/checkout) — đụng auth + webhook; phối hợp với T3 ở điểm `materialize_order`.
+- **Lane D (independent):** T7 (lint config).
+- Khởi động A + B + D song song; C chờ T3 xong (chung `materialize_order`).
+
+## 14. CEO review 2026-06-26 — SCOPE REDUCTION (product-first)
+
+> Premise challenge: 8 commit gần nhất toàn admin UI trên `mock.ts`; chưa có auth/DB/RLS (§9). Đang đánh bóng buồng lái trước khi có động cơ. Outcome thật = khách trả tiền mua dịch vụ SEO + vòng order chạy end-to-end. **Mode: SCOPE REDUCTION, approach: product-first vertical slice.**
+
+### 14.1 Vòng doanh thu tối thiểu (MUST SHIP TOGETHER)
+1. Supabase thật + auth magic link, 1 tenant HevaSEO (giữ `tenant_id`).
+2. Bảng lõi tối thiểu: `profiles, services/packages, orders, tasks, deliverables, credit_ledger, customer_balances` (+ tenant_id).
+3. RLS capability+tenant — 4 policy critical (ẩn tiền khỏi staff · scope assignee · messages D2 · cross-tenant).
+4. DB functions: `_apply_ledger_entry`, `create_order` (O(1) guard), `advance_order` (typed SM), `topup`, `cancel_order` (+H1 idempotency).
+5. MỘT vòng khách: nạp credit → mua 1 dịch vụ → order(debit) → admin gán staff → staff nộp deliverable → khách approve → completed.
+6. Swap 1 trang khỏi mock sang data thật (chứng minh seam rewrite §9).
+
+### 14.2 Fast-follow (ngay sau loop)
+- Stripe quick checkout (6 chốt §7). Onboard vài khách đầu bằng admin-granted credit để validate, gắn Stripe liền sau.
+
+### 14.3 NOT in scope (CEO — deferred có chủ đích)
+- `packages/core` extraction + white-label tenant #2 → chỉ khi có product #2.
+- Scale-out: read replica, partition bật, realtime cluster, tải thử 10k → khi có tải thật.
+- Mở rộng admin UI vượt mức đã build (audit/finance/payouts trên mock) → giữ nguyên, wire sau, đừng polish thêm tới khi loop thật chạy.
+
+### 14.4 Dream-state delta
+`mock cockpit, 0 user` → **[slice này]** vòng order thật + vài khách trả tiền → platform/scale CHỈ khi demand chứng minh. Đặt công vào phía cầu trước phía cung.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | SCOPE_REDUCTION | product-first: cắt về vòng doanh thu tối thiểu (§14); admin-UI-on-mock investment flagged as proxy work |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | not installed |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | issues_found | Step 0 scope reduced; 4 sections, 8 findings folded; 1 critical gap (H5 worker leak) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+- **OUTSIDE VOICE (Claude subagent):** 8 findings — 4 gap thật folded (H1 refund idempotency, H2/H3 materialize tx + orphaned topup, H4 email-proof, H5 worker guard), 2 cross-model tension resolved (tenant_id → giữ; messages → polling MVP rồi realtime Phase 3), 2 trùng/low.
+- **CROSS-MODEL:** đồng thuận trên trim Phase 0 + các siết bảo mật; bất đồng đã chốt: tenant_id GIỮ, messages polling→realtime Phase 3.
+- **VERDICT:** ENG + CEO CLEARED — eng (SCOPE_REDUCED, §13) + CEO (SCOPE_REDUCTION product-first, §14) đồng thuận: build vòng doanh thu tối thiểu thật trước, hoãn platform/scale/admin-polish. Sẵn sàng implement vertical slice §14.1. Design review optional, chưa chạy.
+
+NO UNRESOLVED DECISIONS
+
+---
+
+## 15. Staff surface — Phase 0 completion (2026-06-26)
+
+Phase 0 mock UI cho `(staff)` surface đã hoàn thành. Tổng kết những gì đã build:
+
+### 15.1 Màn hình đã ship
+
+| Route | Trạng thái | Ghi chú |
+|---|---|---|
+| `/staff` — My Day | ✅ **revamped** | 2-column overview dashboard (xem §15.2) |
+| `/staff/tasks` | ✅ | Board + table toggle, filter, search, j/k keyboard |
+| `/staff/tasks/[id]` | ✅ | Brief + checklist + DeliverableSubmit + revision thread + saved-reply snippets |
+| `/staff/deliverables` | ✅ | Submission history |
+| `/staff/performance` | ✅ | Self scorecard (read-only mirror module-7) |
+| `/staff/notifications` | ✅ | Grouped unread/read |
+| `/staff/settings` | ✅ | Profile + AvailabilityToggle + time-off request |
+| `/staff/calendar` | ✅ (placeholder) | Deadline calendar |
+
+### 15.2 My Day — full overview dashboard
+
+Trang My Day được revamp từ "Focus list đơn giản" thành **overview dashboard 2 cột** với:
+
+- **5 KPI tiles** — Load / Overdue / Due today / Cleared today / On-time
+- **Focus table** — CSS grid `grid-cols-[8rem_7rem_10.5rem_minmax(0,1fr)_auto]` với column headers (TASK · DUE · STATUS · BRIEF · ACTION), zebra stripes (`bg-foreground/[0.05]`), hover highlight
+- **Urgency grouping** — Overdue / Due today / This week / Later
+- **Filter chips** — All / Assigned / In progress / Changes requested
+- **Search** — press `/` to focus; `matchesQuery` trên code + service
+- **Inline actions** — Start (1-click) / Resume (1-click) / Submit (slide-over với DeliverableSubmit)
+- **Keyboard** — `j`/`k` navigate · `Enter` open · `Space` run action · `/` search · `Esc` close
+- **Undo toast** — 5 giây sau Start/Resume
+- **Cleared today feed** — tích lũy trong session
+- **Context rail** (right column) — Recent pay · Manager note · Latest review · Customers
+
+### 15.3 Pure logic module — `lib/myDay.ts`
+
+Module thuần TypeScript (không React, không tiền) với 8 exported functions:
+
+```ts
+primaryActionFor(status) → StaffAction | null
+applyAction(state, id, at, makeId) → MyDayState      // optimistic
+undoAction(state, entryId) → MyDayState
+deriveKpis(state) → MyDayKpis
+urgencyGroup(days) → UrgencyKey
+groupFocus(tasks) → FocusGroup[]
+matchesQuery(task, q) → boolean
+filterFocus(tasks, status, q) → MyDayTask[]
+```
+
+**55 vitest tests** — tất cả passing. Chạy: `pnpm --filter @heva/app test`
+
+### 15.4 DeliverableSubmit — customer message field
+
+`DeliverableSubmit.tsx` nay có 2 textarea:
+1. **Note for the reviewer** — internal, required (submit disabled khi rỗng)
+2. **Message to the customer** — optional, client-visible
+
+Cả hai: `min-h-[9.5rem]`, auto-grow khi type (`el.style.height = el.scrollHeight + 'px'`), `resize-none overflow-hidden`.
+
+`onSubmit(note: string, customerNote?: string)` — signature carry cả hai.
+
+### 15.5 Security invariants (CRITICAL)
+
+Các bất biến bảo mật được enforce ở tầng TypeScript, không chỉ runtime:
+
+- `StaffTask = Omit<Task, 'value' | 'price'>` — tiền không thể reach staff component
+- `myEarnings()` strip `basis`/`rate` — staff chỉ thấy pay của mình
+- `primaryActionFor()` chỉ trả Start/Submit/Resume — không bao giờ Approve/Cancel/reassign
+- Staff surface không có button/action nào cho Approve/Deliver/Cancel/price change
+
+**Xem spec đầy đủ:** [staff-surface-design.md §7](2026-06-26-staff-surface-design.md)
+
+## 16. Customer portal surface — Phase 0 completion (2026-06-27)
+
+Phase 0 mock UI cho `(portal)` surface (khách hàng) đã hoàn thiện. Tất cả state là **client-side, session-local** (reset khi reload) qua các React context store — backend nối sau. Tổng kết:
+
+### 16.1 Shared stores (client context, mock)
+
+Mount trong `(portal)/layout.tsx` (lồng trong `ToastProvider`):
+
+| Store | File | Vai trò |
+|---|---|---|
+| `OrdersProvider` | `OrdersStore.tsx` | `addedOrders` (đơn đặt trong session) + `statusOverrides` (đổi trạng thái tại chỗ) + comments |
+| `CreditProvider` | `CreditStore.tsx` | `balance` + `transactions` + `invoices`; `topUp()` / `charge()` → số dư **live toàn app** (header pill, /credit, Settings) |
+| `ProjectsProvider` | `ProjectsStore.tsx` | `projects` + `folders` (seed + override + removed); add/update/remove + cascade. Dùng chung bởi /projects, project detail, **và form order** |
+
+Nguyên tắc: store là single source — sửa/tạo/xoá ở 1 nơi phản ánh ngay ở mọi surface (đúng với "Phase 0 = full frontend on mock").
+
+### 16.2 Màn hình & tính năng đã ship
+
+| Route | Tính năng chính |
+|---|---|
+| `/dashboard` | `DashboardTop` — KPI **live** từ `ORDERS + addedOrders` (Services ordered, service-mix, Order progress) + bộ lọc khoảng thời gian (7/30/90 ngày · All time); specialist chat; CTA New order/Top up |
+| `/orders` | `OrdersSummary` strip (Total + đếm theo trạng thái, live) + board |
+| `/projects` | `ProjectsStore`; modal New project/folder; gear-menu mỗi card & mỗi folder (edit/delete, cascade); **kéo-thả card vào folder**; empty-state riêng theo folder |
+| `/projects/[id]` | Thống kê **live** (gộp đơn session + override); nút **Order a service** preset sẵn Project+Folder; link site (`target=_blank`) |
+| `/credit` | `CreditStore` (balance live); top-up trong modal (Card/PayPal/Apple·Google Pay); thống kê đúng theo tháng + "runway days"; **Export CSV** giao dịch; **invoice PDF** (print-ready); click dòng tx/invoice → modal chi tiết |
+| `/support` | `SupportClient` — live chat slide-over; modal Connect channel (WhatsApp/Messenger); ticket-detail modal; form ticket hoạt động (thêm vào bảng + file picker) |
+| `/settings` | Toggle + Profile/Billing **persist localStorage**; password validate + Copy/Regenerate API key; modal **Manage plan**; **Team** (invite/đổi role/remove); balance live |
+| `/services/[svc]` + quick-order panel | **VIP 15% off** (`MEMBERSHIP_DISCOUNT` dùng chung) áp vào summary + cost đơn; sticky order-bar mobile; copy "What's included" |
+
+### 16.3 OrdersBoard — board dùng chung (dashboard · orders · project detail)
+
+`OrdersBoard.tsx` là component board dùng lại trên 3 surface:
+
+- **Kanban / List** — lựa chọn được **nhớ qua reload & sang trang khác** (`localStorage['heva.boardView']`; lưu lúc bấm toggle, đọc lại post-mount).
+- **List filters** (chỉ ở List, đặt ở hàng chip dịch vụ bên phải):
+  - **Trạng thái** — All / Planned / In progress / In review / Completed (tôn trọng `statusOverrides`).
+  - **Thời gian** — All time / Last 7 / 30 / 90 days theo `order.date`, mốc "now" = đơn mới nhất.
+- **Cột Manager** — manager phụ trách (`managerFor(id)` từ `MANAGERS`, deterministic). Hiển thị **chức danh** (`· Manager`) + tag **"Reviewing"** khi đơn ở trạng thái In review; ẩn ở cột **Planned** (admin chưa assign → "Not assigned").
+- **Chức danh staff** — `STAFF_ROLE[service]` (vd Backlink Specialist, Content Writer…), hiện cạnh tên owner.
+- **Columns manager** (ẩn/hiện + kéo sắp xếp, persist) + **Presets** + bộ lọc dịch vụ (chip) + filter project (select).
+
+### 16.4 Order-from-project preset (2026-06-27)
+
+Khi mở form order **từ trong 1 project** (nút "Order a service" ở `/projects/[id]`):
+
+- `QuickOrderButton` gắn `&project=<domain>` vào URL `?neworder=pick`.
+- `QuickOrderPanel` đọc `?project=` → truyền `presetDomain` xuống `ServiceOrder`.
+- `ServiceOrder` set sẵn **Project = project đó** và **Folder = folder của project đó** (thay vì Auto); vẫn sửa lại được. Nút New order chung và `/services/[svc]` không bị ảnh hưởng (mặc định Auto).
+
+### 16.5 Hạ tầng UI dùng chung
+
+- **`Modal.tsx`** — render qua **portal vào `<body>`** để thoát ancestor có `transform`/`backdrop-filter` (vd header blur, page-transition stagger) → luôn căn giữa đúng. Dùng bởi mọi popup portal (top-up, project/folder, review, ticket…).
+- **`SpecialistChat.tsx`** — slide-over chat với SEO lead; nhận `children` để 1 card/nút bất kỳ làm trigger.
+- **Page transitions** — `.page-anim > *` cascade (fade + slide nhẹ, stagger ~0.18s, settle ~0.55s) trên mọi trang portal; tôn trọng `prefers-reduced-motion`; transform chỉ trên con trực tiếp nên không phá `sticky`/portal.
+- **Touch targets** — `@media (pointer: coarse)` nâng min-height chip/toggle của board lên 40px (desktop giữ nguyên density).

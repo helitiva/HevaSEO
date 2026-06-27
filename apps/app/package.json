@@ -3,26 +3,32 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 4400",
+    "dev": "next dev --turbopack --port 4400",
     "build": "next build",
     "start": "next start --port 4400",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@heva/catalog": "workspace:*",
     "@heva/ui": "workspace:*",
+    "@phosphor-icons/web": "2.1.1",
     "next": "^15.3.0",
     "next-themes": "^0.4.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-simple-maps": "^3.0.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/react-simple-maps": "^3.0.6",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.9"
   }
 }

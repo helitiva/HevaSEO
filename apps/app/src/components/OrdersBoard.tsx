@@ -1,25 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  ORDERS, SERVICES, STATUSES, PRIORITIES, projectForDomain, folderPathForDomain,
+  ORDERS, SERVICES, STATUSES, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
   type Order, type OrderStatus, type ServiceKey,
 } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
 
 const COLS: OrderStatus[] = ['planned', 'progress', 'review', 'completed'];
-const PRIO_HEX: Record<Order['priority'], string> = {
-  high: '#f43f5e', med: '#f59e0b', low: '#94a3b8',
-};
 
-/** Card layouts: same info, different emphasis. */
-type CardTemplate = 'balanced' | 'priority' | 'project' | 'progress';
+/** Card layouts: same info, different emphasis. (Priority is admin-only, so no priority layout.) */
+type CardTemplate = 'balanced' | 'project' | 'progress';
 
 const TEMPLATES: { key: CardTemplate; label: string; desc: string }[] = [
   { key: 'balanced', label: 'Balanced',       desc: 'Even hierarchy (default)' },
-  { key: 'priority', label: 'Priority first', desc: 'Urgency rail + priority on top' },
   { key: 'project',  label: 'Project first',  desc: 'Domain is the headline' },
   { key: 'progress', label: 'Progress first', desc: 'Big % to track delivery' },
 ];
@@ -34,15 +30,126 @@ const DENSITIES: { key: CardDensity; label: string }[] = [
 
 const STORAGE_KEY = 'heva.cardTemplate';
 const STORAGE_KEY_DENSITY = 'heva.cardDensity';
+const STORAGE_KEY_COLS = 'heva.listColumns';
+const STORAGE_KEY_VIEW = 'heva.boardView';
+
+const DATE_RANGES = [
+  { days: 0, label: 'All time' },
+  { days: 7, label: 'Last 7 days' },
+  { days: 30, label: 'Last 30 days' },
+  { days: 90, label: 'Last 90 days' },
+];
+const parseUS = (d: string): number | null => {
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? new Date(+m[3], +m[1] - 1, +m[2]).getTime() : null;
+};
+
+/** List-view columns the user can show/hide and reorder. */
+type ColId = 'no' | 'code' | 'service' | 'domain' | 'project' | 'folder' | 'staff' | 'manager' | 'status' | 'progress' | 'eta';
+const COL_LABEL: Record<ColId, string> = {
+  no: 'No.', code: 'Code', service: 'Order / Service', domain: 'Domain', project: 'Project', folder: 'Folder',
+  staff: 'Staff', manager: 'Manager', status: 'Status', progress: 'Progress', eta: 'ETA',
+};
+const COL_ALIGN: Partial<Record<ColId, 'center' | 'right'>> = { no: 'center', eta: 'right' };
+const DEFAULT_COLS: ColId[] = ['no', 'code', 'service', 'domain', 'project', 'folder', 'staff', 'manager', 'status', 'progress', 'eta'];
+
+/** One-click table layouts — `cols` are the visible columns, in order. */
+const PRESETS: { key: string; label: string; desc: string; icon: string; cols: ColId[] }[] = [
+  { key: 'default', label: 'Default', desc: 'Every column', icon: 'ph-table', cols: DEFAULT_COLS },
+  { key: 'compact', label: 'Compact', desc: 'Just the essentials', icon: 'ph-rows', cols: ['no', 'code', 'service', 'status', 'eta'] },
+  { key: 'tracking', label: 'Delivery tracking', desc: 'Staff · manager · status · progress', icon: 'ph-gauge', cols: ['no', 'service', 'staff', 'manager', 'status', 'progress', 'eta'] },
+  { key: 'project', label: 'By project', desc: 'Project & folder focus', icon: 'ph-folders', cols: ['no', 'code', 'service', 'project', 'folder', 'status', 'eta'] },
+];
 
 function pct(o: Order) {
   return o.progress ?? (o.status === 'completed' ? 100 : o.status === 'review' ? 95 : 8);
 }
 
-/** Priority chip (or a Done badge) — sits top-left on every card. */
-function PriorityBadge({ o, done }: { o: Order; done: boolean }) {
-  if (done) return <span className="pill pill-good">Done</span>;
-  return <span className={`prio prio-${o.priority}`}>{PRIORITIES[o.priority]}</span>;
+/** First two initials of a staff name, e.g. "Daniel Brooks" → "DB". */
+function initials(name: string) {
+  return name.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+}
+
+/** Assigned staff: initials avatar + name + job title. Shared by cards and the list table. */
+function StaffTag({ name, role, className = '' }: { name: string; role?: string; className?: string }) {
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">{initials(name)}</span>
+      <span className="min-w-0 truncate">{name}{role && <span className="text-muted-foreground"> · {role}</span>}</span>
+    </span>
+  );
+}
+
+/** Manager in charge: amber avatar + name + "Manager" title + a tag that flips to "Reviewing" in review. */
+function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600" title="Manager in charge">{initials(name)}</span>
+      <span className="min-w-0 truncate">{name}<span className="text-muted-foreground"> · Manager</span></span>
+      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
+    </span>
+  );
+}
+
+/** Per-column <td> classes for the list table (used with the column manager). */
+const LIST_TD: Record<ColId, string> = {
+  no: 'px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground',
+  code: 'whitespace-nowrap px-3 py-2.5 align-middle',
+  service: 'px-3 py-2.5',
+  domain: 'whitespace-nowrap px-3 py-2.5 text-muted-foreground',
+  project: 'whitespace-nowrap px-3 py-2.5',
+  folder: 'whitespace-nowrap px-3 py-2.5',
+  staff: 'whitespace-nowrap px-3 py-2.5',
+  manager: 'whitespace-nowrap px-3 py-2.5',
+  status: 'px-3 py-2.5',
+  progress: 'px-3 py-2.5',
+  eta: 'whitespace-nowrap px-3 py-2.5 text-right font-semibold',
+};
+
+/** Renders one list-table cell for a given column. */
+function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
+  switch (id) {
+    case 'no': return i + 1;
+    case 'code': return (
+      <>
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#{o.id}</span>
+        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" /> {o.date}</span>
+      </>
+    );
+    case 'service': return (
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} /></span>
+        <div className="min-w-0"><p className="truncate font-semibold leading-tight">{o.title}</p><p className="truncate text-[11px] text-muted-foreground">{o.sub}</p></div>
+      </div>
+    );
+    case 'domain': return o.domain;
+    case 'project': {
+      const pr = projectForDomain(o.domain);
+      return pr
+        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" />{pr.name}</span>
+        : <span className="text-muted-foreground">—</span>;
+    }
+    case 'folder': {
+      const path = folderPathForDomain(o.domain);
+      const leaf = path[path.length - 1];
+      return leaf
+        ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" />{leaf.name}</span>
+        : <span className="text-muted-foreground">—</span>;
+    }
+    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} />;
+    case 'manager': return est === 'planned'
+      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" /> Not assigned</span>
+      : <ManagerTag name={managerFor(o.id)} reviewing={est === 'review'} />;
+    case 'status': return <span className="pill" style={{ background: `${STATUSES[est].color}1f`, color: STATUSES[est].color }}>● {STATUSES[est].label}</span>;
+    case 'progress': return <span className="bar inline-block w-24 align-middle"><i style={{ width: `${pct(o)}%` }} /></span>;
+    case 'eta': return o.eta;
+  }
+}
+
+/** A "Done" badge for completed orders — sits top-left. (Priority is admin-only, not shown here.) */
+function DoneBadge({ done }: { done: boolean }) {
+  if (!done) return null;
+  return <span className="pill pill-good">Done</span>;
 }
 
 /** Compact meta block: project + website·URLs on two lines. */
@@ -101,11 +208,10 @@ function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order
   );
 }
 
-/** Extra rows shown only in Detail density: assignee + ETA. */
+/** Extra row shown only in Detail density: ETA (staff is shown on every card). */
 function DetailRows({ o }: { o: Order }) {
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      <p className="flex items-center gap-1.5"><i className="ph-bold ph-user shrink-0" /><span className="min-w-0 truncate">{o.owner}</span></p>
       <p className="flex items-center gap-1.5"><i className="ph-bold ph-timer shrink-0" /> ETA: <span className="font-medium text-foreground">{o.eta}</span></p>
     </div>
   );
@@ -116,13 +222,13 @@ function DetailRows({ o }: { o: Order }) {
  * shows: compact (header + title + progress), standard (+ project/website/folder),
  * detail (+ assignee/ETA).
  */
-function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number) {
+function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number, reviewing: boolean, planned: boolean) {
   const compact = density === 'compact';
   const detail = density === 'detail';
-  // Top row: priority (left), service type tag, service code (right).
+  // Top row: Done badge (when completed), service type tag, service code (right).
   const topRow = (
     <div className="flex items-center gap-2">
-      <PriorityBadge o={o} done={done} />
+      <DoneBadge done={done} />
       <span className="inline-flex min-w-0 items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
         <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} />
         <span className="truncate">{SERVICES[o.service].label}</span>
@@ -150,7 +256,7 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
       </div>
     );
   } else {
-    // balanced & priority — service name (title) is the headline.
+    // balanced — service name (title) is the headline.
     headline = <h4 className="mt-1.5 truncate text-sm font-semibold">{o.title}</h4>;
   }
 
@@ -158,6 +264,8 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     <>
       {topRow}
       {headline}
+      <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
+      {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="mt-1 text-[11px] font-medium text-foreground/70" />}
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
       {detail && <div className="mt-1.5"><DetailRows o={o} /></div>}
       <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
@@ -175,10 +283,9 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
     style.backgroundColor = `${tint}1f`;   // card fill — a touch darker than the column
     style.borderColor = `${tint}40`;       // card border — same hue, a bit darker than the fill
   }
-  if (template === 'priority') style.borderLeft = `3px solid ${done ? '#10b981' : PRIO_HEX[o.priority]}`;
   if (!preview) style.animationDelay = `${Math.min(index, 12) * 40}ms`;   // staggered entrance
   const cls = `kcard block${done ? ' opacity-90' : ''}${preview ? ' pointer-events-none' : ' onav kcard-anim'}`;
-  const children = cardInner(o, template, density, done, p);
+  const children = cardInner(o, template, density, done, p, eff === 'review', eff === 'planned');
 
   if (preview) return <div className={cls} style={style}>{children}</div>;
   return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} w-full text-left`} style={style}>{children}</button>;
@@ -196,11 +303,47 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [svc, setSvc] = useState<ServiceKey | 'all'>(initialService);
   const [proj, setProj] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all'); // list view only
+  const [dateRange, setDateRange] = useState<number>(0); // days; 0 = all time. list view only
   const [card, setCard] = useState<CardTemplate>('balanced');
   const [density, setDensity] = useState<CardDensity>('standard');
   const [mobileCol, setMobileCol] = useState<OrderStatus>('progress');
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // List-view column manager: show/hide + drag-reorder, remembered across reloads.
+  const [colOrder, setColOrder] = useState<ColId[]>(DEFAULT_COLS);
+  const [hiddenCols, setHiddenCols] = useState<Set<ColId>>(new Set());
+  const [showCols, setShowCols] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const dragIdx = useRef<number | null>(null);
+  // Apply a preset: its columns become visible (in order), the rest hidden but still listed.
+  const applyPreset = (cols: ColId[]) => {
+    const rest = DEFAULT_COLS.filter((c) => !cols.includes(c));
+    setColOrder([...cols, ...rest]);
+    setHiddenCols(new Set(rest));
+    setShowPresets(false);
+  };
+  const toggleCol = (id: ColId) => setHiddenCols((prev) => {
+    const n = new Set(prev);
+    if (n.has(id)) { n.delete(id); return n; }
+    if (colOrder.filter((c) => !n.has(c)).length <= 1) return prev; // keep at least one column visible
+    n.add(id);
+    return n;
+  });
+  const reorderCol = (toIdx: number) => {
+    const fromIdx = dragIdx.current;
+    if (fromIdx == null || fromIdx === toIdx) return;
+    setColOrder((prev) => { const n = [...prev]; const [m] = n.splice(fromIdx, 1); n.splice(toIdx, 0, m); return n; });
+    dragIdx.current = null;
+  };
+  // Keyboard-accessible alternative to dragging: nudge a column up/down one slot.
+  const moveCol = (idx: number, dir: -1 | 1) => setColOrder((prev) => {
+    const to = idx + dir;
+    if (to < 0 || to >= prev.length) return prev;
+    const n = [...prev]; [n[idx], n[to]] = [n[to], n[idx]]; return n;
+  });
+  const visibleCols = colOrder.filter((id) => !hiddenCols.has(id));
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClosing, setModalClosing] = useState(false);
   const closeModal = () => {
@@ -208,15 +351,29 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     setTimeout(() => { setModalOpen(false); setModalClosing(false); }, 150);
   };
 
-  // Remember the chosen card layout + density across reloads.
+  // Remember the chosen view (Kanban / List), card layout + density across reloads & pages.
   useEffect(() => {
+    const savedV = localStorage.getItem(STORAGE_KEY_VIEW);
+    if (savedV === 'list' || savedV === 'kanban') setView(savedV);
     const saved = localStorage.getItem(STORAGE_KEY) as CardTemplate | null;
     if (saved && TEMPLATES.some((t) => t.key === saved)) setCard(saved);
     const savedD = localStorage.getItem(STORAGE_KEY_DENSITY) as CardDensity | null;
     if (savedD && DENSITIES.some((d) => d.key === savedD)) setDensity(savedD);
+    try {
+      const savedC = JSON.parse(localStorage.getItem(STORAGE_KEY_COLS) ?? 'null') as { order?: ColId[]; hidden?: ColId[] } | null;
+      if (savedC?.order) {
+        // Keep only known ids, then append any columns added since the saved config.
+        const known = savedC.order.filter((id) => DEFAULT_COLS.includes(id));
+        setColOrder([...known, ...DEFAULT_COLS.filter((id) => !known.includes(id))]);
+      }
+      if (savedC?.hidden) setHiddenCols(new Set(savedC.hidden.filter((id) => DEFAULT_COLS.includes(id))));
+    } catch { /* ignore malformed config */ }
   }, []);
   useEffect(() => { localStorage.setItem(STORAGE_KEY, card); }, [card]);
   useEffect(() => { localStorage.setItem(STORAGE_KEY_DENSITY, density); }, [density]);
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_COLS, JSON.stringify({ order: colOrder, hidden: [...hiddenCols] }));
+  }, [colOrder, hiddenCols]);
 
   // Close the modal on Escape.
   useEffect(() => {
@@ -229,13 +386,26 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
   // Session-placed orders (from the Services flow) sit on top of the seed data.
   const allOrders = useMemo(() => [...addedOrders, ...ORDERS], [addedOrders]);
   const domains = useMemo(() => Array.from(new Set(allOrders.map((o) => o.domain))).sort(), [allOrders]);
+  // "Now" for the time filter = the most recent order, so "Last 7 days" is relative to real activity.
+  const today = useMemo(() => {
+    const ts = allOrders.map((o) => parseUS(o.date)).filter((t): t is number => t != null);
+    return ts.length ? Math.max(...ts) : Date.now();
+  }, [allOrders]);
+  // The status + time filters apply to the List view only (Kanban already groups by status).
+  const listFilters = view === 'list';
   const data = useMemo(
-    () => allOrders.filter((o) =>
-      (svc === 'all' || o.service === svc) &&
-      (proj === 'all' || o.domain === proj) &&
-      (!domain || o.domain === domain)
-    ),
-    [allOrders, svc, proj, domain]
+    () => allOrders.filter((o) => {
+      if (!(svc === 'all' || o.service === svc)) return false;
+      if (!(proj === 'all' || o.domain === proj)) return false;
+      if (domain && o.domain !== domain) return false;
+      if (listFilters && statusFilter !== 'all' && effStatus(o) !== statusFilter) return false;
+      if (listFilters && dateRange > 0) {
+        const t = parseUS(o.date);
+        if (t == null || today - t > dateRange * 86_400_000) return false;
+      }
+      return true;
+    }),
+    [allOrders, svc, proj, domain, listFilters, statusFilter, dateRange, today, statusOverrides], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const filters: (ServiceKey | 'all')[] = ['all', ...(Object.keys(SERVICES) as ServiceKey[])];
@@ -244,7 +414,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="display text-lg font-semibold tracking-tight">Service order progress</h3>
+          <h2 className="display text-lg font-semibold tracking-tight">Service order progress</h2>
           <p className="text-xs text-muted-foreground">Filter by service · click an order to open the project · switch Kanban / List</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
@@ -256,6 +426,87 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               <i className="ph-bold ph-layout text-muted-foreground" /> Card design
             </button>
           )}
+          {view === 'list' && (
+            <div className="relative">
+              <button
+                onClick={() => setShowPresets((v) => !v)}
+                aria-expanded={showPresets}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
+              >
+                <i className="ph-bold ph-sliders-horizontal text-muted-foreground" /> Presets
+              </button>
+              {showPresets && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPresets(false)} />
+                  <div className="absolute right-0 z-50 mt-1.5 w-60 rounded-xl border border-border bg-card p-1.5 shadow-xl">
+                    <p className="px-1.5 pb-1 pt-0.5 text-[11px] font-semibold text-muted-foreground">Table presets</p>
+                    {PRESETS.map((p) => (
+                      <button
+                        key={p.key}
+                        onClick={() => applyPreset(p.cols)}
+                        className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition hover:bg-muted"
+                      >
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${p.icon}`} /></span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{p.label}</span>
+                          <span className="block text-[11px] text-muted-foreground">{p.desc}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {view === 'list' && (
+            <div className="relative">
+              <button
+                onClick={() => setShowCols((v) => !v)}
+                aria-expanded={showCols}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
+              >
+                <i className="ph-bold ph-columns text-muted-foreground" /> Columns
+              </button>
+              {showCols && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowCols(false)} />
+                  <div className="absolute right-0 z-50 mt-1.5 w-60 rounded-xl border border-border bg-card p-2 shadow-xl">
+                    <div className="flex items-center justify-between px-1.5 pb-1.5">
+                      <p className="text-[11px] font-semibold text-muted-foreground">Show &amp; drag to reorder</p>
+                      <button
+                        onClick={() => { setColOrder(DEFAULT_COLS); setHiddenCols(new Set()); }}
+                        className="text-[11px] font-medium text-primary hover:underline"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                    {colOrder.map((id, i) => (
+                      <div
+                        key={id}
+                        draggable
+                        onDragStart={() => { dragIdx.current = i; }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => reorderCol(i)}
+                        className="group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted active:cursor-grabbing"
+                      >
+                        <i className="ph-bold ph-dots-six-vertical text-muted-foreground" />
+                        <input type="checkbox" checked={!hiddenCols.has(id)} disabled={visibleCols.length === 1 && !hiddenCols.has(id)} onChange={() => toggleCol(id)} className="h-3.5 w-3.5 accent-primary disabled:opacity-40" />
+                        <span className="flex-1">{COL_LABEL[id]}</span>
+                        <span className="flex items-center gap-0.5">
+                          <button type="button" aria-label={`Move ${COL_LABEL[id]} up`} disabled={i === 0} onClick={() => moveCol(i, -1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
+                            <i className="ph-bold ph-caret-up text-[11px]" />
+                          </button>
+                          <button type="button" aria-label={`Move ${COL_LABEL[id]} down`} disabled={i === colOrder.length - 1} onClick={() => moveCol(i, 1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
+                            <i className="ph-bold ph-caret-down text-[11px]" />
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {!domain && (
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
               <i className="ph-bold ph-globe-hemisphere-west text-muted-foreground" />
@@ -265,26 +516,45 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               </select>
             </div>
           )}
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
-            <button onClick={() => setView('kanban')} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
-            <button onClick={() => setView('list')} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
+          <div className="view-toggle flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
+            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
+            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-1.5 overflow-x-auto pb-0.5">
-        {filters.map((k) => (
-          <button
-            key={k}
-            onClick={() => setSvc(k)}
-            className={`filter-btn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-              svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
-            }`}
-          >
-            <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
-            {k === 'all' ? 'All' : SERVICES[k].label}
-          </button>
-        ))}
+      <div className="mt-4 flex items-center gap-2">
+        <div className="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
+          {filters.map((k) => (
+            <button
+              key={k}
+              onClick={() => setSvc(k)}
+              className={`filter-btn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
+              {k === 'all' ? 'All' : SERVICES[k].label}
+            </button>
+          ))}
+        </div>
+        {view === 'list' && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
+              <i className="ph-bold ph-funnel text-muted-foreground" />
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')} aria-label="Filter by status" className="cursor-pointer bg-transparent pr-1 outline-none">
+                <option value="all">All statuses</option>
+                {(Object.keys(STATUSES) as OrderStatus[]).map((s) => <option key={s} value={s}>{STATUSES[s].label}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
+              <i className="ph-bold ph-calendar-blank text-muted-foreground" />
+              <select value={dateRange} onChange={(e) => setDateRange(Number(e.target.value))} aria-label="Filter by time" className="cursor-pointer bg-transparent pr-1 outline-none">
+                {DATE_RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {view === 'kanban' ? (
@@ -311,60 +581,64 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
           </div>
       ) : (
         <>
-        {/* mobile: card list */}
+        {/* mobile: card list — fields follow the same show/hide column choices */}
         <div className="mt-4 space-y-2 sm:hidden">
           {data.map((o) => {
             const est = effStatus(o);
             const sc = STATUSES[est];
             const pp = pct(o);
             const proj = projectForDomain(o.domain);
+            const folderLeaf = folderPathForDomain(o.domain).at(-1);
+            const show = (id: ColId) => !hiddenCols.has(id);
             return (
               <button key={o.id} onClick={() => openOrder(o.id)} className="kcard onav block w-full text-left">
                 <div className="flex flex-wrap items-center gap-2">
-                  <PriorityBadge o={o} done={est === 'completed'} />
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} /> {SERVICES[o.service].label}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">#{o.id}</span>
-                  <span className="pill ml-auto" style={{ background: `${sc.color}1f`, color: sc.color }}>● {sc.label}</span>
+                  <DoneBadge done={est === 'completed'} />
+                  {show('service') && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} /> {SERVICES[o.service].label}</span>}
+                  {show('code') && <span className="font-mono text-[11px] text-muted-foreground">#{o.id}</span>}
+                  {show('status') && <span className="pill ml-auto" style={{ background: `${sc.color}1f`, color: sc.color }}>● {sc.label}</span>}
                 </div>
                 <div className="mt-2 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h4 className="font-semibold leading-tight">{o.title}</h4>
-                    <p className="mt-0.5 text-[12px] text-muted-foreground">{o.sub}</p>
-                  </div>
-                  <div className="shrink-0 text-right text-[12px]">
-                    <p className="font-semibold">${o.cost.toLocaleString('en-US')}</p>
-                    <p className={est === 'completed' ? 'text-emerald-600' : 'text-muted-foreground'}>{o.eta}</p>
-                  </div>
+                  {show('service') && (
+                    <div className="min-w-0">
+                      <h4 className="font-semibold leading-tight">{o.title}</h4>
+                      <p className="mt-0.5 text-[12px] text-muted-foreground">{o.sub}</p>
+                    </div>
+                  )}
+                  {show('eta') && (
+                    <div className="ml-auto shrink-0 text-right text-[12px]">
+                      <p className="font-semibold">${o.cost.toLocaleString('en-US')}</p>
+                      <p className={est === 'completed' ? 'text-emerald-600' : 'text-muted-foreground'}>{o.eta}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" /> {proj?.name ?? o.domain}</span>
-                  <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" /> {o.multiWeb ? 'Multi-site' : o.domain}</span>
-                  <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" /> {o.owner}</span>
-                  <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" /> {o.date}</span>
+                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" /> {proj?.name ?? o.domain}</span>}
+                  {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
+                  {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" /> {folderLeaf.name}</span>}
+                  {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" /> {o.owner}</span>}
+                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" /> {o.date}</span>}
                 </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="bar flex-1"><i style={{ width: `${pp}%` }} /></span>
-                  <b className="text-[12px] font-semibold" style={{ color: sc.color }}>{pp}%</b>
-                </div>
+                {show('progress') && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="bar flex-1"><i style={{ width: `${pp}%` }} /></span>
+                    <b className="text-[12px] font-semibold" style={{ color: sc.color }}>{pp}%</b>
+                  </div>
+                )}
               </button>
             );
           })}
-          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders for this service.</p>}
+          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders match the current filters.</p>}
         </div>
 
         {/* desktop: original table */}
         <div className="mt-4 hidden overflow-x-auto sm:block">
-          <table className="w-full min-w-[880px] text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                <th className="py-2.5 pr-3 text-center">No.</th>
-                <th className="px-3 py-2.5">Code</th>
-                <th className="px-3 py-2.5">Order / Service</th>
-                <th className="px-3 py-2.5">Domain</th>
-                <th className="px-3 py-2.5">Status</th>
-                <th className="px-3 py-2.5">Progress</th>
-                <th className="px-3 py-2.5">Priority</th>
-                <th className="py-2.5 pl-3 text-right">ETA</th>
+                {visibleCols.map((id) => (
+                  <th key={id} className={`px-3 py-2.5 ${COL_ALIGN[id] === 'center' ? 'text-center' : COL_ALIGN[id] === 'right' ? 'text-right' : ''}`}>{COL_LABEL[id]}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -372,20 +646,15 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 const est = effStatus(o);
                 return (
                 <tr key={o.id} onClick={() => openOrder(o.id)} className="cursor-pointer transition hover:bg-accent/40">
-                  <td className="py-3 pr-3 text-center text-xs font-semibold text-muted-foreground">{i + 1}</td>
-                  <td className="px-3 py-3"><span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#{o.id}</span></td>
-                  <td className="px-3 py-3"><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} /></span><div><p className="font-semibold leading-tight">{o.title}</p><p className="text-[11px] text-muted-foreground">{o.sub}</p></div></div></td>
-                  <td className="px-3 py-3 text-muted-foreground">{o.domain}</td>
-                  <td className="px-3 py-3"><span className="pill" style={{ background: `${STATUSES[est].color}1f`, color: STATUSES[est].color }}>● {STATUSES[est].label}</span></td>
-                  <td className="px-3 py-3"><span className="bar inline-block w-24 align-middle"><i style={{ width: `${pct(o)}%` }} /></span></td>
-                  <td className="px-3 py-3"><span className={`prio prio-${o.priority}`}>{PRIORITIES[o.priority]}</span></td>
-                  <td className={`py-3 pl-3 text-right font-semibold${est === 'completed' ? ' text-emerald-600' : ''}`}>{o.eta}</td>
+                  {visibleCols.map((id) => (
+                    <td key={id} className={`${LIST_TD[id]}${id === 'eta' && est === 'completed' ? ' text-emerald-600' : ''}`}>{listCell(id, o, i, est)}</td>
+                  ))}
                 </tr>
                 );
               })}
             </tbody>
           </table>
-          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders for this service.</p>}
+          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders match the current filters.</p>}
         </div>
         </>
       )}
@@ -416,7 +685,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
       {/* Card design picker */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Card design">
-          <button aria-hidden tabIndex={-1} onClick={closeModal} className={`${modalClosing ? 'order-backdrop-out' : 'order-backdrop'} absolute inset-0 cursor-default bg-foreground/40 backdrop-blur-sm`} />
+          <button aria-hidden tabIndex={-1} onClick={closeModal} className={`${modalClosing ? 'order-backdrop-out' : 'order-backdrop'} absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm`} />
           <div className={`${modalClosing ? 'modal-out' : 'modal-in'} scrollbar-thin relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl`}>
             <div className="flex items-start justify-between gap-3">
               <div>

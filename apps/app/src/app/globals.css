@@ -6,4 +6,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Lock the document so it never scrolls — full-height app shells scroll inside
+   their own containers (<main>, sidebar nav). Without this, sub-pixel/zoom
+   overflow lets the page scroll and a retained scroll offset crops the top
+   (sidebar logo + topbar) after client-side navigation. */
+@layer base {
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+}
+
 /* Dashboard component styles live in ./dashboard.css (imported in layout.tsx). */
