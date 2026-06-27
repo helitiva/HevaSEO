@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { monthGrid, monthLabel, WEEKDAYS } from '@/lib/calendar';
 import { daysToDue, slaChip, PRIORITY_RANK } from '@/lib/staff';
 import { serviceMeta, careRankOf } from '@/data/staffMock';
@@ -37,7 +36,6 @@ const longDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateStri
 const isWeekend = (date: string) => { const d = new Date(`${date}T00:00:00Z`).getUTCDay(); return d === 0 || d === 6; };
 
 export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }: { tasks: CalTask[]; initialMonth: string; today: string; offDays?: Set<string>; hours?: WorkHours[] }) {
-  const router = useRouter();
   const [month, setMonth] = useState(initialMonth);
   const [panelDate, setPanelDate] = useState<string | null>(null);
 
@@ -67,7 +65,6 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
   const panelTasks = (panelDate ? (byDate.get(panelDate) ?? []) : [])
     .slice()
     .sort((a, b) => careRankOf(b.customer) - careRankOf(a.customer) || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
-  const open = (id: string) => { setPanelDate(null); router.push(`/staff/tasks/${id}`); };
 
   return (
     <div className="kcard">
@@ -181,7 +178,7 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
         <ul className="space-y-2">
           {panelTasks.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); const top = careRankOf(t.customer) === 2; return (
             <li key={t.id}>
-              <button onClick={() => open(t.id)} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
+              <a href={`/staff/tasks/${t.id}`} target="_blank" rel="noopener noreferrer" title="Opens in a new tab" className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{t.code}</span>{t.service}</span>
@@ -191,8 +188,8 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
                   <span className="flex items-center gap-1"><PriorityBadge priority={t.priority} /><StatusBadge status={t.status} /></span>
                   {sla && <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${TONE[sla.tone]}`}>{sla.label}</span>}
                 </span>
-                <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground" />
-              </button>
+                <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" />
+              </a>
             </li>
           ); })}
         </ul>
