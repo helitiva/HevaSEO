@@ -97,7 +97,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
       {view !== 'availability' && shown.length === 0 && (
         <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-funnel mb-1 block text-xl" />No deadlines match this filter.</div>
       )}
-      {view === 'month' && shown.length > 0 && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} />}
+      {view === 'month' && shown.length > 0 && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} hours={avail.hours} />}
       {view === 'agenda' && shown.length > 0 && <AgendaList tasks={shown} today={today} focus={focus} />}
       {view === 'availability' && <AvailabilityPanel value={avail} onSave={setAvail} today={today} />}
     </div>
