@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { DeadlineCalendar } from '@/components/staff/DeadlineCalendar';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { AvailabilityPanel } from './AvailabilityPanel';
@@ -105,7 +104,6 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
 }
 
 function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; focus: string | null }) {
-  const router = useRouter();
   const sorted = [...tasks].sort((a, b) => (a.deadline < b.deadline ? -1 : 1));
   // Within a day-bucket, surface the highest-care clients first.
   const groups = BUCKETS.map((bk) => ({
@@ -128,7 +126,7 @@ function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; 
           <ul className="space-y-1.5">
             {g.items.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); const top = careRankOf(t.customer) === 2; return (
               <li key={t.id}>
-                <button onClick={() => router.push(`/staff/tasks/${t.id}`)} className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
+                <a href={`/staff/tasks/${t.id}`} target="_blank" rel="noopener noreferrer" title="Opens in a new tab" className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
                   <span className="w-12 shrink-0 text-center">
                     <span className="block text-[10px] uppercase text-muted-foreground">{new Date(`${t.deadline}T00:00:00`).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}</span>
                     <span className="block text-base font-bold leading-none">{t.deadline.slice(8)}</span>
@@ -141,8 +139,8 @@ function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; 
                   <PriorityBadge priority={t.priority} />
                   <StatusBadge status={t.status} />
                   {sla && <span className={`hidden shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold sm:inline ${TONE[sla.tone]}`}>{sla.label}</span>}
-                  <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground" />
-                </button>
+                  <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" />
+                </a>
               </li>
             ); })}
           </ul>
