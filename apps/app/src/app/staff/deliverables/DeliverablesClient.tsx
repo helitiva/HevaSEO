@@ -66,27 +66,43 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
       {shown.length === 0 ? (
         <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-tray mb-1 block text-xl" />Nothing here.</div>
       ) : (
-        <ul className="space-y-2">
-          {shown.map((r) => { const m = serviceMeta(r.service); const needs = r.d.status === 'changes_requested'; const rework = reworkCount(r.taskId); const fb = feedbackFor(r.d.id); return (
-            <li key={r.d.id}>
-              <button onClick={() => setSel(r)} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${needs ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{r.taskCode}</span>{r.service}<span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">v{r.d.version}</span></span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="truncate">{r.customer}</span><CareTags company={r.customer} />
-                    <span className="hidden items-center gap-1 sm:flex"><i className={`ph-bold ${r.d.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} /><span className="max-w-[14rem] truncate">{r.d.fileName ?? r.d.url}</span></span>
-                  </span>
-                </span>
-                {fb.customerRating && <span className="hidden shrink-0 items-center gap-0.5 text-[11px] font-semibold text-amber-500 sm:flex" title={`Customer rated ${fb.customerRating}/5`}><i className="ph-fill ph-star" />{fb.customerRating}.0</span>}
-                <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">{r.d.submittedAt}</span>
-                {rework > 0 && <span className="hidden shrink-0 text-[11px] font-semibold text-amber-600 dark:text-amber-400 sm:block" title="Rework rounds">{rework}×</span>}
-                <span className={`pill ${PILL[r.d.status] ?? 'pill'} shrink-0`}>{LABEL[r.d.status] ?? r.d.status}</span>
-                <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground" />
-              </button>
-            </li>
-          ); })}
-        </ul>
+        <div className="scrollbar-thin overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <th className="px-3 py-2.5 font-semibold">Task</th>
+                <th className="px-3 py-2.5 font-semibold">Client</th>
+                <th className="hidden px-3 py-2.5 font-semibold lg:table-cell">Attachment</th>
+                <th className="px-3 py-2.5 text-center font-semibold">Ver</th>
+                <th className="hidden px-3 py-2.5 font-semibold sm:table-cell">Submitted</th>
+                <th className="px-3 py-2.5 text-center font-semibold">Rating</th>
+                <th className="hidden px-3 py-2.5 text-center font-semibold sm:table-cell">Rework</th>
+                <th className="px-3 py-2.5 font-semibold">Status</th>
+                <th className="w-8 px-2 py-2.5" aria-label="Open" />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => { const m = serviceMeta(r.service); const needs = r.d.status === 'changes_requested'; const rework = reworkCount(r.taskId); const fb = feedbackFor(r.d.id); return (
+                <tr key={r.d.id} onClick={() => setSel(r)} className="cursor-pointer border-b border-border/50 transition last:border-0 hover:bg-muted/40">
+                  <td className={`px-3 py-2.5 ${needs ? 'border-l-[3px] border-l-amber-500' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
+                      <div className="min-w-0"><p className="font-semibold leading-tight">{r.service}</p><p className="font-mono text-[11px] text-muted-foreground">{r.taskCode}</p></div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5"><div className="flex min-w-0 flex-wrap items-center gap-1.5"><span className="truncate">{r.customer}</span><CareTags company={r.customer} /></div></td>
+                  <td className="hidden px-3 py-2.5 lg:table-cell"><span className="inline-flex items-center gap-1 text-muted-foreground"><i className={`ph-bold ${r.d.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} /><span className="block max-w-[13rem] truncate text-xs">{r.d.fileName ?? r.d.url}</span></span></td>
+                  <td className="px-3 py-2.5 text-center font-semibold">v{r.d.version}</td>
+                  <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{r.d.submittedAt}</td>
+                  <td className="px-3 py-2.5 text-center">{fb.customerRating ? <span className="inline-flex items-center gap-0.5 font-semibold text-amber-500"><i className="ph-fill ph-star" />{fb.customerRating}.0</span> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="hidden px-3 py-2.5 text-center sm:table-cell">{rework > 0 ? <span className="font-semibold text-amber-600 dark:text-amber-400">{rework}×</span> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-2.5"><span className={`pill ${PILL[r.d.status] ?? 'pill'} whitespace-nowrap`}>{LABEL[r.d.status] ?? r.d.status}</span></td>
+                  <td className="px-2 py-2.5 text-right"><i className="ph-bold ph-caret-right text-muted-foreground" /></td>
+                </tr>
+              ); })}
+            </tbody>
+          </table>
+        </div>
       )}
       <p className="px-1 text-xs text-muted-foreground"><i className="ph-bold ph-info mr-1" />Rework rounds feed your quality score — fewer is better, but iterating is normal.</p>
 
