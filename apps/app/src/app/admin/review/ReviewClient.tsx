@@ -45,6 +45,12 @@ const REVIEW_CUSTOMER_SNIPPETS: string[] = [
 ];
 // Append a saved reply onto whatever is already in the field (on its own line).
 const insertSnippet = (cur: string, s: string) => (cur.trim() ? `${cur.trim()}\n${s}` : s);
+// Grow a textarea to fit its content as the reviewer types (min height held by CSS).
+function autoGrow(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
 
 export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }: Props) {
   const money = useMoney();
@@ -61,6 +67,8 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
   const [noteCustomer, setNoteCustomer] = useState('');
   const [staffSnips, setStaffSnips] = useState(REVIEW_STAFF_SNIPPETS);
   const [customerSnips, setCustomerSnips] = useState(REVIEW_CUSTOMER_SNIPPETS);
+  const noteStaffRef = useRef<HTMLTextAreaElement>(null);
+  const noteCustomerRef = useRef<HTMLTextAreaElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [fService, setFService] = useState(''); const [fStaff, setFStaff] = useState('');
   const [reSubOnly, setReSubOnly] = useState(false); const [overdueOnly, setOverdueOnly] = useState(false);
@@ -101,6 +109,9 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
 
   // Reset the note drafts whenever a different task is selected.
   useEffect(() => { setNoteStaff(''); setNoteCustomer(''); }, [selected?.id]);
+  // Auto-grow the note fields as the reviewer types (or inserts a saved reply).
+  useEffect(() => { autoGrow(noteStaffRef.current); }, [noteStaff]);
+  useEffect(() => { autoGrow(noteCustomerRef.current); }, [noteCustomer]);
 
   // keyboard: j/k move · a approve · r request-changes · 1-9 toggle criterion · / search
   useEffect(() => {
@@ -290,7 +301,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                       <span className="ml-auto"><SnippetPicker snippets={staffSnips} current={noteStaff} onPick={(s) => setNoteStaff((p) => insertSnippet(p, s))} onAdd={(s) => setStaffSnips((l) => [s, ...l])} onRemove={(s) => setStaffSnips((l) => l.filter((x) => x !== s))} /></span>
                     </div>
                     <div className="p-2.5">
-                      <textarea value={noteStaff} onChange={(e) => setNoteStaff(e.target.value)} rows={3} placeholder="Feedback or praise for the staffer — they see this, the customer doesn't…" className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400" />
+                      <textarea ref={noteStaffRef} value={noteStaff} onChange={(e) => setNoteStaff(e.target.value)} placeholder="Feedback or praise for the staffer — they see this, the customer doesn't…" className="min-h-[10rem] w-full resize-none overflow-hidden rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-indigo-400" />
                     </div>
                   </div>
 
@@ -302,7 +313,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                       <span className="ml-auto"><SnippetPicker snippets={customerSnips} current={noteCustomer} onPick={(s) => setNoteCustomer((p) => insertSnippet(p, s))} onAdd={(s) => setCustomerSnips((l) => [s, ...l])} onRemove={(s) => setCustomerSnips((l) => l.filter((x) => x !== s))} /></span>
                     </div>
                     <div className="p-2.5">
-                      <textarea value={noteCustomer} onChange={(e) => setNoteCustomer(e.target.value)} rows={3} placeholder="A customer-facing message — this is sent to the client…" className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-sky-400" />
+                      <textarea ref={noteCustomerRef} value={noteCustomer} onChange={(e) => setNoteCustomer(e.target.value)} placeholder="A customer-facing message — this is sent to the client…" className="min-h-[10rem] w-full resize-none overflow-hidden rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-sky-400" />
                     </div>
                   </div>
                 </div>
