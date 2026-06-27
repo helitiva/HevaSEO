@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePortalBase } from '@/lib/portalBase';
 import { NoteModal } from './NoteModal';
 import { RichTextEditor } from './RichTextEditor';
 import { sanitizeHtml, htmlIsEmpty } from '@/lib/sanitizeHtml';
@@ -46,13 +47,14 @@ export function NoteComposer({ open, note, onClose, onSave }: Props) {
 
 function ComposerForm({ note, onClose, onSave }: Omit<Props, 'open'>) {
   const router = useRouter();
+  const base = usePortalBase();
   const [draft, setDraft] = useState<Draft>(() => draftFrom(note));
   const canSave = canSaveDraft(draft);
 
   const save = () => { if (canSave) onSave(cleanDraft(draft)); };
   // Expand the current edit into the full-page editor (docs-style). Existing note → its edit route;
   // a brand-new note → the blank full-page editor.
-  const expand = () => { onClose(); router.push(note ? `/staff/notes/${note.id}/edit` : '/staff/notes/new'); };
+  const expand = () => { onClose(); router.push(note ? `${base}/notes/${note.id}/edit` : `${base}/notes/new`); };
 
   return (
     <>

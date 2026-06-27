@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { usePortalBase } from '@/lib/portalBase';
 import { useNotes } from '@/data/notesStore';
 import { Attachment } from './NoteAttachment';
 import { NOTE_COLORS } from '@/data/staffNotes';
@@ -11,6 +12,7 @@ const fmtFull = (iso: string) =>
 // Full-page note reader — a docs-style document view, the large-format alternative to the modal.
 export function NoteFullReader({ id }: { id: string }) {
   const router = useRouter();
+  const base = usePortalBase();
   const { notes, ready, mutate } = useNotes();
   const note = notes.find((n) => n.id === id) ?? null;
 
@@ -19,7 +21,7 @@ export function NoteFullReader({ id }: { id: string }) {
       <div className="mx-auto max-w-3xl py-16 text-center">
         <p className="display text-lg font-bold">Note not found</p>
         <p className="mt-1 text-sm text-muted-foreground">It may have been deleted.</p>
-        <Link href="/staff/notes" className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">
+        <Link href={`${base}/notes`} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">
           <i className="ph-bold ph-arrow-left" aria-hidden /> Back to notes
         </Link>
       </div>
@@ -29,19 +31,19 @@ export function NoteFullReader({ id }: { id: string }) {
 
   const c = NOTE_COLORS[note.color];
   const togglePin = () => mutate((xs) => xs.map((n) => (n.id === note.id ? { ...n, pinned: !n.pinned } : n)));
-  const del = () => { mutate((xs) => xs.filter((n) => n.id !== note.id)); router.push('/staff/notes'); };
+  const del = () => { mutate((xs) => xs.filter((n) => n.id !== note.id)); router.push(`${base}/notes`); };
 
   return (
     <article className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <Link href="/staff/notes" className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
+        <Link href={`${base}/notes`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
           <i className="ph-bold ph-arrow-left" aria-hidden /> Back to notes
         </Link>
         <div className="flex items-center gap-1.5">
           <button onClick={togglePin} title={note.pinned ? 'Unpin' : 'Pin'} className={`grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent ${note.pinned ? 'text-amber-500' : 'text-muted-foreground'}`}>
             <i className={`ph-bold ${note.pinned ? 'ph-push-pin-slash' : 'ph-push-pin'}`} aria-hidden />
           </button>
-          <Link href={`/staff/notes/${note.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+          <Link href={`${base}/notes/${note.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
             <i className="ph-bold ph-pencil-simple" aria-hidden /> Edit
           </Link>
         </div>
@@ -83,7 +85,7 @@ export function NoteFullReader({ id }: { id: string }) {
         <button onClick={del} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:border-rose-300 hover:text-rose-500">
           <i className="ph-bold ph-trash" aria-hidden /> Delete
         </button>
-        <Link href={`/staff/notes/${note.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+        <Link href={`${base}/notes/${note.id}/edit`} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
           <i className="ph-bold ph-pencil-simple" aria-hidden /> Edit note
         </Link>
       </div>

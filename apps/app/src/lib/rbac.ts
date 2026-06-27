@@ -31,8 +31,9 @@ export const ROLES: readonly Role[] = ['admin', 'manager', 'staff', 'customer'];
  * role's reach is decided.
  */
 export type Capability =
-  // --- Admin / manager operations surface (/admin/*) ---
+  // --- Admin / manager operations surface (/admin/*, /manager/*) ---
   | 'admin.access' // enter the admin area at all (overview, shared shell)
+  | 'manager.access' // enter the manager area (the pod-scoped, money-blind ops surface)
   | 'orders.manage'
   | 'assignment.manage'
   | 'review.manage'
@@ -41,6 +42,7 @@ export type Capability =
   | 'staff.manage'
   | 'managers.manage'
   | 'catalog.manage'
+  | 'catalog.view' // read the service menu (managers see it; editing is admin-only)
   | 'audit.view'
   | 'org.settings' // org-wide admin settings (not personal settings)
   // --- Business intelligence — admin only, hidden from managers ---
@@ -61,9 +63,13 @@ export type Capability =
  * The matrix. Each role lists exactly the capabilities it holds. Read top-to-
  * bottom to understand a role; read a single capability across roles to audit it.
  *
- * - admin    : everything.
- * - manager  : admin minus money (no finance/analytics/pricing) and minus the
- *              org-shaping powers (no managing managers, no org settings).
+ * - admin    : everything, across both /admin and /manager.
+ * - manager  : its own pod-scoped ops area (/manager). Same ops actions as admin
+ *              but money-blind — NO pricing/finance/analytics, NO org-shaping
+ *              powers (no managing managers, no org settings), catalog is
+ *              read-only, and it cannot enter the /admin area. Pod-scoping (which
+ *              staff/customers a manager may see) lives in lib/managerScope.ts —
+ *              capabilities answer "what action", scope answers "on whose data".
  * - staff    : their own work + knowledge + self-service; sees internal notes
  *              (they author them) but never pricing.
  * - customer : the portal; sees their own pricing/credit but never internal notes.
@@ -71,6 +77,7 @@ export type Capability =
 export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   admin: [
     'admin.access',
+    'manager.access',
     'orders.manage',
     'assignment.manage',
     'review.manage',
@@ -79,6 +86,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     'staff.manage',
     'managers.manage',
     'catalog.manage',
+    'catalog.view',
     'audit.view',
     'org.settings',
     'finance.view',
@@ -87,16 +95,14 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     'notes.internal.view',
   ],
   manager: [
-    'admin.access',
+    'manager.access',
     'orders.manage',
     'assignment.manage',
     'review.manage',
     'tickets.manage',
     'customers.manage',
     'staff.manage',
-    'catalog.manage',
     'audit.view',
-    'pricing.view',
     'notes.internal.view',
   ],
   staff: [
@@ -142,6 +148,21 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/admin/catalog', capability: 'catalog.manage' },
   { prefix: '/admin', capability: 'admin.access' }, // overview + umbrella
 
+  // Manager area (/manager/*) — the pod-scoped ops surface. Same ops capabilities
+  // as the admin equivalents (managers ARE ops admins), so admins can preview it
+  // too. There is deliberately no /manager/finance, /manager/analytics or
+  // /manager/managers — those money/org powers don't exist for managers.
+  { prefix: '/manager/orders', capability: 'orders.manage' },
+  { prefix: '/manager/assignment', capability: 'assignment.manage' },
+  { prefix: '/manager/review', capability: 'review.manage' },
+  { prefix: '/manager/tickets', capability: 'tickets.manage' },
+  { prefix: '/manager/customers', capability: 'customers.manage' },
+  { prefix: '/manager/staff', capability: 'staff.manage' },
+  { prefix: '/manager/audit', capability: 'audit.view' },
+  { prefix: '/manager/docs', capability: 'manager.access' }, // knowledge base (admin-published)
+  { prefix: '/manager/notes', capability: 'manager.access' }, // private notebook
+  { prefix: '/manager', capability: 'manager.access' }, // overview + personal settings + umbrella
+
   // Staff sub-routes
   { prefix: '/staff/tasks', capability: 'staff.work' },
   { prefix: '/staff/calendar', capability: 'staff.work' },
@@ -184,8 +205,9 @@ export function canAccessPath(role: Role, path: string): boolean {
 export function homePathFor(role: Role): string {
   switch (role) {
     case 'admin':
-    case 'manager':
       return '/admin';
+    case 'manager':
+      return '/manager';
     case 'staff':
       return '/staff';
     case 'customer':
@@ -216,10 +238,11 @@ export function filterNav<Item extends { href: string }, Section extends NavSect
 /**
  * Phase-0 mock personas.
  *
- * There is no auth yet, and the same browser previews all three surfaces, so
- * "the current user" is not one value — each shell renders as a fixed persona.
- * Only the admin area has a real choice (admin vs the ops-only manager), so that
- * is the one knob exposed here. Flip it to 'manager' to preview the ops view.
+ * There is no auth yet, and the same browser previews every surface, so "the
+ * current user" is not one value — each shell renders as a fixed persona. The
+ * admin shell is always the admin role; the manager shell (its own /manager area)
+ * is always the manager role and additionally pins a current manager id for
+ * pod-scoping — see MANAGER_PERSONA in lib/managerScope.ts.
  *
  * When auth lands, drop these and read the role from the session — middleware
  * already resolves it per the master plan, and every gate above keeps working.

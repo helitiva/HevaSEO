@@ -7,7 +7,8 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { impersonateCustomer } from '@/lib/impersonation';
-import { money, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
+import { TIER, type OrderStatus, type Tier } from '@/data/adminMock';
+import { useMoney, useShowMoney } from '@/lib/viewer';
 
 export type Health = 'good' | 'ok' | 'risk';
 
@@ -61,9 +62,11 @@ const joined = (d: string) => new Date(d).toLocaleDateString('en-US', { month: '
 const ago = (d: number) => (d <= 0 ? 'today' : d === 1 ? '1d ago' : `${d}d ago`);
 
 export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const [query, setQuery] = useState('');
   const [seg, setSeg] = useState('all');
-  const [sort, setSort] = useState<SortKey>('ltv');
+  const [sort, setSort] = useState<SortKey>(showMoney ? 'ltv' : 'orders');
   const [dir, setDir] = useState<'desc' | 'asc'>('desc');
   const [view, setView] = useState<'table' | 'cards'>('table');
   const [page, setPage] = useState(1);
@@ -173,8 +176,8 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         <Kpi icon="ph-users-three" label="Total customers" value={String(kpis.total)} />
         <Kpi icon="ph-user-check" label="Claimed / shadow" value={`${kpis.claimed} / ${kpis.shadow}`} />
         <Kpi icon="ph-user-plus" label="New this month" value={String(kpis.newThisMonth)} tone="good" />
-        <Kpi icon="ph-coins" label="Total LTV" value={money(kpis.totalLtv)} tone="good" />
-        <Kpi icon="ph-wallet" label="Credit outstanding" value={money(kpis.credit)} tone="warn" />
+        {showMoney && <Kpi icon="ph-coins" label="Total LTV" value={money(kpis.totalLtv)} tone="good" />}
+        {showMoney && <Kpi icon="ph-wallet" label="Credit outstanding" value={money(kpis.credit)} tone="warn" />}
         <Kpi icon="ph-warning-circle" label="At-risk" value={String(kpis.atRisk)} tone={kpis.atRisk ? 'warn' : undefined} />
       </div>
 
@@ -255,7 +258,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, company or email…" className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           <select value={sort} onChange={(e) => pickSort(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
-            {SORTS.map((s) => <option key={s.key} value={s.key}>Sort: {s.label}</option>)}
+            {SORTS.filter((s) => showMoney || (s.key !== 'ltv' && s.key !== 'credit')).map((s) => <option key={s.key} value={s.key}>Sort: {s.label}</option>)}
           </select>
           <div className="inline-flex rounded-lg border border-border p-0.5">
             {(['table', 'cards'] as const).map((v) => (
@@ -303,9 +306,9 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                 <th className="w-9 p-3"><input type="checkbox" checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected; }} onChange={toggleAll} className="accent-primary" aria-label="Select all on this page" /></th>
                 <SortHead label="Customer" col="name" sort={sort} dir={dir} onSort={clickSort} />
                 <SortHead label="Orders" col="orders" align="right" sort={sort} dir={dir} onSort={clickSort} />
-                <SortHead label="Lifetime value" col="ltv" align="right" sort={sort} dir={dir} onSort={clickSort} />
-                <th className="p-3 text-right">AOV</th>
-                <SortHead label="Credit" col="credit" align="right" sort={sort} dir={dir} onSort={clickSort} />
+                {showMoney && <SortHead label="Lifetime value" col="ltv" align="right" sort={sort} dir={dir} onSort={clickSort} />}
+                {showMoney && <th className="p-3 text-right">AOV</th>}
+                {showMoney && <SortHead label="Credit" col="credit" align="right" sort={sort} dir={dir} onSort={clickSort} />}
                 <th className="p-3 text-center">Tickets</th>
                 <th className="p-3">Health</th>
                 <SortHead label="Last active" col="recent" sort={sort} dir={dir} onSort={clickSort} />
@@ -333,12 +336,14 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                       </span>
                     </td>
                     <td className="p-3 text-right tabular-nums">{c.orders}{c.activeOrders > 0 && <span className="block text-[10px] font-medium text-primary">{c.activeOrders} active</span>}</td>
+                    {showMoney && (
                     <td className="p-3 text-right">
                       <span className="font-semibold tabular-nums">{money(c.spend)}</span>
                       <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary/60" style={{ width: `${Math.round((c.spend / maxSpend) * 100)}%` }} /></span>
                     </td>
-                    <td className="p-3 text-right tabular-nums text-muted-foreground">{money(c.aov)}</td>
-                    <td className="p-3 text-right tabular-nums">{c.balance > 0 ? <span className="font-semibold text-emerald-500">{money(c.balance)}</span> : <span className="text-muted-foreground">—</span>}</td>
+                    )}
+                    {showMoney && <td className="p-3 text-right tabular-nums text-muted-foreground">{money(c.aov)}</td>}
+                    {showMoney && <td className="p-3 text-right tabular-nums">{c.balance > 0 ? <span className="font-semibold text-emerald-500">{money(c.balance)}</span> : <span className="text-muted-foreground">—</span>}</td>}
                     <td className="p-3 text-center">{c.openTickets > 0 ? <span className="pill pill-warn">{c.openTickets}</span> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="p-3"><span className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${h.dot}`} /><span className={`text-xs font-medium ${h.text}`}>{h.label}</span></span></td>
                     <td className="p-3"><span className="text-muted-foreground">{ago(c.churnDays)}</span>{c.atRisk && <span className="ml-1 pill pill-warn">churn</span>}</td>
@@ -406,6 +411,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
 const MIX_COLOR = ['#2563eb', '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#fb923c', '#34d399'];
 
 function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: CustomerRow; notify: (m: string) => void; prev: CustomerRow | null; next: CustomerRow | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean }) {
+  const money = useMoney();
   const t = TIER[c.tier]; const h = HEALTH[c.health];
   const mixSum = c.mix.reduce((s, m) => s + m.value, 0) || 1;
   return (

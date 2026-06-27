@@ -16,6 +16,8 @@ export default async function CalendarPage() {
   const tasks = dated.map((t) => ({
     id: t.id, code: t.code, service: t.service, deadline: t.deadline!,
     status: t.status, priority: t.priority, customer: t.customer,
+    start: t.created, // timeline/Gantt bar start
+    pkg: t.pkg, brief: t.brief,
   }));
 
   return (

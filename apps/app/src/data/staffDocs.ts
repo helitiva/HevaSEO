@@ -5,8 +5,10 @@
 // leak a doc, because they never receive one outside the viewer's permitted set.
 import { SKILL_META } from './adminMock';
 
-// A doc's audience. Concrete skills mirror the SKILL_META taxonomy; `general` = every staffer.
-export type DocAudience = keyof typeof SKILL_META | 'general';
+// A doc's audience. Concrete skills mirror the SKILL_META taxonomy; `general` = every
+// staffer AND every manager; `manager` = managers only (ops playbooks staff don't see).
+// Admin decides per-doc whether managers and staff overlap by choosing the audience.
+export type DocAudience = keyof typeof SKILL_META | 'general' | 'manager';
 export type DocFormat = 'guide' | 'sop' | 'checklist' | 'template' | 'policy' | 'video';
 
 export interface DocResource { kind: 'link' | 'file' | 'video'; url: string; label: string }
@@ -47,6 +49,7 @@ export const FORMAT_META: Record<DocFormat, { label: string; icon: string }> = {
 // Visual meta for a doc's audience (general gets its own neutral chip).
 export function audienceMeta(audience: DocAudience): { label: string; icon: string; color: string } {
   if (audience === 'general') return { label: 'All staff', icon: 'ph-users-three', color: '#64748b' };
+  if (audience === 'manager') return { label: 'Managers', icon: 'ph-user-circle-gear', color: '#0ea5e9' };
   return SKILL_META[audience] ?? { label: audience, icon: 'ph-circle', color: '#64748b' };
 }
 
@@ -275,6 +278,53 @@ export const DOCS: StaffDoc[] = [
     ],
     resources: [],
   },
+
+  // —— Managers only ——
+  {
+    id: 'd-pod-playbook', title: 'Running your pod', audience: 'manager', format: 'guide',
+    summary: 'How to balance load, route work, and keep your team’s quality and on-time rates healthy.',
+    tags: ['management', 'workload', 'process'], author: 'Ops', updatedAt: '2026-06-25', readMins: 6, pinned: true,
+    body: [
+      { type: 'h', text: 'Your daily loop' },
+      { type: 'ol', items: [
+        'Clear the assignment queue — route new work to the best-fit, least-loaded teammate.',
+        'Triage anything overdue or due today before assigning more.',
+        'Work the review queue so deliverables don’t age past SLA.',
+        'Scan tickets for breaches and reassign if an owner is overloaded.',
+      ] },
+      { type: 'callout', tone: 'tip', text: 'Utilization above ~90% on any teammate is a re-balance signal — pull from them before they slip.' },
+      { type: 'h', text: 'What you don’t handle' },
+      { type: 'p', text: 'Pay, payouts, customer billing and refunds are admin-only — escalate those rather than acting on them.' },
+    ],
+    resources: [],
+  },
+  {
+    id: 'd-review-standard', title: 'QA review standard', audience: 'manager', format: 'sop',
+    summary: 'The bar every deliverable must clear before it ships, and how to write a useful change request.',
+    tags: ['management', 'qa', 'review'], author: 'Ops', updatedAt: '2026-06-23', readMins: 5, pinned: true,
+    body: [
+      { type: 'ul', items: [
+        'Check completeness against the order’s included scope first.',
+        'Then quality: on-page, accuracy, brand voice, no stuffing.',
+        'Approve only when you’d be happy sending it to the client as-is.',
+      ] },
+      { type: 'callout', tone: 'warn', text: 'A change request without a specific, actionable note just causes another round. Say exactly what to fix and where.' },
+    ],
+    resources: [],
+  },
+  {
+    id: 'd-escalation', title: 'Escalation & coverage', audience: 'manager', format: 'policy',
+    summary: 'When to escalate to admin, and how to cover a teammate’s queue during leave.',
+    tags: ['management', 'escalation', 'leave'], author: 'Ops', updatedAt: '2026-06-15', readMins: 3,
+    body: [
+      { type: 'ul', items: [
+        'Escalate billing disputes, refunds and credit issues to admin.',
+        'For approved leave, redistribute the open queue before the first day off.',
+        'Flag repeated quality misses early — don’t let them compound.',
+      ] },
+    ],
+    resources: [],
+  },
 ];
 
 // ── Access gate ─────────────────────────────────────────────────────────────
@@ -296,4 +346,23 @@ export function docsForStaff(skills: string[]): StaffDoc[] {
 export function docForStaff(id: string, skills: string[]): StaffDoc | undefined {
   const doc = DOCS.find((d) => d.id === id);
   return doc && canRead(doc, skills) ? doc : undefined;
+}
+
+// ── Manager access gate ──────────────────────────────────────────────────────
+// A manager reads `manager` docs (ops playbooks) plus `general` docs shared with
+// everyone. They never receive skill-specialty docs. Same data-layer gate shape
+// as staff, so a manager page can't render a doc outside this set by mistake.
+export function canReadManager(doc: StaffDoc): boolean {
+  return doc.audience === 'manager' || doc.audience === 'general';
+}
+
+export function docsForManager(): StaffDoc[] {
+  return DOCS
+    .filter(canReadManager)
+    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function docForManager(id: string): StaffDoc | undefined {
+  const doc = DOCS.find((d) => d.id === id);
+  return doc && canReadManager(doc) ? doc : undefined;
 }

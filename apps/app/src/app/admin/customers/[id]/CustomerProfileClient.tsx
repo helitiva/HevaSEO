@@ -3,7 +3,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge } from '@/components/shared/StatBadge';
-import { money, statusLabel, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
+import { statusLabel, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
+import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
 import { impersonateCustomer } from '@/lib/impersonation';
 
 interface OrderRow { id: string; code: string; service: string; pkg: string; status: OrderStatus; value: number; created: string }
@@ -30,6 +31,10 @@ interface Props {
 const MIX_COLOR = ['#2563eb', '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#fb923c', '#34d399'];
 
 export function CustomerProfileClient(p: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const imp = useImpersonatePolicy();
+  const areaBase = useAreaBase();
   const c = p.cust;
   const [balance, setBalance] = useState(c.balance);
   const [ledger, setLedger] = useState(p.ledger);
@@ -58,7 +63,7 @@ export function CustomerProfileClient(p: Props) {
       <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/admin/customers" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back"><i className="ph-bold ph-arrow-left" /></Link>
+            <Link href={`${areaBase}/customers`} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back"><i className="ph-bold ph-arrow-left" /></Link>
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-base font-bold text-primary">{c.name.split(' ').map((x) => x[0]).join('')}</span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -73,8 +78,8 @@ export function CustomerProfileClient(p: Props) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a href={`mailto:${c.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" />Email</a>
-            <button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent">Adjust credit</button>
-            <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>
+            {showMoney && <button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent">Adjust credit</button>}
+            {imp.canCustomer && <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>}
             <Menu items={[{ icon: 'ph-tag', label: 'Add tag', fn: () => notify('Tag added') }, { icon: 'ph-git-merge', label: 'Merge duplicate', fn: () => notify('Merge — pick a duplicate') }, { icon: 'ph-prohibit', label: 'Suspend', fn: () => notify('Customer suspended'), danger: true }]} />
           </div>
         </div>
@@ -82,10 +87,10 @@ export function CustomerProfileClient(p: Props) {
 
       {/* KPI strip — relationship & health */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi icon="ph-coins" label="Lifetime value" value={money(c.spend)} tone="good" />
-        <Kpi icon="ph-wallet" label="Credit" value={money(balance)} />
+        {showMoney && <Kpi icon="ph-coins" label="Lifetime value" value={money(c.spend)} tone="good" />}
+        {showMoney && <Kpi icon="ph-wallet" label="Credit" value={money(balance)} />}
         <Kpi icon="ph-package" label="Total orders" value={String(c.orders)} />
-        <Kpi icon="ph-receipt" label="Avg order" value={money(p.aov)} />
+        {showMoney && <Kpi icon="ph-receipt" label="Avg order" value={money(p.aov)} />}
         <Kpi icon="ph-spinner-gap" label="Active now" value={String(p.active)} />
         <Kpi icon="ph-pulse" label="Last order" value={`${p.churnDays}d ago`} tone={atRisk ? 'warn' : undefined} />
       </div>
@@ -116,12 +121,12 @@ export function CustomerProfileClient(p: Props) {
           }>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[13px]">
-                <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground"><th className="p-2">Code</th><th className="p-2">Service</th><th className="p-2">Status</th><th className="p-2 text-right">Value</th><th className="p-2">Date</th></tr></thead>
+                <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground"><th className="p-2">Code</th><th className="p-2">Service</th><th className="p-2">Status</th>{showMoney && <th className="p-2 text-right">Value</th>}<th className="p-2">Date</th></tr></thead>
                 <tbody>
                   {filteredOrders.map((o) => (
-                    <tr key={o.id} className="border-b border-border/50 hover:bg-muted/40"><td className="p-2"><Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{o.code}</Link></td><td className="p-2">{o.service} <span className="text-muted-foreground">· {o.pkg}</span></td><td className="p-2"><StatusBadge status={o.status} /></td><td className="p-2 text-right font-semibold">{money(o.value)}</td><td className="p-2 text-muted-foreground">{o.created.slice(5)}</td></tr>
+                    <tr key={o.id} className="border-b border-border/50 hover:bg-muted/40"><td className="p-2"><Link href={`${areaBase}/orders/${o.id}`} className="font-medium hover:underline">{o.code}</Link></td><td className="p-2">{o.service} <span className="text-muted-foreground">· {o.pkg}</span></td><td className="p-2"><StatusBadge status={o.status} /></td>{showMoney && <td className="p-2 text-right font-semibold">{money(o.value)}</td>}<td className="p-2 text-muted-foreground">{o.created.slice(5)}</td></tr>
                   ))}
-                  {filteredOrders.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No orders.</td></tr>}
+                  {filteredOrders.length === 0 && <tr><td colSpan={showMoney ? 5 : 4} className="p-4 text-center text-muted-foreground">No orders.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -137,7 +142,7 @@ export function CustomerProfileClient(p: Props) {
             <div className="space-y-2.5">
               {mixRows.map((m, i) => { const pct = Math.round(((mixBy === 'value' ? m.value : m.count) / mixSum) * 100); return (
                 <div key={m.service}>
-                  <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 font-medium"><span className="legend-dot" style={{ background: MIX_COLOR[i % MIX_COLOR.length] }} />{m.service}</span><span className="text-muted-foreground">{m.count} orders · {money(m.value)} · <b className="text-foreground">{pct}%</b></span></div>
+                  <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 font-medium"><span className="legend-dot" style={{ background: MIX_COLOR[i % MIX_COLOR.length] }} />{m.service}</span><span className="text-muted-foreground">{m.count} orders{showMoney ? ` · ${money(m.value)}` : ''} · <b className="text-foreground">{pct}%</b></span></div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: MIX_COLOR[i % MIX_COLOR.length] }} /></div>
                 </div>
               ); })}
@@ -173,6 +178,8 @@ export function CustomerProfileClient(p: Props) {
             {c.id && <Link href="#" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Edit profile</Link>}
           </Card>
 
+          {/* Credit & ledger — customer money, hidden from money-blind viewers (managers) */}
+          {showMoney && (
           <Card icon="ph-wallet" title="Credit & ledger" right={<button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Adjust</button>}>
             <p className="display text-2xl font-bold">{money(balance)}<span className="ml-1 text-xs font-medium text-muted-foreground">balance</span></p>
             <div className="mt-3 space-y-1.5">
@@ -181,6 +188,7 @@ export function CustomerProfileClient(p: Props) {
               ))}
             </div>
           </Card>
+          )}
 
           <Card icon="ph-note-pencil" title="Internal notes">
             <div className="space-y-1.5">
@@ -189,7 +197,7 @@ export function CustomerProfileClient(p: Props) {
             <div className="mt-2 flex items-center gap-2"><input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addNote()} placeholder="Add a note…" className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary" /><button onClick={addNote} className="rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground">Add</button></div>
           </Card>
 
-          <Card icon="ph-lifebuoy" title="Tickets" right={<Link href="/admin/tickets" className="text-xs font-semibold text-primary hover:underline">Inbox</Link>}>
+          <Card icon="ph-lifebuoy" title="Tickets" right={<Link href={`${areaBase}/tickets`} className="text-xs font-semibold text-primary hover:underline">Inbox</Link>}>
             {p.tickets.length ? <ul className="space-y-2">{p.tickets.map((tk) => <li key={tk.id} className="text-sm"><p className="font-medium">{tk.subject}</p><p className="text-[11px] text-muted-foreground">{tk.status} · {tk.priority} · {tk.age}</p></li>)}</ul> : <p className="text-sm text-muted-foreground">No tickets.</p>}
           </Card>
         </div>

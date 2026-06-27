@@ -12,9 +12,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { STAFF, SKILL_META, money } from '@/data/adminMock';
+import { STAFF, SKILL_META } from '@/data/adminMock';
 import { rosterSignals, resolveStaffId } from '@/data/adminStaffInsight';
 import { impersonate } from '@/lib/impersonation';
+import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
 
 const CARD_W = 288; // matches w-72
 const initialsOf = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -42,6 +43,10 @@ interface Props {
 }
 
 export function StaffHoverCard({ staff, children, className = '' }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const imp = useImpersonatePolicy();
+  const areaBase = useAreaBase();
   const id = useMemo(() => resolveStaffId(staff), [staff]);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ left: number; top: number; flip: boolean }>({ left: 0, top: 0, flip: false });
@@ -71,7 +76,7 @@ export function StaffHoverCard({ staff, children, className = '' }: Props) {
   // Unknown / unassigned staff → render the trigger untouched, no card.
   if (!s || !sig) return <span className={className}>{children}</span>;
 
-  const profileHref = `/admin/staff/${s.id}`;
+  const profileHref = `${areaBase}/staff/${s.id}`;
 
   const card = open && mounted ? createPortal(
     // Outer = positioned hover region incl. an 8px transparent bridge (pt-2 / pb-2). Inner = the card.
@@ -120,11 +125,33 @@ export function StaffHoverCard({ staff, children, className = '' }: Props) {
           <MiniBar label="On-time" pct={s.onTime} warn={s.onTime < 85} />
         </div>
 
-        {/* pay + conduct row */}
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-2.5 text-center">
-          <div><p className="text-xs font-bold">{money(sig.monthlyPay)}</p><p className="text-[9px] text-muted-foreground">pay / mo</p></div>
-          <div><p className="text-xs font-bold">{money(sig.walletBalance)}</p><p className="text-[9px] text-muted-foreground">wallet</p></div>
+        {/* pay + conduct row — pay/wallet are money, hidden from money-blind viewers (managers) */}
+        <div className={`mt-3 grid gap-2 border-t border-border/60 pt-2.5 text-center ${showMoney ? 'grid-cols-3' : 'grid-cols-1'}`}>
+          {showMoney && <div><p className="text-xs font-bold">{money(sig.monthlyPay)}</p><p className="text-[9px] text-muted-foreground">pay / mo</p></div>}
+          {showMoney && <div><p className="text-xs font-bold">{money(sig.walletBalance)}</p><p className="text-[9px] text-muted-foreground">wallet</p></div>}
           <div><p className={`text-xs font-bold ${sig.pendingFines > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{sig.pendingFines || '0'}</p><p className="text-[9px] text-muted-foreground">fines pending</p></div>
+        </div>
+
+        {/* workload — next 3 days */}
+        <div className="mt-3">
+          <p className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span>Next 3 days</span>
+            <span className="font-normal normal-case">{sig.activeLoad} in flight{sig.overdue > 0 && <span className="text-rose-600"> · {sig.overdue} overdue</span>}</span>
+          </p>
+          {sig.upcoming.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground">{sig.overdue > 0 ? 'Nothing new due — clear overdue first.' : 'Nothing due in the next 3 days.'}</p>
+          ) : (
+            <div className="space-y-1">
+              {sig.upcoming.map((t) => (
+                <div key={t.code} className="flex items-center gap-1.5 text-[11px]">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.priority === 'high' ? 'bg-rose-500' : t.priority === 'med' ? 'bg-amber-500' : 'bg-muted-foreground/50'}`} />
+                  <span className="font-medium">{t.code}</span>
+                  <span className="truncate text-muted-foreground">{t.service}</span>
+                  <span className={`ml-auto shrink-0 font-semibold ${t.days === 0 ? 'text-amber-600' : t.days <= 1 ? 'text-amber-600' : 'text-muted-foreground'}`}>{t.days === 0 ? 'today' : `${t.days}d`}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* actions */}
@@ -132,9 +159,11 @@ export function StaffHoverCard({ staff, children, className = '' }: Props) {
           <a href={profileHref} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-center text-xs font-semibold text-primary-foreground transition hover:bg-primary/90">
             <i className="ph-bold ph-arrow-square-out" aria-hidden />Open profile
           </a>
-          <button onClick={() => impersonate(s.id)} title={`Open the staff portal as ${s.name}`} className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">
-            <i className="ph-bold ph-user-switch" aria-hidden />Impersonate
-          </button>
+          {imp.canStaff && (
+            <button onClick={() => impersonate(s.id, imp.viewOnly ? 'view' : 'act')} title={imp.viewOnly ? `View ${s.name}’s portal (read-only)` : `Open the staff portal as ${s.name}`} className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">
+              <i className="ph-bold ph-user-switch" aria-hidden />{imp.viewOnly ? 'View as' : 'Impersonate'}
+            </button>
+          )}
         </div>
       </div>
     </div>,

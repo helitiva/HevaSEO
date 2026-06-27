@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
-import { money, type OrderStatus, type Priority, type Tier, type AdminDeliverable } from '@/data/adminMock';
+import { SnippetPicker } from '@/components/staff/SnippetPicker';
+import { type OrderStatus, type Priority, type Tier, type AdminDeliverable } from '@/data/adminMock';
+import { useMoney, useShowMoney } from '@/lib/viewer';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
 interface CheckItem { group: string; text: string }
@@ -24,13 +26,41 @@ interface Props { queue: QueueItem[]; sentBack: SentBack[]; staffQuality: StaffQ
 
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
+// Saved replies for the reviewer notes — kept separate per audience so an internal QA
+// note never gets dropped into the customer-facing field by accident. Seeds for the
+// SnippetPicker (same "tap to insert / save current text" UX as the staff resubmit composer).
+const REVIEW_STAFF_SNIPPETS: string[] = [
+  'Looks great — clean first pass. Nice work on this one.',
+  'Add 2–3 internal links to relevant money/cluster pages before resubmitting.',
+  'Please add a meta title (≤ 60 chars) and meta description (≤ 155 chars).',
+  'Good draft — tighten the intro and cut the repetition in the middle section.',
+  'Heads up: this is close to its deadline — please prioritise the resubmit.',
+];
+const REVIEW_CUSTOMER_SNIPPETS: string[] = [
+  "Your deliverable is ready and attached — let us know if you'd like any tweaks.",
+  'Quick update: your order is on track and will be delivered on schedule.',
+  "We're giving this a final quality check and will deliver it shortly.",
+  'Could you review and approve so we can proceed to the next step?',
+  'We need a little more time to get the quality right — thanks for your patience.',
+];
+// Append a saved reply onto whatever is already in the field (on its own line).
+const insertSnippet = (cur: string, s: string) => (cur.trim() ? `${cur.trim()}\n${s}` : s);
+
 export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const [decided, setDecided] = useState<Record<string, 'approved' | 'changes_requested'>>({});
   const [selectedId, setSelectedId] = useState<string | null>(queue[0]?.id ?? null);
   const [checks, setChecks] = useState<Record<string, boolean[]>>({});
   const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
   const [crModal, setCrModal] = useState<QueueItem | null>(null);
   const [crNote, setCrNote] = useState('');
+  // Reviewer notes the QA can leave on the selected task — one to the staffer, one to the
+  // customer. Cleared when the selection changes so a note never carries to the wrong order.
+  const [noteStaff, setNoteStaff] = useState('');
+  const [noteCustomer, setNoteCustomer] = useState('');
+  const [staffSnips, setStaffSnips] = useState(REVIEW_STAFF_SNIPPETS);
+  const [customerSnips, setCustomerSnips] = useState(REVIEW_CUSTOMER_SNIPPETS);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [fService, setFService] = useState(''); const [fStaff, setFStaff] = useState('');
   const [reSubOnly, setReSubOnly] = useState(false); const [overdueOnly, setOverdueOnly] = useState(false);
@@ -58,7 +88,19 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
   const nextAfter = (id: string) => visible.filter((q) => q.id !== id)[0]?.id ?? null;
   const approve = (q: QueueItem) => { if (!allChecked(q)) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'approved' })); record(`Approved ${q.code} → ${q.staff}`, 'ph-check-circle'); };
   const submitChanges = () => { const q = crModal!; if (!crNote.trim()) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'changes_requested' })); record(`Requested changes on ${q.code} → ${q.staff}`, 'ph-arrow-u-up-left'); setCrModal(null); setCrNote(''); };
+  // Leave a note for the staffer and/or the customer on the selected task (Phase-0: records it).
+  const sendNotes = (q: QueueItem) => {
+    const to: string[] = [];
+    if (noteStaff.trim()) to.push(`${q.staff ?? 'staff'}`);
+    if (noteCustomer.trim()) to.push(`${q.customer}`);
+    if (!to.length) return;
+    record(`Noted ${q.code} → ${to.join(' & ')}`, 'ph-chat-circle-text');
+    setNoteStaff(''); setNoteCustomer('');
+  };
   const move = (delta: number) => { if (!visible.length) return; const idx = Math.max(0, visible.findIndex((q) => q.id === selected?.id)); setSelectedId(visible[Math.min(visible.length - 1, Math.max(0, idx + delta))].id); };
+
+  // Reset the note drafts whenever a different task is selected.
+  useEffect(() => { setNoteStaff(''); setNoteCustomer(''); }, [selected?.id]);
 
   // keyboard: j/k move · a approve · r request-changes · 1-9 toggle criterion · / search
   useEffect(() => {
@@ -166,13 +208,13 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                     </div>
                     <Link href={`/admin/customers/${selected.cust.id}`} className="shrink-0 text-xs font-semibold text-primary hover:underline">Profile →</Link>
                   </div>
-                  <div className="mt-2.5 grid grid-cols-3 gap-2"><Mini label="Lifetime value" value={money(selected.cust.spend)} /><Mini label="Total orders" value={String(selected.cust.orders)} /><Mini label="Credit" value={money(selected.cust.balance)} /></div>
+                  <div className={`mt-2.5 grid gap-2 ${showMoney ? 'grid-cols-3' : 'grid-cols-1'}`}>{showMoney && <Mini label="Lifetime value" value={money(selected.cust.spend)} />}<Mini label="Total orders" value={String(selected.cust.orders)} />{showMoney && <Mini label="Credit" value={money(selected.cust.balance)} />}</div>
                 </div>
               )}
 
               <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 <KV label="Service" value={`${selected.service} · ${selected.pkg}`} />
-                <KV label="Order value" value={money(selected.value)} />
+                {showMoney && <KV label="Order value" value={money(selected.value)} />}
                 <KV label="Deadline" value={selected.deadline ?? '—'} />
                 <KV label="Submitted by" value={selected.staff ?? '—'} />
                 <KVNode label="Filed under"><span className="inline-flex items-center gap-1 text-sm font-medium"><i className="ph-bold ph-folders text-muted-foreground" />{selected.project}<i className="ph-bold ph-caret-right text-muted-foreground" />{selected.folder}</span></KVNode>
@@ -232,6 +274,42 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Reviewer notes — two clearly separate channels: an internal note to the staffer,
+                  and a customer-facing message. Distinct accent colours + audience badges so the
+                  two are never confused. Each has its own quick-fill presets. */}
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-chats-circle text-primary" />Leave a note</p>
+                <div className="grid items-start gap-3 sm:grid-cols-2">
+                  {/* —— To staff (internal) —— */}
+                  <div className="overflow-hidden rounded-xl border border-indigo-400/40 bg-indigo-500/5">
+                    <div className="flex items-center gap-1.5 border-b border-indigo-400/30 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-300">
+                      <i className="ph-bold ph-user-circle" />To {selected.staff ?? 'staff'}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-lock-simple" />Internal</span>
+                      <span className="ml-auto"><SnippetPicker snippets={staffSnips} current={noteStaff} onPick={(s) => setNoteStaff((p) => insertSnippet(p, s))} onAdd={(s) => setStaffSnips((l) => [s, ...l])} onRemove={(s) => setStaffSnips((l) => l.filter((x) => x !== s))} /></span>
+                    </div>
+                    <div className="p-2.5">
+                      <textarea value={noteStaff} onChange={(e) => setNoteStaff(e.target.value)} rows={3} placeholder="Feedback or praise for the staffer — they see this, the customer doesn't…" className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-indigo-400" />
+                    </div>
+                  </div>
+
+                  {/* —— To customer (visible) —— */}
+                  <div className="overflow-hidden rounded-xl border border-sky-400/40 bg-sky-500/5">
+                    <div className="flex items-center gap-1.5 border-b border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                      <i className="ph-bold ph-chat-circle-text" />To {selected.customer}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-eye" />Customer sees</span>
+                      <span className="ml-auto"><SnippetPicker snippets={customerSnips} current={noteCustomer} onPick={(s) => setNoteCustomer((p) => insertSnippet(p, s))} onAdd={(s) => setCustomerSnips((l) => [s, ...l])} onRemove={(s) => setCustomerSnips((l) => l.filter((x) => x !== s))} /></span>
+                    </div>
+                    <div className="p-2.5">
+                      <textarea value={noteCustomer} onChange={(e) => setNoteCustomer(e.target.value)} rows={3} placeholder="A customer-facing message — this is sent to the client…" className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-sky-400" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-end gap-2">
+                  {(noteStaff.trim() || noteCustomer.trim()) && <button onClick={() => { setNoteStaff(''); setNoteCustomer(''); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear both</button>}
+                  <button onClick={() => sendNotes(selected)} disabled={!noteStaff.trim() && !noteCustomer.trim()} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-paper-plane-tilt mr-1" />Send notes</button>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">

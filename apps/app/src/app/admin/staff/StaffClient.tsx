@@ -6,7 +6,8 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { impersonate } from '@/lib/impersonation';
-import { money, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { useMoney, useShowMoney, useImpersonatePolicy } from '@/lib/viewer';
 
 export interface ActiveOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus;
@@ -41,6 +42,8 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const allSkills = Object.keys(skillMeta);
   // editable staff attributes (active / capacity / skills / identity)
   const [staff, setStaff] = useState<StaffVM[]>(initialStaff);
@@ -191,7 +194,7 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
         <Kpi icon="ph-lightning" label="Throughput" value={String(team.throughput)} sub="last 30d" />
         <Kpi icon="ph-gauge" label="Utilization" value={`${team.util}%`} tone={team.util >= 90 ? 'warn' : team.util < 50 ? undefined : 'good'} sub={`${team.load}/${team.cap} slots`} />
         <Kpi icon="ph-tray" label="Free capacity" value={String(team.free)} tone={team.free === 0 ? 'warn' : 'good'} sub={team.overloaded ? `${team.overloaded} overloaded` : 'slots open'} />
-        <Kpi icon="ph-wallet" label="Monthly payroll" value={money(team.payroll)} sub="base + commission + bonus" />
+        {showMoney && <Kpi icon="ph-wallet" label="Monthly payroll" value={money(team.payroll)} sub="base + commission + bonus" />}
         <Kpi icon="ph-gavel" label="Fines pending" value={String(team.pendingFines)} tone={team.pendingFines > 0 ? 'warn' : 'good'} sub={team.pendingFines > 0 ? 'awaiting review' : 'none open'} />
       </div>
 
@@ -414,6 +417,8 @@ function StepBtn({ dir, onClick }: { dir: 'down' | 'up'; onClick: () => void }) 
 }
 
 function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle, onCapacity }: { s: StaffVM; medal?: number; skillMeta: SkillMeta; selected: boolean; onSelect: () => void; onManage: () => void; onToggle: () => void; onCapacity: (n: number) => void }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const pct = Math.round((s.load / s.capacity) * 100);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
@@ -451,16 +456,16 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor(s.load, s.capacity) }} /></div>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
+      <div className={`mt-3 grid gap-2 border-t border-border/60 pt-3 text-center ${showMoney ? 'grid-cols-3' : 'grid-cols-2'}`}>
         <Stat label="Quality" value={`${s.quality}%`} />
         <Stat label="On-time" value={`${s.onTime}%`} tone={s.onTime < 85 ? 'warn' : undefined} />
-        <Stat label="In flight" value={money(s.valueInFlight)} />
+        {showMoney && <Stat label="In flight" value={money(s.valueInFlight)} />}
       </div>
 
       {/* pay + conduct signals (from /staff/finance + /staff/performance) */}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1" title="Commission tier"><i className="ph-bold ph-seal-check text-primary" aria-hidden />{s.tier}</span>
-        <span className="inline-flex items-center gap-1" title="Pay this cycle (base + commission + bonus)"><i className="ph-bold ph-wallet" aria-hidden />{money(s.monthlyPay)}/mo</span>
+        {showMoney && <span className="inline-flex items-center gap-1" title="Pay this cycle (base + commission + bonus)"><i className="ph-bold ph-wallet" aria-hidden />{money(s.monthlyPay)}/mo</span>}
         {s.pendingFines > 0 && <span className="inline-flex items-center gap-1 font-semibold text-amber-600" title="Penalties awaiting review"><i className="ph-bold ph-gavel" aria-hidden />{s.pendingFines} fine{s.pendingFines > 1 ? 's' : ''}</span>}
         {s.rewardsTotal > 0 && <span className="ml-auto inline-flex items-center gap-1" title="Rewards unlocked"><i className="ph-bold ph-trophy text-amber-500" aria-hidden />{s.rewardsUnlocked}/{s.rewardsTotal}</span>}
       </div>
@@ -485,13 +490,15 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'wa
 }
 
 function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, onToggleSel, onManage, onToggle }: { rows: StaffVM[]; rankMap: Map<string, number>; skillMeta: SkillMeta; sel: Set<string>; allSelected: boolean; onToggleAll: () => void; onToggleSel: (id: string) => void; onManage: (id: string) => void; onToggle: (s: StaffVM) => void }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
           <th className="p-3"><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Select all staff" className="accent-primary" /></th>
           <th className="p-3">Staff</th><th className="p-3">Skills</th><th className="p-3 w-40">Workload</th>
-          <th className="p-3 text-right">Score</th><th className="p-3">Tier</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Pay/mo</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Open</th>
+          <th className="p-3 text-right">Score</th><th className="p-3">Tier</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th>{showMoney && <th className="p-3 text-right">Pay/mo</th>}<th className="p-3 text-right">Done</th><th className="p-3 text-right">Open</th>
         </tr></thead>
         <tbody>
           {rows.map((s) => { const medal = rankMap.get(s.id); const pct = Math.round((s.load / s.capacity) * 100);
@@ -516,7 +523,7 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
                 <td className="p-3"><span className="inline-flex items-center gap-1 text-xs"><i className="ph-bold ph-seal-check text-primary" aria-hidden />{s.tier}</span></td>
                 <td className="p-3 text-right">{s.quality}%</td>
                 <td className={`p-3 text-right ${s.onTime < 85 ? 'font-semibold text-amber-600' : ''}`}>{s.onTime}%</td>
-                <td className="p-3 text-right font-medium">{money(s.monthlyPay)}</td>
+                {showMoney && <td className="p-3 text-right font-medium">{money(s.monthlyPay)}</td>}
                 <td className="p-3 text-right text-muted-foreground">{s.throughput}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex items-center gap-1.5">
@@ -538,6 +545,9 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
   prev: StaffVM | null; next: StaffVM | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean;
   onToggleActive: () => void; onCapacity: (n: number) => void; onToggleSkill: (k: string) => void; onReassign: (orderId: string, toName: string, code: string) => void;
 }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const imp = useImpersonatePolicy();
   const pct = Math.round((s.load / s.capacity) * 100);
   const targets = teammates.filter((t) => t.id !== s.id && t.active);
   return (
@@ -573,9 +583,9 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
           {s.pendingFines > 0 ? <span className="pill pill-warn"><i className="ph-bold ph-gavel" aria-hidden />{s.pendingFines} fine{s.pendingFines > 1 ? 's' : ''} pending</span> : <span className="pill pill-good"><i className="ph-bold ph-check" aria-hidden />clean record</span>}
           {s.rewardsTotal > 0 && <span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}><i className="ph-fill ph-trophy" aria-hidden />{s.rewardsUnlocked}/{s.rewardsTotal} rewards</span>}
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <Mini label="Pay / mo" value={money(s.monthlyPay)} />
-          <Mini label="Wallet" value={money(s.walletBalance)} />
+        <div className={`mt-2 grid gap-2 ${showMoney ? 'grid-cols-3' : 'grid-cols-1'}`}>
+          {showMoney && <Mini label="Pay / mo" value={money(s.monthlyPay)} />}
+          {showMoney && <Mini label="Wallet" value={money(s.walletBalance)} />}
           <Mini label="Avg ★" value={s.avgRating != null ? `${s.avgRating}` : '—'} />
         </div>
       </Section>
@@ -639,7 +649,7 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
         )}
       </Section>
 
-      <button onClick={() => impersonate(s.id)} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={`Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch" aria-hidden />Impersonate {s.name.split(' ')[0]}</button>
+      {imp.canStaff && <button onClick={() => impersonate(s.id, imp.viewOnly ? 'view' : 'act')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={imp.viewOnly ? `View ${s.name}’s portal (read-only)` : `Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch" aria-hidden />{imp.viewOnly ? 'View as' : 'Impersonate'} {s.name.split(' ')[0]}</button>}
       <div className="flex items-stretch gap-2">
         <Link href={`/admin/staff/${s.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
         <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>

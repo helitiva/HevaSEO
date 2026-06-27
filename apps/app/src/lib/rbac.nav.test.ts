@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ADMIN_NAV } from '@/data/adminNav';
+import { MANAGER_NAV } from '@/data/managerNav';
 import { STAFF_NAV } from '@/data/staffNav';
 import { NAV } from '@/data/nav';
 import { ROLES, capabilityForPath, canAccessPath, type Role } from './rbac';
@@ -20,6 +21,7 @@ const PUBLIC_NAV_HREFS = new Set<string>([]);
 
 const ALL_NAV: { area: string; expectedRole: Role; sections: readonly { items: readonly { href: string; label: string }[] }[] }[] = [
   { area: 'admin', expectedRole: 'admin', sections: ADMIN_NAV },
+  { area: 'manager', expectedRole: 'manager', sections: MANAGER_NAV },
   { area: 'staff', expectedRole: 'staff', sections: STAFF_NAV },
   { area: 'portal', expectedRole: 'customer', sections: NAV },
 ];

@@ -19,13 +19,18 @@ describe('can / role matrix', () => {
     expect(ROLE_CAPABILITIES.admin.length).toBeGreaterThan(ROLE_CAPABILITIES.manager.length);
   });
 
-  it('manager is an ops admin — no money, no org-shaping powers', () => {
+  it('manager is a money-blind ops admin in its own area', () => {
+    expect(can('manager', 'manager.access')).toBe(true);
     expect(can('manager', 'orders.manage')).toBe(true);
     expect(can('manager', 'staff.manage')).toBe(true);
     // hidden from managers:
+    expect(can('manager', 'admin.access')).toBe(false); // cannot enter the admin area
+    expect(can('manager', 'pricing.view')).toBe(false); // never sees order/customer money
     expect(can('manager', 'finance.view')).toBe(false);
     expect(can('manager', 'analytics.view')).toBe(false);
     expect(can('manager', 'managers.manage')).toBe(false);
+    expect(can('manager', 'catalog.view')).toBe(false); // no catalog at all
+    expect(can('manager', 'catalog.manage')).toBe(false);
     expect(can('manager', 'org.settings')).toBe(false);
   });
 
@@ -62,15 +67,25 @@ describe('capabilityForPath', () => {
 });
 
 describe('canAccessPath', () => {
-  it('lets a manager into ops routes but blocks the money routes', () => {
-    expect(canAccessPath('manager', '/admin/orders')).toBe(true);
-    expect(canAccessPath('manager', '/admin')).toBe(true);
+  it('lets a manager into its own /manager area, not the /admin area or money', () => {
+    expect(canAccessPath('manager', '/manager')).toBe(true);
+    expect(canAccessPath('manager', '/manager/orders')).toBe(true);
+    expect(canAccessPath('manager', '/manager/staff')).toBe(true);
+    expect(canAccessPath('manager', '/manager/docs')).toBe(true); // knowledge base
+    expect(canAccessPath('manager', '/manager/notes')).toBe(true); // private notebook
+    expect(canAccessPath('manager', '/admin')).toBe(false); // separate area, no admin.access
     expect(canAccessPath('manager', '/admin/finance')).toBe(false);
     expect(canAccessPath('manager', '/admin/analytics')).toBe(false);
   });
 
+  it('admin can preview the manager area too', () => {
+    expect(canAccessPath('admin', '/manager')).toBe(true);
+    expect(canAccessPath('admin', '/manager/staff')).toBe(true);
+  });
+
   it('keeps roles out of each other’s areas', () => {
     expect(canAccessPath('staff', '/admin')).toBe(false);
+    expect(canAccessPath('staff', '/manager')).toBe(false);
     expect(canAccessPath('customer', '/staff')).toBe(false);
     expect(canAccessPath('admin', '/staff')).toBe(false); // admin area ≠ staff area
   });
@@ -85,7 +100,7 @@ describe('canAccessPath', () => {
 describe('homePathFor', () => {
   it('routes each role to its landing surface', () => {
     expect(homePathFor('admin')).toBe('/admin');
-    expect(homePathFor('manager')).toBe('/admin');
+    expect(homePathFor('manager')).toBe('/manager');
     expect(homePathFor('staff')).toBe('/staff');
     expect(homePathFor('customer')).toBe('/dashboard');
   });

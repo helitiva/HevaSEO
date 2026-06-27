@@ -7,7 +7,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { money, TIER, SERVICE_SKILL, SKILL_META } from '@/data/adminMock';
+import { TIER, SERVICE_SKILL, SKILL_META } from '@/data/adminMock';
+import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
 import { customerSignals, resolveCustomerId } from '@/data/adminCustomerInsight';
 import { impersonateCustomer } from '@/lib/impersonation';
 
@@ -24,6 +25,10 @@ interface Props {
 }
 
 export function CustomerHoverCard({ customer, children, className = '' }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const imp = useImpersonatePolicy();
+  const areaBase = useAreaBase();
   const id = useMemo(() => resolveCustomerId(customer), [customer]);
   const sig = useMemo(() => (id ? customerSignals(id) : null), [id]);
   const [open, setOpen] = useState(false);
@@ -48,7 +53,7 @@ export function CustomerHoverCard({ customer, children, className = '' }: Props)
 
   if (!id || !sig) return <span className={className}>{children}</span>;
   const tier = TIER[sig.tier];
-  const profileHref = `/admin/customers/${sig.id}`;
+  const profileHref = `${areaBase}/customers/${sig.id}`;
 
   const card = open && mounted ? createPortal(
     <div
@@ -72,8 +77,8 @@ export function CustomerHoverCard({ customer, children, className = '' }: Props)
 
         {/* compact stats strip */}
         <div className="mt-2.5 flex items-stretch divide-x divide-border/60 rounded-lg border border-border/60 text-center">
-          <div className="flex-1 py-1.5"><p className="text-xs font-bold">{money(sig.spend)}</p><p className="text-[9px] text-muted-foreground">lifetime</p></div>
-          <div className="flex-1 py-1.5"><p className={`text-xs font-bold ${sig.balance > 0 ? 'text-emerald-600' : ''}`}>{money(sig.balance)}</p><p className="text-[9px] text-muted-foreground">wallet</p></div>
+          {showMoney && <div className="flex-1 py-1.5"><p className="text-xs font-bold">{money(sig.spend)}</p><p className="text-[9px] text-muted-foreground">lifetime</p></div>}
+          {showMoney && <div className="flex-1 py-1.5"><p className={`text-xs font-bold ${sig.balance > 0 ? 'text-emerald-600' : ''}`}>{money(sig.balance)}</p><p className="text-[9px] text-muted-foreground">wallet</p></div>}
           <div className="flex-1 py-1.5"><p className="text-xs font-bold">{sig.orders}<span className="text-muted-foreground"> · {sig.activeOrders}</span></p><p className="text-[9px] text-muted-foreground">orders·live</p></div>
           <div className="flex-1 py-1.5"><p className={`text-xs font-bold ${sig.openTickets > 0 ? 'text-rose-600' : ''}`}>{sig.openTickets}</p><p className="text-[9px] text-muted-foreground">tickets</p></div>
         </div>
@@ -149,9 +154,11 @@ export function CustomerHoverCard({ customer, children, className = '' }: Props)
           <a href={profileHref} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-center text-xs font-semibold text-primary-foreground transition hover:bg-primary/90">
             <i className="ph-bold ph-arrow-square-out" aria-hidden />Open profile
           </a>
-          <button onClick={() => impersonateCustomer(sig.id)} title={`Open the customer portal as ${sig.company}`} className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">
-            <i className="ph-bold ph-user-switch" aria-hidden />Impersonate
-          </button>
+          {imp.canCustomer && (
+            <button onClick={() => impersonateCustomer(sig.id)} title={`Open the customer portal as ${sig.company}`} className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">
+              <i className="ph-bold ph-user-switch" aria-hidden />Impersonate
+            </button>
+          )}
         </div>
       </div>
     </div>,

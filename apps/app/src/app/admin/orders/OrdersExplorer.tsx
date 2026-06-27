@@ -8,6 +8,7 @@ import { buildOrderDetailProps } from '@/lib/orderDetail';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, money, TIER, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
+import { useShowMoney } from '@/lib/viewer';
 
 export interface ExplorerOrder extends AdminOrder {
   seq: number; custName: string; custTier: Tier; custLtv: number; custOrders: number;
@@ -43,6 +44,9 @@ const COLDEF: Record<ColId, ColDef> = {
   orders: { label: 'Orders', align: 'right', render: (o) => o.custOrders },
 };
 const DEFAULT_ORDER: ColId[] = ['seq', 'date', 'code', 'customer', 'service', 'status', 'priority', 'staff', 'value', 'ltv', 'orders'];
+// Money columns — dropped entirely for money-blind viewers (managers) rather than
+// masked, since these column renderers read `money` at module scope.
+const MONEY_COLS = new Set<ColId>(['value', 'ltv']);
 
 function TierBadge({ tier }: { tier: Tier }) {
   const t = TIER[tier];
@@ -55,6 +59,7 @@ function TierBadge({ tier }: { tier: Tier }) {
 }
 
 export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
+  const showMoney = useShowMoney();
   const [status, setStatus] = useState('');
   const [service, setService] = useState('');
   const [tier, setTier] = useState('');
@@ -128,7 +133,8 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [panel, nextOrder, prevOrder]);
 
-  const columns = colOrder.filter((id) => !hidden.has(id)).map((id) => ({ id, ...COLDEF[id], header: id === 'seq' ? '#' : COLDEF[id].label }));
+  const columns = colOrder.filter((id) => !hidden.has(id) && (showMoney || !MONEY_COLS.has(id))).map((id) => ({ id, ...COLDEF[id], header: id === 'seq' ? '#' : COLDEF[id].label }));
+  const sorts = showMoney ? SORTS : SORTS.filter((s) => !s.value.startsWith('value') && s.value !== 'ltv_desc');
 
   function reorder(toIdx: number) {
     const fromIdx = dragIdx.current;
@@ -161,7 +167,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         <select value={staffF} onChange={(e) => setStaffF(e.target.value)} className={sel}><option value="">All staff</option><option value="__un">Unassigned</option>{staffList.map((s) => <option key={s} value={s}>{s}</option>)}</select>
         <label className="flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-xs"><span className="text-muted-foreground">From</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent outline-none" /></label>
         <label className="flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1 text-xs"><span className="text-muted-foreground">To</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent outline-none" /></label>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} className={sel}>{SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className={sel}>{sorts.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
         {hasFilter && <button type="button" onClick={clear} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
 
         <div className="relative">
@@ -171,7 +177,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
               <div className="fixed inset-0 z-10" onClick={() => setShowCols(false)} />
               <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-border bg-card p-2 shadow-xl">
                 <p className="px-1.5 pb-1.5 text-[11px] font-semibold text-muted-foreground">Show &amp; drag to reorder</p>
-                {colOrder.map((id, i) => (
+                {colOrder.map((id, i) => (!showMoney && MONEY_COLS.has(id)) ? null : (
                   <div key={id} draggable onDragStart={() => { dragIdx.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={() => reorder(i)}
                     className="flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted active:cursor-grabbing">
                     <i className="ph-bold ph-dots-six-vertical text-muted-foreground" />

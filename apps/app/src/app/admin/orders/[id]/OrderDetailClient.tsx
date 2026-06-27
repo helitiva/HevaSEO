@@ -4,7 +4,8 @@ import { Fragment, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
-import { statusLabel, money, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
+import { statusLabel, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
+import { useMoney, useShowMoney, useAreaBase } from '@/lib/viewer';
 import { Checklist } from './Checklist';
 
 interface StaffLite { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skills: string[] }
@@ -50,6 +51,9 @@ const PRI_ACTIVE: Record<Priority, string> = {
 };
 
 export function OrderDetailClient(p: OrderDetailProps) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const areaBase = useAreaBase();
   const [status, setStatus] = useState<OrderStatus>(p.order.status);
   const [staff, setStaff] = useState<string | null>(p.order.staff);
   const [priority, setPriority] = useState<Priority>(p.order.priority);
@@ -114,7 +118,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
           {/* compact header card */}
           <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href="/admin/orders" className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
+            <Link href={`${areaBase}/orders`} className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
             <span className="display text-xl font-bold tracking-tight">{o.code}</span>
             <span className="text-xs font-semibold text-muted-foreground">#{o.seq}</span>
             <PriorityBadge priority={priority} /><StatusBadge status={status} />
@@ -126,12 +130,12 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <p className="text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-xs">
-                {p.prev ? <Link href={`/admin/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
-                {p.next ? <Link href={`/admin/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
+                {p.prev ? <Link href={`${areaBase}/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
+                {p.next ? <Link href={`${areaBase}/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
               </div>
               {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
               {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
-              <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)}
+              <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)} canRefund={showMoney}
                 onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
                 canCancel={!['completed', 'canceled'].includes(status)} />
             </div>
@@ -187,7 +191,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
           {p.bundle.length > 0 && (
             <Card icon="ph-link" title="Related orders (bundled upsells)">
               <p className="mb-2 text-xs text-muted-foreground">Placed together with this order at checkout.</p>
-              <div className="space-y-2">{p.bundle.map((b) => <Link key={b.id} href={`/admin/orders/${b.id}`} className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3 transition hover:border-primary/50"><div className="min-w-0"><p className="truncate text-sm font-medium">{b.code} · {b.service} · {b.pkg}</p><p className="text-[11px] text-muted-foreground">{b.customer}</p></div><div className="flex shrink-0 items-center gap-2"><StatusBadge status={b.status} /><span className="text-sm font-semibold">{money(b.value)}</span></div></Link>)}</div>
+              <div className="space-y-2">{p.bundle.map((b) => <Link key={b.id} href={`${areaBase}/orders/${b.id}`} className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3 transition hover:border-primary/50"><div className="min-w-0"><p className="truncate text-sm font-medium">{b.code} · {b.service} · {b.pkg}</p><p className="text-[11px] text-muted-foreground">{b.customer}</p></div><div className="flex shrink-0 items-center gap-2"><StatusBadge status={b.status} /><span className="text-sm font-semibold">{money(b.value)}</span></div></Link>)}</div>
             </Card>
           )}
 
@@ -252,10 +256,12 @@ export function OrderDetailClient(p: OrderDetailProps) {
           <Card icon="ph-user" title="Customer">
             <div className="flex items-center gap-2"><CustomerHoverCard customer={p.cust?.id ?? o.customer}><span className="font-semibold hover:underline">{p.cust?.name ?? o.customer}</span></CustomerHoverCard>{p.cust && <span className="inline-flex items-center gap-1" title={`${TIER[p.cust.tier].label} customer`}><i className={`ph-fill ${TIER[p.cust.tier].icon}`} style={{ color: TIER[p.cust.tier].color }} /><span className="text-[10px] font-semibold" style={{ color: TIER[p.cust.tier].color }}>{TIER[p.cust.tier].label}</span></span>}</div>
             <p className="text-xs text-muted-foreground">{o.customer}{p.cust ? ` · ${p.cust.email}` : ''}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm"><Stat label="Lifetime value" value={money(p.cust?.spend ?? o.value)} /><Stat label="Total orders" value={String(p.cust?.orders ?? 1)} /><Stat label="Credit" value={money(balance)} /><Stat label="Status" value={p.cust?.status ?? 'shadow'} /></div>
-            {p.cust && <Link href={`/admin/customers/${p.cust.id}`} className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>}
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">{showMoney && <Stat label="Lifetime value" value={money(p.cust?.spend ?? o.value)} />}<Stat label="Total orders" value={String(p.cust?.orders ?? 1)} />{showMoney && <Stat label="Credit" value={money(balance)} />}<Stat label="Status" value={p.cust?.status ?? 'shadow'} /></div>
+            {p.cust && <Link href={`${areaBase}/customers/${p.cust.id}`} className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>}
           </Card>
 
+          {/* Commercial / credit — money + financial actions, hidden from money-blind viewers (managers) */}
+          {showMoney && (
           <Card icon="ph-wallet" title="Commercial">
             <div className="space-y-1.5 text-sm">
               <Fact label="Order value" value={<span className="font-semibold">{money(o.value)}</span>} />
@@ -268,6 +274,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
               <button onClick={() => setRefundOpen(true)} className="flex-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent">Refund</button>
             </div>
           </Card>
+          )}
 
           <Card icon="ph-info" title="Order facts">
             <div className="space-y-1.5 text-sm"><Fact label="Order #" value={`#${o.seq}`} /><Fact label="Created" value={o.created} /><Fact label="Source" value={o.source} /><Fact label="Age" value={`${ageDays}d`} /></div>
@@ -333,11 +340,11 @@ function makeBanner(status: OrderStatus, staff: string | null, dToDue: number | 
   }
 }
 
-function MoreMenu({ onAssign, onRefund, onCancel, canCancel }: { onAssign: () => void; onRefund: () => void; onCancel: () => void; canCancel: boolean }) {
+function MoreMenu({ onAssign, onRefund, onCancel, canCancel, canRefund = true }: { onAssign: () => void; onRefund: () => void; onCancel: () => void; canCancel: boolean; canRefund?: boolean }) {
   const [open, setOpen] = useState(false);
   const items = [
     { icon: 'ph-user-gear', label: 'Assign / reassign', fn: onAssign, danger: false },
-    { icon: 'ph-arrow-u-down-left', label: 'Refund', fn: onRefund, danger: false },
+    ...(canRefund ? [{ icon: 'ph-arrow-u-down-left', label: 'Refund', fn: onRefund, danger: false }] : []),
     ...(canCancel ? [{ icon: 'ph-x-circle', label: 'Cancel order', fn: onCancel, danger: true }] : []),
   ];
   return (

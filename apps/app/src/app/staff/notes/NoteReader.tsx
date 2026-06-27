@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { usePortalBase } from '@/lib/portalBase';
 import { NoteModal } from './NoteModal';
 import { Attachment } from './NoteAttachment';
 import { NOTE_COLORS, type StaffNote } from '@/data/staffNotes';
@@ -17,9 +18,10 @@ interface Props {
 
 export function NoteReader({ note, onClose, onEdit, onTogglePin, onDelete }: Props) {
   const router = useRouter();
+  const base = usePortalBase();
   if (!note) return null;
   const c = NOTE_COLORS[note.color];
-  const openFullPage = () => { onClose(); router.push(`/staff/notes/${note.id}`); };
+  const openFullPage = () => { onClose(); router.push(`${base}/notes/${note.id}`); };
 
   return (
     <NoteModal open={!!note} onClose={onClose} ariaLabel={note.title || 'Note'} widthClass="max-w-3xl">

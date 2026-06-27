@@ -9,7 +9,10 @@ import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { WorkActivityChart } from '@/components/staff/WorkActivityChart';
-import { money, statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { DeadlineCalendar, type CalTask } from '@/components/staff/DeadlineCalendar';
+import { monthOf } from '@/lib/calendar';
+import { statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
 import { ACTIVITY_TYPE_META, PENALTY_RULES } from '@/data/staffMock';
 import type { StaffInsight } from '@/data/adminStaffInsight';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STATUS_META, WALLET_KIND_META } from '@/lib/staffFinance';
@@ -20,6 +23,7 @@ import { impersonate } from '@/lib/impersonation';
 export interface ProfileOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus;
   priority: Priority; value: number; customer: string; tier: Tier; daysToDue: number;
+  deadline: string | null;
 }
 export interface Workload {
   capacity: number; load: number; valueInFlight: number; valueDelivered: number;
@@ -48,6 +52,13 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 ];
 
 export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tierMeta, serviceSkill }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
+  const imp = useImpersonatePolicy();
+  const areaBase = useAreaBase();
+  // Money-blind viewers (managers) never see a staffer's pay/wallet — drop the
+  // whole finance tab, not just the figures.
+  const tabs = showMoney ? TABS : TABS.filter((t) => t.key !== 'pay');
   const [tab, setTab] = useState<Tab>('overview');
   const [active, setActive] = useState(insight.active);
   const [capacity, setCapacity] = useState(workload.capacity);
@@ -72,7 +83,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
       <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/admin/staff" className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back to staff"><i className="ph-bold ph-arrow-left" aria-hidden /></Link>
+            <Link href={`${areaBase}/staff`} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back to staff"><i className="ph-bold ph-arrow-left" aria-hidden /></Link>
             <Avatar name={s.name} size={52} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -92,8 +103,8 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
           <div className="flex flex-wrap items-center gap-2">
             <a href={`mailto:${s.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" aria-hidden />Email</a>
             <button onClick={toggleActive} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className={`ph-bold ${active ? 'ph-pause' : 'ph-play'} mr-1`} aria-hidden />{active ? 'Pause' : 'Activate'}</button>
-            <button onClick={() => impersonate(s.id)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={`Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>
-            <Link href="/admin/assignment" className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-arrows-left-right mr-1" aria-hidden />Reassign work</Link>
+            {imp.canStaff && <button onClick={() => impersonate(s.id, imp.viewOnly ? 'view' : 'act')} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={imp.viewOnly ? `View ${s.name}’s portal (read-only)` : `Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch mr-1" aria-hidden />{imp.viewOnly ? 'View as' : 'Impersonate'}</button>}
+            <Link href={`${areaBase}/assignment`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-arrows-left-right mr-1" aria-hidden />Reassign work</Link>
           </div>
         </div>
       </div>
@@ -104,13 +115,13 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
         <Kpi icon="ph-seal-check" label="Quality" value={`${s.quality}%`} sub={`avg ${teamAvg.quality}%`} tone={s.quality >= teamAvg.quality ? 'good' : undefined} />
         <Kpi icon="ph-clock" label="On-time" value={`${s.onTime}%`} tone={s.onTime < 85 ? 'warn' : undefined} sub={`avg ${teamAvg.onTime}%`} />
         <Kpi icon="ph-gauge" label="Utilization" value={`${util}%`} tone={over ? 'warn' : util < 50 ? undefined : 'good'} sub={`${workload.load}/${capacity} slots`} />
-        <Kpi icon="ph-wallet" label="Pay / month" value={money(s.payroll.due)} sub={`base ${money(s.payroll.base)} + comm`} />
-        <Kpi icon="ph-hand-coins" label="Wallet" value={money(s.wallet.balance)} sub={`${money(s.wallet.available)} withdrawable`} tone={s.penalties.pendingCount > 0 ? 'warn' : undefined} />
+        {showMoney && <Kpi icon="ph-wallet" label="Pay / month" value={money(s.payroll.due)} sub={`base ${money(s.payroll.base)} + comm`} />}
+        {showMoney && <Kpi icon="ph-hand-coins" label="Wallet" value={money(s.wallet.balance)} sub={`${money(s.wallet.available)} withdrawable`} tone={s.penalties.pendingCount > 0 ? 'warn' : undefined} />}
       </div>
 
       {/* tab nav */}
       <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${tab === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}>
             <i className={`ph-bold ${t.icon}`} aria-hidden />{t.label}
             {t.key === 'conduct' && s.penalties.pendingCount > 0 && <span className="ml-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">{s.penalties.pendingCount}</span>}
@@ -120,7 +131,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
 
       {tab === 'overview' && <OverviewTab s={s} workload={workload} capacity={capacity} util={util} over={over} teamAvg={teamAvg} tierMeta={tierMeta} setCap={setCap} skills={skills} skillMeta={skillMeta} allSkills={allSkills} toggleSkill={toggleSkill} eligible={eligible} />}
       {tab === 'performance' && <PerformanceTab s={s} teamAvg={teamAvg} />}
-      {tab === 'pay' && <PayTab s={s} />}
+      {tab === 'pay' && showMoney && <PayTab s={s} />}
       {tab === 'conduct' && <ConductTab s={s} />}
       {tab === 'history' && <HistoryTab s={s} />}
 
@@ -134,35 +145,14 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
   s: StaffInsight; workload: Workload; capacity: number; util: number; over: boolean; teamAvg: TeamAvg;
   tierMeta: TierMeta; setCap: (n: number) => void; skills: string[]; skillMeta: SkillMeta; allSkills: string[]; toggleSkill: (k: string) => void; eligible: string[];
 }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
         <ScoreCard s={s} teamAvg={teamAvg} />
 
-        <Card icon="ph-stack" title="Active workload" right={<span className="text-xs text-muted-foreground">{workload.load} of {capacity} slots · {money(workload.valueInFlight)} in flight</span>}>
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">{util}% utilization</span>
-              <span className="flex items-center gap-1.5"><Step dir="down" onClick={() => setCap(capacity - 1)} /><span className={`font-semibold ${over ? 'text-destructive' : ''}`}>{workload.load}/{capacity}</span><Step dir="up" onClick={() => setCap(capacity + 1)} /></span>
-            </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(util, 100)}%`, background: barColor(workload.load, capacity) }} /></div>
-            {(workload.overdue > 0 || workload.dueSoon > 0) && <div className="mt-2 flex gap-1.5">{workload.overdue > 0 && <span className="pill" style={{ background: '#ef44441f', color: '#dc2626' }}><i className="ph-bold ph-warning-circle" aria-hidden />{workload.overdue} overdue</span>}{workload.dueSoon > 0 && <span className="pill pill-warn"><i className="ph-bold ph-timer" aria-hidden />{workload.dueSoon} due soon</span>}</div>}
-          </div>
-          {workload.active.length === 0 ? <Empty>No orders in flight.</Empty> : (
-            <div className="space-y-1.5">{workload.active.map((o) => <OrderRow key={o.id} o={o} tierMeta={tierMeta} />)}</div>
-          )}
-          {workload.shipped.length > 0 && (
-            <>
-              <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recently shipped · {money(workload.valueDelivered)}</p>
-              <div className="space-y-1">{workload.shipped.map((o) => (
-                <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm hover:bg-muted/50">
-                  <i className="ph-fill ph-check-circle text-emerald-500" aria-hidden /><span className="font-medium">{o.code}</span>
-                  <span className="truncate text-xs text-muted-foreground">{o.service} · {o.customer}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{statusLabel[o.status]}</span><span className="text-xs font-medium">{money(o.value)}</span>
-                </Link>
-              ))}</div>
-            </>
-          )}
-        </Card>
+        <WorkloadCard workload={workload} capacity={capacity} util={util} over={over} setCap={setCap} tierMeta={tierMeta} />
       </div>
 
       <div className="space-y-4">
@@ -176,6 +166,7 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
           <Row label="Employee ID" value={<span className="font-mono">{s.id}</span>} />
         </Card>
 
+        {showMoney ? (
         <Card icon="ph-wallet" title="Money snapshot">
           <Row label="Pay this cycle" value={<b>{money(s.payroll.due)}</b>} />
           <Row label="Commission wallet" value={money(s.wallet.balance)} />
@@ -184,6 +175,13 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
           <Row label="Pending fines" value={s.penalties.pendingCount > 0 ? <span className="font-semibold text-amber-600">{s.penalties.pendingCount}</span> : <span className="text-emerald-600">none</span>} />
           <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Full breakdown in the Pay &amp; wallet tab.</p>
         </Card>
+        ) : (
+        <Card icon="ph-gavel" title="Conduct snapshot">
+          <Row label="Pending fines" value={s.penalties.pendingCount > 0 ? <span className="font-semibold text-amber-600">{s.penalties.pendingCount}</span> : <span className="text-emerald-600">none</span>} />
+          <Row label="Team rank" value={s.rank ? `#${s.rank.rank} of ${s.rank.total}` : '—'} />
+          <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Pay &amp; wallet are not visible to managers.</p>
+        </Card>
+        )}
 
         <Card icon="ph-trophy" title="Rewards" right={<span className="text-xs text-muted-foreground">{s.rewards.unlocked}/{s.rewards.total}</span>}>
           <div className="mb-2 flex items-center gap-3 text-xs">
@@ -211,6 +209,83 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
       </div>
     </div>
   );
+}
+
+const PROFILE_TODAY = '2026-06-24';
+
+// Active workload — list (with deadline-window detail) or a month calendar of the staffer's
+// deadlines. The calendar reuses the same DeadlineCalendar the staff portal uses.
+function WorkloadCard({ workload, capacity, util, over, setCap, tierMeta }: {
+  workload: Workload; capacity: number; util: number; over: boolean; setCap: (n: number) => void; tierMeta: TierMeta;
+}) {
+  const money = useMoney();
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const active = workload.active;
+  const win = {
+    overdue: active.filter((o) => o.daysToDue < 0).length,
+    today: active.filter((o) => o.daysToDue === 0).length,
+    d3: active.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 3).length,
+    d7: active.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 7).length,
+  };
+  const calTasks: CalTask[] = [...active, ...workload.shipped]
+    .filter((o): o is ProfileOrder & { deadline: string } => !!o.deadline)
+    .map((o) => ({ id: o.id, code: o.code, service: o.service, deadline: o.deadline, status: o.status, priority: o.priority, customer: o.customer }));
+  const datedActive = active.filter((o) => o.deadline).sort((a, b) => (a.deadline! < b.deadline! ? -1 : 1));
+  const initialMonth = datedActive.length ? monthOf(datedActive[0].deadline as string) : monthOf(PROFILE_TODAY);
+
+  const toggle = (
+    <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
+      {(['list', 'calendar'] as const).map((v) => (
+        <button key={v} onClick={() => setView(v)} className={`rounded-md px-2 py-0.5 capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><i className={`ph-bold ${v === 'list' ? 'ph-rows' : 'ph-calendar-blank'} mr-1`} aria-hidden />{v}</button>
+      ))}
+    </div>
+  );
+
+  return (
+    <Card icon="ph-stack" title="Active workload" right={toggle}>
+      {/* utilization + capacity + deadline windows */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{util}% utilization · {money(workload.valueInFlight)} in flight</span>
+          <span className="flex items-center gap-1.5"><Step dir="down" onClick={() => setCap(capacity - 1)} /><span className={`font-semibold ${over ? 'text-destructive' : ''}`}>{workload.load}/{capacity}</span><Step dir="up" onClick={() => setCap(capacity + 1)} /></span>
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(util, 100)}%`, background: barColor(workload.load, capacity) }} /></div>
+        <div className="mt-2 flex flex-wrap items-center gap-1 text-[10px]">
+          {win.overdue > 0 && <span className="pill pill-bad"><i className="ph-bold ph-warning-circle" aria-hidden />{win.overdue} overdue</span>}
+          <WlChip label="today" n={win.today} tone={win.today > 0 ? 'warn' : 'mute'} />
+          <WlChip label="≤3d" n={win.d3} tone={win.d3 > 0 ? 'soft' : 'mute'} />
+          <WlChip label="≤7d" n={win.d7} tone="mute" />
+          <span className="ml-auto text-[10px] text-muted-foreground">deadlines: today · 3d · 7d</span>
+        </div>
+      </div>
+
+      {view === 'calendar' ? (
+        calTasks.length === 0 ? <Empty>No dated orders to plot.</Empty> : <DeadlineCalendar tasks={calTasks} initialMonth={initialMonth} today={PROFILE_TODAY} />
+      ) : (
+        <>
+          {active.length === 0 ? <Empty>No orders in flight.</Empty> : (
+            <div className="space-y-1.5">{active.map((o) => <OrderRow key={o.id} o={o} tierMeta={tierMeta} />)}</div>
+          )}
+          {workload.shipped.length > 0 && (
+            <>
+              <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recently shipped · {money(workload.valueDelivered)}</p>
+              <div className="space-y-1">{workload.shipped.map((o) => (
+                <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm hover:bg-muted/50">
+                  <i className="ph-fill ph-check-circle text-emerald-500" aria-hidden /><span className="font-medium">{o.code}</span>
+                  <span className="truncate text-xs text-muted-foreground">{o.service} · {o.customer}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{statusLabel[o.status]}</span><span className="text-xs font-medium">{money(o.value)}</span>
+                </Link>
+              ))}</div>
+            </>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+function WlChip({ label, n, tone }: { label: string; n: number; tone: 'warn' | 'soft' | 'mute' }) {
+  const cls = n === 0 ? 'bg-muted/60 text-muted-foreground/60' : tone === 'warn' ? 'bg-amber-500/15 text-amber-700' : tone === 'soft' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground';
+  return <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-semibold ${cls}`}><span className="tabular-nums">{n}</span>{label}</span>;
 }
 
 function ScoreCard({ s, teamAvg }: { s: StaffInsight; teamAvg: TeamAvg }) {
@@ -339,6 +414,7 @@ function PerformanceTab({ s, teamAvg }: { s: StaffInsight; teamAvg: TeamAvg }) {
 
 /* ───────────────────────── Pay & wallet ───────────────────────── */
 function PayTab({ s }: { s: StaffInsight }) {
+  const money = useMoney();
   const p = s.payroll;
   const e = s.earnings;
   const maxMonth = Math.max(1, ...s.earningsSeries.map((m) => m.takeHome));
@@ -458,6 +534,7 @@ function PayTab({ s }: { s: StaffInsight }) {
 
 /* ───────────────────────── Conduct ───────────────────────── */
 function ConductTab({ s }: { s: StaffInsight }) {
+  const money = useMoney();
   const ps = s.penalties.summary;
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -532,6 +609,7 @@ function ConductTab({ s }: { s: StaffInsight }) {
 
 /* ───────────────────────── History ───────────────────────── */
 function HistoryTab({ s }: { s: StaffInsight }) {
+  const money = useMoney();
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
@@ -675,6 +753,7 @@ function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-border py-6 text-center text-sm text-muted-foreground">{children}</p>;
 }
 function OrderRow({ o, tierMeta }: { o: ProfileOrder; tierMeta: TierMeta }) {
+  const money = useMoney();
   return (
     <Link href={`/admin/orders/${o.id}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition hover:border-primary/50">
       <PriorityBadge priority={o.priority} />

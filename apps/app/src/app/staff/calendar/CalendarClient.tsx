@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { DeadlineCalendar } from '@/components/staff/DeadlineCalendar';
+import { GanttTimeline } from '@/components/staff/GanttTimeline';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { AvailabilityPanel } from './AvailabilityPanel';
 import { CareTags } from '@/components/staff/CareTags';
@@ -12,11 +13,15 @@ import type { OrderStatus, Priority } from '@/data/staffMock';
 export interface CalTask {
   id: string; code: string; service: string; deadline: string;
   status: OrderStatus; priority: Priority; customer: string;
+  start?: string; // task start (created) — drives the timeline/Gantt bars
+  pkg?: string;
+  brief?: { label: string; value: string }[]; // customer intake, for the timeline detail panel
 }
-type View = 'month' | 'agenda' | 'availability';
+type View = 'month' | 'timeline' | 'agenda' | 'availability';
 
 const VIEW_META: Record<View, { icon: string; label: string }> = {
   month: { icon: 'ph-calendar-blank', label: 'Month' },
+  timeline: { icon: 'ph-chart-bar-horizontal', label: 'Timeline' },
   agenda: { icon: 'ph-list-bullets', label: 'Agenda' },
   availability: { icon: 'ph-user-circle-gear', label: 'Availability' },
 };
@@ -46,7 +51,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
   const goto = (bucket: string) => { setService(''); setView('agenda'); setFocus(bucket); };
 
   // view is URL state — shareable / survives refresh
-  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'agenda' || v === 'month' || v === 'availability') setView(v); }, []);
+  useEffect(() => { const v = new URLSearchParams(window.location.search).get('view'); if (v === 'agenda' || v === 'month' || v === 'timeline' || v === 'availability') setView(v); }, []);
   useEffect(() => { const url = new URL(window.location.href); url.searchParams.set('view', view); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [view]);
 
   const services = useMemo(() => [...new Set(tasks.map((t) => t.service))].sort(), [tasks]);
@@ -74,7 +79,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border p-0.5">
-          {(['month', 'agenda', 'availability'] as View[]).map((v) => (
+          {(['month', 'timeline', 'agenda', 'availability'] as View[]).map((v) => (
             <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-sm font-semibold transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <i className={`ph-bold ${VIEW_META[v].icon} mr-1`} />{VIEW_META[v].label}
             </button>
@@ -97,6 +102,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
         <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-funnel mb-1 block text-xl" />No deadlines match this filter.</div>
       )}
       {view === 'month' && shown.length > 0 && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} hours={avail.hours} />}
+      {view === 'timeline' && shown.length > 0 && <GanttTimeline tasks={shown} today={today} offDays={offDays} />}
       {view === 'agenda' && shown.length > 0 && <AgendaList tasks={shown} today={today} focus={focus} />}
       {view === 'availability' && <AvailabilityPanel value={avail} onSave={setAvail} today={today} />}
     </div>

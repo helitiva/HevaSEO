@@ -1,57 +1,7 @@
-import { ORDERS, STAFF, SKILL_META, SERVICE_SKILL, customerByCompany, MANAGERS, STAFF_MANAGER, managerOf } from '@/data/adminMock';
-import { rosterSignals } from '@/data/adminStaffInsight';
-import { StaffClient, type StaffVM, type ActiveOrder, type ManagerVM } from './StaffClient';
-
-const TODAY = new Date('2026-06-24T00:00:00');
-// Orders that still sit on a staff member's plate (i.e. real current workload).
-const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
-
-function daysToDue(deadline: string | null): number {
-  return deadline ? Math.round((new Date(deadline).getTime() - TODAY.getTime()) / 86400000) : Number.POSITIVE_INFINITY;
-}
+import { STAFF, SKILL_META, MANAGERS } from '@/data/adminMock';
+import { StaffClient } from './StaffClient';
+import { buildStaffVMs, buildManagerVMs } from './build';
 
 export default function StaffPage() {
-  const staff: StaffVM[] = STAFF.map((s) => {
-    const mine = ORDERS.filter((o) => o.staff === s.name);
-    const active = mine.filter((o) => ACTIVE.has(o.status));
-    const activeOrders: ActiveOrder[] = active.map((o) => {
-      const cust = customerByCompany(o.customer);
-      const d = daysToDue(o.deadline);
-      return {
-        id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status,
-        priority: o.priority, value: o.value, customer: o.customer,
-        tier: cust?.tier ?? 'new', deadline: o.deadline, daysToDue: Number.isFinite(d) ? d : 9999,
-        skill: SERVICE_SKILL[o.service] ?? null,
-      };
-    }).sort((a, b) => a.daysToDue - b.daysToDue);
-
-    const load = activeOrders.length;
-    const overdue = activeOrders.filter((o) => o.daysToDue < 0).length;
-    const dueSoon = activeOrders.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 1).length;
-    const valueInFlight = activeOrders.reduce((sum, o) => sum + o.value, 0);
-    const completed = mine.filter((o) => o.status === 'completed').length;
-    const mgr = managerOf(s.id);
-    const sig = rosterSignals(s.id);
-
-    return {
-      id: s.id, name: s.name, role: s.role, email: s.email, since: s.since, tz: s.tz,
-      skills: s.skills, capacity: s.capacity, active: s.active,
-      composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput, trend: s.trend,
-      load, overdue, dueSoon, valueInFlight, completed, activeOrders,
-      managerId: mgr?.id ?? null, managerName: mgr?.name ?? null,
-      tier: sig?.tier ?? '—', rank: sig?.rank ?? null,
-      monthlyPay: sig?.monthlyPay ?? 0, walletBalance: sig?.walletBalance ?? 0,
-      pendingFines: sig?.pendingFines ?? 0, appliedFines: sig?.appliedFines ?? 0,
-      rewardsUnlocked: sig?.rewardsUnlocked ?? 0, rewardsTotal: sig?.rewardsTotal ?? 0,
-      firstPassRate: sig?.firstPassRate ?? 0, avgRating: sig?.avgRating ?? null,
-    };
-  });
-
-  // Manager → the staff they own (for the Managers overview + filter).
-  const managers: ManagerVM[] = MANAGERS.map((m) => {
-    const reports = STAFF.filter((s) => STAFF_MANAGER[s.id] === m.id);
-    return { id: m.id, name: m.name, title: m.title, email: m.email, reportIds: reports.map((s) => s.id), reportNames: reports.map((s) => s.name) };
-  });
-
-  return <StaffClient initialStaff={staff} managers={managers} skillMeta={SKILL_META} />;
+  return <StaffClient initialStaff={buildStaffVMs(STAFF)} managers={buildManagerVMs(MANAGERS)} skillMeta={SKILL_META} />;
 }

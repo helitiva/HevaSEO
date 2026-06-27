@@ -5,7 +5,7 @@
 // rewards). Admin legitimately sees money — unlike the staff surface, there is no money-leak
 // invariant here — so payroll (base/commission/bonus/due, which derives from order value) and the
 // commission wallet are shown side by side.
-import { STAFF, PAYOUTS, managerOf } from './adminMock';
+import { STAFF, PAYOUTS, ORDERS, managerOf, type OrderStatus, type Priority } from './adminMock';
 import {
   workHistory, myWorkStats, earningsHistory, myEarningsSummary, myFinance, myPenalties, myRewards,
   myPayoutMethods, myPayouts, buildActivity,
@@ -127,6 +127,7 @@ export function buildStaffInsight(staffId: string): StaffInsight | null {
 
 // Lean roster-level summary for the staff LIST + hover card — the few extra signals worth showing
 // next to each row without loading a full insight per card. Computed for every staffer.
+export interface UpcomingTask { code: string; service: string; days: number; priority: Priority }
 export interface StaffRosterSignals {
   id: string;
   tier: string;            // commission band label
@@ -140,7 +141,16 @@ export interface StaffRosterSignals {
   rewardsTotal: number;
   firstPassRate: number;   // % of archive delivered with no revision
   avgRating: number | null;
+  // live workload (current in-flight orders + what's due in the next 3 days)
+  activeLoad: number;
+  overdue: number;
+  dueSoon: number;         // active orders due within the next 3 days
+  upcoming: UpcomingTask[]; // those due-soon items, soonest first
 }
+
+const ROSTER_TODAY = new Date('2026-06-24T00:00:00');
+const ROSTER_ACTIVE = new Set<OrderStatus>(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
+const rosterDueIn = (d: string | null): number | null => (d ? Math.round((new Date(d).getTime() - ROSTER_TODAY.getTime()) / 86400000) : null);
 export function rosterSignals(staffId: string): StaffRosterSignals | null {
   const s = STAFF.find((x) => x.id === staffId);
   if (!s) return null;
@@ -150,6 +160,15 @@ export function rosterSignals(staffId: string): StaffRosterSignals | null {
   const payout = PAYOUTS.find((p) => p.staffId === staffId);
   const rank = rankByComposite(STAFF.map((x) => ({ id: x.id, composite: x.composite })), staffId);
   const applied = fin.penalties.filter((p) => p.status === 'applied').reduce((a, p) => a + p.amount, 0);
+
+  // Live workload from the order book (orders store the staff display name).
+  const mine = ORDERS.filter((o) => o.staff === s.name && ROSTER_ACTIVE.has(o.status));
+  const overdue = mine.filter((o) => (rosterDueIn(o.deadline) ?? 99) < 0).length;
+  const upcoming: UpcomingTask[] = mine
+    .map((o) => ({ code: o.code, service: o.service, days: rosterDueIn(o.deadline), priority: o.priority as Priority }))
+    .filter((x): x is UpcomingTask => x.days !== null && x.days >= 0 && x.days <= 3)
+    .sort((a, b) => a.days - b.days);
+
   return {
     id: s.id,
     tier: commissionTierFor(s.composite).current.level,
@@ -163,5 +182,9 @@ export function rosterSignals(staffId: string): StaffRosterSignals | null {
     rewardsTotal: rewards.length,
     firstPassRate: stats.firstPassRate,
     avgRating: stats.avgRating,
+    activeLoad: mine.length,
+    overdue,
+    dueSoon: upcoming.length,
+    upcoming: upcoming.slice(0, 4),
   };
 }

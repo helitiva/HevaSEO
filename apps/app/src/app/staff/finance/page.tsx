@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/staff/EmptyState';
+import { ViewOnlyGuard } from '@/components/staff/ViewOnlyGuard';
 import { FinanceClient } from './FinanceClient';
 import { myEarnings, earningsHistory, myEarningsSummary, myFinance, myRewards } from '@/data/staffMock';
 import { STAFF } from '@/data/adminMock';
@@ -25,14 +26,16 @@ export default async function FinancePage() {
   return (
     <section>
       <PageHeader title="Finance" subtitle="Your commission wallet, payouts, and penalties — your pay only" />
-      <FinanceClient
-        earnings={earnings}
-        history={earningsHistory(sid)}
-        summary={myEarningsSummary(sid)}
-        finance={myFinance(sid)}
-        rewards={myRewards(sid)}
-        firstPassRate={me.quality}
-      />
+      <ViewOnlyGuard>
+        <FinanceClient
+          earnings={earnings}
+          history={earningsHistory(sid)}
+          summary={myEarningsSummary(sid)}
+          finance={myFinance(sid)}
+          rewards={myRewards(sid)}
+          firstPassRate={me.quality}
+        />
+      </ViewOnlyGuard>
     </section>
   );
 }

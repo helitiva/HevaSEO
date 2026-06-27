@@ -7,9 +7,10 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import {
-  TICKET_CHANNEL, TICKET_TYPE, TICKET_MACROS, money,
+  TICKET_CHANNEL, TICKET_TYPE, TICKET_MACROS,
   type TicketMessage, type TicketStatus, type TicketChannel, type TicketType, type Priority, type Tier, type OrderStatus,
 } from '@/data/adminMock';
+import { useMoney, useShowMoney } from '@/lib/viewer';
 
 interface CustSummary {
   id: string; name: string; company: string; email: string; tier: Tier;
@@ -57,6 +58,8 @@ function useClickOutside(active: boolean, onOut: () => void) {
 }
 
 export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent }: Props) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const [statusOf, setStatusOf] = useState<Record<string, TicketStatus>>({});
   const [assignOf, setAssignOf] = useState<Record<string, string | null>>({});
   const [extra, setExtra] = useState<Record<string, TicketMessage[]>>({});
@@ -460,10 +463,10 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                       </div>
                       <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
                     </div>
-                    <div className="mt-2.5 grid grid-cols-3 gap-1.5">
-                      <Mini label="LTV" value={money(selected.cust.spend)} />
+                    <div className={`mt-2.5 grid gap-1.5 ${showMoney ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                      {showMoney && <Mini label="LTV" value={money(selected.cust.spend)} />}
                       <Mini label="Orders" value={String(selected.cust.orders)} />
-                      <Mini label="Credit" value={money(selected.cust.balance)} />
+                      {showMoney && <Mini label="Credit" value={money(selected.cust.balance)} />}
                     </div>
                     <span className="mt-2 block text-center text-xs font-semibold text-primary group-hover:underline">View full info →</span>
                   </button>
@@ -476,7 +479,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                   {selected.order ? (
                     <Link href={`/admin/orders/${selected.order.id}`} className="block rounded-lg border border-border p-2 transition hover:border-primary/50 hover:bg-accent">
                       <div className="flex items-center justify-between text-sm font-semibold">{selected.order.code}<i className="ph-bold ph-arrow-up-right text-muted-foreground" /></div>
-                      <p className="text-[11px] text-muted-foreground">{selected.order.service} · {selected.order.pkg} · {money(selected.order.value)}</p>
+                      <p className="text-[11px] text-muted-foreground">{selected.order.service} · {selected.order.pkg}{showMoney ? ` · ${money(selected.order.value)}` : ''}</p>
                     </Link>
                   ) : <p className="text-xs text-muted-foreground">No order linked to this ticket.</p>}
                 </div>
@@ -520,6 +523,8 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
 }
 
 function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
+  const money = useMoney();
+  const showMoney = useShowMoney();
   const tier = tierMeta[c.tier];
   return (
     <div className="space-y-5">
@@ -552,10 +557,10 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2">
-        <Mini label="Lifetime value" value={money(c.spend)} />
+        {showMoney && <Mini label="Lifetime value" value={money(c.spend)} />}
         <Mini label="Total orders" value={String(c.orders)} />
-        <Mini label="Credit" value={money(c.balance)} />
-        <Mini label="Avg order" value={money(c.aov)} />
+        {showMoney && <Mini label="Credit" value={money(c.balance)} />}
+        {showMoney && <Mini label="Avg order" value={money(c.aov)} />}
         <Mini label="Active now" value={String(c.activeOrders)} />
         <Mini label="Tier" value={tier.label} />
       </div>
@@ -569,7 +574,7 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
               <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg border border-border p-2 transition hover:border-primary/50 hover:bg-accent">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{o.code}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{o.service} · {o.pkg}{showMoney ? ` · ${money(o.value)}` : ''}</p>
                 </div>
                 <StatusBadge status={o.status} />
               </Link>
@@ -578,7 +583,8 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
         )}
       </div>
 
-      {/* credit ledger */}
+      {/* credit ledger — money, hidden from money-blind viewers (managers) */}
+      {showMoney && (
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Credit ledger</p>
         <ul className="space-y-1.5">
@@ -591,6 +597,7 @@ function CustomerPanel({ c, tierMeta }: { c: CustFull; tierMeta: TierMeta }) {
           ))}
         </ul>
       </div>
+      )}
 
       <Link href={`/admin/customers/${c.id}`} className="block rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Open full profile page →</Link>
     </div>

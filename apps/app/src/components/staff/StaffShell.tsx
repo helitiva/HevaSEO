@@ -4,9 +4,10 @@ import { usePathname } from 'next/navigation';
 import { StaffSidebar } from './StaffSidebar';
 import { StaffTopbar } from './StaffTopbar';
 import { STAFF } from '@/data/adminMock';
-import { readImpersonation, clearImpersonation } from '@/lib/impersonation';
+import { readImpersonation, readImpersonationMode, clearImpersonation } from '@/lib/impersonation';
+import { StaffViewOnlyProvider } from '@/lib/staffView';
 
-interface Impersonation { id: string; name: string; initials: string }
+interface Impersonation { id: string; name: string; initials: string; viewOnly: boolean }
 const initialsOf = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
 export function StaffShell({ children }: { children: React.ReactNode }) {
@@ -22,16 +23,19 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
     mainRef.current?.scrollTo(0, 0);
   }, [pathname]);
 
-  // Detect admin impersonation from the cookie set on the admin side.
+  // Detect impersonation from the cookie set on the admin/manager side. 'view'
+  // mode = a manager looking in: read-only, finance hidden.
   useEffect(() => {
     const id = readImpersonation();
     const s = id ? STAFF.find((x) => x.id === id) : null;
-    setImp(s ? { id: s.id, name: s.name, initials: initialsOf(s.name) } : null);
+    setImp(s ? { id: s.id, name: s.name, initials: initialsOf(s.name), viewOnly: readImpersonationMode() === 'view' } : null);
   }, [pathname]);
 
   const exitImpersonation = () => { clearImpersonation(); window.location.reload(); };
+  const viewOnly = imp?.viewOnly ?? false;
 
   return (
+    <StaffViewOnlyProvider viewOnly={viewOnly}>
     <div className="flex h-screen overflow-hidden">
       <StaffSidebar open={open} onClose={() => setOpen(false)} />
       {open && <div onClick={() => setOpen(false)} className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm lg:hidden" />}
@@ -40,7 +44,11 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         {imp && (
           <div className="flex flex-wrap items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-700 lg:px-7">
             <i className="ph-bold ph-user-switch" aria-hidden />
-            <span>Admin view — impersonating <b>{imp.name}</b>. You&apos;re seeing their portal (read-only preview).</span>
+            {viewOnly ? (
+              <span>Manager view — observing <b>{imp.name}</b>’s portal. Read-only; their finance is hidden and you can’t act on their behalf.</span>
+            ) : (
+              <span>Admin view — impersonating <b>{imp.name}</b>. You&apos;re seeing their portal (read-only preview).</span>
+            )}
             <button onClick={exitImpersonation} className="ml-auto inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-background/60 px-2 py-0.5 font-semibold transition hover:bg-background">
               <i className="ph-bold ph-sign-out" aria-hidden />Exit
             </button>
@@ -51,5 +59,6 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </StaffViewOnlyProvider>
   );
 }

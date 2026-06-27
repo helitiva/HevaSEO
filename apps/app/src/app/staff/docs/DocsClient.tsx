@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState } from '@/components/staff/EmptyState';
 import { FORMAT_META, audienceMeta, type StaffDoc, type DocFormat } from '@/data/staffDocs';
+import { usePortalBase } from '@/lib/portalBase';
 
 interface SkillChip { key: string; label: string; icon: string; color: string }
 
@@ -123,10 +124,11 @@ function FilterChip({ active, onClick, label, icon }: { active: boolean; onClick
 }
 
 function DocCard({ doc }: { doc: StaffDoc }) {
+  const base = usePortalBase();
   const fmt = FORMAT_META[doc.format];
   const aud = audienceMeta(doc.audience);
   return (
-    <Link href={`/staff/docs/${doc.id}`} className="kcard group flex h-full flex-col gap-2 !cursor-pointer">
+    <Link href={`${base}/docs/${doc.id}`} className="kcard group flex h-full flex-col gap-2 !cursor-pointer">
       <div className="flex items-start justify-between gap-2">
         <span
           className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"

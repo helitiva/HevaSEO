@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { usePortalBase } from '@/lib/portalBase';
 import { useNotes } from '@/data/notesStore';
 import { NoteFormBody, draftFrom, emptyDraft, canSaveDraft, cleanDraft, type Draft } from './NoteComposer';
 import { newNoteId, nowIso } from '@/data/staffNotes';
@@ -10,6 +11,7 @@ import { newNoteId, nowIso } from '@/data/staffNotes';
 // and the same store, so a note saved here shows up everywhere (list, modal, full reader).
 export function NoteFullEditor({ id }: { id?: string }) {
   const router = useRouter();
+  const base = usePortalBase();
   const { notes, ready, mutate } = useNotes();
   const existing = id ? notes.find((n) => n.id === id) ?? null : null;
 
@@ -32,16 +34,16 @@ export function NoteFullEditor({ id }: { id?: string }) {
     const clean = cleanDraft(draft);
     if (id && existing) {
       mutate((xs) => xs.map((n) => (n.id === id ? { ...n, ...clean, updatedAt: nowIso() } : n)));
-      router.push(`/staff/notes/${id}`);
+      router.push(`${base}/notes/${id}`);
     } else {
       const newId = newNoteId();
       const ts = nowIso();
       mutate((xs) => [{ id: newId, ...clean, pinned: false, createdAt: ts, updatedAt: ts }, ...xs]);
-      router.push(`/staff/notes/${newId}`);
+      router.push(`${base}/notes/${newId}`);
     }
   }
 
-  const backHref = id ? `/staff/notes/${id}` : '/staff/notes';
+  const backHref = id ? `${base}/notes/${id}` : `${base}/notes`;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -58,7 +60,7 @@ export function NoteFullEditor({ id }: { id?: string }) {
       {notFound ? (
         <div className="py-16 text-center">
           <p className="display text-lg font-bold">Note not found</p>
-          <Link href="/staff/notes" className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">
+          <Link href={`${base}/notes`} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">
             <i className="ph-bold ph-arrow-left" aria-hidden /> Back to notes
           </Link>
         </div>
