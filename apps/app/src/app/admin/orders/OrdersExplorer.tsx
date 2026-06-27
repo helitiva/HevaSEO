@@ -5,6 +5,8 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, money, TIER, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
 
 export interface ExplorerOrder extends AdminOrder {
@@ -27,15 +29,15 @@ const COLDEF: Record<ColId, ColDef> = {
   date: { label: 'Date', render: (o) => <span className="text-muted-foreground">{o.created.slice(5)}</span> },
   code: { label: 'Code', render: (o) => <span className="font-medium">{o.code}</span> },
   customer: { label: 'Customer', render: (o) => (
-    <span className="flex flex-col">
-      <span className="flex items-center gap-1.5"><span className="font-medium">{o.custName}</span><TierBadge tier={o.custTier} /></span>
+    <CustomerHoverCard customer={o.customer} className="flex-col items-start">
+      <span className="flex items-center gap-1.5"><span className="font-medium hover:underline">{o.custName}</span><TierBadge tier={o.custTier} /></span>
       <span className="text-[11px] text-muted-foreground">{o.customer}</span>
-    </span>
+    </CustomerHoverCard>
   ) },
   service: { label: 'Service', render: (o) => <>{o.service} <span className="text-muted-foreground">· {o.pkg}</span></> },
   status: { label: 'Status', render: (o) => <StatusBadge status={o.status} /> },
   priority: { label: 'Priority', render: (o) => <PriorityBadge priority={o.priority} /> },
-  staff: { label: 'Staff', render: (o) => o.staff ?? <span className="text-muted-foreground">Unassigned</span> },
+  staff: { label: 'Staff', render: (o) => o.staff ? <StaffHoverCard staff={o.staff}><span className="underline-offset-2 hover:underline">{o.staff}</span></StaffHoverCard> : <span className="text-muted-foreground">Unassigned</span> },
   value: { label: 'Value', align: 'right', render: (o) => money(o.value) },
   ltv: { label: 'LTV', align: 'right', render: (o) => <span className="font-semibold">{money(o.custLtv)}</span> },
   orders: { label: 'Orders', align: 'right', render: (o) => o.custOrders },

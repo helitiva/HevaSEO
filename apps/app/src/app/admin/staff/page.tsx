@@ -1,4 +1,5 @@
 import { ORDERS, STAFF, SKILL_META, SERVICE_SKILL, customerByCompany, MANAGERS, STAFF_MANAGER, managerOf } from '@/data/adminMock';
+import { rosterSignals } from '@/data/adminStaffInsight';
 import { StaffClient, type StaffVM, type ActiveOrder, type ManagerVM } from './StaffClient';
 
 const TODAY = new Date('2026-06-24T00:00:00');
@@ -30,6 +31,7 @@ export default function StaffPage() {
     const valueInFlight = activeOrders.reduce((sum, o) => sum + o.value, 0);
     const completed = mine.filter((o) => o.status === 'completed').length;
     const mgr = managerOf(s.id);
+    const sig = rosterSignals(s.id);
 
     return {
       id: s.id, name: s.name, role: s.role, email: s.email, since: s.since, tz: s.tz,
@@ -37,6 +39,11 @@ export default function StaffPage() {
       composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput, trend: s.trend,
       load, overdue, dueSoon, valueInFlight, completed, activeOrders,
       managerId: mgr?.id ?? null, managerName: mgr?.name ?? null,
+      tier: sig?.tier ?? '—', rank: sig?.rank ?? null,
+      monthlyPay: sig?.monthlyPay ?? 0, walletBalance: sig?.walletBalance ?? 0,
+      pendingFines: sig?.pendingFines ?? 0, appliedFines: sig?.appliedFines ?? 0,
+      rewardsUnlocked: sig?.rewardsUnlocked ?? 0, rewardsTotal: sig?.rewardsTotal ?? 0,
+      firstPassRate: sig?.firstPassRate ?? 0, avgRating: sig?.avgRating ?? null,
     };
   });
 

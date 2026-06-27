@@ -18,7 +18,25 @@ export interface OverviewData {
   review: LatestReview | null;
   customers: { name: string; active: number; services: string[] }[];
   onTime: number;
+  wallet: { available: number; balance: number };
+  tier: { level: string; mult: number; nextLevel: string | null; toNext: number };
+  reward: { title: string; progressPct: number; hint: string; amount: number } | null;
+  earnedBonus: number;
+  fines: { pending: number; pendingTotal: number; appliedTotal: number };
+  upcoming: { code: string; service: string; days: number }[];
+  streak: number;
+  avgCommission: number;
 }
+
+const SHORTCUTS = [
+  { href: '/staff/tasks', icon: 'ph-kanban', label: 'My tasks' },
+  { href: '/staff/calendar', icon: 'ph-calendar-dots', label: 'Calendar' },
+  { href: '/staff/deliverables', icon: 'ph-package', label: 'Deliverables' },
+  { href: '/staff/performance', icon: 'ph-chart-line-up', label: 'Performance' },
+  { href: '/staff/finance', icon: 'ph-wallet', label: 'Finance' },
+  { href: '/staff/notes', icon: 'ph-note-pencil', label: 'Notes' },
+  { href: '/staff/docs', icon: 'ph-book-open-text', label: 'Docs' },
+];
 
 interface Props { greeting: string; capacity: number; everHadTasks: boolean; initialFocus: MyDayTask[]; overview: OverviewData; }
 
@@ -105,7 +123,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
     const action = primaryActionFor(task.status);
     return (
       <li key={task.id} onClick={() => router.push(`/staff/tasks/${task.id}`)}
-        className={`${COLS} group cursor-pointer rounded-lg px-2 py-2 transition hover:bg-foreground/[0.08] ${index === sel ? 'bg-primary/10' : index % 2 === 1 ? 'bg-foreground/[0.05]' : ''}`}>
+        className={`${COLS} group cursor-pointer px-2 py-2.5 transition hover:bg-foreground/[0.06] ${index === sel ? 'bg-primary/10' : ''}`}>
         <div className="flex items-center gap-2 overflow-hidden">
           <PriorityDot priority={task.priority} />
           <span className="truncate font-medium">{task.code}</span>
@@ -131,10 +149,46 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
 
   return (
     <section className="mx-auto max-w-7xl">
-      <div className="mb-4">
-        <h1 className="display text-2xl font-bold tracking-tight">{greeting}</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-      </div>
+      {(() => {
+        const doneToday = kpis.cleared;
+        const total = doneToday + kpis.load;
+        const pct = total > 0 ? Math.round((doneToday / total) * 100) : 100;
+        const queueCommission = Math.round(kpis.load * overview.avgCommission);
+        return (
+          <div className="mb-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="display text-2xl font-bold tracking-tight">{greeting}</h1>
+                <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {overview.streak > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600" title="consecutive first-pass deliveries">
+                    <i className="ph-fill ph-fire" aria-hidden /> {overview.streak} first-pass streak
+                  </span>
+                )}
+                {kpis.load > 0 && queueCommission > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600" title="estimated commission for finishing your open queue">
+                    <i className="ph-fill ph-coins" aria-hidden /> ≈{money(queueCommission)} to earn
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {(kpis.load > 0 || doneToday > 0) && (
+              <div className="mt-3">
+                <div className="mb-1 flex items-center justify-between text-[11px] font-semibold">
+                  <span className="text-muted-foreground">Today’s momentum</span>
+                  <span>{doneToday === 0 && kpis.load > 0 ? 'Let’s get the first one done' : kpis.load === 0 ? 'Queue clear — nice 🎉' : `${doneToday} done · ${kpis.load} to go`}</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Stat row */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -143,6 +197,15 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
         <StatTile icon="ph-calendar-check" label="Due today" value={String(kpis.dueToday)} tone={kpis.dueToday ? 'warn' : 'muted'} />
         <StatTile icon="ph-clock" label="On-time" value={`${overview.onTime}%`} tone={overview.onTime < 85 ? 'warn' : 'good'} />
         <StatTile icon="ph-check-circle" label="Cleared today" value={String(kpis.cleared)} tone={kpis.cleared ? 'good' : 'muted'} />
+      </div>
+
+      {/* Quick links to every staff surface */}
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        {SHORTCUTS.map((s) => (
+          <Link key={s.href} href={s.href} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/50 hover:text-foreground">
+            <i className={`ph-bold ${s.icon} text-primary`} aria-hidden /> {s.label}
+          </Link>
+        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -200,7 +263,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
                   {groups.map((g) => (
                     <div key={g.key} className="mb-1">
                       <p className="px-2 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label} · {g.items.length}</p>
-                      <ul className="space-y-0.5">
+                      <ul className="divide-y divide-border/50 border-t border-border/50">
                         {g.items.map((task) => { flatIndex += 1; return renderRow(task, flatIndex); })}
                       </ul>
                     </div>
@@ -224,14 +287,58 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
 
         {/* Context rail */}
         <aside className="space-y-3">
+          {/* Wallet & pay */}
           <Link href="/staff/finance" className="kcard block transition hover:border-primary/40">
-            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-wallet text-emerald-500" aria-hidden /> Recent pay</p>
-            {overview.earnings ? (
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-wallet text-emerald-500" aria-hidden /> Wallet</p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600" title="commission tier">
+                <i className="ph-fill ph-medal" aria-hidden /> {overview.tier.level} {overview.tier.mult}×
+              </span>
+            </div>
+            <p className="display text-xl font-bold">{money(overview.wallet.available)} <span className="text-xs font-normal text-muted-foreground">available</span></p>
+            {overview.earnings && <p className="mt-0.5 text-xs text-muted-foreground">{money(overview.earnings.takeHome)} take-home this month</p>}
+            {overview.fines.pending > 0 && (
+              <p className="mt-2 flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-500">
+                <i className="ph-bold ph-warning-octagon" aria-hidden /> {overview.fines.pending} fine{overview.fines.pending === 1 ? '' : 's'} pending · −{money(overview.fines.pendingTotal)}
+              </p>
+            )}
+          </Link>
+
+          {/* Next bonus */}
+          <Link href="/staff/performance" className="kcard block transition hover:border-primary/40">
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-fill ph-gift text-emerald-500" aria-hidden /> Next bonus</p>
+              {overview.earnedBonus > 0 && <span className="text-[10px] font-semibold text-emerald-600">{money(overview.earnedBonus)} earned</span>}
+            </div>
+            {overview.reward ? (
               <>
-                <p className="display text-xl font-bold">{money(overview.earnings.takeHome)} <span className="text-xs font-normal text-muted-foreground">this month</span></p>
-                {overview.earnings.lastPaid && <p className="mt-0.5 text-xs text-muted-foreground">Last paid {overview.earnings.lastPaid.month} · {money(overview.earnings.lastPaid.amount)}</p>}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold">{overview.reward.title}</span>
+                  <span className="text-xs font-bold text-emerald-600">+{money(overview.reward.amount)}</span>
+                </div>
+                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${overview.reward.progressPct}%` }} />
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">{overview.reward.hint}</p>
               </>
-            ) : <p className="text-sm text-muted-foreground">No payout yet.</p>}
+            ) : <p className="text-sm text-muted-foreground">All bonuses earned 🎉</p>}
+          </Link>
+
+          {/* This week's deadlines */}
+          <Link href="/staff/calendar" className="kcard block transition hover:border-primary/40">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-calendar-dots text-primary" aria-hidden /> This week</p>
+            {overview.upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No deadlines in the next 7 days.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {overview.upcoming.map((u) => (
+                  <li key={u.code} className="flex items-center gap-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate"><span className="font-medium">{u.code}</span> <span className="text-muted-foreground">· {u.service}</span></span>
+                    <span className={`shrink-0 text-xs font-semibold ${u.days === 0 ? 'text-amber-500' : u.days <= 2 ? 'text-amber-500' : 'text-muted-foreground'}`}>{u.days === 0 ? 'today' : `${u.days}d`}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Link>
 
           <div className="kcard">

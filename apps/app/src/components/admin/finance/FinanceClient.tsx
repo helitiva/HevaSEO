@@ -11,6 +11,11 @@ import {
   type Transaction, type TxKind, type Invoice, type InvoiceStatus, type Payout,
   type AdminOrder, type AdminCustomer,
 } from '@/data/adminMock';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
+import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
+import { myPenalties } from '@/data/staffMock';
+import { PENALTY_TYPE_META, PENALTY_STATUS_META } from '@/lib/staffFinance';
 
 type TabKey = 'overview' | 'transactions' | 'wallets' | 'payouts' | 'invoices';
 const TABS: { key: TabKey; label: string; icon: string }[] = [
@@ -400,7 +405,7 @@ function WalletsTab() {
                   role="button" tabIndex={0} aria-label={`View wallet ledger for ${c.company}`}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
-                  <td className="p-3"><Link href={`/admin/customers/${c.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{c.name}</Link><span className="text-muted-foreground"> · {c.company}</span></td>
+                  <td className="p-3"><CustomerHoverCard customer={c.id}><Link href={`/admin/customers/${c.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{c.name}</Link></CustomerHoverCard><span className="text-muted-foreground"> · {c.company}</span></td>
                   <td className="p-3 capitalize text-muted-foreground">{c.tier}</td>
                   <td className="p-3">{money(c.spend)}</td>
                   <td className="p-3">
@@ -592,58 +597,49 @@ function effComp(p: Payout, ov?: PayoutOverride) {
   return { base, rate, bonus, commission, total: base + commission + bonus };
 }
 
-// Prior payroll runs, derived from settled payout transactions grouped by
-// settlement date — gives the period selector its read-only history.
-const PAYOUT_HISTORY = (() => {
-  const byDate = new Map<string, Transaction[]>();
-  for (const t of TRANSACTIONS) {
-    if (t.kind !== 'payout') continue;
-    const d = t.at.slice(0, 10);
-    byDate.set(d, [...(byDate.get(d) ?? []), t]);
-  }
-  return [...byDate.entries()]
-    .map(([date, txs]) => ({ date, txs, total: txs.reduce((a, t) => a + Math.abs(t.amount), 0) }))
-    .sort((a, b) => b.date.localeCompare(a.date));
-})();
-
 function PayoutsTab() {
   const [paid, setPaid] = usePersistedState<Record<string, boolean>>('payoutsPaid', {});
   const [selected, setSelected] = useState<Payout | null>(null);
   const [overrides, setOverrides] = usePersistedState<Record<string, PayoutOverride>>('payoutOverrides', {});
-  const [period, setPeriod] = useState<string>('current');
+  const [gran, setGran] = useState<'current' | PayGran>('current');
   const rows = useMemo(() => [...PAYOUTS].sort((a, b) => b.due - a.due), []);
 
   const effDue = (p: Payout): number => effComp(p, overrides[p.staffId]).total;
+  const netDue = (p: Payout): number => effDue(p) - currentPenalties(p.staffId).applied;
+  const remaining = rows.filter((p) => !paid[p.staffId]).reduce((a, p) => a + netDue(p), 0);
 
-  const remaining = rows.filter((p) => !paid[p.staffId]).reduce((a, p) => a + effDue(p), 0);
-  const activeHistory = PAYOUT_HISTORY.find((h) => h.date === period) ?? null;
-
-  const periodSelector = PAYOUT_HISTORY.length > 0 ? (
+  const granToggle = (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold text-muted-foreground">Period</span>
+      <span className="text-xs font-semibold text-muted-foreground">View</span>
       <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5 text-xs font-semibold">
-        <button onClick={() => setPeriod('current')}
-          className={`rounded-md px-2.5 py-1 transition ${period === 'current' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Current</button>
-        {PAYOUT_HISTORY.map((h) => (
-          <button key={h.date} onClick={() => setPeriod(h.date)}
-            className={`rounded-md px-2.5 py-1 transition ${period === h.date ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Paid {h.date}</button>
+        {([['current', 'Current run'], ['month', 'Monthly'], ['quarter', 'Quarterly']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setGran(k)}
+            className={`rounded-md px-2.5 py-1 transition ${gran === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{label}</button>
         ))}
       </div>
+      <span className="text-[11px] text-muted-foreground">{gran === 'current' ? 'live cycle — editable' : 'historical — read-only'}</span>
     </div>
-  ) : null;
+  );
 
-  if (activeHistory) {
+  if (gran !== 'current') {
     return (
       <div className="space-y-3">
-        {periodSelector}
-        <PayoutHistoryView h={activeHistory} />
+        {granToggle}
+        <PayrollPeriodView gran={gran} />
       </div>
     );
   }
 
+  const totBase = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).base, 0);
+  const totComm = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0);
+  const totBonus = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0);
+  const totPen = rows.reduce((a, p) => a + currentPenalties(p.staffId).applied, 0);
+  const totNet = rows.reduce((a, p) => a + netDue(p), 0);
+  const pendingPenStaff = rows.filter((p) => currentPenalties(p.staffId).pendingCount > 0).length;
+
   return (
     <div className="space-y-3">
-      {periodSelector}
+      {granToggle}
       {/* commission rates legend */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
         <i className="ph-bold ph-percent text-primary" />
@@ -655,14 +651,14 @@ function PayoutsTab() {
         ))}
       </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Fixed salary + commission on billable (delivered+) work + bonus · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay. Click a row to edit salary, rate or bonus.</p>
+      <p className="px-1 text-xs text-muted-foreground">Fixed salary + commission on billable work + bonus, less penalties withheld this cycle · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay{pendingPenStaff > 0 && <> · <span className="font-semibold text-amber-600">{pendingPenStaff} with fines pending review</span></>}. Click a row to edit salary, rate or bonus.</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Commission</th>
-              <th className="p-3">Bonus</th><th className="p-3">Total</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
+              <th className="p-3">Bonus</th><th className="p-3">Penalty</th><th className="p-3">Net pay</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
@@ -670,6 +666,8 @@ function PayoutsTab() {
               const isPaid = paid[p.staffId];
               const ov = overrides[p.staffId];
               const e = effComp(p, ov);
+              const pen = currentPenalties(p.staffId);
+              const net = e.total - pen.applied;
               const dispRate = Math.round(e.rate * 100);
               const baseChanged = !!ov && ov.base !== p.base;
               const rateChanged = !!ov && Math.round(ov.rate) !== Math.round(p.rate * 100);
@@ -679,7 +677,7 @@ function PayoutsTab() {
                   onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(p); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
                   <td className="p-3">
-                    <Link href={`/admin/staff/${p.staffId}`} className="font-medium hover:underline" onClick={(ev) => ev.stopPropagation()}>{p.staff}</Link>
+                    <StaffHoverCard staff={p.staffId}><Link href={`/admin/staff/${p.staffId}`} className="font-medium hover:underline" onClick={(ev) => ev.stopPropagation()}>{p.staff}</Link></StaffHoverCard>
                     <span className="text-muted-foreground"> · {p.role}</span>
                     {!p.active && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">inactive</span>}
                   </td>
@@ -694,11 +692,15 @@ function PayoutsTab() {
                   <td className="p-3 tabular-nums">
                     {e.bonus ? <span className="font-semibold text-emerald-600">+{money(e.bonus)}</span> : <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="p-3 font-semibold tabular-nums">{money(e.total)}</td>
+                  <td className="p-3 tabular-nums">
+                    {pen.applied > 0 ? <span className="font-semibold text-rose-600">−{money(pen.applied)}</span> : <span className="text-muted-foreground">—</span>}
+                    {pen.pendingCount > 0 && <span className="ml-1.5 pill pill-warn" title="Penalties pending review"><i className="ph-bold ph-gavel" aria-hidden />{pen.pendingCount}</span>}
+                  </td>
+                  <td className="p-3 font-semibold tabular-nums">{money(net)}</td>
                   <td className="p-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                     {isPaid
                       ? <span className="pill pill-live">Paid</span>
-                      : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={e.total === 0}
+                      : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={net <= 0}
                           className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">Mark paid</button>}
                   </td>
                   <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
@@ -709,10 +711,11 @@ function PayoutsTab() {
           <tfoot>
             <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
               <td className="p-3 text-muted-foreground">{rows.length} staff</td>
-              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).base, 0))}</td>
-              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0))}</td>
-              <td className="p-3 tabular-nums text-emerald-600">{money(rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0))}</td>
-              <td className="p-3 tabular-nums">{money(rows.reduce((a, p) => a + effDue(p), 0))}</td>
+              <td className="p-3 tabular-nums">{money(totBase)}</td>
+              <td className="p-3 tabular-nums">{money(totComm)}</td>
+              <td className="p-3 tabular-nums text-emerald-600">{money(totBonus)}</td>
+              <td className="p-3 tabular-nums text-rose-600">{totPen > 0 ? `−${money(totPen)}` : money(0)}</td>
+              <td className="p-3 tabular-nums">{money(totNet)}</td>
               <td className="p-3" /><td className="p-3" />
             </tr>
           </tfoot>
@@ -735,6 +738,77 @@ function PayoutsTab() {
   );
 }
 
+// Read-only payroll by month / quarter — pick a period and see each staffer's base + commission +
+// bonus, penalties withheld and net take-home, plus period totals.
+function PayrollPeriodView({ gran }: { gran: PayGran }) {
+  const periods = useMemo<PayPeriod[]>(() => buildPayrollPeriods(gran), [gran]);
+  const [key, setKey] = useState(periods[0]?.key ?? '');
+  const period = periods.find((p) => p.key === key) ?? periods[0];
+  if (!period) return <p className="py-8 text-center text-sm text-muted-foreground">No payroll history.</p>;
+  const t = period.totals;
+  const lines = [...period.lines].sort((a, b) => b.net - a.net);
+  const maxNet = Math.max(1, ...lines.map((l) => l.net));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">{gran === 'month' ? 'Month' : 'Quarter'}
+          <select value={period.key} onChange={(e) => setKey(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1 text-sm font-medium text-foreground outline-none focus:border-primary">
+            {periods.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+          </select>
+        </label>
+        <span className="ml-auto text-[11px] text-muted-foreground">{period.lines.length} staff · {t.tasks} billable tasks</span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Kpi icon="ph-money" label="Base salary" value={money(t.base)} />
+        <Kpi icon="ph-percent" label="Commission" value={money(t.commission)} />
+        <Kpi icon="ph-gift" label="Bonus" value={money(t.bonus)} tone="good" />
+        <Kpi icon="ph-gavel" label="Penalties" value={t.penalties > 0 ? `−${money(t.penalties)}` : money(0)} tone={t.penalties > 0 ? 'warn' : 'primary'} />
+        <Kpi icon="ph-hand-coins" label="Net payroll" value={money(t.net)} />
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+              <th className="p-3">Staff</th><th className="p-3 text-right">Tasks</th><th className="p-3 text-right">Fixed</th><th className="p-3 text-right">Commission</th>
+              <th className="p-3 text-right">Bonus</th><th className="p-3 text-right">Penalty</th><th className="p-3 text-right">Net</th><th className="p-3 w-28">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((l) => (
+              <tr key={l.staffId} className="border-b border-border/50 last:border-0 hover:bg-muted/40">
+                <td className="p-3"><StaffHoverCard staff={l.staffId}><Link href={`/admin/staff/${l.staffId}`} className="font-medium hover:underline">{l.staff}</Link></StaffHoverCard><span className="text-muted-foreground"> · {l.role}</span>{!l.active && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">inactive</span>}</td>
+                <td className="p-3 text-right tabular-nums text-muted-foreground">{l.tasks}</td>
+                <td className="p-3 text-right tabular-nums">{money(l.base)}</td>
+                <td className="p-3 text-right tabular-nums">{money(l.commission)}</td>
+                <td className="p-3 text-right tabular-nums">{l.bonus ? <span className="font-semibold text-emerald-600">+{money(l.bonus)}</span> : <span className="text-muted-foreground">—</span>}</td>
+                <td className="p-3 text-right tabular-nums">{l.penalties > 0 ? <span className="font-semibold text-rose-600">−{money(l.penalties)}</span> : <span className="text-muted-foreground">—</span>}</td>
+                <td className="p-3 text-right font-semibold tabular-nums">{money(l.net)}</td>
+                <td className="p-3"><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${(l.net / maxNet) * 100}%` }} /></div></td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
+              <td className="p-3 text-muted-foreground">{lines.length} staff</td>
+              <td className="p-3 text-right tabular-nums">{t.tasks}</td>
+              <td className="p-3 text-right tabular-nums">{money(t.base)}</td>
+              <td className="p-3 text-right tabular-nums">{money(t.commission)}</td>
+              <td className="p-3 text-right tabular-nums text-emerald-600">{money(t.bonus)}</td>
+              <td className="p-3 text-right tabular-nums text-rose-600">{t.penalties > 0 ? `−${money(t.penalties)}` : money(0)}</td>
+              <td className="p-3 text-right tabular-nums">{money(t.net)}</td>
+              <td className="p-3" />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className="px-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Base is the fixed monthly salary ({gran === 'quarter' ? '×3 for the quarter' : 'one month'}); commission &amp; bonus track that period&apos;s delivered work; penalties are fines applied in the period.</p>
+    </div>
+  );
+}
+
 function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   p: Payout; paid: boolean; onMarkPaid: () => void;
   override?: PayoutOverride; onSaveOverride: (ov: PayoutOverride) => void;
@@ -753,6 +827,10 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   const bonusSet = e.bonus !== 0;
   const previewCommission = Math.round(p.basis * (draftRate / 100));
   const previewTotal = draftBase + previewCommission + draftBonus;
+  // Penalties withheld this cycle + the staffer's recent fine history (for context).
+  const penCycle = currentPenalties(p.staffId);
+  const penHistory = myPenalties(p.staffId);
+  const netPay = e.total - penCycle.applied;
 
   const startEditing = () => {
     setDraftBase(override?.base ?? p.base);
@@ -911,12 +989,45 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
         </div>
       </div>
 
+      {/* penalties & net pay */}
+      <div>
+        <p className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span>Penalties &amp; net pay</span>
+          <Link href={`/admin/staff/${p.staffId}?`} className="font-normal normal-case text-primary hover:underline">Conduct →</Link>
+        </p>
+        <div className="rounded-xl border border-border bg-muted/30 p-3">
+          <dl className="space-y-1 text-sm">
+            <div className="flex items-center justify-between"><dt className="text-muted-foreground">Gross (salary + commission + bonus)</dt><dd className="font-semibold tabular-nums">{money(e.total)}</dd></div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Penalties withheld this cycle{penCycle.pendingCount > 0 && <span className="ml-1.5 pill pill-warn" title="awaiting review"><i className="ph-bold ph-gavel" aria-hidden />{penCycle.pendingCount} pending</span>}</dt>
+              <dd className={`font-semibold tabular-nums ${penCycle.applied > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>{penCycle.applied > 0 ? `−${money(penCycle.applied)}` : money(0)}</dd>
+            </div>
+            <div className="mt-1 flex items-center justify-between border-t border-border pt-1.5"><dt className="font-semibold">Net pay</dt><dd className="display text-base font-bold tabular-nums text-primary">{money(netPay)}</dd></div>
+          </dl>
+          {penCycle.pending > 0 && <p className="mt-2 text-[11px] text-amber-600"><i className="ph-bold ph-warning-circle mr-1" aria-hidden />{money(penCycle.pending)} more in fines pending review — not yet withheld.</p>}
+        </div>
+        {penHistory.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {penHistory.slice(0, 5).map((pen) => { const meta = PENALTY_TYPE_META[pen.type]; const stm = PENALTY_STATUS_META[pen.status];
+              return (
+                <div key={pen.id} className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs">
+                  <i className={`ph-bold ${meta.icon} text-muted-foreground`} aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{meta.label}{pen.taskCode && <span className="text-muted-foreground"> · {pen.taskCode}</span>}<span className="block truncate text-[10px] text-muted-foreground">{pen.createdAt} · {pen.reason}</span></span>
+                  <span className="shrink-0 font-semibold">−{money(pen.amount)}</span>
+                  <span className={`shrink-0 pill ${stm.pill}`}>{stm.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* action */}
       {!paid ? (
         <div className="border-t border-border pt-4">
           <button onClick={onMarkPaid}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110">
-            <i className="ph-bold ph-check-circle" /> Mark {money(e.total)} as paid
+            <i className="ph-bold ph-check-circle" /> Mark {money(netPay)} as paid
           </button>
         </div>
       ) : (
@@ -924,49 +1035,6 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
           <i className="ph-bold ph-check-circle" /> Paid this session
         </div>
       )}
-    </div>
-  );
-}
-
-function PayoutHistoryView({ h }: { h: { date: string; txs: Transaction[]; total: number } }) {
-  const note = h.txs[0]?.note ?? 'Commission payout';
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs">
-        <span className="flex items-center gap-1.5 font-semibold text-emerald-700"><i className="ph-bold ph-check-circle" />Settled {h.date} · {note}</span>
-        <span className="font-semibold text-foreground">{h.txs.length} payout{h.txs.length !== 1 ? 's' : ''} · {money(h.total)}</span>
-      </div>
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3">Method</th><th className="p-3">Note</th>
-              <th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {h.txs.map((t) => (
-              <tr key={t.id} className="border-b border-border/50">
-                <td className="p-3">
-                  {t.partyId
-                    ? <Link href={`/admin/staff/${t.partyId}`} className="font-medium hover:underline">{t.party}</Link>
-                    : <span className="font-medium">{t.party}</span>}
-                </td>
-                <td className="p-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><i className={`ph-bold ${TX_METHOD[t.method].icon}`} />{TX_METHOD[t.method].label}</span></td>
-                <td className="p-3 text-muted-foreground">{t.note}</td>
-                <td className="p-3"><TxStatusPill status={t.status} /></td>
-                <td className="p-3 text-right font-semibold tabular-nums">{money(Math.abs(t.amount))}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
-              <td colSpan={4} className="p-3 text-muted-foreground">Total paid out</td>
-              <td className="p-3 text-right tabular-nums">{money(h.total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
     </div>
   );
 }

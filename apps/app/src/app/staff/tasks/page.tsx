@@ -3,11 +3,13 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { PriorityBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { EmptyState, emptyKindFor } from '@/components/staff/EmptyState';
-import { MY_TASKS, BOARD_COLUMNS, type StaffTask } from '@/data/staffMock';
+import { myTasks, BOARD_COLUMNS, type StaffTask } from '@/data/staffMock';
+import { currentStaffId } from '@/lib/currentStaff';
 import { daysToDue } from '@/lib/staff';
 
-export default function MyTasksPage() {
-  if (MY_TASKS.length === 0) {
+export default async function MyTasksPage() {
+  const board = myTasks(await currentStaffId());
+  if (board.length === 0) {
     return (
       <section>
         <PageHeader title="My Tasks" subtitle="Everything assigned to you" />
@@ -17,10 +19,10 @@ export default function MyTasksPage() {
   }
   return (
     <section>
-      <PageHeader title="My Tasks" subtitle={`${MY_TASKS.length} tasks across ${BOARD_COLUMNS.length} stages`} />
+      <PageHeader title="My Tasks" subtitle={`${board.length} tasks across ${BOARD_COLUMNS.length} stages`} />
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {BOARD_COLUMNS.map((col) => {
-          const tasks = MY_TASKS.filter((t) => t.status === col.status);
+          const tasks = board.filter((t) => t.status === col.status);
           return (
             <div key={col.status} className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-1">

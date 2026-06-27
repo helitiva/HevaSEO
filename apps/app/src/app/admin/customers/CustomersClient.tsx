@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge } from '@/components/shared/StatBadge';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
+import { impersonateCustomer } from '@/lib/impersonation';
 import { money, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
 
 export type Health = 'good' | 'ok' | 'risk';
@@ -322,7 +324,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">{initials(c.name)}</span>
                         <span className="min-w-0">
                           <span className="flex items-center gap-1.5">
-                            <span className="truncate font-medium group-hover:underline">{c.name}</span>
+                            <CustomerHoverCard customer={c.id}><span className="truncate font-medium group-hover:underline">{c.name}</span></CustomerHoverCard>
                             <i className={`ph-fill ${t.icon} shrink-0 text-xs`} style={{ color: t.color }} title={`${t.label} tier`} />
                             <span className={`pill shrink-0 ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
                           </span>
@@ -358,7 +360,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                   <span className="flex min-w-0 items-center gap-2.5">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{initials(c.name)}</span>
                     <span className="min-w-0">
-                      <span className="flex items-center gap-1.5"><span className="truncate font-semibold">{c.name}</span><i className={`ph-fill ${t.icon} text-xs`} style={{ color: t.color }} title={t.label} /></span>
+                      <span className="flex items-center gap-1.5"><CustomerHoverCard customer={c.id}><span className="truncate font-semibold">{c.name}</span></CustomerHoverCard><i className={`ph-fill ${t.icon} text-xs`} style={{ color: t.color }} title={t.label} /></span>
                       <span className="block truncate text-xs text-muted-foreground">{c.company}</span>
                     </span>
                   </span>
@@ -431,7 +433,7 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
       {/* actions */}
       <div className="grid grid-cols-2 gap-2">
         <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" />Email</a>
-        <button onClick={() => notify(`Magic link sent · ${c.name}`)} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" />Impersonate</button>
+        <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" />Impersonate</button>
       </div>
       <div className="flex items-center gap-2">
         <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" />Open full profile</Link>
@@ -549,7 +551,7 @@ function RowMenu({ c, notify, onView }: { c: CustomerRow; notify: (m: string) =>
     { icon: 'ph-sidebar', label: 'Quick view', fn: onView },
     { icon: 'ph-arrow-square-out', label: 'Full profile', href: `/admin/customers/${c.id}` },
     { icon: 'ph-envelope-simple', label: 'Email', fn: () => notify(`Email · ${c.name}`) },
-    { icon: 'ph-user-switch', label: 'Impersonate', fn: () => notify(`Magic link sent · ${c.name}`) },
+    { icon: 'ph-user-switch', label: 'Impersonate', fn: () => impersonateCustomer(c.id) },
     { icon: 'ph-wallet', label: 'Adjust credit', fn: () => notify(`Adjust credit · ${c.name}`) },
   ];
   return (

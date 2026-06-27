@@ -8,6 +8,7 @@ import { AudienceAnalytics } from '@/components/admin/AudienceAnalytics';
 import { SupportStats } from '@/components/admin/SupportStats';
 import { TeamPerformance } from '@/components/admin/TeamPerformance';
 import { Donut } from '@/components/admin/Donut';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { PeriodSelector } from './PeriodSelector';
 import {
   REVENUE_KPIS, REVENUE_ANALYTICS, REVENUE_90, SERVICE_MIX, CUSTOMERS, money, type RevKpi,
@@ -62,7 +63,7 @@ export default function AnalyticsPage() {
             {topRev.map((c) => (
               <div key={c.id}>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="truncate font-medium">{c.name} <span className="text-muted-foreground">· {c.company}</span></span>
+                  <CustomerHoverCard customer={c.id}><span className="truncate font-medium hover:underline">{c.name} <span className="text-muted-foreground">· {c.company}</span></span></CustomerHoverCard>
                   <span className="shrink-0 font-semibold">{money(c.spend)}</span>
                 </div>
                 <div className="bar mt-1"><i style={{ width: `${(c.spend / maxSpend) * 100}%` }} /></div>

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { impersonate } from '@/lib/impersonation';
 import { money, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 export interface ActiveOrder {
@@ -18,6 +20,12 @@ export interface StaffVM {
   load: number; overdue: number; dueSoon: number; valueInFlight: number; completed: number;
   activeOrders: ActiveOrder[];
   managerId: string | null; managerName: string | null;
+  // pay + conduct signals from the shared admin insight layer
+  tier: string; rank: number | null;
+  monthlyPay: number; walletBalance: number;
+  pendingFines: number; appliedFines: number;
+  rewardsUnlocked: number; rewardsTotal: number;
+  firstPassRate: number; avgRating: number | null;
 }
 export interface ManagerVM {
   id: string; name: string; title: string; email: string;
@@ -27,9 +35,9 @@ type SkillMeta = Record<string, { label: string; icon: string; color: string }>;
 interface Props { initialStaff: StaffVM[]; managers: ManagerVM[]; skillMeta: SkillMeta }
 interface Teammate { id: string; name: string; active: boolean; load: number; capacity: number }
 
-type SortKey = 'composite' | 'quality' | 'onTime' | 'throughput' | 'load' | 'name';
+type SortKey = 'composite' | 'quality' | 'onTime' | 'throughput' | 'load' | 'pay' | 'name';
 const SORT_LABEL: Record<SortKey, string> = {
-  composite: 'Score', quality: 'Quality', onTime: 'On-time', throughput: 'Throughput', load: 'Utilization', name: 'Name',
+  composite: 'Score', quality: 'Quality', onTime: 'On-time', throughput: 'Throughput', load: 'Utilization', pay: 'Pay', name: 'Name',
 };
 
 export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
@@ -87,6 +95,8 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
       composite: 0, quality: 0, onTime: 0, throughput: 0, trend: [0, 0, 0, 0, 0, 0, 0, 0],
       load: 0, overdue: 0, dueSoon: 0, valueInFlight: 0, completed: 0, activeOrders: [],
       managerId: null, managerName: null,
+      tier: 'Starter', rank: null, monthlyPay: 0, walletBalance: 0, pendingFines: 0, appliedFines: 0,
+      rewardsUnlocked: 0, rewardsTotal: 0, firstPassRate: 0, avgRating: null,
     };
     setStaff((l) => [...l, vm]); setAddOpen(false); record(`Added ${vm.name} to the team`, 'ph-user-plus');
   };
@@ -108,6 +118,8 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
       throughput: act.reduce((n, s) => n + s.throughput, 0),
       cap, load, util: cap ? Math.round((load / cap) * 100) : 0,
       free: Math.max(0, cap - load), overloaded: act.filter((s) => s.load > s.capacity).length,
+      payroll: roster.reduce((n, s) => n + s.monthlyPay, 0),
+      pendingFines: roster.reduce((n, s) => n + s.pendingFines, 0),
     };
   }, [roster]);
 
@@ -125,6 +137,7 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
       && (fAvail === 'all' || avail(s) === fAvail))
     .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name)
       : sortBy === 'load' ? (b.load / b.capacity) - (a.load / a.capacity)
+      : sortBy === 'pay' ? b.monthlyPay - a.monthlyPay
       : b[sortBy] - a[sortBy]),
     [roster, search, fSkill, fManager, fStatus, fAvail, sortBy]);
 
@@ -171,13 +184,15 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Kpi icon="ph-users-three" label="Team" value={`${team.active}`} sub={team.paused ? `${team.paused} paused` : 'all active'} />
         <Kpi icon="ph-seal-check" label="Avg quality" value={`${team.avgQuality}%`} />
         <Kpi icon="ph-clock" label="Avg on-time" value={`${team.avgOnTime}%`} tone={team.avgOnTime < 85 ? 'warn' : undefined} />
         <Kpi icon="ph-lightning" label="Throughput" value={String(team.throughput)} sub="last 30d" />
         <Kpi icon="ph-gauge" label="Utilization" value={`${team.util}%`} tone={team.util >= 90 ? 'warn' : team.util < 50 ? undefined : 'good'} sub={`${team.load}/${team.cap} slots`} />
         <Kpi icon="ph-tray" label="Free capacity" value={String(team.free)} tone={team.free === 0 ? 'warn' : 'good'} sub={team.overloaded ? `${team.overloaded} overloaded` : 'slots open'} />
+        <Kpi icon="ph-wallet" label="Monthly payroll" value={money(team.payroll)} sub="base + commission + bonus" />
+        <Kpi icon="ph-gavel" label="Fines pending" value={String(team.pendingFines)} tone={team.pendingFines > 0 ? 'warn' : 'good'} sub={team.pendingFines > 0 ? 'awaiting review' : 'none open'} />
       </div>
 
       {/* insight row */}
@@ -408,7 +423,7 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
         <div className="relative"><Avatar name={s.name} />{!s.active && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-card"><i className="ph-fill ph-pause-circle text-amber-500" aria-hidden /></span>}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Link href={`/admin/staff/${s.id}`} onClick={stop} className="truncate font-semibold hover:text-primary hover:underline">{s.name}</Link>
+            <StaffHoverCard staff={s.id}><Link href={`/admin/staff/${s.id}`} onClick={stop} className="truncate font-semibold hover:text-primary hover:underline">{s.name}</Link></StaffHoverCard>
             {medal !== undefined && medal < 3 && <Medal rank={medal} />}
           </div>
           <p className="truncate text-xs text-muted-foreground">{s.role}</p>
@@ -442,6 +457,14 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
         <Stat label="In flight" value={money(s.valueInFlight)} />
       </div>
 
+      {/* pay + conduct signals (from /staff/finance + /staff/performance) */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1" title="Commission tier"><i className="ph-bold ph-seal-check text-primary" aria-hidden />{s.tier}</span>
+        <span className="inline-flex items-center gap-1" title="Pay this cycle (base + commission + bonus)"><i className="ph-bold ph-wallet" aria-hidden />{money(s.monthlyPay)}/mo</span>
+        {s.pendingFines > 0 && <span className="inline-flex items-center gap-1 font-semibold text-amber-600" title="Penalties awaiting review"><i className="ph-bold ph-gavel" aria-hidden />{s.pendingFines} fine{s.pendingFines > 1 ? 's' : ''}</span>}
+        {s.rewardsTotal > 0 && <span className="ml-auto inline-flex items-center gap-1" title="Rewards unlocked"><i className="ph-bold ph-trophy text-amber-500" aria-hidden />{s.rewardsUnlocked}/{s.rewardsTotal}</span>}
+      </div>
+
       {(s.overdue > 0 || s.dueSoon > 0) && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {s.overdue > 0 && <span className="pill" style={{ background: '#ef44441f', color: '#dc2626' }}><i className="ph-bold ph-warning-circle" aria-hidden />{s.overdue} overdue</span>}
@@ -468,7 +491,7 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
         <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
           <th className="p-3"><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Select all staff" className="accent-primary" /></th>
           <th className="p-3">Staff</th><th className="p-3">Skills</th><th className="p-3 w-40">Workload</th>
-          <th className="p-3 text-right">Score</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Open</th>
+          <th className="p-3 text-right">Score</th><th className="p-3">Tier</th><th className="p-3 text-right">Quality</th><th className="p-3 text-right">On-time</th><th className="p-3 text-right">Pay/mo</th><th className="p-3 text-right">Done</th><th className="p-3 text-right">Open</th>
         </tr></thead>
         <tbody>
           {rows.map((s) => { const medal = rankMap.get(s.id); const pct = Math.round((s.load / s.capacity) * 100);
@@ -479,7 +502,7 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
                   <div className="flex items-center gap-2.5">
                     <Avatar name={s.name} size={32} />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5"><Link href={`/admin/staff/${s.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-primary hover:underline">{s.name}</Link>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}</div>
+                      <div className="flex items-center gap-1.5"><StaffHoverCard staff={s.id}><Link href={`/admin/staff/${s.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-primary hover:underline">{s.name}</Link></StaffHoverCard>{medal !== undefined && medal < 3 && <Medal rank={medal} />}{!s.active && <span className="pill pill-warn"><i className="ph-bold ph-pause" aria-hidden />paused</span>}{s.pendingFines > 0 && <span className="pill pill-warn" title="Penalties pending review"><i className="ph-bold ph-gavel" aria-hidden />{s.pendingFines}</span>}</div>
                       <p className="text-xs text-muted-foreground">{s.role}</p>
                     </div>
                   </div>
@@ -490,8 +513,10 @@ function StaffTable({ rows, rankMap, skillMeta, sel, allSelected, onToggleAll, o
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor(s.load, s.capacity) }} /></div></div>
                 </td>
                 <td className="p-3 text-right"><span className="display font-bold text-primary">{s.composite || '—'}</span></td>
+                <td className="p-3"><span className="inline-flex items-center gap-1 text-xs"><i className="ph-bold ph-seal-check text-primary" aria-hidden />{s.tier}</span></td>
                 <td className="p-3 text-right">{s.quality}%</td>
                 <td className={`p-3 text-right ${s.onTime < 85 ? 'font-semibold text-amber-600' : ''}`}>{s.onTime}%</td>
+                <td className="p-3 text-right font-medium">{money(s.monthlyPay)}</td>
                 <td className="p-3 text-right text-muted-foreground">{s.throughput}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex items-center gap-1.5">
@@ -540,6 +565,20 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
         <Mini label="On-time" value={`${s.onTime}%`} />
         <Mini label="Done" value={String(s.throughput)} />
       </div>
+
+      <Section title="Pay & conduct">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="pill" style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}><i className="ph-bold ph-seal-check" aria-hidden />{s.tier} tier</span>
+          {s.rank && <span className="pill pill-good"><i className="ph-bold ph-trophy" aria-hidden />#{s.rank}</span>}
+          {s.pendingFines > 0 ? <span className="pill pill-warn"><i className="ph-bold ph-gavel" aria-hidden />{s.pendingFines} fine{s.pendingFines > 1 ? 's' : ''} pending</span> : <span className="pill pill-good"><i className="ph-bold ph-check" aria-hidden />clean record</span>}
+          {s.rewardsTotal > 0 && <span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}><i className="ph-fill ph-trophy" aria-hidden />{s.rewardsUnlocked}/{s.rewardsTotal} rewards</span>}
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <Mini label="Pay / mo" value={money(s.monthlyPay)} />
+          <Mini label="Wallet" value={money(s.walletBalance)} />
+          <Mini label="Avg ★" value={s.avgRating != null ? `${s.avgRating}` : '—'} />
+        </div>
+      </Section>
 
       <Section title="Throughput trend">
         <div className="flex items-center justify-between rounded-xl border border-border p-3">
@@ -600,6 +639,7 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
         )}
       </Section>
 
+      <button onClick={() => impersonate(s.id)} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={`Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch" aria-hidden />Impersonate {s.name.split(' ')[0]}</button>
       <div className="flex items-stretch gap-2">
         <Link href={`/admin/staff/${s.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
         <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>

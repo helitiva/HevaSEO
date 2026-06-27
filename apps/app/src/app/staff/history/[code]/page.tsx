@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { money } from '@/data/adminMock';
 import { archivedTask, liveTaskIdForCode, serviceMeta } from '@/data/staffMock';
+import { currentStaffId } from '@/lib/currentStaff';
 import { taskTimeline } from '@/lib/staff';
 
 // A long, friendly date — "Jun 22, 2026". UTC-pinned so the day never drifts by timezone.
@@ -12,7 +13,7 @@ function fmt(iso: string): string {
 
 export default async function HistoryTaskPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const task = archivedTask(decodeURIComponent(code));
+  const task = archivedTask(decodeURIComponent(code), await currentStaffId());
   if (!task) notFound();
 
   const meta = serviceMeta(task.service);

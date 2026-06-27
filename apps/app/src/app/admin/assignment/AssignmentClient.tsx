@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { money, statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
@@ -244,7 +246,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                         {q.cust && (
                           <>
                             <span className="text-border">•</span>
-                            <span className="inline-flex items-center gap-1 font-medium text-foreground"><i className="ph-fill ph-user-circle text-primary" />{q.cust.name}</span>
+                            <CustomerHoverCard customer={q.customer}><span className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"><i className="ph-fill ph-user-circle text-primary" />{q.cust.name}</span></CustomerHoverCard>
                             <span className="inline-flex items-center gap-1" title="Lifetime value"><i className="ph-bold ph-coins" />LTV {money(q.cust.spend)}</span>
                             <span className="inline-flex items-center gap-1" title="Total orders"><i className="ph-bold ph-package" />{q.cust.orders} orders</span>
                             <span className="inline-flex items-center gap-1" title="Credit balance"><i className="ph-bold ph-wallet" />{money(q.cust.balance)} credit</span>
@@ -256,7 +258,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                           {q.candidates.map((c) => { const load = loadOf(c.name); const over = load >= c.capacity;
                             return (
                               <div key={c.name} className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-muted ${c.name === best ? 'bg-primary/5' : ''}`}>
-                                <span className="font-medium">{c.name}</span>
+                                <StaffHoverCard staff={c.name}><span className="font-medium underline-offset-2 hover:underline">{c.name}</span></StaffHoverCard>
                                 {c.name === best && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">recommended</span>}
                                 {c.skillMatch && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">skill match</span>}
                                 {q.pinnedTo === c.name && <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">pinned</span>}
@@ -281,7 +283,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                 {staff.map((s) => { const load = loadOf(s.name); const pct = Math.round((load / s.capacity) * 100); const full = load >= s.capacity;
                   return (
                     <div key={s.id}>
-                      <div className="flex items-center justify-between text-sm"><span className="font-medium">{s.name}</span><span className={`text-xs font-semibold ${full ? 'text-destructive' : 'text-muted-foreground'}`}>{load}/{s.capacity}{full ? ' · full' : ''}</span></div>
+                      <div className="flex items-center justify-between text-sm"><StaffHoverCard staff={s.id}><span className="font-medium underline-offset-2 hover:underline">{s.name}</span></StaffHoverCard><span className={`text-xs font-semibold ${full ? 'text-destructive' : 'text-muted-foreground'}`}>{load}/{s.capacity}{full ? ' · full' : ''}</span></div>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: full ? 'hsl(var(--destructive))' : pct > 80 ? '#f59e0b' : 'hsl(var(--primary))' }} /></div>
                       <p className="mt-1 text-[11px] text-muted-foreground">{s.skills.join(' · ')} · Q{s.quality} · {s.onTime}% on-time</p>
                     </div>

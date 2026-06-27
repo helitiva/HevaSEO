@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { PriorityBadge, StatusBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import {
   TICKET_CHANNEL, TICKET_TYPE, TICKET_MACROS, money,
   type TicketMessage, type TicketStatus, type TicketChannel, type TicketType, type Priority, type Tier, type OrderStatus,
@@ -338,8 +340,8 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                           <p className="mt-1 truncate text-[13px] font-medium">{t.subject}</p>
                           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <span className="inline-flex items-center gap-0.5" style={{ color: ty.color }}><i className={`ph-bold ${ty.icon}`} />{ty.label}</span>
-                            <span className="truncate">· {t.customer}</span>
-                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <><i className="ph-bold ph-user-circle text-primary" />{asgOf(t)}</> : <span className="text-amber-600">Unassigned</span>}</span>
+                            <span className="truncate">· <CustomerHoverCard customer={t.customerId ?? t.customer}><span className="hover:underline">{t.customer}</span></CustomerHoverCard></span>
+                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <StaffHoverCard staff={asgOf(t) as string}><span className="inline-flex items-center gap-0.5"><i className="ph-bold ph-user-circle text-primary" />{asgOf(t)}</span></StaffHoverCard> : <span className="text-amber-600">Unassigned</span>}</span>
                           </div>
                         </button>
                       </div>

@@ -6,6 +6,8 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { money, type AdminOrder } from '@/data/adminMock';
 
 type Tone = 'warn' | 'primary';
@@ -79,14 +81,17 @@ function AttentionCard({ order: o, overdue, onOpen }: { order: AdminOrder; overd
         </span>
         <PriorityBadge priority={o.priority} />
       </div>
-      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{o.customer} · {money(o.value)}</p>
+      <p className="mt-0.5 truncate text-[11px] text-muted-foreground"><CustomerHoverCard customer={o.customer}><span className="hover:underline">{o.customer}</span></CustomerHoverCard> · {money(o.value)}</p>
       <p className="truncate text-[11px] text-muted-foreground">{o.service} · {o.pkg}</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
         <StatusBadge status={o.status} />
-        <span className="flex items-center gap-1">
-          <i className={`ph-bold ${o.staff ? 'ph-user' : 'ph-user-minus'}`} aria-hidden />
-          {o.staff ?? 'Unassigned'}
-        </span>
+        {o.staff ? (
+          <StaffHoverCard staff={o.staff} className="items-center gap-1">
+            <span className="flex items-center gap-1 underline-offset-2 hover:underline"><i className="ph-bold ph-user" aria-hidden />{o.staff}</span>
+          </StaffHoverCard>
+        ) : (
+          <span className="flex items-center gap-1"><i className="ph-bold ph-user-minus" aria-hidden />Unassigned</span>
+        )}
         {o.deadline && (
           <span className={`flex items-center gap-1 ${overdue ? 'font-semibold text-amber-500' : ''}`}>
             <i className="ph-bold ph-calendar-blank" aria-hidden />

@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, money, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
 import { Checklist } from './Checklist';
 
@@ -249,7 +250,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
         {/* sidebar */}
         <div className="min-w-0 space-y-4">
           <Card icon="ph-user" title="Customer">
-            <div className="flex items-center gap-2"><span className="font-semibold">{p.cust?.name ?? o.customer}</span>{p.cust && <span className="inline-flex items-center gap-1" title={`${TIER[p.cust.tier].label} customer`}><i className={`ph-fill ${TIER[p.cust.tier].icon}`} style={{ color: TIER[p.cust.tier].color }} /><span className="text-[10px] font-semibold" style={{ color: TIER[p.cust.tier].color }}>{TIER[p.cust.tier].label}</span></span>}</div>
+            <div className="flex items-center gap-2"><CustomerHoverCard customer={p.cust?.id ?? o.customer}><span className="font-semibold hover:underline">{p.cust?.name ?? o.customer}</span></CustomerHoverCard>{p.cust && <span className="inline-flex items-center gap-1" title={`${TIER[p.cust.tier].label} customer`}><i className={`ph-fill ${TIER[p.cust.tier].icon}`} style={{ color: TIER[p.cust.tier].color }} /><span className="text-[10px] font-semibold" style={{ color: TIER[p.cust.tier].color }}>{TIER[p.cust.tier].label}</span></span>}</div>
             <p className="text-xs text-muted-foreground">{o.customer}{p.cust ? ` · ${p.cust.email}` : ''}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm"><Stat label="Lifetime value" value={money(p.cust?.spend ?? o.value)} /><Stat label="Total orders" value={String(p.cust?.orders ?? 1)} /><Stat label="Credit" value={money(balance)} /><Stat label="Status" value={p.cust?.status ?? 'shadow'} /></div>
             {p.cust && <Link href={`/admin/customers/${p.cust.id}`} className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Customer profile →</Link>}

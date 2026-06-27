@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SlideOver } from '@/components/shared/SlideOver';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { money } from '@/data/adminMock';
 
 // ── view-model types (built in page.tsx) ──────────────────────────────────────
@@ -175,7 +176,7 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
                 className={`flex cursor-grab items-center gap-1.5 rounded-lg border border-border bg-card py-1 pl-2 pr-1 text-xs active:cursor-grabbing ${dragId === u.id ? 'opacity-40' : ''}`}
               >
                 <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden />
-                <span className="font-medium">{u.name}</span>
+                <StaffHoverCard staff={u.id}><span className="font-medium underline-offset-2 hover:underline">{u.name}</span></StaffHoverCard>
                 <ManagerSelect managers={managers} value={null} onChange={(mid) => assign(u.id, mid)} />
               </div>
             ))}
@@ -295,7 +296,7 @@ function ManagerCard({ m, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd
             title={`${s.name} · ${s.role} — drag to another manager`}
             className={`inline-flex cursor-grab items-center gap-1 rounded-full border border-border bg-background/50 py-0.5 pl-0.5 pr-2 text-[11px] font-medium active:cursor-grabbing ${dragId === s.id ? 'opacity-40' : ''}`}
           >
-            <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden /><Avatar name={s.name} size={18} />{s.name}{!s.active && <i className="ph-fill ph-pause-circle text-amber-500" aria-hidden />}
+            <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden /><Avatar name={s.name} size={18} /><StaffHoverCard staff={s.id}><span className="underline-offset-2 hover:underline">{s.name}</span></StaffHoverCard>{!s.active && <i className="ph-fill ph-pause-circle text-amber-500" aria-hidden />}
           </span>
         ))}
         {m.team.length === 0 && <span className="text-[11px] text-muted-foreground">{dragActive ? 'Drop a staff here' : 'No staff assigned — open to add'}</span>}
@@ -442,7 +443,7 @@ function ManagerPanel({ m, allStaff, managers, assignment, skillMeta, leaveState
                 <div className="flex items-center gap-2.5">
                   <Avatar name={s.name} size={28} />
                   <div className="min-w-0 flex-1">
-                    <Link href={`/admin/staff?staff=${s.id}`} className="block truncate text-sm font-semibold hover:text-primary hover:underline">{s.name}</Link>
+                    <StaffHoverCard staff={s.id}><Link href={`/admin/staff?staff=${s.id}`} className="block truncate text-sm font-semibold hover:text-primary hover:underline">{s.name}</Link></StaffHoverCard>
                     <p className="truncate text-[11px] text-muted-foreground">{s.role}</p>
                   </div>
                   <div className="shrink-0 text-right">

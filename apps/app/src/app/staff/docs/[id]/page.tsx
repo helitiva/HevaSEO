@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { docForStaff, FORMAT_META, audienceMeta, type DocBlock } from '@/data/staffDocs';
-import { CURRENT_STAFF } from '@/data/staffMock';
 import { STAFF } from '@/data/adminMock';
+import { currentStaffId } from '@/lib/currentStaff';
 
 const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -11,7 +11,8 @@ const RES_ICON: Record<string, string> = { link: 'ph-link-simple', file: 'ph-fil
 
 export default async function DocReaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const me = STAFF.find((s) => s.id === CURRENT_STAFF.id);
+  const sid = await currentStaffId();
+  const me = STAFF.find((s) => s.id === sid);
   const doc = docForStaff(id, me?.skills ?? []);
 
   // Not found OR not permitted for this specialty — treated identically so existence never leaks.

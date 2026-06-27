@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { money, type OrderStatus, type Priority, type Tier, type AdminDeliverable } from '@/data/adminMock';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
@@ -121,7 +122,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 <div className="mt-1 flex items-center gap-1.5 text-[11px]">
                   <span className="truncate text-muted-foreground">{q.service} · {q.pkg}</span>
                   <span className="ml-auto flex shrink-0 items-center gap-1">
-                    <span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 font-semibold text-foreground"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span>
+                    <StaffHoverCard staff={q.staff ?? ''}><span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 font-semibold text-foreground"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span></StaffHoverCard>
                     <i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} title={q.customer} />
                   </span>
                 </div>

@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge } from '@/components/shared/StatBadge';
 import { money, statusLabel, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
+import { impersonateCustomer } from '@/lib/impersonation';
 
 interface OrderRow { id: string; code: string; service: string; pkg: string; status: OrderStatus; value: number; created: string }
 interface Project { name: string; site: string; folders: { name: string; orders: number }[] }
@@ -73,7 +74,7 @@ export function CustomerProfileClient(p: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <a href={`mailto:${c.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" />Email</a>
             <button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent">Adjust credit</button>
-            <button onClick={() => notify('Magic link sent')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Impersonate</button>
+            <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>
             <Menu items={[{ icon: 'ph-tag', label: 'Add tag', fn: () => notify('Tag added') }, { icon: 'ph-git-merge', label: 'Merge duplicate', fn: () => notify('Merge — pick a duplicate') }, { icon: 'ph-prohibit', label: 'Suspend', fn: () => notify('Customer suspended'), danger: true }]} />
           </div>
         </div>

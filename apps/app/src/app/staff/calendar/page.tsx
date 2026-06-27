@@ -1,12 +1,13 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/staff/EmptyState';
 import { CalendarClient } from './CalendarClient';
-import { MY_TASKS } from '@/data/staffMock';
+import { myTasks } from '@/data/staffMock';
+import { currentStaffId } from '@/lib/currentStaff';
 import { TODAY } from '@/lib/staff';
 import { monthOf } from '@/lib/calendar';
 
-export default function CalendarPage() {
-  const dated = MY_TASKS.filter((t) => t.deadline);
+export default async function CalendarPage() {
+  const dated = myTasks(await currentStaffId()).filter((t) => t.deadline);
   // Open on the month of the soonest deadline (fallback to today's month).
   const initialMonth = dated.length
     ? monthOf([...dated].sort((a, b) => (a.deadline! < b.deadline! ? -1 : 1))[0].deadline!)

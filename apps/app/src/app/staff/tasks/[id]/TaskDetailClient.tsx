@@ -15,12 +15,12 @@ interface Props {
   task: StaffTask; deliverables: StaffDeliverable[]; messages: StaffMessage[];
   days: number | null; prevId: string | null; nextId: string | null;
   client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
-  selfNotes: SelfNote[];
+  selfNotes: SelfNote[]; authorName?: string;
 }
 
 interface Activity { icon: string; color: string; title: string; detail?: string; at: string }
 
-export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes }: Props) {
+export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes, authorName = CURRENT_STAFF.name }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(task.status);
   const [toast, setToast] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
           <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} lockReason={lockReason} status={status} />
 
-          <SelfNoteLog seed={selfNotes} author={CURRENT_STAFF.name} />
+          <SelfNoteLog seed={selfNotes} author={authorName} />
         </div>
 
         <div className="flex flex-col gap-4">

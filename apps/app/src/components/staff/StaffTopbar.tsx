@@ -1,7 +1,8 @@
 import { ThemeToggle } from '../ThemeToggle';
 import { NotifBell } from './NotifBell';
 
-export function StaffTopbar({ onMenu }: { onMenu?: () => void }) {
+export function StaffTopbar({ onMenu, identity }: { onMenu?: () => void; identity?: { name: string; initials: string } }) {
+  const initials = identity?.initials ?? 'HN';
   return (
     <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
       <button onClick={onMenu} aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-lg border border-border lg:hidden">
@@ -18,7 +19,7 @@ export function StaffTopbar({ onMenu }: { onMenu?: () => void }) {
       </span>
       <ThemeToggle />
       <NotifBell />
-      <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-md">HN</span>
+      <span title={identity ? `Impersonating ${identity.name}` : undefined} className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md ${identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : 'bg-gradient-to-br from-brand-500 to-brand-700'}`}>{initials}</span>
     </header>
   );
 }

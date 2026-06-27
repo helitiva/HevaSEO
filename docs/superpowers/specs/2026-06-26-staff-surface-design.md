@@ -455,6 +455,21 @@ Content-weighted, where every bucket carries per-type task counts **and** the va
 earned, so the chart switches metrics without refetching. Unit-tested (bucket counts, slice sums =
 bucket totals, determinism).
 
+**My Day — momentum & motivation (built 2026-06-27, thirteenth pass):** the header became a gamified
+hero — a **Today's momentum** progress bar (cleared vs to-go, fills as tasks clear) with encouraging
+microcopy, a **🔥 first-pass streak** chip, and a **💰 ≈$N to earn** chip tying the open queue
+straight to commission (`load × avgCommission`). The Focus list rows now use **divider lines**
+(`divide-y`) instead of zebra striping for a cleaner table read.
+
+**My Day — at-a-glance rollups for every surface (built 2026-06-27, twelfth pass):** the staff home
+now surfaces the whole world the later features added. A **quick-links strip** (My tasks · Calendar ·
+Deliverables · Performance · Finance · Notes · Docs) sits under the stat row. The context rail gained:
+a richer **Wallet** card (available-to-withdraw + this-month take-home + commission-tier chip +
+a red **pending-fine alert** when fines await review), a **Next bonus** card (the nearest unearned
+reward with a progress bar + total earned, → performance), and a **This week** card (deadlines landing
+in the next 7 days, → calendar). All computed server-side from `myFinance` / `myRewards` /
+`summarisePenalties` / `commissionTierFor` and passed in the existing `OverviewData`.
+
 **Notes — full-page reader/editor (built 2026-06-27, eleventh pass):** notes can now be opened and
 edited as a **full page** (docs-style), not just in the modal. New routes `/staff/notes/[id]`
 (reader), `/staff/notes/[id]/edit` and `/staff/notes/new` (editor) render a `max-w-3xl` document

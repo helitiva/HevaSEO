@@ -45,21 +45,30 @@ const keywordsOf = (b: { label: string; value: string }[]): string[] => {
   return field ? field.split(/[,;]/).map((k) => k.trim()).filter(Boolean).slice(0, 6) : [];
 };
 
-export const MY_TASKS: StaffTask[] = MY_TASK_IDS
-  .map((id) => ORDERS.find((o) => o.id === id))
-  .filter((o): o is NonNullable<typeof o> => Boolean(o))
-  .map((o) => {
-    const brief = briefFor(o.id);
-    return {
-      id: o.id, code: o.code, customer: o.customer, service: o.service, pkg: o.pkg,
-      status: o.status, priority: o.priority, skill: SERVICE_SKILL[o.service] ?? null,
-      deadline: o.deadline, created: o.created,
-      site: siteOf(brief), keywords: keywordsOf(brief),
-      note: ORDER_NOTE[o.id] ?? null, qa: qaCriteriaFor(o.service), brief,
-    };
-  });
+// One order → the money-free StaffTask shape shown on the board.
+function buildTask(o: (typeof ORDERS)[number]): StaffTask {
+  const brief = briefFor(o.id);
+  return {
+    id: o.id, code: o.code, customer: o.customer, service: o.service, pkg: o.pkg,
+    status: o.status, priority: o.priority, skill: SERVICE_SKILL[o.service] ?? null,
+    deadline: o.deadline, created: o.created,
+    site: siteOf(brief), keywords: keywordsOf(brief),
+    note: ORDER_NOTE[o.id] ?? null, qa: qaCriteriaFor(o.service), brief,
+  };
+}
 
-export const taskById = (id: string): StaffTask | undefined => MY_TASKS.find((t) => t.id === id);
+// The staffer's board. s3 (the demo staffer) keeps its hand-curated spread; everyone else derives
+// from the live ORDERS assigned to them, so admin impersonation shows that person's real tasks.
+export function myTasks(staffId: string = CURRENT_STAFF.id): StaffTask[] {
+  const name = STAFF.find((x) => x.id === staffId)?.name ?? CURRENT_STAFF.name;
+  const orders = staffId === CURRENT_STAFF.id
+    ? MY_TASK_IDS.map((id) => ORDERS.find((o) => o.id === id)).filter((o): o is NonNullable<typeof o> => Boolean(o))
+    : ORDERS.filter((o) => o.staff === name && o.status !== 'canceled');
+  return orders.map(buildTask);
+}
+export const MY_TASKS: StaffTask[] = myTasks();
+
+export const taskById = (id: string, staffId: string = CURRENT_STAFF.id): StaffTask | undefined => myTasks(staffId).find((t) => t.id === id);
 
 // Deliverables for a task, oldest → newest (newest is the "current" submission).
 export const deliverablesFor = (orderId: string): StaffDeliverable[] =>
@@ -69,8 +78,8 @@ export const deliverablesFor = (orderId: string): StaffDeliverable[] =>
 export interface MyDeliverable {
   d: StaffDeliverable; taskId: string; taskCode: string; service: string; customer: string;
 }
-export const myDeliverables = (): MyDeliverable[] =>
-  MY_TASKS.flatMap((t) =>
+export const myDeliverables = (staffId: string = CURRENT_STAFF.id): MyDeliverable[] =>
+  myTasks(staffId).flatMap((t) =>
     deliverablesFor(t.id).map((d) => ({ d, taskId: t.id, taskCode: t.code, service: t.service, customer: t.customer })),
   ).sort((a, b) => (b.d.submittedAt ?? '').localeCompare(a.d.submittedAt ?? ''));
 
@@ -80,8 +89,8 @@ export const reworkCount = (orderId: string): number =>
 
 // Headline quality stats for the deliverables workspace.
 export interface DeliverableStats { total: number; approved: number; inReview: number; reworking: number; firstPassRate: number | null; }
-export function deliverableStats(): DeliverableStats {
-  const rows = myDeliverables();
+export function deliverableStats(staffId: string = CURRENT_STAFF.id): DeliverableStats {
+  const rows = myDeliverables(staffId);
   const approvedTaskIds = [...new Set(rows.filter((r) => r.d.status === 'approved').map((r) => r.taskId))];
   const firstPass = approvedTaskIds.filter((id) => reworkCount(id) === 0).length;
   return {
@@ -115,9 +124,9 @@ export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | 
 
 // ---- Customers the staffer is actively caring for (derived from their board; no money) ----
 export interface CaredCustomer { name: string; active: number; services: string[]; }
-export function myCustomers(): CaredCustomer[] {
+export function myCustomers(staffId: string = CURRENT_STAFF.id): CaredCustomer[] {
   const map = new Map<string, CaredCustomer>();
-  for (const t of MY_TASKS) {
+  for (const t of myTasks(staffId)) {
     if (t.status === 'completed' || t.status === 'canceled') continue;
     const c = map.get(t.customer) ?? { name: t.customer, active: 0, services: [] };
     map.set(t.customer, {
@@ -131,13 +140,14 @@ export function myCustomers(): CaredCustomer[] {
 
 // ---- Latest review feedback on my work (reviewer/admin QA note on a deliverable) ----
 export interface LatestReview { taskCode: string; note: string; at: string; changesRequested: boolean; }
-export function latestReview(): LatestReview | null {
-  const mine = new Set(MY_TASK_IDS);
+export function latestReview(staffId: string = CURRENT_STAFF.id): LatestReview | null {
+  const tasks = myTasks(staffId);
+  const mine = new Set(tasks.map((t) => t.id));
   const d = DELIVERABLES
     .filter((x) => mine.has(x.orderId) && x.reviewNote && x.reviewedAt)
     .sort((a, b) => (b.reviewedAt ?? '').localeCompare(a.reviewedAt ?? ''))[0];
   if (!d) return null;
-  const task = MY_TASKS.find((t) => t.id === d.orderId);
+  const task = tasks.find((t) => t.id === d.orderId);
   return { taskCode: task?.code ?? d.orderId, note: d.reviewNote as string, at: d.reviewedAt as string, changesRequested: d.status === 'changes_requested' };
 }
 
@@ -177,8 +187,8 @@ const MANAGER_NOTE: Record<string, string> = {
   mgr2: 'On content tasks: always fill the meta title + description and add 2–3 internal links before sending for review. Ping me early if a brief is unclear — that beats a rework round.',
   mgr1: 'For link work: share the target domains with me before outreach. Quality over volume — one DR50 placement beats three weak ones.',
 };
-export const myManager = (): ManagerInfo => {
-  const m = managerOf(CURRENT_STAFF.id);
+export const myManager = (staffId: string = CURRENT_STAFF.id): ManagerInfo => {
+  const m = managerOf(staffId);
   return m
     ? { id: m.id, name: m.name, rank: m.rank, title: m.title, skills: m.skills, note: MANAGER_NOTE[m.id] ?? null }
     : { id: '', name: 'Unassigned', rank: '—', title: 'No manager assigned', skills: [], note: null };
@@ -442,12 +452,84 @@ const WORK_ARCHIVE: Record<string, WorkItem[]> = {
   ],
 };
 
+// ---- Per-staff archive generation (s3 is hand-authored above; the rest are derived) ----
+// Admin lists the whole team, so every staffer needs a track record — not just CURRENT_STAFF.
+// These rows are generated deterministically and calibrated to each member's headline
+// quality/on-time so their profile reads consistently with their score. Money-free except the
+// staffer's OWN commission (a flat per-task figure, never an order value), same invariant as above.
+const ARCH_SERVICE_BY_SKILL: Record<string, string> = { keyword: 'Keyword', backlink: 'Backlink', content: 'Content', optimize: 'Optimization' };
+const ARCH_COMMISSION: Record<string, number> = { Content: 40, Keyword: 30, Backlink: 35, Optimization: 45, Audit: 22, Indexer: 24 };
+const ARCH_PKG: Record<string, string[]> = {
+  Content: ['3 articles', '5 articles', '10 articles'],
+  Keyword: ['Standard', 'Pro'],
+  Backlink: ['10 links', '25 links', 'Guest post'],
+  Optimization: ['Standard', 'Technical'],
+};
+const ARCH_CUSTOMERS = ['Acme Co', 'Nova', 'Lumen', 'Pulse Media', 'Vertex AI', 'Orbit Labs', 'Bright Ltd', 'Peak Digital', 'Cobalt Studio'];
+const ARCH_REVISION_NOTES: Record<string, string[]> = {
+  Content: ['Tighten the intros — tone read a bit generic.', 'Add internal links and fill meta titles/descriptions.', 'Off-brand voice on a couple of sections.'],
+  Keyword: ['Add a search-intent column to the keyword map.', 'Diversify the anchor suggestions.'],
+  Backlink: ['Anchor mix too exact-match — diversify.', 'Two referring domains below the quality bar — swap them.'],
+  Optimization: ['Cite the before/after metrics with sources.', 'Fix the meta descriptions flagged in the audit.'],
+};
+// Local FNV-ish hash so this block has no ordering dependency on earnSeed (defined further down).
+function archSeed(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+function archIso(daysAgo: number): string {
+  const d = new Date('2026-06-25T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+function genWorkArchive(s: { id: string; skills: string[]; quality: number; onTime: number }): WorkItem[] {
+  const services = s.skills.map((k) => ARCH_SERVICE_BY_SKILL[k]).filter(Boolean);
+  if (services.length === 0) services.push('Content');
+  const N = 16;
+  const items: WorkItem[] = [];
+  let counter = 1000 + (archSeed(s.id) % 400);
+  const ratingBase = Math.round(s.quality / 20); // 95→5, 90→5, 84→4
+  for (let i = 0; i < N; i++) {
+    const seed = archSeed(`${s.id}-arch-${i}`);
+    const service = services[seed % services.length];
+    const pkgs = ARCH_PKG[service] ?? ['Standard'];
+    const pkg = pkgs[(seed >>> 2) % pkgs.length];
+    const customer = ARCH_CUSTOMERS[(seed >>> 5) % ARCH_CUSTOMERS.length];
+    const daysAgo = Math.round(4 + (i * 172) / (N - 1)); // spread ~4..176 days back
+    const completedAt = archIso(daysAgo);
+    const onTime = (seed % 100) < s.onTime;
+    const miss = 100 - s.quality;                        // lower quality → more revision rounds
+    const rRoll = (seed >>> 7) % 100;
+    const revisions = rRoll < miss / 2 ? 2 : rRoll < miss ? 1 : 0;
+    const rated = ((seed >>> 11) % 10) < 8;               // ~80% of tasks get an admin rating
+    let rating: number | null = null;
+    if (rated) {
+      const jitter = ((seed >>> 13) % 3) === 0 ? -1 : 0;
+      rating = Math.max(1, Math.min(5, ratingBase - (revisions >= 2 ? 2 : revisions === 1 ? 1 : 0) + jitter));
+    }
+    const days = 3 + ((seed >>> 17) % 6);
+    const noteList = ARCH_REVISION_NOTES[service] ?? ['Minor fixes requested.'];
+    const reviewNote = revisions > 0 ? noteList[(seed >>> 19) % noteList.length] : null;
+    const commission = (ARCH_COMMISSION[service] ?? 30) + ((seed >>> 23) % 16);
+    const prefix = service.slice(0, 3).toUpperCase();
+    items.push({ code: `${prefix}-${counter++}`, service, pkg, customer, completedAt, versions: revisions + 1, revisions, onTime, rating, days, reviewNote, commission });
+  }
+  return items.sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+}
+// The whole-team archive: hand-authored where present, generated otherwise.
+const WORK_ARCHIVE_ALL: Record<string, WorkItem[]> = (() => {
+  const out: Record<string, WorkItem[]> = { ...WORK_ARCHIVE };
+  for (const s of STAFF) if (!out[s.id]) out[s.id] = genWorkArchive(s);
+  return out;
+})();
+
 export const workHistory = (staffId: string = CURRENT_STAFF.id): WorkItem[] =>
-  [...(WORK_ARCHIVE[staffId] ?? [])].sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+  [...(WORK_ARCHIVE_ALL[staffId] ?? [])].sort((a, b) => b.completedAt.localeCompare(a.completedAt));
 
 // Detail lookups for the history task page.
 export const archivedTask = (code: string, staffId: string = CURRENT_STAFF.id): WorkItem | undefined =>
-  (WORK_ARCHIVE[staffId] ?? []).find((w) => w.code === code);
+  (WORK_ARCHIVE_ALL[staffId] ?? []).find((w) => w.code === code);
 // If this archived task is still a live task on the staff board, its id (→ full task page); else null.
 export const liveTaskIdForCode = (code: string): string | null =>
   MY_TASKS.find((t) => t.code === code)?.id ?? null;
@@ -455,8 +537,8 @@ export const liveTaskIdForCode = (code: string): string | null =>
 export const myWorkStats = (staffId: string = CURRENT_STAFF.id) => computeWorkStats(workHistory(staffId));
 
 // Active (in-flight) tasks right now — counted from the live board, money stripped.
-export const activeWorkload = (): number =>
-  MY_TASKS.filter((t) => t.status !== 'completed' && t.status !== 'canceled').length;
+export const activeWorkload = (staffId: string = CURRENT_STAFF.id): number =>
+  myTasks(staffId).filter((t) => t.status !== 'completed' && t.status !== 'canceled').length;
 
 // ---- Monthly earnings history (current month = real PAYOUTS; prior months seeded) ----
 const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -640,8 +722,62 @@ const PAYOUT_REQUESTS: Record<string, PayoutRequest[]> = {
   ],
 };
 
-export const myCommissionCredits = (staffId: string = CURRENT_STAFF.id): WalletEntry[] => COMMISSION_CREDITS[staffId] ?? [];
-export const myPenalties = (staffId: string = CURRENT_STAFF.id): StaffPenalty[] => STAFF_PENALTIES[staffId] ?? [];
+// ---- Per-staff finance generation (s3 hand-authored above; the rest derived from the archive) ----
+// Wallet credits, penalties and payout history for the whole team, so the admin profile/ finance
+// view is populated for everyone. All figures are commission-derived — never an order value.
+function genCredits(s: { id: string; quality: number }): WalletEntry[] {
+  const archive = WORK_ARCHIVE_ALL[s.id] ?? [];
+  const june = archive.filter((a) => a.completedAt.slice(0, 7) === '2026-06');
+  const carried = 300 + (archSeed(`${s.id}-wallet`) % 600);
+  const out: WalletEntry[] = [{ id: `${s.id}-wc0`, kind: 'commission', label: 'Commission carried over', taskCode: null, at: '2026-06-01', amount: carried }];
+  june.forEach((a, idx) => out.push({ id: `${s.id}-wc${idx + 1}`, kind: 'commission', label: `Commission · ${a.code}`, taskCode: a.code, at: a.completedAt, amount: a.commission, pending: idx === june.length - 1 && june.length > 1 }));
+  if (s.quality >= 90) out.push({ id: `${s.id}-wb`, kind: 'bonus', label: 'Quality bonus · June', taskCode: null, at: '2026-06-26', amount: 100 });
+  return out;
+}
+function genPenalties(s: { id: string }): StaffPenalty[] {
+  const archive = WORK_ARCHIVE_ALL[s.id] ?? [];
+  const out: StaffPenalty[] = [];
+  let n = 1;
+  const late = archive.filter((a) => !a.onTime);
+  const heavyRev = archive.filter((a) => a.revisions >= 2);
+  const lowRated = archive.filter((a) => a.rating !== null && a.rating <= 2);
+  const recentRev = archive.find((a) => a.revisions === 1 && a.completedAt.slice(0, 7) === '2026-06');
+  if (late[0]) out.push({ id: `${s.id}-pen${n++}`, type: 'late', taskCode: late[0].code, reason: 'Delivered after the deadline.', sizing: 'flat', amount: 25, detail: 'Flat late fee', status: 'applied', createdAt: late[0].completedAt, by: 'Late-delivery rule' });
+  if (heavyRev[0]) out.push({ id: `${s.id}-pen${n++}`, type: 'revision', taskCode: heavyRev[0].code, reason: `${heavyRev[0].versions} versions — over the 2-round allowance.`, sizing: 'pct', amount: Math.max(8, Math.round(heavyRev[0].commission * 0.25)), detail: '25% of task commission', status: 'applied', createdAt: heavyRev[0].completedAt, by: 'Revision rule' });
+  if (lowRated[0]) out.push({ id: `${s.id}-pen${n++}`, type: 'rating', taskCode: lowRated[0].code, reason: `QA rating ${lowRated[0].rating}/5 — below the 3-star bar.`, sizing: 'flat', amount: 15, detail: 'Flat quality fee', status: 'waived', createdAt: lowRated[0].completedAt, by: 'Manager (waived — first offence)' });
+  if (recentRev) out.push({ id: `${s.id}-pen${n++}`, type: 'revision', taskCode: recentRev.code, reason: '3rd revision round — 1 over the 2-round allowance.', sizing: 'progressive', amount: Math.max(8, Math.round(recentRev.commission * 0.1)), detail: 'Round 3 · 10% of task commission', status: 'pending', createdAt: recentRev.completedAt, by: 'Revision rule' });
+  return out;
+}
+function genPayouts(s: { id: string }): PayoutRequest[] {
+  const seed = archSeed(`${s.id}-payouts`);
+  return [
+    { id: `${s.id}-po1`, amount: 150 + (seed % 5) * 30, methodId: `${s.id}-pm1`, status: 'paid', requestedAt: '2026-06-05', note: 'Mid-cycle withdrawal' },
+    { id: `${s.id}-po2`, amount: 120 + ((seed >>> 4) % 5) * 30, methodId: `${s.id}-pm1`, status: 'paid', requestedAt: '2026-05-05' },
+  ];
+}
+const COMMISSION_CREDITS_ALL: Record<string, WalletEntry[]> = (() => {
+  const out: Record<string, WalletEntry[]> = { ...COMMISSION_CREDITS };
+  for (const s of STAFF) if (!out[s.id]) out[s.id] = genCredits(s);
+  return out;
+})();
+const STAFF_PENALTIES_ALL: Record<string, StaffPenalty[]> = (() => {
+  const out: Record<string, StaffPenalty[]> = { ...STAFF_PENALTIES };
+  for (const s of STAFF) if (!out[s.id]) out[s.id] = genPenalties(s);
+  return out;
+})();
+const PAYOUT_METHODS_ALL: Record<string, PayoutMethod[]> = (() => {
+  const out: Record<string, PayoutMethod[]> = { ...PAYOUT_METHODS };
+  for (const s of STAFF) if (!out[s.id]) out[s.id] = [{ id: `${s.id}-pm1`, kind: 'bank', label: 'Bank transfer ••' + String(1000 + (archSeed(s.id) % 9000)).slice(-4), isDefault: true, feePct: 0, etaDays: 2 }];
+  return out;
+})();
+const PAYOUT_REQUESTS_ALL: Record<string, PayoutRequest[]> = (() => {
+  const out: Record<string, PayoutRequest[]> = { ...PAYOUT_REQUESTS };
+  for (const s of STAFF) if (!out[s.id]) out[s.id] = genPayouts(s);
+  return out;
+})();
+
+export const myCommissionCredits = (staffId: string = CURRENT_STAFF.id): WalletEntry[] => COMMISSION_CREDITS_ALL[staffId] ?? [];
+export const myPenalties = (staffId: string = CURRENT_STAFF.id): StaffPenalty[] => STAFF_PENALTIES_ALL[staffId] ?? [];
 
 // Penalties tied to one task → a per-status roll-up for the task-history table.
 export interface TaskPenalty { applied: number; pending: number; waived: number; net: number; items: StaffPenalty[]; }
@@ -653,8 +789,8 @@ export function taskPenalty(code: string, staffId: string = CURRENT_STAFF.id): T
   const pending = sum('pending');
   return { applied, pending, waived: sum('waived'), net: applied + pending, items };
 }
-export const myPayoutMethods = (staffId: string = CURRENT_STAFF.id): PayoutMethod[] => PAYOUT_METHODS[staffId] ?? [];
-export const myPayouts = (staffId: string = CURRENT_STAFF.id): PayoutRequest[] => PAYOUT_REQUESTS[staffId] ?? [];
+export const myPayoutMethods = (staffId: string = CURRENT_STAFF.id): PayoutMethod[] => PAYOUT_METHODS_ALL[staffId] ?? [];
+export const myPayouts = (staffId: string = CURRENT_STAFF.id): PayoutRequest[] => PAYOUT_REQUESTS_ALL[staffId] ?? [];
 
 // Everything the Finance page needs, bundled. Money-leak-safe: derives the wallet figures from
 // the commission-only entries above and never touches PAYOUTS.basis / PAYOUTS.rate.

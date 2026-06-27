@@ -3,7 +3,7 @@ import { KpiTile } from '@/components/shared/KpiTile';
 import { EmptyState } from '@/components/staff/EmptyState';
 import { STAFF, money } from '@/data/adminMock';
 import {
-  CURRENT_STAFF, myCustomers, latestReview, myManager, deliverableStats,
+  myCustomers, latestReview, myManager, deliverableStats,
   myWorkStats, workHistory, activeWorkload, serviceMeta, liveTaskIdForCode,
   buildActivity, ACTIVITY_TYPE_META, taskPenalty, myPenalties, myRewards,
 } from '@/data/staffMock';
@@ -16,11 +16,13 @@ import {
   type ScoreKey, type ScoreSegment, type ServiceStat, type WorkItem,
   type RatingPoint, type CustomerWork, type RevisionReason,
 } from '@/lib/staff';
+import { currentStaffId } from '@/lib/currentStaff';
 
 // The staffer's own standing: scorecard, earnings (their OWN pay — customer prices stay hidden),
 // team ranking by performance, and the customers they're caring for.
-export default function PerformancePage() {
-  const s = STAFF.find((x) => x.id === CURRENT_STAFF.id);
+export default async function PerformancePage() {
+  const sid = await currentStaffId();
+  const s = STAFF.find((x) => x.id === sid);
 
   if (!s) {
     return (
@@ -40,23 +42,23 @@ export default function PerformancePage() {
 
   const rank = rankByComposite(STAFF, s.id);
   const board = [...STAFF].sort((a, b) => b.composite - a.composite || a.id.localeCompare(b.id));
-  const customers = myCustomers();
+  const customers = myCustomers(sid);
 
   // Coaching inputs — the "what to do next" half of the page.
   const lever = improvementLever({ quality: s.quality, onTime: s.onTime });
-  const review = latestReview();
-  const manager = myManager();
-  const dstats = deliverableStats();
+  const review = latestReview(sid);
+  const manager = myManager(sid);
+  const dstats = deliverableStats(sid);
   const leverCopy = leverGuidance(lever, s, dstats);
 
   // Score breakdown — segments reconcile to the headline composite (see scoreBreakdown).
   const breakdown = scoreBreakdown({ quality: s.quality, onTime: s.onTime, throughput: s.throughput }, s.composite);
 
   // Track record + earnings history — the data-dense "everything about my work" half.
-  const work = myWorkStats();
-  const history = workHistory();
-  const activeNow = activeWorkload();
-  const activity = buildActivity();
+  const work = myWorkStats(sid);
+  const history = workHistory(sid);
+  const activeNow = activeWorkload(sid);
+  const activity = buildActivity(sid);
 
   // Extra track-record cuts.
   const ratings = ratingTrend(history);
@@ -69,12 +71,12 @@ export default function PerformancePage() {
 
   // Commission tier — performance-based; managers bump it up as the composite climbs.
   const tier = commissionTierFor(s.composite);
-  const penalties = myPenalties();
+  const penalties = myPenalties(sid);
   const finesTotal = appliedPenaltyTotal(penalties);
   const penSummary = summarisePenalties(penalties, '2026-06');
 
   // Bonus rewards — progress toward performance milestones that pay a one-off bonus.
-  const rewards = myRewards();
+  const rewards = myRewards(sid);
   const bonusEarned = rewardsEarned(rewards);
   const bonusOnOffer = rewardsOnOffer(rewards);
 
@@ -326,7 +328,7 @@ export default function PerformancePage() {
               </tr>
             </thead>
             <tbody>
-              {history.map((t) => <TaskRow key={t.code} t={t} />)}
+              {history.map((t) => <TaskRow key={t.code} t={t} staffId={sid} />)}
             </tbody>
           </table>
         </div>
@@ -617,12 +619,12 @@ function fmtShortDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
-function TaskRow({ t }: { t: WorkItem }) {
+function TaskRow({ t, staffId }: { t: WorkItem; staffId: string }) {
   const meta = serviceMeta(t.service);
   // Live board task → open the full task page; otherwise the read-only archived detail. Both new-tab.
   const liveId = liveTaskIdForCode(t.code);
   const href = liveId ? `/staff/tasks/${liveId}` : `/staff/history/${t.code}`;
-  const pen = taskPenalty(t.code);
+  const pen = taskPenalty(t.code, staffId);
   return (
     <tr className="group border-b border-border/50 last:border-0 hover:bg-muted/40">
       <td className="p-2">

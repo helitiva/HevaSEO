@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from './Logo';
 import { NAV } from '@/data/nav';
+import { filterNav } from '@/lib/rbac';
 
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
+  // The portal always renders as the customer persona. Same RBAC matrix as the
+  // admin/staff shells (lib/rbac.ts) — one rule across every surface.
+  const nav = filterNav(NAV, 'customer');
 
   return (
     <aside
@@ -25,7 +29,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
       </div>
 
       <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-2.5 pb-4 pt-4">
-        {NAV.map((section) => (
+        {nav.map((section) => (
           <div key={section.title}>
             <p className="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground first:pt-1">
               {section.title}
