@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { PageHeader } from '@/components/admin/PageHeader';
-import { SlideOver } from '@/components/admin/SlideOver';
-import { StatusBadge } from '@/components/admin/StatBadge';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { SlideOver } from '@/components/shared/SlideOver';
+import { StatusBadge } from '@/components/shared/StatBadge';
 import { money, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
 
 export type Health = 'good' | 'ok' | 'risk';

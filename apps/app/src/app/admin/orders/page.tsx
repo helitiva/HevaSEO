@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { OrdersExplorer, type ExplorerOrder } from './OrdersExplorer';
 import { ORDERS, customerByCompany } from '@/data/adminMock';
 

@@ -17,7 +17,9 @@ const LIVE_KEYS = (Object.keys(SERVICES) as ServiceKey[]).filter((k) => !!SERVIC
 export function QuickOrderPanel() {
   const router = useRouter();
   const pathname = usePathname();
-  const param = useSearchParams().get('neworder');
+  const params = useSearchParams();
+  const param = params.get('neworder');
+  const presetDomain = params.get('project') ?? undefined; // started from a project → preselect it + its folder
   const open = param != null;
   const preset = param && param in SERVICE_CATALOG ? (param as ServiceKey) : null;
 
@@ -88,7 +90,7 @@ export function QuickOrderPanel() {
             /* step 2 — the order form */
             <>
               <p className="mb-4 text-sm text-muted-foreground">{catalog.hero}</p>
-              <ServiceOrder catalog={catalog} onPlaced={close} stacked />
+              <ServiceOrder catalog={catalog} onPlaced={close} stacked presetDomain={presetDomain} />
             </>
           )}
         </div>

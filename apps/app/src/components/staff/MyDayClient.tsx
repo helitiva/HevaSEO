@@ -224,7 +224,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
 
         {/* Context rail */}
         <aside className="space-y-3">
-          <Link href="/staff/performance" className="kcard block transition hover:border-primary/40">
+          <Link href="/staff/finance" className="kcard block transition hover:border-primary/40">
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-wallet text-emerald-500" aria-hidden /> Recent pay</p>
             {overview.earnings ? (
               <>

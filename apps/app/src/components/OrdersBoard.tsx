@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  ORDERS, SERVICES, STATUSES, projectForDomain, folderPathForDomain,
+  ORDERS, SERVICES, STATUSES, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
   type Order, type OrderStatus, type ServiceKey,
 } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
@@ -31,21 +31,33 @@ const DENSITIES: { key: CardDensity; label: string }[] = [
 const STORAGE_KEY = 'heva.cardTemplate';
 const STORAGE_KEY_DENSITY = 'heva.cardDensity';
 const STORAGE_KEY_COLS = 'heva.listColumns';
+const STORAGE_KEY_VIEW = 'heva.boardView';
+
+const DATE_RANGES = [
+  { days: 0, label: 'All time' },
+  { days: 7, label: 'Last 7 days' },
+  { days: 30, label: 'Last 30 days' },
+  { days: 90, label: 'Last 90 days' },
+];
+const parseUS = (d: string): number | null => {
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? new Date(+m[3], +m[1] - 1, +m[2]).getTime() : null;
+};
 
 /** List-view columns the user can show/hide and reorder. */
-type ColId = 'no' | 'code' | 'service' | 'domain' | 'project' | 'folder' | 'staff' | 'status' | 'progress' | 'eta';
+type ColId = 'no' | 'code' | 'service' | 'domain' | 'project' | 'folder' | 'staff' | 'manager' | 'status' | 'progress' | 'eta';
 const COL_LABEL: Record<ColId, string> = {
   no: 'No.', code: 'Code', service: 'Order / Service', domain: 'Domain', project: 'Project', folder: 'Folder',
-  staff: 'Staff', status: 'Status', progress: 'Progress', eta: 'ETA',
+  staff: 'Staff', manager: 'Manager', status: 'Status', progress: 'Progress', eta: 'ETA',
 };
 const COL_ALIGN: Partial<Record<ColId, 'center' | 'right'>> = { no: 'center', eta: 'right' };
-const DEFAULT_COLS: ColId[] = ['no', 'code', 'service', 'domain', 'project', 'folder', 'staff', 'status', 'progress', 'eta'];
+const DEFAULT_COLS: ColId[] = ['no', 'code', 'service', 'domain', 'project', 'folder', 'staff', 'manager', 'status', 'progress', 'eta'];
 
 /** One-click table layouts — `cols` are the visible columns, in order. */
 const PRESETS: { key: string; label: string; desc: string; icon: string; cols: ColId[] }[] = [
   { key: 'default', label: 'Default', desc: 'Every column', icon: 'ph-table', cols: DEFAULT_COLS },
   { key: 'compact', label: 'Compact', desc: 'Just the essentials', icon: 'ph-rows', cols: ['no', 'code', 'service', 'status', 'eta'] },
-  { key: 'tracking', label: 'Delivery tracking', desc: 'Staff · status · progress', icon: 'ph-gauge', cols: ['no', 'service', 'staff', 'status', 'progress', 'eta'] },
+  { key: 'tracking', label: 'Delivery tracking', desc: 'Staff · manager · status · progress', icon: 'ph-gauge', cols: ['no', 'service', 'staff', 'manager', 'status', 'progress', 'eta'] },
   { key: 'project', label: 'By project', desc: 'Project & folder focus', icon: 'ph-folders', cols: ['no', 'code', 'service', 'project', 'folder', 'status', 'eta'] },
 ];
 
@@ -58,12 +70,23 @@ function initials(name: string) {
   return name.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-/** Assigned staff: initials avatar + name. Shared by cards and the list table. */
-function StaffTag({ name, className = '' }: { name: string; className?: string }) {
+/** Assigned staff: initials avatar + name + job title. Shared by cards and the list table. */
+function StaffTag({ name, role, className = '' }: { name: string; role?: string; className?: string }) {
   return (
     <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">{initials(name)}</span>
-      <span className="min-w-0 truncate">{name}</span>
+      <span className="min-w-0 truncate">{name}{role && <span className="text-muted-foreground"> · {role}</span>}</span>
+    </span>
+  );
+}
+
+/** Manager in charge: amber avatar + name + "Manager" title + a tag that flips to "Reviewing" in review. */
+function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600" title="Manager in charge">{initials(name)}</span>
+      <span className="min-w-0 truncate">{name}<span className="text-muted-foreground"> · Manager</span></span>
+      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
     </span>
   );
 }
@@ -77,6 +100,7 @@ const LIST_TD: Record<ColId, string> = {
   project: 'whitespace-nowrap px-3 py-2.5',
   folder: 'whitespace-nowrap px-3 py-2.5',
   staff: 'whitespace-nowrap px-3 py-2.5',
+  manager: 'whitespace-nowrap px-3 py-2.5',
   status: 'px-3 py-2.5',
   progress: 'px-3 py-2.5',
   eta: 'whitespace-nowrap px-3 py-2.5 text-right font-semibold',
@@ -112,7 +136,10 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
         ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" />{leaf.name}</span>
         : <span className="text-muted-foreground">—</span>;
     }
-    case 'staff': return <StaffTag name={o.owner} />;
+    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} />;
+    case 'manager': return est === 'planned'
+      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" /> Not assigned</span>
+      : <ManagerTag name={managerFor(o.id)} reviewing={est === 'review'} />;
     case 'status': return <span className="pill" style={{ background: `${STATUSES[est].color}1f`, color: STATUSES[est].color }}>● {STATUSES[est].label}</span>;
     case 'progress': return <span className="bar inline-block w-24 align-middle"><i style={{ width: `${pct(o)}%` }} /></span>;
     case 'eta': return o.eta;
@@ -195,7 +222,7 @@ function DetailRows({ o }: { o: Order }) {
  * shows: compact (header + title + progress), standard (+ project/website/folder),
  * detail (+ assignee/ETA).
  */
-function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number) {
+function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number, reviewing: boolean, planned: boolean) {
   const compact = density === 'compact';
   const detail = density === 'detail';
   // Top row: Done badge (when completed), service type tag, service code (right).
@@ -237,7 +264,8 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     <>
       {topRow}
       {headline}
-      <StaffTag name={o.owner} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
+      <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
+      {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="mt-1 text-[11px] font-medium text-foreground/70" />}
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
       {detail && <div className="mt-1.5"><DetailRows o={o} /></div>}
       <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
@@ -257,7 +285,7 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
   }
   if (!preview) style.animationDelay = `${Math.min(index, 12) * 40}ms`;   // staggered entrance
   const cls = `kcard block${done ? ' opacity-90' : ''}${preview ? ' pointer-events-none' : ' onav kcard-anim'}`;
-  const children = cardInner(o, template, density, done, p);
+  const children = cardInner(o, template, density, done, p, eff === 'review', eff === 'planned');
 
   if (preview) return <div className={cls} style={style}>{children}</div>;
   return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} w-full text-left`} style={style}>{children}</button>;
@@ -275,6 +303,8 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [svc, setSvc] = useState<ServiceKey | 'all'>(initialService);
   const [proj, setProj] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all'); // list view only
+  const [dateRange, setDateRange] = useState<number>(0); // days; 0 = all time. list view only
   const [card, setCard] = useState<CardTemplate>('balanced');
   const [density, setDensity] = useState<CardDensity>('standard');
   const [mobileCol, setMobileCol] = useState<OrderStatus>('progress');
@@ -321,8 +351,10 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     setTimeout(() => { setModalOpen(false); setModalClosing(false); }, 150);
   };
 
-  // Remember the chosen card layout + density across reloads.
+  // Remember the chosen view (Kanban / List), card layout + density across reloads & pages.
   useEffect(() => {
+    const savedV = localStorage.getItem(STORAGE_KEY_VIEW);
+    if (savedV === 'list' || savedV === 'kanban') setView(savedV);
     const saved = localStorage.getItem(STORAGE_KEY) as CardTemplate | null;
     if (saved && TEMPLATES.some((t) => t.key === saved)) setCard(saved);
     const savedD = localStorage.getItem(STORAGE_KEY_DENSITY) as CardDensity | null;
@@ -354,13 +386,26 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
   // Session-placed orders (from the Services flow) sit on top of the seed data.
   const allOrders = useMemo(() => [...addedOrders, ...ORDERS], [addedOrders]);
   const domains = useMemo(() => Array.from(new Set(allOrders.map((o) => o.domain))).sort(), [allOrders]);
+  // "Now" for the time filter = the most recent order, so "Last 7 days" is relative to real activity.
+  const today = useMemo(() => {
+    const ts = allOrders.map((o) => parseUS(o.date)).filter((t): t is number => t != null);
+    return ts.length ? Math.max(...ts) : Date.now();
+  }, [allOrders]);
+  // The status + time filters apply to the List view only (Kanban already groups by status).
+  const listFilters = view === 'list';
   const data = useMemo(
-    () => allOrders.filter((o) =>
-      (svc === 'all' || o.service === svc) &&
-      (proj === 'all' || o.domain === proj) &&
-      (!domain || o.domain === domain)
-    ),
-    [allOrders, svc, proj, domain]
+    () => allOrders.filter((o) => {
+      if (!(svc === 'all' || o.service === svc)) return false;
+      if (!(proj === 'all' || o.domain === proj)) return false;
+      if (domain && o.domain !== domain) return false;
+      if (listFilters && statusFilter !== 'all' && effStatus(o) !== statusFilter) return false;
+      if (listFilters && dateRange > 0) {
+        const t = parseUS(o.date);
+        if (t == null || today - t > dateRange * 86_400_000) return false;
+      }
+      return true;
+    }),
+    [allOrders, svc, proj, domain, listFilters, statusFilter, dateRange, today, statusOverrides], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const filters: (ServiceKey | 'all')[] = ['all', ...(Object.keys(SERVICES) as ServiceKey[])];
@@ -472,25 +517,44 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
             </div>
           )}
           <div className="view-toggle flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
-            <button onClick={() => setView('kanban')} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
-            <button onClick={() => setView('list')} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
+            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
+            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-1.5 overflow-x-auto pb-0.5">
-        {filters.map((k) => (
-          <button
-            key={k}
-            onClick={() => setSvc(k)}
-            className={`filter-btn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-              svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
-            }`}
-          >
-            <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
-            {k === 'all' ? 'All' : SERVICES[k].label}
-          </button>
-        ))}
+      <div className="mt-4 flex items-center gap-2">
+        <div className="scrollbar-thin flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
+          {filters.map((k) => (
+            <button
+              key={k}
+              onClick={() => setSvc(k)}
+              className={`filter-btn inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
+              {k === 'all' ? 'All' : SERVICES[k].label}
+            </button>
+          ))}
+        </div>
+        {view === 'list' && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
+              <i className="ph-bold ph-funnel text-muted-foreground" />
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')} aria-label="Filter by status" className="cursor-pointer bg-transparent pr-1 outline-none">
+                <option value="all">All statuses</option>
+                {(Object.keys(STATUSES) as OrderStatus[]).map((s) => <option key={s} value={s}>{STATUSES[s].label}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
+              <i className="ph-bold ph-calendar-blank text-muted-foreground" />
+              <select value={dateRange} onChange={(e) => setDateRange(Number(e.target.value))} aria-label="Filter by time" className="cursor-pointer bg-transparent pr-1 outline-none">
+                {DATE_RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {view === 'kanban' ? (
@@ -564,7 +628,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               </button>
             );
           })}
-          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders for this service.</p>}
+          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders match the current filters.</p>}
         </div>
 
         {/* desktop: original table */}
@@ -590,7 +654,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               })}
             </tbody>
           </table>
-          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders for this service.</p>}
+          {data.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No orders match the current filters.</p>}
         </div>
         </>
       )}

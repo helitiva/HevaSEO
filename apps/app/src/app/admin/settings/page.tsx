@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { ADMIN_SETTINGS } from '@/data/adminMock';
 import { SettingsClient } from './SettingsClient';
 export default function SettingsPage() {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { SlideOver } from '@/components/shared/SlideOver';
 import { CashflowChart } from '@/components/admin/finance/CashflowChart';
 import {
   FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, CASHFLOW, CUSTOMERS, ORDERS,

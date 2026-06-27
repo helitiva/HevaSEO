@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { SlideOver } from '@/components/shared/SlideOver';
 import type { AuditEntry, AuditCategory, AuditEntity } from '@/data/adminMock';
 
 type CatMeta = Record<AuditCategory, { label: string; icon: string; color: string }>;

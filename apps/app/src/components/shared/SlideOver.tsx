@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export function SlideOver({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+export function SlideOver({ open, onClose, title, children, widthClass = 'max-w-md' }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; widthClass?: string }) {
   const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => setMounted(true), []);
@@ -40,7 +40,7 @@ export function SlideOver({ open, onClose, title, children }: { open: boolean; o
   return createPortal(
     <div className="fixed inset-0 z-[70]">
       <div onClick={onClose} className="order-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className="order-panel scrollbar-thin absolute inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border bg-card p-5 shadow-2xl outline-none">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`order-panel scrollbar-thin absolute inset-y-0 right-0 w-full ${widthClass} overflow-y-auto border-l border-border bg-card p-5 shadow-2xl outline-none`}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="display text-lg font-bold">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" /></button>

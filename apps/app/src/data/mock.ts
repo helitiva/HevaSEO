@@ -29,6 +29,26 @@ export const STATUSES: Record<OrderStatus, { label: string; color: string }> = {
   completed: { label: 'Completed', color: '#10b981' },
 };
 
+/** Account managers / team leads who oversee — and review — orders. */
+export const MANAGERS = ['Olivia Chen', 'Marcus Tran', 'Priya Nair', 'Leo Park'];
+/** Deterministic manager-in-charge for an order (stable across renders, no field needed on each order). */
+export function managerFor(orderId: string): string {
+  let h = 0;
+  for (let i = 0; i < orderId.length; i++) h = (h * 31 + orderId.charCodeAt(i)) >>> 0;
+  return MANAGERS[h % MANAGERS.length];
+}
+
+/** The specialist's job title — derived from the service the order belongs to. */
+export const STAFF_ROLE: Record<ServiceKey, string> = {
+  backlink: 'Backlink Specialist',
+  content: 'Content Writer',
+  indexer: 'Indexer Specialist',
+  audit: 'SEO Auditor',
+  optimize: 'Optimization Specialist',
+  keyword: 'Keyword Strategist',
+  design: 'Web Designer',
+};
+
 export const PRIORITIES: Record<Priority, string> = { high: 'High', med: 'Med', low: 'Low' };
 
 /** Demo credit balance, in USD. */
@@ -150,18 +170,77 @@ export function folderForDomain(domain: string): { name: string; color: string }
 }
 
 // ── Order detail (slide-over panel) ───────────────────────────────────────────
-export interface Deliverable { name: string; version: string; status: 'approved' | 'review' | 'rejected'; date: string; }
+/** A file or external link delivered within a deliverable revision. */
+export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; }
+/** One submitted version of a deliverable — staff submits, customer approves or asks for changes. */
+export interface DeliverableRevision {
+  version: string;                               // 'v1', 'v2', 'v3', 'final'
+  date: string;
+  status: 'approved' | 'review' | 'rejected';    // rejected = customer requested changes
+  note?: string;                                 // staff's note when submitting this version
+  files?: DeliverableFile[];                     // files + links in this version
+  feedback?: string;                             // customer's feedback (esp. when changes were requested)
+}
+export interface Deliverable { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DeliverableRevision[]; }
 export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; }
 export interface Activity { label: string; date: string; }
 
 const DELIVERABLES: Record<string, Deliverable[]> = {
   'CT-1033': [
-    { name: 'Batch 1 — 5 articles', version: 'v1', status: 'approved', date: '06/02/2026' },
-    { name: 'Batch 2 — 5 articles', version: 'v1', status: 'review', date: '06/08/2026' },
+    {
+      name: 'Batch 1 — 5 articles', status: 'approved', date: '06/02/2026',
+      revisions: [
+        { version: 'v1', date: '05/29/2026', status: 'rejected', note: 'First 5 articles · 1,500+ words each · E-E-A-T structured.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 1 docs', meta: 'drive.google.com' }],
+          feedback: 'Good draft. Tighten the intros and add internal links to the product pages.' },
+        { version: 'v2', date: '06/02/2026', status: 'approved', note: 'Tightened intros, added internal links per feedback.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 1 (final)', meta: 'drive.google.com' }, { kind: 'file', name: 'batch-1-summary.pdf', meta: '180 KB' }] },
+      ],
+    },
+    {
+      name: 'Batch 2 — 5 articles', status: 'review', date: '06/08/2026',
+      revisions: [
+        { version: 'v1', date: '06/08/2026', status: 'review', note: 'Second 5 articles submitted for your review.',
+          files: [{ kind: 'link', name: 'Google Drive — Batch 2 docs', meta: 'drive.google.com' }] },
+      ],
+    },
   ],
-  'AD-1027': [{ name: 'Audit report', version: 'v2', status: 'review', date: '05/23/2026' }],
-  'AD-1015': [{ name: 'Audit report (final)', version: 'final', status: 'approved', date: '05/12/2026' }],
-  'IDX-1009': [{ name: 'Index coverage export', version: 'final', status: 'approved', date: '05/05/2026' }],
+  'AD-1027': [
+    {
+      name: 'Audit report', status: 'review', date: '05/23/2026',
+      revisions: [
+        { version: 'v1', date: '05/18/2026', status: 'rejected', note: 'Full technical audit · 200+ checks.',
+          files: [{ kind: 'file', name: 'audit-report-v1.pdf', meta: '2.2 MB' }],
+          feedback: 'Please add a prioritized action list and a mobile Core Web Vitals section.' },
+        { version: 'v2', date: '05/23/2026', status: 'review', note: 'Added prioritized action list + mobile CWV deep-dive.',
+          files: [{ kind: 'file', name: 'audit-report-v2.pdf', meta: '2.9 MB' }, { kind: 'file', name: 'action-list.xlsx', meta: '52 KB' }] },
+      ],
+    },
+  ],
+  'AD-1015': [
+    {
+      name: 'Audit report (final)', status: 'approved', date: '05/12/2026',
+      revisions: [
+        { version: 'v1', date: '05/06/2026', status: 'rejected', note: 'First full audit — 200+ checks, prioritized fixes.',
+          files: [{ kind: 'file', name: 'audit-report-v1.pdf', meta: '2.4 MB' }, { kind: 'link', name: 'Live Looker dashboard', meta: 'looker.example.com' }],
+          feedback: 'Great start. Please dig deeper into Core Web Vitals (LCP on mobile) and add competitor benchmarks before we sign off.' },
+        { version: 'v2', date: '05/10/2026', status: 'rejected', note: 'Added CWV deep-dive + competitor benchmark section.',
+          files: [{ kind: 'file', name: 'audit-report-v2.pdf', meta: '3.1 MB' }],
+          feedback: 'Almost there — fix the typo on p.12 and export the action list as a separate sheet.' },
+        { version: 'final', date: '05/12/2026', status: 'approved', note: 'Fixed p.12, added a standalone action-list sheet.',
+          files: [{ kind: 'file', name: 'audit-report-final.pdf', meta: '3.2 MB' }, { kind: 'file', name: 'action-list.xlsx', meta: '48 KB' }] },
+      ],
+    },
+  ],
+  'IDX-1009': [
+    {
+      name: 'Index coverage export', status: 'approved', date: '05/05/2026',
+      revisions: [
+        { version: 'final', date: '05/05/2026', status: 'approved', note: '9,820 / 10,000 URLs indexed. CSV export attached.',
+          files: [{ kind: 'file', name: 'index-coverage.csv', meta: '1.1 MB' }] },
+      ],
+    },
+  ],
 };
 export function deliverablesFor(id: string): Deliverable[] { return DELIVERABLES[id] ?? []; }
 

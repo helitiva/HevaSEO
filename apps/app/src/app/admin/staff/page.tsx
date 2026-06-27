@@ -1,5 +1,5 @@
-import { ORDERS, STAFF, SKILL_META, SERVICE_SKILL, customerByCompany } from '@/data/adminMock';
-import { StaffClient, type StaffVM, type ActiveOrder } from './StaffClient';
+import { ORDERS, STAFF, SKILL_META, SERVICE_SKILL, customerByCompany, MANAGERS, STAFF_MANAGER, managerOf } from '@/data/adminMock';
+import { StaffClient, type StaffVM, type ActiveOrder, type ManagerVM } from './StaffClient';
 
 const TODAY = new Date('2026-06-24T00:00:00');
 // Orders that still sit on a staff member's plate (i.e. real current workload).
@@ -29,14 +29,22 @@ export default function StaffPage() {
     const dueSoon = activeOrders.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 1).length;
     const valueInFlight = activeOrders.reduce((sum, o) => sum + o.value, 0);
     const completed = mine.filter((o) => o.status === 'completed').length;
+    const mgr = managerOf(s.id);
 
     return {
       id: s.id, name: s.name, role: s.role, email: s.email, since: s.since, tz: s.tz,
       skills: s.skills, capacity: s.capacity, active: s.active,
       composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput, trend: s.trend,
       load, overdue, dueSoon, valueInFlight, completed, activeOrders,
+      managerId: mgr?.id ?? null, managerName: mgr?.name ?? null,
     };
   });
 
-  return <StaffClient initialStaff={staff} skillMeta={SKILL_META} />;
+  // Manager → the staff they own (for the Managers overview + filter).
+  const managers: ManagerVM[] = MANAGERS.map((m) => {
+    const reports = STAFF.filter((s) => STAFF_MANAGER[s.id] === m.id);
+    return { id: m.id, name: m.name, title: m.title, email: m.email, reportIds: reports.map((s) => s.id), reportNames: reports.map((s) => s.name) };
+  });
+
+  return <StaffClient initialStaff={staff} managers={managers} skillMeta={SKILL_META} />;
 }

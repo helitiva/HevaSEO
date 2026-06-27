@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { SlideOver } from '@/components/shared/SlideOver';
 import { money, statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }

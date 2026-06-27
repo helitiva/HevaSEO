@@ -1,47 +1,138 @@
+'use client';
+
+import { useRef, useState } from 'react';
+import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { GEO } from '@/data/adminMock';
 
+const GEO_URL = '/world-50m.json';
+
+const geoByIso = Object.fromEntries(GEO.map((g) => [g.isoNum, g]));
+const maxUsers = Math.max(...GEO.map((g) => g.users));
+const total = GEO.reduce((s, g) => s + g.users, 0);
+const sorted = [...GEO].sort((a, b) => b.users - a.users);
+
+interface Tooltip { name: string; flag: string; users: number; pct: number; }
+
 export function GeoPanel() {
-  const total = GEO.reduce((s, g) => s + g.users, 0);
-  const max = Math.max(...GEO.map((g) => g.users));
-  const rows = [...GEO].sort((a, b) => b.users - a.users);
-  const W = 200, H = 112;
-  const grid = [0.2, 0.4, 0.6, 0.8];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-globe-hemisphere-west text-primary" /> Visitors by location</p>
-        <p className="text-xs text-muted-foreground">via IP · <span className="font-semibold text-foreground">{GEO.length}</span> countries</p>
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          <i className="ph-bold ph-globe-hemisphere-west text-primary" /> Visitors by location
+        </p>
+        <p className="text-xs text-muted-foreground">
+          via IP ·{' '}
+          <span className="font-semibold text-foreground">{GEO.length}</span> countries ·{' '}
+          <span className="font-semibold text-foreground">{total.toLocaleString('en-US')}</span> visitors
+        </p>
       </div>
 
-      <div className="grid items-center gap-5 sm:grid-cols-[1.2fr_1fr]">
-        {/* bubble map */}
-        <div className="overflow-hidden rounded-xl border border-border bg-background/40">
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="World distribution of visitors">
-            {grid.map((g) => <line key={`h${g}`} x1={0} x2={W} y1={g * H} y2={g * H} stroke="hsl(var(--border))" strokeOpacity={0.4} strokeDasharray="2 4" />)}
-            {grid.map((g) => <line key={`v${g}`} x1={g * W} x2={g * W} y1={0} y2={H} stroke="hsl(var(--border))" strokeOpacity={0.4} strokeDasharray="2 4" />)}
-            {rows.map((g) => (
-              <g key={g.country}>
-                <circle cx={g.x * W} cy={g.y * H} r={5 + (g.users / max) * 11} fill="hsl(var(--primary))" fillOpacity={0.18} />
-                <circle cx={g.x * W} cy={g.y * H} r={3} fill="hsl(var(--primary))" />
-                <text x={g.x * W} y={g.y * H - (6 + (g.users / max) * 11)} textAnchor="middle" fontSize="9">{g.flag}</text>
-              </g>
-            ))}
-          </svg>
+      <div className="grid items-start gap-5 sm:grid-cols-[1.6fr_1fr]">
+        {/* choropleth map */}
+        <div
+          ref={containerRef}
+          className="relative overflow-hidden rounded-xl border border-border bg-background/40"
+          onMouseMove={(e) => {
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }}
+          onMouseLeave={() => setTooltip(null)}
+        >
+          <ComposableMap
+            projection="geoNaturalEarth1"
+            projectionConfig={{ scale: 145, center: [10, 10] }}
+            style={{ width: '100%', height: 'auto' }}
+          >
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const row = geoByIso[String(geo.id)];
+                  const ratio = row ? row.users / maxUsers : 0;
+                  const opacity = row ? 0.18 + ratio * 0.82 : 1;
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={row ? `hsl(var(--primary) / ${opacity.toFixed(2)})` : 'hsl(var(--muted))'}
+                      stroke="hsl(var(--border))"
+                      strokeWidth={0.4}
+                      style={{
+                        default: { outline: 'none' },
+                        hover: {
+                          outline: 'none',
+                          fill: row
+                            ? `hsl(var(--primary) / ${Math.min(1, opacity + 0.15).toFixed(2)})`
+                            : 'hsl(var(--accent))',
+                          cursor: row ? 'pointer' : 'default',
+                        },
+                        pressed: { outline: 'none' },
+                      }}
+                      onMouseEnter={() => {
+                        if (!row) return;
+                        setTooltip({
+                          name: row.country,
+                          flag: row.flag,
+                          users: row.users,
+                          pct: Math.round((row.users / total) * 100),
+                        });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ComposableMap>
+
+          {/* hover tooltip */}
+          {tooltip && (
+            <div
+              className="pointer-events-none absolute z-10 min-w-[10rem] rounded-xl border border-border bg-card px-3 py-2 shadow-xl"
+              style={{
+                left: Math.min(mousePos.x + 12, (containerRef.current?.clientWidth ?? 300) - 180),
+                top: Math.max(8, mousePos.y - 52),
+              }}
+            >
+              <p className="flex items-center gap-1.5 text-xs font-semibold">
+                <span className="text-base leading-none">{tooltip.flag}</span>
+                {tooltip.name}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {tooltip.users.toLocaleString('en-US')} visitors ·{' '}
+                <b className="text-foreground">{tooltip.pct}%</b> of total
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* country list */}
-        <div className="space-y-2">
-          {rows.slice(0, 6).map((g) => {
+        {/* ranked country list — all countries */}
+        <div className="space-y-2.5">
+          {sorted.map((g, i) => {
             const pct = Math.round((g.users / total) * 100);
             return (
               <div key={g.country}>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="flex items-center gap-1.5 font-medium"><span>{g.flag}</span>{g.country}</span>
-                  <span className="text-muted-foreground">{g.users.toLocaleString('en-US')} · <b className="text-foreground">{pct}%</b></span>
+                  <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                    <span className="w-4 shrink-0 text-right tabular-nums text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <span className="text-base leading-none">{g.flag}</span>
+                    <span className="truncate">{g.country}</span>
+                  </span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {g.users.toLocaleString('en-US')} ·{' '}
+                    <b className="text-foreground">{pct}%</b>
+                  </span>
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${(g.users / max) * 100}%` }} />
+                <div className="ml-5 mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${(g.users / maxUsers) * 100}%` }}
+                  />
                 </div>
               </div>
             );

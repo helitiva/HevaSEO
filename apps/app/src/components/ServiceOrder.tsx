@@ -103,12 +103,15 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
   return out;
 }
 
-export function ServiceOrder({ catalog, onPlaced, stacked = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean }) {
+export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string }) {
   const router = useRouter();
   const { addOrder } = useOrdersStore();
   const { projects: storeProjects } = useProjects();
   const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
+  // When the order is started from inside a project (e.g. the project detail page),
+  // preselect that project + its folder instead of defaulting to Auto.
+  const presetProj = presetDomain ? storeProjects.find((p) => p.domain === presetDomain) : undefined;
 
   const isUsage = !!catalog.usage;
   const allPackages = catalog.groups ? catalog.groups.flatMap((g) => g.packages) : (catalog.packages ?? []);
@@ -118,8 +121,8 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false }: { catalog: 
 
   // Project + folder assignment. Default is "auto" — we pick one for them and they
   // can rename / move it later. They can also target an existing project or a new one.
-  const [proj, setProj] = useState<string>(AUTO);
-  const [folderId, setFolderId] = useState<string>(AUTO);
+  const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
+  const [folderId, setFolderId] = useState<string>(presetProj ? presetProj.folder : AUTO);
   const [newDomain, setNewDomain] = useState('');
   const [newName, setNewName] = useState('');
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);

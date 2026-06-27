@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { MY_TASKS, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread } from '@/data/staffMock';
+import { MY_TASKS, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor } from '@/data/staffMock';
 import { daysToDue } from '@/lib/staff';
 import { TaskDetailClient } from './TaskDetailClient';
 
@@ -25,6 +25,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       client={clientSummary(task.customer)}
       manager={manager}
       managerMessages={managerThread(manager.id)}
+      selfNotes={selfNotesFor(id)}
     />
   );
 }

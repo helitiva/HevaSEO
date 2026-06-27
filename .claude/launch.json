@@ -6,6 +6,24 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@heva/app", "dev"],
       "port": 4400
+    },
+    {
+      "name": "app-3006",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@heva/app", "exec", "next", "dev", "--port", "3006"],
+      "port": 3006
+    },
+    {
+      "name": "system-overview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8099", "--directory", "system-overview"],
+      "port": 8099
+    },
+    {
+      "name": "system-overview-3008",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3008", "--directory", "system-overview"],
+      "port": 3008
     }
   ]
 }

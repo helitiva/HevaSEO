@@ -2,8 +2,9 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { money, statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { AVAILABILITY, availabilityMeta, type Availability } from '@/lib/availability';
 
 export interface ProfileOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus; priority: Priority;
@@ -47,6 +48,7 @@ export function StaffProfileClient(p: Props) {
   const [active, setActive] = useState(p.staff.active);
   const [capacity, setCapacity] = useState(p.staff.capacity);
   const [skills, setSkills] = useState<string[]>(p.staff.skills);
+  const [availability, setAvailability] = useState<Availability>(p.staff.active ? 'available' : 'ooo');
   const [mixBy, setMixBy] = useState<'value' | 'orders'>('value');
   const [orderFilter, setOrderFilter] = useState('');
   const [toast, setToast] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function StaffProfileClient(p: Props) {
   const setCap = (n: number) => { const c = Math.max(1, Math.min(20, n)); if (c === capacity) return; setCapacity(c); notify(`Capacity → ${c} slots`); };
   const toggleSkill = (k: string) => { const has = skills.includes(k); setSkills((x) => (has ? x.filter((y) => y !== k) : [...x, k])); notify(`${has ? 'Removed' : 'Added'} ${p.skillMeta[k].label} skill`); };
   const toggleActive = () => { setActive((a) => !a); notify(active ? 'Paused — excluded from auto-routing' : 'Reactivated'); };
+  const setAvail = (next: Availability) => { if (next === availability) return; setAvailability(next); notify(`Availability override → ${availabilityMeta(next).label}`); };
 
   // services this person can take, given current (editable) skills — reactive to skill toggles
   const eligible = useMemo(() => Object.entries(p.serviceSkill).filter(([, sk]) => skills.includes(sk)).map(([svc]) => svc), [skills, p.serviceSkill]);
@@ -262,6 +265,22 @@ export function StaffProfileClient(p: Props) {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{active ? 'Accepting work' : 'Paused'}</span>
               <button onClick={toggleActive} role="switch" aria-checked={active} aria-label="Toggle active status" className={`relative h-6 w-11 rounded-full transition ${active ? 'bg-primary' : 'bg-muted'}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${active ? 'left-[22px]' : 'left-0.5'}`} /></button>
+            </div>
+
+            {/* Availability override — admin can set the live status the router reads (decision 3 / §9). */}
+            <div className="mt-3">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Availability override</p>
+              <div role="radiogroup" aria-label="Override availability" className="grid grid-cols-3 gap-1.5">
+                {AVAILABILITY.map((opt) => { const m = availabilityMeta(opt); const on = opt === availability;
+                  return (
+                    <button key={opt} role="radio" aria-checked={on} onClick={() => setAvail(opt)}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${on ? `border-transparent bg-muted ${m.text} ring-2 ${m.ring}` : 'border-border text-muted-foreground hover:bg-accent'}`}>
+                      <span className={`h-2 w-2 rounded-full ${on ? m.dot : 'bg-muted-foreground/40'}`} aria-hidden />{m.label === 'Out of office' ? 'OOO' : m.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground"><i className={`ph-bold ${availabilityMeta(availability).icon} mr-1`} aria-hidden />{availability === 'available' ? 'Eligible for auto-routed work.' : availability === 'busy' ? 'Holds current work; no new auto-routing.' : 'Marked out — excluded from routing.'}</p>
             </div>
             <div className="mt-3 flex items-center gap-3">
               <button onClick={() => setCap(capacity - 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-lg hover:bg-accent" aria-label="Decrease capacity"><i className="ph-bold ph-minus" aria-hidden /></button>

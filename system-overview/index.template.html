@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HevaSEO Platform — Tổng quan hệ thống</title>
+  <meta name="description" content="Tổng quan toàn diện hệ thống HevaSEO: tính năng, cấu trúc, kỹ thuật theo 4 vai trò (Khách hàng, Staff, Manager, Admin)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- ───────── Sidebar ───────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">H</div>
+        <div><b>HevaSEO</b><span>Tổng quan hệ thống</span></div>
+      </div>
+      <div class="search">
+        <i class="ph ph-magnifying-glass"></i>
+        <input id="search" type="search" placeholder="Tìm tính năng…" aria-label="Tìm tính năng" />
+      </div>
+
+      <nav>
+        <div class="nav-group">
+          <p>Tổng quan</p>
+          <div class="nav-link active" data-target="overview" data-label="Tổng quan"><i class="ph ph-squares-four"></i>Dashboard</div>
+          <div class="nav-link" data-target="intro" data-label="Đây là gì?"><i class="ph ph-info"></i>Đây là gì?</div>
+          <div class="nav-link" data-target="business" data-label="Kinh doanh (mẫu)"><i class="ph ph-chart-line-up"></i>Kinh doanh</div>
+          <div class="nav-link" data-target="services" data-label="Dịch vụ"><i class="ph ph-tag"></i>Dịch vụ <span class="dot">7</span></div>
+          <div class="nav-link" data-target="architecture" data-label="Kiến trúc"><i class="ph ph-tree-structure"></i>Kiến trúc</div>
+        </div>
+        <div class="nav-group">
+          <p>Vai trò</p>
+          <div class="nav-link" data-target="journey" data-label="Hành trình"><i class="ph ph-path"></i>Hành trình</div>
+          <div class="nav-link" data-target="role-customer" data-label="Khách hàng"><i class="ph ph-user"></i>Khách hàng <span class="dot">9</span></div>
+          <div class="nav-link" data-target="role-staff" data-label="Staff"><i class="ph ph-user-focus"></i>Staff <span class="dot">8</span></div>
+          <div class="nav-link" data-target="role-manager" data-label="Manager"><i class="ph ph-user-circle-gear"></i>Manager</div>
+          <div class="nav-link" data-target="role-admin" data-label="Admin"><i class="ph ph-shield-star"></i>Admin <span class="dot">17</span></div>
+        </div>
+        <div class="nav-group">
+          <p>Kỹ thuật</p>
+          <div class="nav-link" data-target="lifecycle" data-label="Vòng đời đơn"><i class="ph ph-flow-arrow"></i>Vòng đời đơn</div>
+          <div class="nav-link" data-target="rbac" data-label="Phân quyền"><i class="ph ph-lock-key"></i>Phân quyền</div>
+          <div class="nav-link" data-target="tech" data-label="Công nghệ"><i class="ph ph-stack"></i>Công nghệ</div>
+          <div class="nav-link" data-target="datamodel" data-label="Data model"><i class="ph ph-database"></i>Data model</div>
+          <div class="nav-link" data-target="glossary" data-label="Thuật ngữ"><i class="ph ph-book-open-text"></i>Thuật ngữ</div>
+        </div>
+        <div class="nav-group">
+          <p>Định hướng</p>
+          <div class="nav-link" data-target="roadmap" data-label="Lộ trình"><i class="ph ph-git-branch"></i>Lộ trình</div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- ───────── Main ───────── -->
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Mở menu"><i class="ph ph-list"></i></button>
+        <div class="crumb"><i class="ph ph-buildings"></i><b>HevaSEO</b> / <span id="crumb-current">Tổng quan</span></div>
+        <div class="spacer"></div>
+        <span class="pill-phase"><i class="ph ph-flask"></i>Phase 0 · mock</span>
+        <button class="icon-btn" id="theme-btn" aria-label="Đổi giao diện sáng/tối"><i class="ph ph-sun"></i></button>
+      </header>
+
+      <main class="content">
+        <!-- Overview -->
+        <section id="overview">
+          <div class="hero">
+            <h1>Tổng quan hệ thống<br />HevaSEO Platform</h1>
+            <p class="sub">Nền tảng vận hành dịch vụ SEO end-to-end — từ khách đặt hàng, đội ngũ giao việc & nghiệm thu, đến tài chính và phân tích. Tài liệu này tổng hợp <b>tính năng · cấu trúc · kỹ thuật</b> theo 4 vai trò.</p>
+            <div class="meta-row">
+              <span><b>Tình trạng:</b> Frontend-first trên mock data</span>
+              <span><b>Cập nhật:</b> 26/06/2026</span>
+              <span><b>Monorepo:</b> pnpm workspaces</span>
+            </div>
+          </div>
+
+          <!-- "Đây là gì?" -->
+          <div id="intro" style="scroll-margin-top:80px">
+            <div class="sec-head" style="margin-top:28px">
+              <div>
+                <div class="kicker">Bắt đầu từ đây</div>
+                <h2>Đây là gì?</h2>
+                <p>Bốn câu trả lời nhanh cho người chưa biết dự án, và 4 nhân vật chính của hệ thống.</p>
+              </div>
+            </div>
+            <div class="intro-cards" id="intro-cards"></div>
+            <div class="cast" id="cast"></div>
+          </div>
+
+          <div class="sec-head" style="margin-top:30px">
+            <div>
+              <div class="kicker">Nhìn nhanh</div>
+              <h2>Hệ thống trong vài con số</h2>
+            </div>
+          </div>
+          <div class="kpi-grid" id="kpi-grid"></div>
+
+          <div class="charts-row">
+            <div class="card chart-card">
+              <h3><i class="ph ph-chart-donut"></i>Tình hình giao</h3>
+              <p class="hint">Phân bổ hạng mục theo mức độ hoàn thiện.</p>
+              <div style="display:flex;justify-content:center;margin:8px 0 4px" id="donut"></div>
+              <div class="legend" id="donut-legend"></div>
+            </div>
+            <div class="card chart-card">
+              <h3><i class="ph ph-chart-bar-horizontal"></i>Số màn hình theo vai trò</h3>
+              <p class="hint">Quy mô giao diện đã dựng cho từng nhóm người dùng.</p>
+              <div class="bars" id="role-bars" style="margin-top:14px"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Business snapshot (mock) -->
+        <section id="business">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Bức tranh kinh doanh</div>
+              <h2>Chỉ số kinh doanh</h2>
+              <p id="biz-note"></p>
+            </div>
+            <span class="badge-soft" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line))"><i class="ph ph-flask"></i> Dữ liệu mẫu</span>
+          </div>
+          <div class="kpi-grid" id="biz-grid"></div>
+          <div class="card" style="margin-top:16px">
+            <h3><i class="ph ph-chart-bar"></i>Cơ cấu đơn theo dịch vụ</h3>
+            <p class="hint">Số đơn theo từng dịch vụ (mẫu) — nơi doanh thu & khối lượng tập trung.</p>
+            <div class="bars" id="biz-mix" style="margin-top:14px"></div>
+          </div>
+        </section>
+
+        <!-- Services catalog -->
+        <section id="services">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Sản phẩm</div>
+              <h2>Danh mục dịch vụ</h2>
+              <p id="svc-note"></p>
+            </div>
+            <span class="badge-soft">7 dịch vụ · 3 mô hình giá</span>
+          </div>
+          <div class="svc-grid" id="svc-grid"></div>
+        </section>
+
+        <!-- Architecture -->
+        <section id="architecture">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Bức tranh lớn</div>
+              <h2>Kiến trúc hệ thống</h2>
+              <p>Monorepo gồm website marketing, app 4-khu-vực, và các package dùng chung. Mọi màn hình đọc qua một lớp dữ liệu duy nhất — sẵn sàng thay bằng backend mà không đụng UI.</p>
+            </div>
+          </div>
+          <div class="arch" id="arch"></div>
+          <div class="flow-note" id="arch-note"></div>
+        </section>
+
+        <!-- Journey (xuyên vai trò) -->
+        <section id="journey">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Vòng giá trị</div>
+              <h2>Hành trình xuyên vai trò</h2>
+              <p id="journey-note"></p>
+            </div>
+          </div>
+          <div class="journey" id="journey-flow"></div>
+        </section>
+
+        <!-- Roles get injected here -->
+        <div class="sec-head" style="margin-top:34px">
+          <div>
+            <div class="kicker">Theo người dùng</div>
+            <h2>Tính năng theo 4 vai trò</h2>
+            <p>Mỗi vai trò: tóm tắt, ma trận tính năng (✓ xong · ◦ đang mở rộng · ○ kế hoạch) và luồng nghiệp vụ chính.</p>
+          </div>
+          <span class="badge-soft">✓ UI hoàn chỉnh &nbsp;·&nbsp; ◦ đang mở rộng &nbsp;·&nbsp; ○ kế hoạch</span>
+        </div>
+        <div id="roles" class="grid" style="gap:22px"></div>
+
+        <!-- Order lifecycle -->
+        <section id="lifecycle" style="margin-top:34px">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Quy trình</div>
+              <h2>Vòng đời đơn hàng</h2>
+              <p id="lifecycle-note"></p>
+            </div>
+          </div>
+          <div class="card"><div class="lifecycle" id="lifecycle-flow"></div>
+            <div class="life-rules" id="lifecycle-rules"></div>
+          </div>
+        </section>
+
+        <!-- RBAC -->
+        <section id="rbac">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Bảo mật</div>
+              <h2>Phân quyền — ai thấy gì</h2>
+              <p id="rbac-note"></p>
+            </div>
+          </div>
+          <div class="card" style="overflow-x:auto">
+            <table class="dm-table">
+              <thead><tr id="rbac-head"></tr></thead>
+              <tbody id="rbac-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tech -->
+        <section id="tech" style="margin-top:34px">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Nền tảng kỹ thuật</div>
+              <h2>Công nghệ sử dụng</h2>
+              <p>Stack hiện tại (frontend) và phần backend dự kiến cho các phase tiếp theo.</p>
+            </div>
+          </div>
+          <div class="build-stats" id="build-stats"></div>
+          <div class="tech-grid" id="tech-grid"></div>
+        </section>
+
+        <!-- Data model -->
+        <section id="datamodel">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Dữ liệu</div>
+              <h2>Mô hình dữ liệu</h2>
+              <p id="dm-note"></p>
+            </div>
+          </div>
+          <div class="card" style="overflow-x:auto">
+            <table class="dm-table">
+              <thead><tr><th>Thực thể</th><th>File</th><th>Trường chính</th><th>Quan hệ</th></tr></thead>
+              <tbody id="dm-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Glossary -->
+        <section id="glossary">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Từ điển</div>
+              <h2>Bảng thuật ngữ</h2>
+              <p>Giải thích nhanh các từ chuyên ngành xuất hiện trong tài liệu.</p>
+            </div>
+          </div>
+          <div class="glossary-grid" id="glossary-grid"></div>
+        </section>
+
+        <!-- Roadmap -->
+        <section id="roadmap">
+          <div class="sec-head">
+            <div>
+              <div class="kicker">Định hướng</div>
+              <h2>Lộ trình phát triển</h2>
+              <p>5 phase từ nền móng đến forkability. Phase 0 đang chạy (frontend/mock); backend & vòng doanh thu là ưu tiên kế tiếp.</p>
+            </div>
+          </div>
+          <div class="timeline" id="timeline"></div>
+          <div class="loop" id="loop"></div>
+        </section>
+
+        <footer>
+          <div id="gen-meta"></div>
+          <div style="margin-top:8px">HevaSEO Platform · tài liệu tổng quan nội bộ</div>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script src="metrics.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

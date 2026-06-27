@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { SlideOver } from '@/components/shared/SlideOver';
 import { money, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 
 export interface ActiveOrder {
@@ -17,9 +17,14 @@ export interface StaffVM {
   composite: number; quality: number; onTime: number; throughput: number; trend: number[];
   load: number; overdue: number; dueSoon: number; valueInFlight: number; completed: number;
   activeOrders: ActiveOrder[];
+  managerId: string | null; managerName: string | null;
+}
+export interface ManagerVM {
+  id: string; name: string; title: string; email: string;
+  reportIds: string[]; reportNames: string[];
 }
 type SkillMeta = Record<string, { label: string; icon: string; color: string }>;
-interface Props { initialStaff: StaffVM[]; skillMeta: SkillMeta }
+interface Props { initialStaff: StaffVM[]; managers: ManagerVM[]; skillMeta: SkillMeta }
 interface Teammate { id: string; name: string; active: boolean; load: number; capacity: number }
 
 type SortKey = 'composite' | 'quality' | 'onTime' | 'throughput' | 'load' | 'name';
@@ -27,7 +32,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   composite: 'Score', quality: 'Quality', onTime: 'On-time', throughput: 'Throughput', load: 'Utilization', name: 'Name',
 };
 
-export function StaffClient({ initialStaff, skillMeta }: Props) {
+export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
   const allSkills = Object.keys(skillMeta);
   // editable staff attributes (active / capacity / skills / identity)
   const [staff, setStaff] = useState<StaffVM[]>(initialStaff);
@@ -40,6 +45,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [fSkill, setFSkill] = useState('');
+  const [fManager, setFManager] = useState('');
   const [fStatus, setFStatus] = useState<'all' | 'active' | 'paused'>('all');
   const [fAvail, setFAvail] = useState<'all' | 'free' | 'full' | 'over'>('all');
   const [sortBy, setSortBy] = useState<SortKey>('composite');
@@ -80,6 +86,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
       since: '2026-06-25', tz: 'GMT+7', skills: data.skills, capacity: data.capacity, active: true,
       composite: 0, quality: 0, onTime: 0, throughput: 0, trend: [0, 0, 0, 0, 0, 0, 0, 0],
       load: 0, overdue: 0, dueSoon: 0, valueInFlight: 0, completed: 0, activeOrders: [],
+      managerId: null, managerName: null,
     };
     setStaff((l) => [...l, vm]); setAddOpen(false); record(`Added ${vm.name} to the team`, 'ph-user-plus');
   };
@@ -113,12 +120,13 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
   const visible = useMemo(() => roster
     .filter((s) => (!search.trim() || `${s.name} ${s.role}`.toLowerCase().includes(search.toLowerCase()))
       && (!fSkill || s.skills.includes(fSkill))
+      && (!fManager || s.managerId === fManager)
       && (fStatus === 'all' || (fStatus === 'active' ? s.active : !s.active))
       && (fAvail === 'all' || avail(s) === fAvail))
     .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name)
       : sortBy === 'load' ? (b.load / b.capacity) - (a.load / a.capacity)
       : b[sortBy] - a[sortBy]),
-    [roster, search, fSkill, fStatus, fAvail, sortBy]);
+    [roster, search, fSkill, fManager, fStatus, fAvail, sortBy]);
 
   const stranded = useMemo(() => roster.filter((s) => !s.active && s.load > 0), [roster]);
   const rank = useMemo(() => new Map([...roster].filter((s) => s.active).sort((a, b) => b.composite - a.composite).map((s, i) => [s.id, i] as const)), [roster]);
@@ -131,6 +139,8 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
   const nextStaff = panelIdx >= 0 && panelIdx < visible.length - 1 ? visible[panelIdx + 1] : null;
   const copyStaffLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/staff?staff=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
   useEffect(() => { const id = new URLSearchParams(window.location.search).get('staff'); if (id && roster.some((s) => s.id === id)) setPanelId(id); }, [roster]);
+  // deep-link a manager's team from the Managers page (?manager=mgr1)
+  useEffect(() => { const mid = new URLSearchParams(window.location.search).get('manager'); if (mid && managers.some((m) => m.id === mid)) setFManager(mid); }, [managers]);
   useEffect(() => { const url = new URL(window.location.href); if (panelId) url.searchParams.set('staff', panelId); else url.searchParams.delete('staff'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [panelId]);
   useEffect(() => {
     if (!panel) return;
@@ -143,7 +153,7 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [panel, nextStaff, prevStaff]);
-  const filtered = !!(search || fSkill || fStatus !== 'all' || fAvail !== 'all');
+  const filtered = !!(search || fSkill || fManager || fStatus !== 'all' || fAvail !== 'all');
   const allSelected = visible.length > 0 && visible.every((s) => sel.has(s.id));
   const toggleAll = () => setSel(allSelected ? new Set() : new Set(visible.map((s) => s.id)));
 
@@ -154,7 +164,10 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
           <h1 className="display text-2xl font-bold tracking-tight">Staff</h1>
           <p className="text-sm text-muted-foreground">Manage the delivery team — capacity, skills, workload and performance.</p>
         </div>
-        <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add staff</button>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/staff/leave" className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-airplane-takeoff mr-1" aria-hidden />Leave requests</Link>
+          <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add staff</button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -215,16 +228,62 @@ export function StaffClient({ initialStaff, skillMeta }: Props) {
         </Card>
       </div>
 
+      {/* managers — who manages whom */}
+      <Card icon="ph-user-circle-gear" title="Managers" right={<span className="text-xs text-muted-foreground">{managers.length} managers · {roster.length} staff</span>}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {managers.map((m) => {
+            const reports = roster.filter((s) => s.managerId === m.id);
+            const teamLoad = reports.reduce((n, s) => n + s.load, 0);
+            const teamCap = reports.filter((s) => s.active).reduce((n, s) => n + s.capacity, 0);
+            const isFiltered = fManager === m.id;
+            return (
+              <div key={m.id} className={`rounded-xl border p-3 transition ${isFiltered ? 'border-primary/50 bg-primary/5' : 'border-border bg-background/40'}`}>
+                <div className="flex items-center gap-2.5">
+                  <Avatar name={m.name} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{m.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{m.title}</p>
+                  </div>
+                  <button
+                    onClick={() => setFManager(isFiltered ? '' : m.id)}
+                    className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${isFiltered ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/50'}`}
+                  >
+                    {isFiltered ? 'Filtering' : `${reports.length} staff`}
+                  </button>
+                </div>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {reports.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setPanelId(s.id)}
+                      title={`${s.name} · ${s.role}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card py-0.5 pl-0.5 pr-2 text-[11px] font-medium transition hover:border-primary/50"
+                    >
+                      <Avatar name={s.name} size={18} />
+                      <span>{s.name}</span>
+                      {!s.active && <i className="ph-fill ph-pause-circle text-amber-500" aria-hidden />}
+                    </button>
+                  ))}
+                  {reports.length === 0 && <span className="text-[11px] text-muted-foreground">No staff assigned</span>}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-gauge mr-1" aria-hidden />{teamLoad}/{teamCap} slots in use across the team</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       {/* roster toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name / role" aria-label="Search staff by name or role" className="w-44 rounded-lg border border-border bg-background py-1.5 pl-8 pr-2 text-sm outline-none focus:border-primary sm:w-52" /></div>
         <button onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm font-semibold sm:hidden ${filtered ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border'}`}><i className="ph-bold ph-funnel" aria-hidden />Filters{filtered ? ' ·' : ''}</button>
         <div className={`${showFilters ? 'flex' : 'hidden'} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto`}>
           <select value={fSkill} onChange={(e) => setFSkill(e.target.value)} aria-label="Filter by skill" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="">All skills</option>{allSkills.map((k) => <option key={k} value={k}>{skillMeta[k].label}</option>)}</select>
+          <select value={fManager} onChange={(e) => setFManager(e.target.value)} aria-label="Filter by manager" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="">All managers</option>{managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
           <select value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)} aria-label="Filter by status" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any status</option><option value="active">Active</option><option value="paused">Paused</option></select>
           <select value={fAvail} onChange={(e) => setFAvail(e.target.value as typeof fAvail)} aria-label="Filter by load" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"><option value="all">Any load</option><option value="free">Has capacity</option><option value="full">At capacity</option><option value="over">Overloaded</option></select>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} aria-label="Sort staff" className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary">{(Object.keys(SORT_LABEL) as SortKey[]).map((k) => <option key={k} value={k}>Sort: {SORT_LABEL[k]}</option>)}</select>
-          {filtered && <button onClick={() => { setSearch(''); setFSkill(''); setFStatus('all'); setFAvail('all'); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
+          {filtered && <button onClick={() => { setSearch(''); setFSkill(''); setFManager(''); setFStatus('all'); setFAvail('all'); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
         </div>
         <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all staff" className="accent-primary" />All</label>
         <span className="text-xs text-muted-foreground">{visible.length} of {roster.length}</span>
@@ -353,6 +412,7 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
             {medal !== undefined && medal < 3 && <Medal rank={medal} />}
           </div>
           <p className="truncate text-xs text-muted-foreground">{s.role}</p>
+          {s.managerName && <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground"><i className="ph-bold ph-user-circle-gear shrink-0" aria-hidden />{s.managerName}</p>}
         </div>
         <div className="text-right">
           <p className="display text-2xl font-bold leading-none text-primary">{s.composite || '—'}</p>
@@ -468,6 +528,7 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
           <p className="font-semibold">{s.role}</p>
           <p className="truncate text-xs text-muted-foreground">{s.email}</p>
           <p className="text-xs text-muted-foreground">Since {s.since} · {s.tz}</p>
+          {s.managerName && <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><i className="ph-bold ph-user-circle-gear" aria-hidden />Reports to <span className="font-medium text-foreground">{s.managerName}</span></p>}
         </div>
         <button onClick={onToggleActive} role="switch" aria-checked={s.active} aria-label="Toggle active status" className={`relative h-6 w-11 shrink-0 rounded-full transition ${s.active ? 'bg-primary' : 'bg-muted'}`} title={s.active ? 'Active — receiving work' : 'Paused'}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${s.active ? 'left-[22px]' : 'left-0.5'}`} /></button>
       </div>

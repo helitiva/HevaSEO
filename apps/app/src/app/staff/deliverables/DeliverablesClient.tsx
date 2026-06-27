@@ -125,13 +125,34 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
           <span className={`pill ${PILL[d.status] ?? 'pill'}`}>{LABEL[d.status] ?? d.status}</span>
           <span className="text-xs text-muted-foreground">{customer}</span>
           <CareTags company={customer} />
-          <Link href={`/staff/tasks/${taskId}`} className="ml-auto text-xs font-semibold text-primary hover:underline">Open order →</Link>
+          <div className="ml-auto inline-flex items-center gap-1.5">
+            <Link
+              href={`/staff/tasks/${taskId}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:border-primary/60 hover:bg-accent"
+            >
+              Open task <i className="ph-bold ph-arrow-right" />
+            </Link>
+            <a
+              href={`/staff/tasks/${taskId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open task in a new tab"
+              aria-label="Open task in a new tab"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-primary/60 hover:bg-accent hover:text-foreground"
+            >
+              <i className="ph-bold ph-arrow-square-out text-base" />
+            </a>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <KV label="Kind" value={d.kind === 'link' ? 'Link' : 'File'} />
           <KV label="Submitted" value={d.submittedAt} />
-          <KV label="Reviewed" value={d.reviewedAt ?? '—'} />
+          <KV
+            label="Reviewed"
+            value={d.reviewedAt ?? (d.status === 'submitted' ? 'Awaiting review' : '—')}
+            muted={!d.reviewedAt}
+          />
           <KV label="Rework rounds" value={`${reworkCount(taskId)}`} />
         </div>
 
@@ -223,6 +244,6 @@ function Kpi({ icon, label, value, tone, hint }: { icon: string; label: string; 
     </div>
   );
 }
-function KV({ label, value }: { label: string; value: string }) {
-  return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+function KV({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return <div className="flex flex-col gap-0.5"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</span><span className={muted ? 'font-medium text-muted-foreground' : 'font-medium'}>{value}</span></div>;
 }

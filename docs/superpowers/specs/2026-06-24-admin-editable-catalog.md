@@ -32,3 +32,33 @@ Mọi consumer đọc từ **1 nguồn** (`@heva/catalog`). Sau này đổi ngu�
 ## Lưu ý kỹ thuật
 - Build config đã sẵn: Next `transpilePackages: ['@heva/catalog']`, Astro `vite.ssr.noExternal: ['@heva/catalog']`.
 - `FieldDef` đã hợp nhất (gồm `keyword-rows`). Marketing dùng tier `<select>` (vanilla JS cập nhật data-attr trên checkbox → tái dùng `recomputeTotal`); dashboard dùng React state + chips.
+
+---
+
+## Catalog Analytics UI (built 2026-06-26 — Phase 0 mock)
+
+The `/admin/catalog` page shows **per-package sales metrics** alongside catalog data,
+letting admin see at a glance which packages drive the most revenue and customers.
+
+### Time-range filter
+A segmented control above the service cards: **7D | 30D | 3M | 6M | 12M | YTD** (default 30D).
+All package stats update instantly when the range changes (client state, no network).
+
+### Per-package metric columns (added to each package table)
+| Column | Description |
+|--------|-------------|
+| Orders | Count of orders placed in the selected range |
+| Customers | Unique customers who bought the package in the range |
+| Revenue | Sum of order value in the selected range |
+| LTV | Lifetime value (all-time, range-independent) |
+
+Per-service rollup row shows the aggregate totals across all packages in that service.
+
+### Implementation notes (mock phase)
+- Stats are generated deterministically via an FNV-1a hash seed so numbers are stable and
+  realistic across re-renders (no flicker, safe for screenshots / demos).
+- `pkgStats(pkg, range)` computes range-scoped Orders/Customers/Revenue; `pkgLtv(pkg)` computes
+  all-time LTV. LTV is guaranteed ≥ max-range Revenue (1.5–4× annual multiplier).
+- A per-range jitter factor keeps numbers from looking perfectly proportional across ranges.
+
+File: `apps/app/src/app/admin/catalog/CatalogClient.tsx`.

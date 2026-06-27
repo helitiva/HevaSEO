@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
-import { PriorityBadge } from '@/components/admin/StatBadge';
+import { NeedsAttention } from './NeedsAttention';
 import {
   KPIS, ORDERS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
   USER_STATS, TICKET_STATS, SLA_ON_TIME, CAPACITY_USED, REVENUE_GOAL, money,
-  type AdminOrder, type OpsKpi,
+  type OpsKpi,
 } from '@/data/adminMock';
 
 const ACTION_ICON: Record<string, string> = {
@@ -91,11 +91,7 @@ export default function CommandCenter() {
       {/* needs attention — the action core */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bell-ringing text-primary" /> Needs attention</p>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <AttentionList title="Overdue" href="/admin/orders" rows={overdue} tone="warn" />
-          <AttentionList title="Awaiting approval" href="/admin/review" rows={awaiting} tone="primary" />
-          <AttentionList title="Unassigned" href="/admin/assignment" rows={unassigned} tone="warn" />
-        </div>
+        <NeedsAttention overdue={overdue} awaiting={awaiting} unassigned={unassigned} />
       </div>
 
       {/* recent activity */}
@@ -155,27 +151,3 @@ function OpsTile({ kpi }: { kpi: OpsKpi }) {
   );
 }
 
-function AttentionList({ title, href, rows, tone }: { title: string; href: string; rows: AdminOrder[]; tone: 'warn' | 'primary' }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {title} <span className={tone === 'warn' ? 'text-amber-500' : 'text-primary'}>{rows.length}</span>
-        </p>
-        <Link href={href} className="text-[11px] font-semibold text-primary hover:underline">All</Link>
-      </div>
-      <ul className="space-y-1.5">
-        {rows.map((o) => (
-          <li key={o.id} className="rounded-lg border border-border/70 bg-background/40 px-2.5 py-1.5 transition hover:border-primary/50">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-semibold">{o.code}</span>
-              <PriorityBadge priority={o.priority} />
-            </div>
-            <p className="truncate text-[11px] text-muted-foreground">{o.customer} · {money(o.value)}</p>
-          </li>
-        ))}
-        {rows.length === 0 && <li className="rounded-lg border border-dashed border-border px-2.5 py-3 text-center text-[11px] text-muted-foreground">All clear</li>}
-      </ul>
-    </div>
-  );
-}

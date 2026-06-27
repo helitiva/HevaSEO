@@ -84,7 +84,7 @@ export default function ProjectDetailPage() {
           <h1 className="display text-xl font-semibold tracking-tight">{project.domain}</h1>
           <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" /></a>
           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
-          <QuickOrderButton label="Order a service" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
+          <QuickOrderButton label="Order a service" projectDomain={project.domain} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
         </div>
 
         <p className="mt-3 flex gap-1.5 text-sm text-muted-foreground">

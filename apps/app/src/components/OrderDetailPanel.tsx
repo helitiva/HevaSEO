@@ -79,6 +79,7 @@ function Panel({ order }: { order: Order }) {
   const status = statusOverrides[order.id] ?? order.status;
   const [draft, setDraft] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [expandedDeliv, setExpandedDeliv] = useState<number | null>(null);
   const [closing, setClosing] = useState(false);
   const [modal, setModal] = useState<null | 'message' | 'review'>(null);
   const [msg, setMsg] = useState('');
@@ -209,11 +210,61 @@ function Panel({ order }: { order: Order }) {
               <div className="space-y-1.5">
                 {deliverables.map((d, i) => {
                   const dp = DELIV_PILL[d.status];
+                  const open = expandedDeliv === i;
+                  const revs = [...d.revisions].reverse(); // newest first
                   return (
-                    <div key={i} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[13px]">
-                      <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 truncate">{d.name}</span>
-                      <span className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: dp.bg, color: dp.fg }}>{dp.label}</span>
+                    <div key={i} className="overflow-hidden rounded-lg border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedDeliv(open ? null : i)}
+                        aria-expanded={open}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] transition hover:bg-muted/40"
+                      >
+                        <i className={`ph-bold ph-caret-right shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
+                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 truncate">{d.name}</span>
+                        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{d.revisions.length} version{d.revisions.length > 1 ? 's' : ''}</span>
+                        <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: dp.bg, color: dp.fg }}>{dp.label}</span>
+                      </button>
+                      {open && (
+                        <ol className="space-y-3 border-t border-border bg-muted/20 px-3 py-3">
+                          {revs.map((r, ri) => {
+                            const rp = DELIV_PILL[r.status];
+                            return (
+                              <li key={ri} className="border-l-2 pl-3" style={{ borderColor: rp.fg }}>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold text-foreground/70">{r.version}</span>
+                                  <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: rp.bg, color: rp.fg }}>{rp.label}</span>
+                                  <span className="text-[11px] text-muted-foreground">{r.date}</span>
+                                </div>
+                                {r.note && <p className="mt-1 text-[12px] leading-relaxed text-foreground/80">{r.note}</p>}
+                                {r.files && r.files.length > 0 && (
+                                  <div className="mt-1.5 space-y-1">
+                                    {r.files.map((f, fi) => (
+                                      <button
+                                        key={fi}
+                                        type="button"
+                                        onClick={() => toast(f.kind === 'link' ? `Opening ${f.name}` : `Downloading ${f.name}`)}
+                                        className="flex w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-primary/50"
+                                      >
+                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} />
+                                        <span className="min-w-0 truncate">{f.name}</span>
+                                        {f.meta && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{f.meta}</span>}
+                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} />
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                {r.feedback && (
+                                  <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] leading-relaxed text-amber-600">
+                                    <i className="ph-bold ph-chat-circle-text mr-1" /><span className="font-semibold">Your feedback:</span> {r.feedback}
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
                     </div>
                   );
                 })}

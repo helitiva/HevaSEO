@@ -12,6 +12,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   { title: 'People', items: [
     { label: 'Customers', href: '/admin/customers', icon: 'ph-users' },
     { label: 'Staff', href: '/admin/staff', icon: 'ph-user-gear' },
+    { label: 'Managers', href: '/admin/managers', icon: 'ph-user-circle-gear' },
   ]},
   { title: 'Business', items: [
     { label: 'Finance', href: '/admin/finance', icon: 'ph-wallet' },

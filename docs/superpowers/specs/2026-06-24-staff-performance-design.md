@@ -113,3 +113,30 @@ per staff over `WINDOW`. (Materialize later only if it becomes slow.)
 - Composite weights `W_QUALITY` / `W_MANUAL`; `WINDOW` length; `BASELINE` for new staff.
 - Whether quality should weight by recency or severity of rework.
 - Whether to expose a customer-facing rating later (currently admin-only).
+
+---
+
+## 9. Manager relationships on the Staff page (built 2026-06-26 — Phase 0 mock)
+
+The Staff admin page (`/admin/staff`) was enhanced to surface **which manager oversees each
+staff member**. This is a read-display feature; assignment editing lives in the Managers page
+(see `2026-06-26-managers-page-design.md`).
+
+### Data (mock phase)
+`MANAGERS[]`, `STAFF_MANAGER: Record<staffId, managerId>`, and `managerOf(staffId)` in
+`apps/app/src/data/adminMock.ts`. Each staff member's `StaffVM` gains `managerId` and
+`managerName` fields populated at the server component level.
+
+### UI additions
+- **Managers overview card** — inserted between the insight KPI strip and the roster toolbar.
+  Shows one card per manager: avatar + name + title, team member chips with utilization bars
+  (`active / capacity`), and a "Manage team →" link deep-linking to `/admin/managers?m={id}`.
+- **Staff cards** — each card shows "Managed by {Manager Name}" in muted text beneath the role.
+- **Staff profile panel** — "Reports to {Manager}" line in the profile details section.
+- **Manager filter** in the toolbar — an "All managers" `<select>` that filters the roster to
+  a specific manager's team.
+- **URL deep-link** — `/admin/staff?manager=mgr1` pre-filters the roster on page load;
+  `StaffClient` reads the param via `useEffect` and sets `fManager` state.
+
+Files: `apps/app/src/app/admin/staff/StaffClient.tsx`,
+`apps/app/src/app/admin/staff/page.tsx`.

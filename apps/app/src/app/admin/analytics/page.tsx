@@ -1,5 +1,6 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { RevenueChart } from '@/components/admin/RevenueChart';
 import { ServiceMix } from '@/components/admin/ServiceMix';
 import { GeoPanel } from '@/components/admin/GeoPanel';
@@ -7,6 +8,7 @@ import { AudienceAnalytics } from '@/components/admin/AudienceAnalytics';
 import { SupportStats } from '@/components/admin/SupportStats';
 import { TeamPerformance } from '@/components/admin/TeamPerformance';
 import { Donut } from '@/components/admin/Donut';
+import { PeriodSelector } from './PeriodSelector';
 import {
   REVENUE_KPIS, REVENUE_ANALYTICS, REVENUE_90, SERVICE_MIX, CUSTOMERS, money, type RevKpi,
 } from '@/data/adminMock';
@@ -20,7 +22,11 @@ export default function AnalyticsPage() {
 
   return (
     <section className="space-y-5">
-      <PageHeader title="Analytics" subtitle="Revenue, audience &amp; performance" />
+      <PageHeader
+        title="Analytics"
+        subtitle="Revenue, audience &amp; performance"
+        actions={<Suspense><PeriodSelector /></Suspense>}
+      />
 
       {/* ---- Revenue (lead) ---- */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">

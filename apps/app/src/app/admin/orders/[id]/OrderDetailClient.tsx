@@ -2,7 +2,7 @@
 
 import { Fragment, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { statusLabel, money, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
 import { Checklist } from './Checklist';
 
@@ -11,7 +11,7 @@ interface CustLite { id: string; name: string; email: string; status: string; ti
 interface OrderLite { id: string; seq: number; code: string; customer: string; service: string; pkg: string; status: OrderStatus; priority: Priority; source: string; value: number; staff: string | null; deadline: string | null; created: string }
 interface Activity { id: string; at: string; action: string; change: string }
 
-interface Props {
+export interface OrderDetailProps {
   order: OrderLite; cust?: CustLite; site: string; today: string; project: string; folder: string;
   included: string[]; brief: { label: string; value: string }[];
   addons: { name: string; tier: string; price: number }[]; addonsTotal: number;
@@ -48,7 +48,7 @@ const PRI_ACTIVE: Record<Priority, string> = {
   high: 'bg-destructive text-white',
 };
 
-export function OrderDetailClient(p: Props) {
+export function OrderDetailClient(p: OrderDetailProps) {
   const [status, setStatus] = useState<OrderStatus>(p.order.status);
   const [staff, setStaff] = useState<string | null>(p.order.staff);
   const [priority, setPriority] = useState<Priority>(p.order.priority);

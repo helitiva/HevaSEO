@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { KpiTile } from '@/components/admin/KpiTile';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
+import { KpiTile } from '@/components/shared/KpiTile';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { ORDERS, STAFF, SKILL_META, SERVICE_SKILL, money, statusLabel } from '@/data/adminMock';
 
 const TODAY = new Date('2026-06-24T00:00:00');

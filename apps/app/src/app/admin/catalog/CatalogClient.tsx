@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, Fragment, type ReactNode } from 'react';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { SlideOver } from '@/components/shared/SlideOver';
 
 // --- Exported types (consumed by page.tsx) ---
 export interface PkgRow {
@@ -87,6 +87,71 @@ function recalcSvc(svc: SvcRow): SvcRow {
   return { ...svc, packageCount: svc.packages.length, priceMin, priceMax, priceLabel };
 }
 
+// ─── Per-package performance stats ──────────────────────────────────────────────
+// Deterministic, seeded from the package id so numbers stay stable across renders
+// and apply to packages added live in this session. Scaled by the selected time
+// window. (Mock layer — swap for real aggregates over the orders table when the
+// DB lands.)
+export type RangeKey = '7D' | '30D' | '3M' | '6M' | '12M' | 'YTD';
+interface RangeDef { key: RangeKey; label: string; days: number; }
+
+function ytdDays(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.max(1, Math.floor((now.getTime() - start.getTime()) / 86_400_000) + 1);
+}
+export const RANGES: RangeDef[] = [
+  { key: '7D',  label: '7D',  days: 7 },
+  { key: '30D', label: '30D', days: 30 },
+  { key: '3M',  label: '3M',  days: 90 },
+  { key: '6M',  label: '6M',  days: 180 },
+  { key: '12M', label: '12M', days: 365 },
+  { key: 'YTD', label: 'YTD', days: ytdDays() },
+];
+const rangeDays = (r: RangeKey): number => RANGES.find(x => x.key === r)?.days ?? 30;
+
+export interface PkgStats { orders: number; customers: number; revenue: number; }
+
+function seedFrom(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function pkgStats(p: PkgRow, range: RangeKey): PkgStats {
+  const seed   = seedFrom(p.id || p.name);
+  const annual = 24 + (seed % 240);                          // baseline orders / year
+  const days   = rangeDays(range);
+  const jitter = 0.85 + ((seed >> (days % 13)) % 31) / 100;  // 0.85–1.15, organic per-range wobble
+  const orders = Math.max(0, Math.round((annual * days / 365) * jitter));
+  const repeat = 0.55 + ((seed >> 5) % 30) / 100;            // 55–85% unique buyers
+  const customers = orders === 0 ? 0 : Math.max(1, Math.min(orders, Math.round(orders * repeat)));
+  const unit   = p.price > 0 ? p.price : 120 + ((seed >> 9) % 160); // nominal value for quote/custom
+  return { orders, customers, revenue: orders * unit };
+}
+function svcStats(pkgs: PkgRow[], range: RangeKey): PkgStats {
+  return pkgs.reduce<PkgStats>((acc, p) => {
+    const s = pkgStats(p, range);
+    return { orders: acc.orders + s.orders, customers: acc.customers + s.customers, revenue: acc.revenue + s.revenue };
+  }, { orders: 0, customers: 0, revenue: 0 });
+}
+// Lifetime value — all-time revenue a package has generated. Independent of the
+// selected window, so it stays put as you switch ranges.
+function pkgLtv(p: PkgRow): number {
+  const seed   = seedFrom(p.id || p.name);
+  const annual = 24 + (seed % 240);                       // same baseline as pkgStats
+  const years  = 1.5 + ((seed >> 7) % 25) / 10;           // 1.5–4.0 years of history
+  const unit   = p.price > 0 ? p.price : 120 + ((seed >> 9) % 160);
+  return Math.round(annual * years) * unit;
+}
+function svcLtv(pkgs: PkgRow[]): number {
+  return pkgs.reduce((sum, p) => sum + pkgLtv(p), 0);
+}
+function fmtMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `$${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
+  return `$${n}`;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props) {
   const [draft, setDraft]           = useState<SvcRow[]>(rows);
@@ -96,6 +161,7 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [search, setSearch]     = useState('');
+  const [range, setRange]       = useState<RangeKey>('30D');
   const [featOpen, setFeatOpen] = useState<string | null>(null);
   const [toast, setToast]       = useState<string | null>(null);
   const toastTimer              = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -305,6 +371,28 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
         <p className="py-8 text-center text-sm text-muted-foreground">No services match &ldquo;{search}&rdquo;.</p>
       )}
 
+      {/* performance window */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <i className="ph-bold ph-chart-line-up text-primary" aria-hidden />
+          Orders, customers &amp; revenue per package
+        </p>
+        <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Time range">
+          {RANGES.map(r => (
+            <button
+              key={r.key}
+              onClick={() => setRange(r.key)}
+              aria-pressed={range === r.key}
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                range === r.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* service list */}
       <div className="space-y-3">
         {filtered.map(svc => {
@@ -367,6 +455,17 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
                     <span className="flex items-center gap-1.5 font-semibold"><i className="ph-bold ph-coins text-primary" aria-hidden />{svc.priceLabel}</span>
                     {!svc.hasUsage && <span className="flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-package" aria-hidden />{svc.packageCount} packages</span>}
                     {svc.hasBulk   && <span className="flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-percent" aria-hidden />Volume discount</span>}
+                    {svc.packages.length > 0 && (() => {
+                      const ss = svcStats(svc.packages, range);
+                      return (
+                        <>
+                          <span className="flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-receipt" aria-hidden />{ss.orders} orders</span>
+                          <span className="flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-users" aria-hidden />{ss.customers} customers</span>
+                          <span className="flex items-center gap-1.5 font-semibold"><i className="ph-bold ph-trend-up text-emerald-500" aria-hidden />{fmtMoney(ss.revenue)} · {range}</span>
+                          <span className="flex items-center gap-1.5 font-semibold text-emerald-600"><i className="ph-bold ph-crown-simple" aria-hidden />{fmtMoney(svcLtv(svc.packages))} LTV</span>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {svc.hasUsage ? (
@@ -388,7 +487,7 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
                               <i className="ph-bold ph-plus" aria-hidden />Add package
                             </button>
                           </div>
-                          <PkgTable pkgs={g.packages} featOpen={featOpen}
+                          <PkgTable pkgs={g.packages} featOpen={featOpen} range={range}
                             onToggleFeat={id => setFeatOpen(f => (f === `${svc.key}:${id}` ? null : `${svc.key}:${id}`))}
                             svcKey={svc.key} onEdit={openEditPkg}
                             onDelete={id => setConfirmDelPkg({ svcKey: svc.key, pkgId: id })}
@@ -398,7 +497,7 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
                     </div>
                   ) : (
                     <>
-                      <PkgTable pkgs={svc.packages} featOpen={featOpen}
+                      <PkgTable pkgs={svc.packages} featOpen={featOpen} range={range}
                         onToggleFeat={id => setFeatOpen(f => (f === `${svc.key}:${id}` ? null : `${svc.key}:${id}`))}
                         svcKey={svc.key} onEdit={openEditPkg}
                         onDelete={id => setConfirmDelPkg({ svcKey: svc.key, pkgId: id })}
@@ -559,9 +658,10 @@ export function CatalogClient({ rows, totalPackages, priceMin, priceMax }: Props
 }
 
 // ─── Package table ────────────────────────────────────────────────────────────
-function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
+function PkgTable({ pkgs, featOpen, range, onToggleFeat, svcKey, onEdit, onDelete }: {
   pkgs: PkgRow[];
   featOpen: string | null;
+  range: RangeKey;
   onToggleFeat: (id: string) => void;
   svcKey: string;
   onEdit: (svcKey: string, pkg: PkgRow) => void;
@@ -577,6 +677,10 @@ function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
             <th className="px-3 py-2">Package</th>
             <th className="px-3 py-2">Price</th>
             <th className="px-3 py-2">SLA</th>
+            <th className="px-3 py-2 text-right">Orders</th>
+            <th className="px-3 py-2 text-right">Customers</th>
+            <th className="px-3 py-2 text-right">Revenue</th>
+            <th className="px-3 py-2 text-right">LTV</th>
             <th className="px-3 py-2">Features</th>
             <th className="w-16 px-3 py-2" />
           </tr>
@@ -585,6 +689,7 @@ function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
           {pkgs.map(p => {
             const fk = `${svcKey}:${p.id}`;
             const open = featOpen === fk;
+            const stats = pkgStats(p, range);
             return (
               <Fragment key={p.id}>
                 <tr className="border-b border-border/50 transition hover:bg-muted/20">
@@ -594,6 +699,10 @@ function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
                   </td>
                   <td className="px-3 py-2 font-semibold">{p.priceLabel}</td>
                   <td className="px-3 py-2 text-muted-foreground">{p.sla}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{stats.orders}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{stats.customers}</td>
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums">{fmtMoney(stats.revenue)}</td>
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-600">{fmtMoney(pkgLtv(p))}</td>
                   <td className="px-3 py-2">
                     {p.features.length > 0 ? (
                       <button onClick={() => onToggleFeat(p.id)} className="flex items-center gap-1 text-xs text-primary hover:underline">
@@ -618,7 +727,7 @@ function PkgTable({ pkgs, featOpen, onToggleFeat, svcKey, onEdit, onDelete }: {
                 </tr>
                 {open && (
                   <tr className="border-b border-border/30 bg-muted/10">
-                    <td colSpan={5} className="px-4 pb-2.5 pt-1.5">
+                    <td colSpan={9} className="px-4 pb-2.5 pt-1.5">
                       <ul className="grid gap-x-6 gap-y-0.5 sm:grid-cols-2">
                         {p.features.map((f, i) => (
                           <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">

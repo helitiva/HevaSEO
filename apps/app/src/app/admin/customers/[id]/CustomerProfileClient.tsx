@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge } from '@/components/admin/StatBadge';
+import { StatusBadge } from '@/components/shared/StatBadge';
 import { money, statusLabel, TIER, type OrderStatus, type Tier } from '@/data/adminMock';
 
 interface OrderRow { id: string; code: string; service: string; pkg: string; status: OrderStatus; value: number; created: string }

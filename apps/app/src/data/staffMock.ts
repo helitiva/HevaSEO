@@ -3,10 +3,16 @@
 // compile error, not a runtime check. Staff sees tasks, never prices or credit.
 import {
   ORDERS, DELIVERABLES, ORDER_NOTE, SERVICE_SKILL, SKILL_META, qaCriteriaFor, briefFor,
-  PAYOUTS, TRANSACTIONS,
+  PAYOUTS, TRANSACTIONS, STAFF,
   CUSTOMER_EXTRA, customerByCompany, CLIENT_NOTE, managerOf, TIER,
   type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
+import { workStats as computeWorkStats, summariseEarnings, firstPassStreak, rankByComposite, type WorkItem, type MonthEarning } from '@/lib/staff';
+import {
+  walletBalance, availableToWithdraw, clearingTotal, pendingPenaltyCount,
+  type WalletEntry, type StaffPenalty, type PayoutMethod, type PayoutRequest, type PenaltyRule,
+} from '@/lib/staffFinance';
+import { buildRewards, type Reward } from '@/lib/staffRewards';
 
 export type { OrderStatus, Priority } from './adminMock';
 export { SKILL_META }; // safe (icon/label/color only) — re-export for staff client
@@ -189,24 +195,44 @@ const MANAGER_THREAD: Record<string, StaffMessage[]> = {
 export const managerThread = (mgrId: string): StaffMessage[] => MANAGER_THREAD[mgrId] ?? [];
 
 // ---- Notifications inbox (mock) ----
-export type StaffNotifKind = 'assignment' | 'changes' | 'reminder' | 'approved';
+export type StaffNotifKind =
+  | 'assignment' | 'changes' | 'reminder' | 'approved'
+  | 'penalty' | 'bonus' | 'tier' | 'salary' | 'payout' | 'leave' | 'message';
 export interface StaffNotification {
   id: string; kind: StaffNotifKind; title: string; body: string;
-  taskId: string | null; at: string; read: boolean;
+  taskId: string | null;     // task context, if any → drives the "open task" link
+  href: string | null;       // non-task deep link (wallet, standing, settings…)
+  at: string;                // human label ("2h ago")
+  ts: string;                // ISO timestamp for sorting + day grouping
+  read: boolean;
 }
 export const STAFF_NOTIFICATIONS: StaffNotification[] = [
-  { id: 'n1', kind: 'changes', title: 'Changes requested · CNT-1004', body: 'Add internal links and fill meta titles/descriptions before resubmitting.', taskId: 'o4', at: '2h ago', read: false },
-  { id: 'n2', kind: 'assignment', title: 'New task assigned · KW-1031', body: 'A keyword map landed on your board — due in 3 days.', taskId: 'o31', at: '5h ago', read: false },
-  { id: 'n3', kind: 'reminder', title: 'Deadline soon · BL-1008', body: 'Backlink batch is due tomorrow. Submit when ready.', taskId: 'o8', at: 'Yesterday', read: false },
-  { id: 'n4', kind: 'approved', title: 'Approved · CNT-1015', body: 'Your Nova articles passed review — nice work. Scorecard updated.', taskId: 'o15', at: 'Yesterday', read: true },
-  { id: 'n5', kind: 'reminder', title: 'Capacity check', body: 'You have 5 open tasks. Update availability if you need a lighter week.', taskId: null, at: '2d ago', read: true },
+  { id: 'n1', kind: 'salary', title: 'Salary paid · June', body: 'Your June payroll of $1,372 (base + commission) was deposited to Vietcombank ••4821. Payslip ready.', taskId: null, href: '/staff/finance', at: '1h ago', ts: '2026-06-26T09:00', read: false },
+  { id: 'n2', kind: 'changes', title: 'Changes requested · CNT-1004', body: 'Add internal links and fill meta titles/descriptions before resubmitting.', taskId: 'o4', href: null, at: '2h ago', ts: '2026-06-26T08:10', read: false },
+  { id: 'n3', kind: 'message', title: 'New message · Ken Rivera', body: 'Saw the Orbit brief land on your board — they’re picky about anchors, keep it natural.', taskId: 'o31', href: null, at: '2h ago', ts: '2026-06-26T07:50', read: false },
+  { id: 'n4', kind: 'penalty', title: 'Revision fee flagged · CNT-1004', body: 'A $12 fee is pending review for the extra revision round. Dispute it if the brief changed mid-task.', taskId: null, href: '/staff/finance', at: '3h ago', ts: '2026-06-26T07:30', read: false },
+  { id: 'n5', kind: 'bonus', title: 'Bonus earned · On the Dot', body: '100% on-time delivery in June — a $50 bonus landed in your wallet. Nice.', taskId: null, href: '/staff/finance', at: '5h ago', ts: '2026-06-26T06:00', read: false },
+  { id: 'n6', kind: 'assignment', title: 'New task assigned · KW-1031', body: 'A keyword map landed on your board — due in 3 days.', taskId: 'o31', href: null, at: '6h ago', ts: '2026-06-26T05:00', read: false },
+  { id: 'n7', kind: 'tier', title: '1 point from Senior tier', body: 'Lift your composite to 85 to unlock the Senior commission band (1.5× per task).', taskId: null, href: '/staff/performance', at: 'Yesterday', ts: '2026-06-25T16:00', read: false },
+  { id: 'n8', kind: 'payout', title: 'Withdrawal completed · $200', body: 'Your $200 payout to Vietcombank ••4821 has landed. Fee $0.', taskId: null, href: '/staff/finance', at: 'Yesterday', ts: '2026-06-25T14:00', read: true },
+  { id: 'n9', kind: 'reminder', title: 'Deadline soon · BL-1008', body: 'Backlink batch is due tomorrow. Submit when ready.', taskId: 'o8', href: null, at: 'Yesterday', ts: '2026-06-25T09:00', read: true },
+  { id: 'n10', kind: 'approved', title: 'Approved · CNT-1015', body: 'Your Nova articles passed review — nice work. Scorecard updated.', taskId: 'o15', href: null, at: 'Yesterday', ts: '2026-06-25T08:00', read: true },
+  { id: 'n11', kind: 'leave', title: 'Time off approved', body: 'Your 2 days off (Jul 3–4) are confirmed. Those days are now blocked on your calendar.', taskId: null, href: '/staff/calendar', at: '2d ago', ts: '2026-06-24T11:00', read: true },
+  { id: 'n12', kind: 'reminder', title: 'Capacity check', body: 'You have 5 open tasks. Update availability if you need a lighter week.', taskId: null, href: '/staff/settings', at: '2d ago', ts: '2026-06-24T10:00', read: true },
 ];
 
-export const NOTIF_META: Record<StaffNotifKind, { icon: string; tone: string; label: string }> = {
-  assignment: { icon: 'ph-tray-arrow-down', tone: 'text-primary', label: 'Assignment' },
-  changes: { icon: 'ph-arrow-counter-clockwise', tone: 'text-amber-500', label: 'Changes requested' },
-  reminder: { icon: 'ph-alarm', tone: 'text-sky-500', label: 'Reminder' },
-  approved: { icon: 'ph-seal-check', tone: 'text-emerald-500', label: 'Approved' },
+export const NOTIF_META: Record<StaffNotifKind, { icon: string; tone: string; label: string; action: string }> = {
+  assignment: { icon: 'ph-tray-arrow-down', tone: 'text-primary', label: 'Assignment', action: 'Open task' },
+  changes: { icon: 'ph-arrow-counter-clockwise', tone: 'text-amber-500', label: 'Changes requested', action: 'Resume task' },
+  reminder: { icon: 'ph-alarm', tone: 'text-sky-500', label: 'Reminder', action: 'View' },
+  approved: { icon: 'ph-seal-check', tone: 'text-emerald-500', label: 'Approved', action: 'View task' },
+  penalty: { icon: 'ph-warning-octagon', tone: 'text-red-500', label: 'Penalty', action: 'View wallet' },
+  bonus: { icon: 'ph-gift', tone: 'text-emerald-500', label: 'Bonus', action: 'View wallet' },
+  tier: { icon: 'ph-medal', tone: 'text-amber-500', label: 'Tier', action: 'View standing' },
+  salary: { icon: 'ph-money', tone: 'text-emerald-500', label: 'Salary', action: 'View payslip' },
+  payout: { icon: 'ph-hand-coins', tone: 'text-emerald-500', label: 'Payout', action: 'View wallet' },
+  leave: { icon: 'ph-umbrella', tone: 'text-sky-500', label: 'Time off', action: 'View schedule' },
+  message: { icon: 'ph-chat-circle-dots', tone: 'text-violet-500', label: 'Message', action: 'Open thread' },
 };
 
 export const statusLabel: Record<OrderStatus, string> = {
@@ -383,3 +409,299 @@ export const CUSTOMER_MSG_SNIPPETS: string[] = [
   'All set — everything’s optimised and ready to publish. Happy to adjust anything.',
   'Thanks for your patience! The updated version is attached — let me know what you think.',
 ];
+
+// ---- Track record: completed-work archive per staff (the lifetime task history) ----
+// Stands in for a real `tasks` archive — adminMock's ORDERS is only the current snapshot, too thin
+// to show a track record. Each row is money-free (no order value). The most recent rows mirror the
+// staffer's real June orders for consistency; older rows extend the history back across the year.
+const WORK_ARCHIVE: Record<string, WorkItem[]> = {
+  // Huy N. (Content Lead) — Content-heavy with some Keyword/Optimization/Audit/Indexer.
+  s3: [
+    // June — mirrors his real live orders (CNT-1038 approved, CNT-1015/1004 delivered, IDX-1012 done)
+    { code: 'CNT-1038', service: 'Content', pkg: '5 articles', customer: 'Lumen', completedAt: '2026-06-22', versions: 1, revisions: 0, onTime: true, rating: 5, days: 6, reviewNote: null, commission: 45 },
+    { code: 'CNT-1015', service: 'Content', pkg: '3 articles', customer: 'Nova', completedAt: '2026-06-25', versions: 1, revisions: 0, onTime: true, rating: 4, days: 7, reviewNote: null, commission: 36 },
+    { code: 'IDX-1012', service: 'Indexer', pkg: '—', customer: 'Peak Digital', completedAt: '2026-06-20', versions: 1, revisions: 0, onTime: true, rating: 4, days: 6, reviewNote: null, commission: 24 },
+    { code: 'CNT-1004', service: 'Content', pkg: '10 articles', customer: 'Acme Co', completedAt: '2026-06-24', versions: 2, revisions: 1, onTime: true, rating: 3, days: 4, reviewNote: 'Add internal links and fill meta titles/descriptions.', commission: 30 },
+    // May
+    { code: 'CNT-0991', service: 'Content', pkg: '5 articles', customer: 'Pulse Media', completedAt: '2026-05-28', versions: 1, revisions: 0, onTime: true, rating: 5, days: 5, reviewNote: null, commission: 42 },
+    { code: 'KW-0987', service: 'Keyword', pkg: 'Standard', customer: 'Bright Ltd', completedAt: '2026-05-20', versions: 2, revisions: 1, onTime: false, rating: 3, days: 6, reviewNote: 'Add a search-intent column to the keyword map.', commission: 30 },
+    { code: 'CNT-0975', service: 'Content', pkg: '10 articles', customer: 'Vertex AI', completedAt: '2026-05-12', versions: 1, revisions: 0, onTime: true, rating: 4, days: 7, reviewNote: null, commission: 60 },
+    // April
+    { code: 'OPT-0968', service: 'Optimization', pkg: 'Standard', customer: 'Vértice', completedAt: '2026-04-30', versions: 1, revisions: 0, onTime: true, rating: 5, days: 6, reviewNote: null, commission: 48 },
+    { code: 'CNT-0959', service: 'Content', pkg: '3 articles', customer: 'Nova', completedAt: '2026-04-18', versions: 2, revisions: 1, onTime: true, rating: 4, days: 4, reviewNote: 'Tighten the intros — tone read a bit generic.', commission: 30 },
+    { code: 'CNT-0945', service: 'Content', pkg: '5 articles', customer: 'Acme Co', completedAt: '2026-04-05', versions: 1, revisions: 0, onTime: false, rating: 4, days: 5, reviewNote: null, commission: 40 },
+    // March
+    { code: 'AUD-0938', service: 'Audit', pkg: 'Standard', customer: 'Cobalt Studio', completedAt: '2026-03-22', versions: 1, revisions: 0, onTime: true, rating: 5, days: 3, reviewNote: null, commission: 22 },
+    { code: 'CNT-0925', service: 'Content', pkg: '10 articles', customer: 'Acme Co', completedAt: '2026-03-08', versions: 3, revisions: 2, onTime: true, rating: 2, days: 8, reviewNote: 'Off-brand voice + missing internal links on most pages.', commission: 55 },
+    // February
+    { code: 'KW-0913', service: 'Keyword', pkg: 'Pro', customer: 'Orbit Labs', completedAt: '2026-02-20', versions: 1, revisions: 0, onTime: true, rating: 4, days: 5, reviewNote: null, commission: 45 },
+    { code: 'CNT-0902', service: 'Content', pkg: '5 articles', customer: 'Lumen', completedAt: '2026-02-05', versions: 1, revisions: 0, onTime: true, rating: 5, days: 5, reviewNote: null, commission: 42 },
+    // January
+    { code: 'CNT-0888', service: 'Content', pkg: '3 articles', customer: 'Nova', completedAt: '2026-01-22', versions: 1, revisions: 0, onTime: true, rating: 4, days: 4, reviewNote: null, commission: 28 },
+    { code: 'OPT-0875', service: 'Optimization', pkg: 'Standard', customer: 'Pulse Media', completedAt: '2026-01-10', versions: 2, revisions: 1, onTime: false, rating: 3, days: 6, reviewNote: 'Cite the before/after metrics with sources.', commission: 44 },
+  ],
+};
+
+export const workHistory = (staffId: string = CURRENT_STAFF.id): WorkItem[] =>
+  [...(WORK_ARCHIVE[staffId] ?? [])].sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+
+// Detail lookups for the history task page.
+export const archivedTask = (code: string, staffId: string = CURRENT_STAFF.id): WorkItem | undefined =>
+  (WORK_ARCHIVE[staffId] ?? []).find((w) => w.code === code);
+// If this archived task is still a live task on the staff board, its id (→ full task page); else null.
+export const liveTaskIdForCode = (code: string): string | null =>
+  MY_TASKS.find((t) => t.code === code)?.id ?? null;
+
+export const myWorkStats = (staffId: string = CURRENT_STAFF.id) => computeWorkStats(workHistory(staffId));
+
+// Active (in-flight) tasks right now — counted from the live board, money stripped.
+export const activeWorkload = (): number =>
+  MY_TASKS.filter((t) => t.status !== 'completed' && t.status !== 'canceled').length;
+
+// ---- Monthly earnings history (current month = real PAYOUTS; prior months seeded) ----
+const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const EARNINGS_NOW = new Date('2026-06-26T00:00:00');
+// Small deterministic hash so prior-month figures are stable across renders.
+function earnSeed(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+
+export function earningsHistory(staffId: string = CURRENT_STAFF.id, months = 6): MonthEarning[] {
+  const payout = PAYOUTS.find((p) => p.staffId === staffId);
+  const base = payout?.base ?? 1000;
+  const current = myEarnings(staffId);
+  const archive = WORK_ARCHIVE[staffId] ?? [];
+  const out: MonthEarning[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(EARNINGS_NOW.getFullYear(), EARNINGS_NOW.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const tasks = archive.filter((a) => a.completedAt.slice(0, 7) === ym).length;
+    if (i === 0 && current) {
+      // current month: the authoritative live payout (matches the Earnings card)
+      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base: current.base, commission: current.commission, bonus: current.bonus, takeHome: current.takeHome, tasks });
+    } else {
+      const seed = earnSeed(`${staffId}-${ym}`);
+      // commission tracks that month's task volume, with a little organic jitter
+      const commission = tasks * 42 + (seed % 60);
+      const bonus = [0, 0, 0, 100, 150][seed % 5];
+      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base, commission, bonus, takeHome: base + commission + bonus, tasks });
+    }
+  }
+  return out;
+}
+
+export const myEarningsSummary = (staffId: string = CURRENT_STAFF.id) => summariseEarnings(earningsHistory(staffId));
+
+// ---- Work activity: tasks (and the pay they earn) bucketed by Day/Week/Month/Year, split by type ----
+// Deterministic synthetic series so every granularity has substance (the 16-task rated archive is
+// too sparse for a day view). Content-weighted to match a Content Lead. Each slice carries both the
+// task count and the variable pay those tasks earned, so the chart can show either metric.
+export type Granularity = 'day' | 'week' | 'month' | 'year';
+export interface ActivitySlice { service: string; tasks: number; pay: number; }
+export interface ActivityBucket { key: string; label: string; full: string; slices: ActivitySlice[]; tasks: number; pay: number; }
+
+const ACT_TYPES = ['Content', 'Keyword', 'Optimization', 'Backlink', 'Audit', 'Indexer'];
+const ACT_PAY: Record<string, number> = { Content: 22, Keyword: 18, Optimization: 35, Backlink: 30, Audit: 15, Indexer: 8 };
+const ACT_WEIGHT: Record<string, number> = { Content: 5, Keyword: 2, Optimization: 2, Backlink: 1, Audit: 1, Indexer: 1 };
+const ACT_WSUM = ACT_TYPES.reduce((a, t) => a + ACT_WEIGHT[t], 0);
+const ACT_NOW = new Date('2026-06-26T00:00:00Z');
+const MS_DAY = 86_400_000;
+
+function actSlices(staffId: string, seedKey: string, intensity: number): ActivitySlice[] {
+  const out: ActivitySlice[] = [];
+  for (const service of ACT_TYPES) {
+    const seed = earnSeed(`${staffId}-${seedKey}-${service}`);
+    const expected = (intensity * ACT_WEIGHT[service]) / ACT_WSUM;
+    const jitter = 0.5 + (seed % 100) / 100; // 0.5..1.5
+    const tasks = Math.max(0, Math.round(expected * jitter));
+    if (tasks > 0) out.push({ service, tasks, pay: tasks * ACT_PAY[service] });
+  }
+  return out;
+}
+function actBucket(key: string, label: string, full: string, slices: ActivitySlice[]): ActivityBucket {
+  return { key, label, full, slices, tasks: slices.reduce((a, s) => a + s.tasks, 0), pay: slices.reduce((a, s) => a + s.pay, 0) };
+}
+const startOfWeekUTC = (d: Date): Date => {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); // back to Monday
+  x.setUTCHours(0, 0, 0, 0);
+  return x;
+};
+
+export function buildActivity(staffId: string = CURRENT_STAFF.id): Record<Granularity, ActivityBucket[]> {
+  const day: ActivityBucket[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(ACT_NOW.getTime() - i * MS_DAY);
+    const weekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+    const iso = d.toISOString().slice(0, 10);
+    const full = `${MONTH_LABEL[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    day.push(actBucket(iso, String(d.getUTCDate()), full, actSlices(staffId, `day-${iso}`, weekend ? 0.4 : 1.9)));
+  }
+
+  const week: ActivityBucket[] = [];
+  const thisMon = startOfWeekUTC(ACT_NOW);
+  for (let i = 11; i >= 0; i--) {
+    const ws = new Date(thisMon.getTime() - i * 7 * MS_DAY);
+    const iso = ws.toISOString().slice(0, 10);
+    const label = `${MONTH_LABEL[ws.getUTCMonth()]} ${ws.getUTCDate()}`;
+    week.push(actBucket(iso, label, `Week of ${label}`, actSlices(staffId, `week-${iso}`, 3)));
+  }
+
+  const month: ActivityBucket[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const m = new Date(Date.UTC(ACT_NOW.getUTCFullYear(), ACT_NOW.getUTCMonth() - i, 1));
+    const ym = `${m.getUTCFullYear()}-${String(m.getUTCMonth() + 1).padStart(2, '0')}`;
+    month.push(actBucket(ym, MONTH_LABEL[m.getUTCMonth()], `${MONTH_LABEL[m.getUTCMonth()]} ${m.getUTCFullYear()}`, actSlices(staffId, `month-${ym}`, 8)));
+  }
+
+  const year: ActivityBucket[] = [];
+  for (const y of [2023, 2024, 2025, 2026]) {
+    const elapsed = y === 2026 ? 0.48 : 1; // 2026 is partial (through late June)
+    year.push(actBucket(String(y), String(y), `${y}${y === 2026 ? ' (YTD)' : ''}`, actSlices(staffId, `year-${y}`, 90 * elapsed)));
+  }
+
+  return { day, week, month, year };
+}
+
+// Type palette (label/icon/color) for the activity legend + segments.
+export const ACTIVITY_TYPE_META = ACT_TYPES.map((service) => ({ service, ...serviceMeta(service) }));
+
+// ───────────────────────────────────────────────────────────────────────────
+// Finance surface: commission wallet · penalties · payout requests (Phase 0 mock)
+// ───────────────────────────────────────────────────────────────────────────
+// The ONLY place the staffer's own money is shown. Every figure below is a concrete
+// commission-derived USD amount — never an order value, payout `basis`, or `rate` — so
+// nothing here can be reverse-engineered into the price a customer paid. Hybrid model:
+// base salary is admin payroll (from PAYOUTS, see myEarnings); commission accrues into
+// this withdrawable wallet, which penalties debit.
+
+// Commission/bonus that has accrued into the wallet (newest entries may still be clearing).
+const COMMISSION_CREDITS: Record<string, WalletEntry[]> = {
+  s3: [
+    { id: 'wc0', kind: 'commission', label: 'Commission carried over', taskCode: null, at: '2026-06-01', amount: 700 },
+    { id: 'wc1', kind: 'commission', label: 'Commission · CNT-1038', taskCode: 'CNT-1038', at: '2026-06-22', amount: 45 },
+    { id: 'wc2', kind: 'commission', label: 'Commission · IDX-1012', taskCode: 'IDX-1012', at: '2026-06-20', amount: 24 },
+    { id: 'wc3', kind: 'commission', label: 'Commission · CNT-1004', taskCode: 'CNT-1004', at: '2026-06-24', amount: 30 },
+    { id: 'wc4', kind: 'bonus', label: 'Quality bonus · June', taskCode: null, at: '2026-06-26', amount: 100 },
+    { id: 'wc5', kind: 'commission', label: 'Commission · CNT-1015', taskCode: 'CNT-1015', at: '2026-06-25', amount: 36, pending: true },
+  ],
+};
+
+// Penalties — flagged by the rules below, then admin confirms (`applied`) or `waived`.
+// Seeded to mirror Huy's real history (CNT-0925: 3 versions/2 revisions/rating 2; KW-0987: late).
+const STAFF_PENALTIES: Record<string, StaffPenalty[]> = {
+  s3: [
+    {
+      id: 'pen1', type: 'revision', taskCode: 'CNT-1004', reason: '3rd revision round — 1 over the 2-round allowance.',
+      sizing: 'progressive', amount: 12, detail: 'Round 3 · 10% of task commission', status: 'pending',
+      createdAt: '2026-06-24', by: 'Revision rule',
+    },
+    {
+      id: 'pen2', type: 'late', taskCode: 'KW-0987', reason: 'Delivered 1 day after the deadline.',
+      sizing: 'flat', amount: 25, detail: 'Flat late fee', status: 'applied',
+      createdAt: '2026-05-20', by: 'Late-delivery rule',
+    },
+    {
+      id: 'pen3', type: 'revision', taskCode: 'CNT-0925', reason: '4th round — 2 over the allowance.',
+      sizing: 'pct', amount: 18, detail: '25% of task commission', status: 'applied',
+      createdAt: '2026-03-08', by: 'Revision rule',
+    },
+    {
+      id: 'pen4', type: 'rating', taskCode: 'CNT-0925', reason: 'QA rating 2/5 — below the 3-star bar.',
+      sizing: 'flat', amount: 15, detail: 'Flat quality fee', status: 'waived',
+      createdAt: '2026-03-09', by: 'Ken Rivera (waived — first offence)',
+    },
+  ],
+};
+
+// The auto-flagging rules, surfaced so staff understand how fines arise.
+export const PENALTY_RULES: PenaltyRule[] = [
+  { type: 'revision', label: 'Excess revisions', threshold: 'Beyond 2 revision rounds', sizing: 'progressive', value: 10, enabled: true },
+  { type: 'late', label: 'Late delivery', threshold: 'Submitted after deadline', sizing: 'flat', value: 25, enabled: true },
+  { type: 'rating', label: 'Low rating', threshold: 'QA or customer rating below 3★', sizing: 'flat', value: 15, enabled: true },
+];
+
+// Withdrawal methods on file (masked).
+const PAYOUT_METHODS: Record<string, PayoutMethod[]> = {
+  s3: [
+    { id: 'pm1', kind: 'bank', label: 'Vietcombank ••4821', isDefault: true, feePct: 0, etaDays: 2 },
+    { id: 'pm2', kind: 'paypal', label: 'huy•••@gmail.com', isDefault: false, feePct: 2, etaDays: 1 },
+    { id: 'pm3', kind: 'wise', label: 'Wise · USD balance', isDefault: false, feePct: 1, etaDays: 1 },
+  ],
+};
+
+// Past payout requests (the current session adds new ones client-side).
+const PAYOUT_REQUESTS: Record<string, PayoutRequest[]> = {
+  s3: [
+    { id: 'po1', amount: 200, methodId: 'pm1', status: 'paid', requestedAt: '2026-06-05', note: 'Mid-cycle withdrawal' },
+    { id: 'po2', amount: 180, methodId: 'pm1', status: 'paid', requestedAt: '2026-05-05' },
+  ],
+};
+
+export const myCommissionCredits = (staffId: string = CURRENT_STAFF.id): WalletEntry[] => COMMISSION_CREDITS[staffId] ?? [];
+export const myPenalties = (staffId: string = CURRENT_STAFF.id): StaffPenalty[] => STAFF_PENALTIES[staffId] ?? [];
+
+// Penalties tied to one task → a per-status roll-up for the task-history table.
+export interface TaskPenalty { applied: number; pending: number; waived: number; net: number; items: StaffPenalty[]; }
+export function taskPenalty(code: string, staffId: string = CURRENT_STAFF.id): TaskPenalty | null {
+  const items = myPenalties(staffId).filter((p) => p.taskCode === code);
+  if (items.length === 0) return null;
+  const sum = (st: string) => items.filter((p) => p.status === st).reduce((a, p) => a + p.amount, 0);
+  const applied = sum('applied');
+  const pending = sum('pending');
+  return { applied, pending, waived: sum('waived'), net: applied + pending, items };
+}
+export const myPayoutMethods = (staffId: string = CURRENT_STAFF.id): PayoutMethod[] => PAYOUT_METHODS[staffId] ?? [];
+export const myPayouts = (staffId: string = CURRENT_STAFF.id): PayoutRequest[] => PAYOUT_REQUESTS[staffId] ?? [];
+
+// Everything the Finance page needs, bundled. Money-leak-safe: derives the wallet figures from
+// the commission-only entries above and never touches PAYOUTS.basis / PAYOUTS.rate.
+export interface StaffFinance {
+  credits: WalletEntry[];
+  penalties: StaffPenalty[];
+  methods: PayoutMethod[];
+  payouts: PayoutRequest[];
+  rules: PenaltyRule[];
+  balance: number;
+  available: number;
+  clearing: number;
+  pendingFines: number;
+}
+export function myFinance(staffId: string = CURRENT_STAFF.id): StaffFinance {
+  const credits = myCommissionCredits(staffId);
+  const penalties = myPenalties(staffId);
+  const payouts = myPayouts(staffId);
+  return {
+    credits, penalties, methods: myPayoutMethods(staffId), payouts, rules: PENALTY_RULES,
+    balance: walletBalance(credits, penalties, payouts),
+    available: availableToWithdraw(credits, penalties, payouts),
+    clearing: clearingTotal(credits),
+    pendingFines: pendingPenaltyCount(penalties),
+  };
+}
+
+// Reward/bonus progress — derived from the staffer's own performance signals (streak, monthly
+// rating/on-time/first-pass, team rank, lifetime volume). Money-leak-safe: reward amounts are
+// fixed bonuses, never tied to a customer's order value.
+const REWARDS_MONTH = '2026-06'; // "current" month for the demo (matches TODAY)
+export function myRewards(staffId: string = CURRENT_STAFF.id): Reward[] {
+  const history = workHistory(staffId);
+  const monthItems = history.filter((h) => h.completedAt.slice(0, 7) === REWARDS_MONTH);
+  const rated = monthItems.filter((h) => h.rating !== null);
+  const monthAvgRating = rated.length ? rated.reduce((a, h) => a + (h.rating ?? 0), 0) / rated.length : null;
+  const onTimeCount = monthItems.filter((h) => h.onTime).length;
+  const firstPassCount = monthItems.filter((h) => h.revisions === 0).length;
+  const rank = rankByComposite(STAFF, staffId)?.rank ?? STAFF.length;
+  return buildRewards({
+    streakCurrent: firstPassStreak(history).current,
+    monthAvgRating,
+    monthRatedCount: rated.length,
+    monthOnTimeRate: monthItems.length ? Math.round((onTimeCount / monthItems.length) * 100) : 0,
+    monthFirstPassRate: monthItems.length ? Math.round((firstPassCount / monthItems.length) * 100) : 0,
+    rank,
+    teamSize: STAFF.length,
+    lifetimeTasks: history.length,
+  });
+}

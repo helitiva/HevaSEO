@@ -5,20 +5,22 @@ import { useRouter } from 'next/navigation';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
+import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
-import { SKILL_META, feedbackFor, extraFor } from '@/data/staffMock';
-import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo } from '@/data/staffMock';
+import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
+import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
 
 interface Props {
   task: StaffTask; deliverables: StaffDeliverable[]; messages: StaffMessage[];
   days: number | null; prevId: string | null; nextId: string | null;
   client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
+  selfNotes: SelfNote[];
 }
 
 interface Activity { icon: string; color: string; title: string; detail?: string; at: string }
 
-export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages }: Props) {
+export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(task.status);
   const [toast, setToast] = useState<string | null>(null);
@@ -154,6 +156,8 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
           </div>
 
           <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} lockReason={lockReason} status={status} />
+
+          <SelfNoteLog seed={selfNotes} author={CURRENT_STAFF.name} />
         </div>
 
         <div className="flex flex-col gap-4">

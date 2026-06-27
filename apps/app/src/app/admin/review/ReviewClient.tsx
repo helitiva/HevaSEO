@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { StatusBadge, PriorityBadge } from '@/components/admin/StatBadge';
+import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { money, type OrderStatus, type Priority, type Tier, type AdminDeliverable } from '@/data/adminMock';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }

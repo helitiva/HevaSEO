@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { PriorityBadge, StatusBadge } from '@/components/admin/StatBadge';
-import { SlideOver } from '@/components/admin/SlideOver';
+import { PriorityBadge, StatusBadge } from '@/components/shared/StatBadge';
+import { SlideOver } from '@/components/shared/SlideOver';
 import {
   TICKET_CHANNEL, TICKET_TYPE, TICKET_MACROS, money,
   type TicketMessage, type TicketStatus, type TicketChannel, type TicketType, type Priority, type Tier, type OrderStatus,
