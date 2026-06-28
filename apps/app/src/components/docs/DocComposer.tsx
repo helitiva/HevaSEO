@@ -2,7 +2,9 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDocs, newDocId, todayIso } from '@/data/docsStore';
-import { parseDocBody, serializeDocBody, estimateReadMins } from '@/lib/docBody';
+import { blocksToHtml, estimateReadMins } from '@/lib/docBody';
+import { sanitizeHtml, htmlToText, htmlIsEmpty } from '@/lib/sanitizeHtml';
+import { RichTextEditor } from '@/app/staff/notes/RichTextEditor';
 import {
   FORMAT_META, audienceMeta, audiencesOf, DISTRIBUTABLE_AUDIENCES,
   type DocAudience, type DocFormat, type StaffDoc,
@@ -22,16 +24,19 @@ export function DocComposer({ editId }: { editId?: string }) {
   const [audiences, setAudiences] = useState<DocAudience[]>(existing ? audiencesOf(existing) : ['customer']);
   const [tags, setTags] = useState((existing?.tags ?? []).join(', '));
   const [pinned, setPinned] = useState(Boolean(existing?.pinned));
-  const [bodyText, setBodyText] = useState(existing ? serializeDocBody(existing.body) : '');
+  // Rich-text HTML body. Seed from the doc's html, or convert its structured blocks if it
+  // only has those (so an older doc still opens cleanly in the editor).
+  const [bodyHtml, setBodyHtml] = useState(existing?.html ?? (existing ? blocksToHtml(existing.body) : ''));
 
   const toggleAudience = (a: DocAudience) =>
     setAudiences((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]));
 
-  const canSave = title.trim().length > 0 && audiences.length > 0 && bodyText.trim().length > 0;
+  const canSave = title.trim().length > 0 && audiences.length > 0 && !htmlIsEmpty(bodyHtml);
 
   const save = () => {
     if (!canSave) return;
     const id = existing?.id ?? newDocId();
+    const html = sanitizeHtml(bodyHtml); // allowlist sanitize before it's ever stored/rendered
     const doc: StaffDoc = {
       id,
       title: title.trim(),
@@ -42,8 +47,9 @@ export function DocComposer({ editId }: { editId?: string }) {
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       author: existing?.author ?? 'Admin',
       updatedAt: todayIso(),
-      readMins: estimateReadMins(bodyText),
-      body: parseDocBody(bodyText),
+      readMins: estimateReadMins(htmlToText(html)),
+      body: [],
+      html,
       resources: existing?.resources ?? [],
       pinned,
     };
@@ -100,11 +106,13 @@ export function DocComposer({ editId }: { editId?: string }) {
       <div>
         <div className="mb-1 flex items-center justify-between">
           <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Body</label>
-          <span className="text-[11px] text-muted-foreground"># heading · - list · 1. steps · &gt; callout · ``` code</span>
+          <span className="text-[11px] text-muted-foreground">Headings, images &amp; video — paste or use the toolbar</span>
         </div>
-        <textarea value={bodyText} onChange={(e) => setBodyText(e.target.value)} rows={14}
-          placeholder={'# Getting started\n\nWelcome! Here is how to…\n\n- First point\n- Second point\n\n> Tip: a clear brief is the biggest lever on quality.'}
-          className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 font-mono text-[13px] leading-relaxed outline-none focus:border-primary" />
+        <RichTextEditor
+          initialHtml={bodyHtml}
+          onChange={setBodyHtml}
+          placeholder="Write the doc… add headings, upload an image, or embed a YouTube/Vimeo video."
+        />
       </div>
 
       <label className="flex items-center gap-2 text-sm">

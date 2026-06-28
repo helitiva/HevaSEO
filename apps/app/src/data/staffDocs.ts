@@ -40,7 +40,8 @@ export interface StaffDoc {
   author: string;
   updatedAt: string; // ISO date
   readMins: number;
-  body: DocBlock[];
+  body: DocBlock[]; // structured blocks (built-in seeds)
+  html?: string; // sanitized rich-text HTML (admin-authored docs); when set, the reader renders this
   resources: DocResource[];
   pinned?: boolean;
   system?: boolean; // true for built-in seeds (read-only); false/undefined for admin-created

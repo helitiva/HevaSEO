@@ -38,9 +38,14 @@ export function DocArticle({ doc, backHref }: { doc: StaffDoc; backHref: string 
         </div>
       </header>
 
-      <div className="space-y-4">
-        {doc.body.map((block, i) => <Block key={i} block={block} />)}
-      </div>
+      {doc.html ? (
+        // Admin-authored rich text — sanitized at save (DocComposer), styled by .note-html.
+        <div className="note-html text-[15px] leading-relaxed text-foreground/90" dangerouslySetInnerHTML={{ __html: doc.html }} />
+      ) : (
+        <div className="space-y-4">
+          {doc.body.map((block, i) => <Block key={i} block={block} />)}
+        </div>
+      )}
 
       {doc.tags.length > 0 && (
         <div className="mt-8 flex flex-wrap gap-1.5">
