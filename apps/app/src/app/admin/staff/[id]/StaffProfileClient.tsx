@@ -555,32 +555,42 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
               </div>
             </div>
             {gigMode === 'service' ? (
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {GIG_SERVICES.map((svc) => {
                   const c = countOfService(svc);
                   return (
-                    <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium" title={svc}>{svc}</span>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                    <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                      <span className="min-w-0 flex-1 text-sm font-medium" title={svc}>{svc}</span>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
                       <RateInput value={dGig[svc] ?? GIG_RATE[svc]} onChange={(v) => setDGig((g) => ({ ...g, [svc]: v }))} />
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {GIG_PACKAGES.map(({ service, pkg }) => {
-                  const key = gigKey(service, pkg);
-                  const c = countOfPkg(service, pkg);
-                  const fallback = dGig[service] ?? GIG_RATE[service];
-                  const custom = dPkg[key] !== undefined;
+              <div className="space-y-2">
+                {GIG_SERVICES.filter((svc) => GIG_PACKAGES.some((p) => p.service === svc)).map((svc) => {
+                  const svcRate = dGig[svc] ?? GIG_RATE[svc];
                   return (
-                    <div key={key} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
-                      <span className="min-w-0 flex-1 truncate text-sm" title={`${service} · ${pkg}`}>
-                        <span className="text-muted-foreground">{service}</span> <span className="font-medium">{pkg}</span>
-                      </span>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
-                      <RateInput value={dPkg[key] ?? fallback} muted={!custom} onChange={(v) => setDPkg((m) => ({ ...m, [key]: v }))} />
+                    <div key={svc} className="rounded-lg border border-border bg-background/50 p-2">
+                      <div className="mb-1.5 flex items-center justify-between px-0.5">
+                        <span className="text-sm font-semibold">{svc}</span>
+                        <span className="text-[10px] text-muted-foreground">service rate ${svcRate} · faded = inherits it</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {GIG_PACKAGES.filter((p) => p.service === svc).map(({ pkg }) => {
+                          const key = gigKey(svc, pkg);
+                          const c = countOfPkg(svc, pkg);
+                          const custom = dPkg[key] !== undefined;
+                          return (
+                            <div key={key} className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                              <span className="min-w-0 flex-1 text-sm font-medium" title={pkg}>{pkg === '—' ? 'Standard' : pkg}</span>
+                              <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                              <RateInput value={dPkg[key] ?? svcRate} muted={!custom} onChange={(v) => setDPkg((m) => ({ ...m, [key]: v }))} />
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
