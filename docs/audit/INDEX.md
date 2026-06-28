@@ -4,6 +4,12 @@ Phase 1 roll-up of the page-crawler pipeline ([PLAN.md](./PLAN.md)). 89 routes, 
 against [RUBRIC.md](./RUBRIC.md). Per-surface detail: [affiliate](./affiliate.md) ·
 [customer](./customer.md) · [staff](./staff.md) · [manager](./manager.md) · [admin](./admin.md).
 
+> **Status (Phase 3 done — see [REPORT.md](./REPORT.md)):** ✅ All HIGH findings fixed (staff
+> view-only RBAC, customer dashboard, support URLs, notes seed). ✅ Systemic sweeps done: `TODAY`
+> single-sourced, `metadata` on every route, `aria-hidden`/`aria-label` on all icons. ⏳ Deferred
+> (MEDIUM): module-scope singletons, `notFound()` on edit routes, Suspense skeletons, illustrative
+> stats, inbox PageHeaders — tracked in REPORT.md.
+
 ## Coverage
 | Surface | Routes | Verdict spread |
 |---|---|---|
