@@ -4,6 +4,8 @@ import { buildStaffProfile } from '@/app/admin/staff/[id]/build';
 import { StaffProfileClient } from '@/app/admin/staff/[id]/StaffProfileClient';
 import { managerScope, staffInPod, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Staff profile' };
+
 // Manager staff detail — same profile as admin, but a manager may only open a
 // staffer inside their own pod, and the page is money-blind (the Pay & wallet tab
 // and all pay figures are hidden; impersonation is view-only). Both enforced by

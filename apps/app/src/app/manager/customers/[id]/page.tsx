@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { CustomerDetailView } from '@/app/admin/customers/[id]/view';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Customer' };
+
 // Manager customer detail — same profile as admin, but a manager may only open a
 // customer their pod serves, and it is money-blind (LTV/credit/ledger hidden,
 // no credit adjust, no customer impersonation) via the manager ViewerProvider +

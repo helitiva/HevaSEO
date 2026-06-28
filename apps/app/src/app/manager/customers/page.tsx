@@ -3,6 +3,8 @@ import { CustomersClient } from '@/app/admin/customers/CustomersClient';
 import { buildCustomerRows } from '@/app/admin/customers/rows';
 import { managerScope, customersForPod, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Customers' };
+
 // Manager Customers — same client + derivation as admin, scoped to the customers
 // this pod serves and money-blind (CustomersClient hides LTV/credit/AOV columns
 // for the manager viewer).

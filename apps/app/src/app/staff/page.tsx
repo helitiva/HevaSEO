@@ -10,6 +10,8 @@ import { rewardsEarned } from '@/lib/staffRewards';
 import { daysToDue, PRIORITY_RANK, commissionTierFor, firstPassStreak } from '@/lib/staff';
 import type { MyDayTask } from '@/lib/myDay';
 
+export const metadata = { title: 'My day' };
+
 const ACTIONABLE = new Set(['assigned', 'in_progress', 'changes_requested']);
 
 function greeting(hour: number): string {

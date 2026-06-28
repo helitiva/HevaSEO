@@ -1,6 +1,8 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DocComposer } from '@/components/docs/DocComposer';
 
+export const metadata = { title: 'New doc' };
+
 export default function AdminDocNewPage() {
   return (
     <section>

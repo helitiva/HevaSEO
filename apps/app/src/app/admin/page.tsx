@@ -9,6 +9,8 @@ import {
 } from '@/data/adminMock';
 import { mockTodayDate } from '@/lib/today';
 
+export const metadata = { title: 'Command center' };
+
 const ACTION_ICON: Record<string, string> = {
   transition: 'ph-arrows-left-right', assign: 'ph-user-plus', cancel: 'ph-x-circle', edit: 'ph-pencil-simple',
 };

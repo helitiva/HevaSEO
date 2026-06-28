@@ -19,6 +19,8 @@ import {
 import { currentStaffId } from '@/lib/currentStaff';
 import { mockTodayDate } from '@/lib/today';
 
+export const metadata = { title: 'Performance' };
+
 // The staffer's own standing: scorecard, earnings (their OWN pay — customer prices stay hidden),
 // team ranking by performance, and the customers they're caring for.
 export default async function PerformancePage() {

@@ -1,6 +1,8 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DocComposer } from '@/components/docs/DocComposer';
 
+export const metadata = { title: 'Edit doc' };
+
 export default async function AdminDocEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (

@@ -4,6 +4,8 @@ import { myTasks, BOARD_COLUMNS } from '@/data/staffMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { TasksClient } from './TasksClient';
 
+export const metadata = { title: 'My tasks' };
+
 export default async function MyTasksPage() {
   const board = myTasks(await currentStaffId());
   if (board.length === 0) {

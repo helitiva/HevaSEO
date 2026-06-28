@@ -4,6 +4,8 @@ import { buildTicketRows } from '@/app/admin/tickets/rows';
 import { TIER } from '@/data/adminMock';
 import { managerScope, ticketsForPod, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Tickets' };
+
 // Manager Tickets — only tickets for this pod's customers (or assigned to a pod
 // member). Same client, money-blind (customer LTV/credit/ledger hidden).
 export default function ManagerTicketsPage() {

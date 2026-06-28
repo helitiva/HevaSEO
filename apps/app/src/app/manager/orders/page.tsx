@@ -3,6 +3,8 @@ import { OrdersExplorer, type ExplorerOrder } from '@/app/admin/orders/OrdersExp
 import { ORDERS, customerByCompany } from '@/data/adminMock';
 import { managerScope, ordersForPod, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Orders' };
+
 // Manager Orders — the same explorer the admin uses, but scoped to this pod's
 // orders and money-blind (the OrdersExplorer drops the value/LTV columns for the
 // manager viewer). Order numbers stay global so they match the admin's view.

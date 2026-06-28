@@ -14,6 +14,8 @@ import {
   REVENUE_KPIS, REVENUE_ANALYTICS, REVENUE_90, SERVICE_MIX, CUSTOMERS, money, type RevKpi,
 } from '@/data/adminMock';
 
+export const metadata = { title: 'Analytics' };
+
 export default function AnalyticsPage() {
   const r = REVENUE_ANALYTICS;
   const srcSegs = r.bySource.map((s) => ({ label: s.label, value: s.value, color: s.color }));

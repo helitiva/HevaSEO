@@ -4,6 +4,8 @@ import { buildStaffVMs, buildManagerVMs } from '@/app/admin/staff/build';
 import { SKILL_META } from '@/data/adminMock';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'My staff' };
+
 // Manager Staff — only this manager's pod. Same roster client, money-blind
 // (pay/wallet columns hidden) and impersonation is view-only for managers.
 export default function ManagerStaffPage() {

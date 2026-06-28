@@ -4,6 +4,8 @@ import { buildReviewProps } from '@/app/admin/review/build';
 import { TIER } from '@/data/adminMock';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Review' };
+
 // Manager Review — the same QA board, scoped to deliverables submitted by this
 // pod's staff. Money-blind (customer LTV/credit + order value hidden).
 export default function ManagerReviewPage() {

@@ -7,6 +7,8 @@ import {
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 import { allManagerPerf, companyBenchmark } from '@/lib/managerPerf';
 
+export const metadata = { title: 'Performance' };
+
 // Manager self-view — "how is my pod scoring, and what do I improve next?".
 // Money-blind like the rest of /manager, and private-coaching by design: the
 // manager sees their own score against the ANONYMIZED average of OTHER pods,

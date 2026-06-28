@@ -3,6 +3,8 @@ import { DocsLibrary } from '@/components/docs/DocsLibrary';
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 
+export const metadata = { title: 'Docs' };
+
 // Knowledge base. Admin publishes docs to chosen audiences; each staffer sees ONLY the
 // docs for their specialty (+ general). The skill-scoping happens in the data-layer gate
 // (docsForStaff) — a backlink writer never receives content docs here.

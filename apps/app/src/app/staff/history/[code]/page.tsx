@@ -6,6 +6,8 @@ import { archivedTask, liveTaskIdForCode, serviceMeta } from '@/data/staffMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { taskTimeline } from '@/lib/staff';
 
+export const metadata = { title: 'Task history' };
+
 // A long, friendly date — "Jun 22, 2026". UTC-pinned so the day never drifts by timezone.
 function fmt(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

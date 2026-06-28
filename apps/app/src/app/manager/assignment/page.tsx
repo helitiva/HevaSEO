@@ -4,6 +4,8 @@ import { buildAssignmentProps } from '@/app/admin/assignment/build';
 import { TIER } from '@/data/adminMock';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Assignment' };
+
 // Manager Assignment — routes from the shared unassigned queue, but candidates
 // and in-flight workload are limited to this manager's pod. Money-blind.
 export default function ManagerAssignmentPage() {

@@ -5,6 +5,8 @@ import { currentStaffId } from '@/lib/currentStaff';
 import { daysToDue } from '@/lib/staff';
 import { TaskDetailClient } from './TaskDetailClient';
 
+export const metadata = { title: 'Task detail' };
+
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sid = await currentStaffId();

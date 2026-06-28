@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { ManagerSettingsClient } from './SettingsClient';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Settings' };
+
 export default function ManagerSettingsPage() {
   const scope = managerScope(MANAGER_PERSONA);
   const m = scope.manager;

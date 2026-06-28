@@ -3,6 +3,8 @@ import { buildOrderDetailProps } from '@/lib/orderDetail';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
+export const metadata = { title: 'Order detail' };
+
 // Manager order detail — same panel/page as admin (money-blind via the manager
 // ViewerProvider), but only for an order worked by this manager's pod. Lets the
 // order-detail slide-over's prev/next/customer links resolve inside /manager.

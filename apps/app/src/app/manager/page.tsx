@@ -13,6 +13,8 @@ import { TriageQueue } from '@/components/manager/TriageQueue';
 import { buildManagerPerf } from '@/lib/managerPerf';
 import { MgrLeverStrip } from '@/components/manager/ManagerScorecard';
 
+export const metadata = { title: 'Overview' };
+
 // Manager Command Center — an action-first, money-blind snapshot of one pod.
 // Top: a single triage queue ("what needs me now") + capacity & the week ahead.
 // Middle: QA, SLA and workload-mix health. Bottom: the roster and what just happened.

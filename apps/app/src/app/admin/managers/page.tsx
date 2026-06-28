@@ -5,6 +5,8 @@ import { mockTodayDate } from '@/lib/today';
 import { allManagerPerf, companyBenchmark, type ManagerPerf } from '@/lib/managerPerf';
 import { ManagersClient, type ManagerMeta, type StaffMemberVM, type TeamLeaveVM } from './ManagersClient';
 
+export const metadata = { title: 'Managers' };
+
 const TODAY = mockTodayDate();
 const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 

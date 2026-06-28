@@ -2,6 +2,8 @@ import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { DocReaderClient } from '@/components/docs/DocReaderClient';
 
+export const metadata = { title: 'Document' };
+
 export default async function DocReaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sid = await currentStaffId();

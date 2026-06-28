@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { OrdersExplorer, type ExplorerOrder } from './OrdersExplorer';
 import { ORDERS, customerByCompany } from '@/data/adminMock';
 
+export const metadata = { title: 'Orders' };
+
 export default function OrdersPage() {
   // System sequence number: oldest order = #1 (stable, independent of table sort).
   const seqMap = new Map(

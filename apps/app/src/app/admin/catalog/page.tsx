@@ -3,6 +3,8 @@ import type { SvcPackage, SvcGroup } from '@/data/services';
 import { CatalogClient } from './CatalogClient';
 import type { SvcRow, PkgRow, GroupRow, TierRow } from './CatalogClient';
 
+export const metadata = { title: 'Catalog' };
+
 function pkgToRow(p: SvcPackage, groupId: string | null = null, groupTitle: string | null = null): PkgRow {
   const price = p.price ?? 0;
   return {

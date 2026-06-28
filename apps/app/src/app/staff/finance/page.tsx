@@ -6,6 +6,8 @@ import { myEarnings, earningsHistory, myEarningsSummary, myFinance, myRewards } 
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 
+export const metadata = { title: 'Finance' };
+
 // The staffer's own money: commission wallet, payout requests, and penalties — built on the
 // money-leak-safe staffMock layer (commission/base/bonus only; customer pricing never crosses).
 // Renders for the impersonated staffer when an admin is impersonating (else the demo staffer).
