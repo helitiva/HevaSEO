@@ -12,6 +12,7 @@ import {
   type AdminOrder, type AdminCustomer,
 } from '@/data/adminMock';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
@@ -586,16 +587,18 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
 }
 
 /* ---------------------------------------------------------------- Payouts */
-type PayoutOverride = { base: number; rate: number; bonus: number };
+// Same shape (and localStorage key) the staff-profile pay editor writes — gigRates carries
+// any per-service gig-rate overrides set there.
+type PayoutOverride = { base: number; rate: number; bonus: number; gigRates?: Record<string, number> };
 
-// Effective comp for a payout, applying any admin override. Gig pay is a fixed piece-rate
-// total (not overridable here), so it flows straight through into the net.
+// Effective comp for a payout, applying any admin override. Gig pay is recomputed from the
+// staffer's per-service gig counts and any per-service rate override (shared with the profile).
 function effComp(p: Payout, ov?: PayoutOverride) {
   const base = ov ? ov.base : p.base;
   const rate = ov ? ov.rate / 100 : p.rate;
   const bonus = ov ? ov.bonus : p.bonus;
   const commission = Math.round(p.basis * rate);
-  const gig = p.gig;
+  const gig = gigPay(p.gigCounts, ov?.gigRates);
   return { base, rate, bonus, commission, gig, total: base + gig + commission + bonus };
 }
 
@@ -971,7 +974,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
     setDraftBonus(override?.bonus ?? p.bonus);
     setEditing(true);
   };
-  const saveEdit = () => { onSaveOverride({ base: draftBase, rate: draftRate, bonus: draftBonus }); setEditing(false); };
+  const saveEdit = () => { onSaveOverride({ ...override, base: draftBase, rate: draftRate, bonus: draftBonus }); setEditing(false); };
 
   return (
     <div className="space-y-5">

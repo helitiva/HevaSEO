@@ -1,18 +1,19 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { gigRateFor } from '@/data/adminMock';
 
 // Per-staff pay overrides — the SINGLE source shared by the Finance > Payouts tab and the
 // admin staff profile. Same localStorage key the Finance page already persists to, so setting
-// a staffer's salary/rate/bonus in either place is reflected in the other. A real app would put
-// this on the server; this is the Phase-0 mock equivalent.
+// a staffer's salary/rate/bonus/gig-rates in either place is reflected in the other. A real app
+// would put this on the server; this is the Phase-0 mock equivalent.
 //
-// Shape mirrors the Finance PayoutOverride: rate is a whole-number PERCENT (e.g. 30), base and
-// bonus are USD. The cycle math (base + gig + commission + bonus) lives in effectivePay below
-// and matches the Finance effComp exactly.
+// rate is a whole-number PERCENT (e.g. 30); base/bonus are USD; gigRates maps a service →
+// the $ a delivered gig of that service pays for THIS staffer (overriding the global GIG_RATE).
 const KEY = 'heva.finance.payoutOverrides';
+const PRESET_KEY = 'heva.finance.payPresets';
 const EVT = 'heva:pay-overrides-changed';
 
-export interface PayOverride { base: number; rate: number; bonus: number }
+export interface PayOverride { base: number; rate: number; bonus: number; gigRates?: Record<string, number> }
 
 type OverrideMap = Record<string, PayOverride>;
 
@@ -56,13 +57,58 @@ export function usePayOverride(staffId: string) {
   return { override, ready, save, clear };
 }
 
+// Gig pay for a staffer = Σ over their delivered gigs of (per-staff rate ?? global rate).
+export type GigCount = { service: string; count: number };
+export function gigPay(gigCounts: GigCount[], gigRates?: Record<string, number>): number {
+  return gigCounts.reduce((sum, g) => sum + g.count * (gigRates?.[g.service] ?? gigRateFor(g.service)), 0);
+}
+// The effective per-service rate (override else global) — for rendering the editor rows.
+export function gigRateOf(service: string, gigRates?: Record<string, number>): number {
+  return gigRates?.[service] ?? gigRateFor(service);
+}
+
 // The cycle comp from a payroll seed + optional override. Mirrors Finance's effComp:
-// commission = basis × rate%, gig is a fixed piece-rate total, total = base + gig + commission + bonus.
-export interface PaySeed { base: number; rate: number; basis: number; gig: number; bonus: number }
+// commission = basis × rate%, gig = Σ gigCounts × per-service rate, total = base + gig + commission + bonus.
+export interface PaySeed { base: number; rate: number; basis: number; gigCounts: GigCount[]; bonus: number }
 export function effectivePay(seed: PaySeed, ov?: PayOverride) {
   const base = ov ? ov.base : seed.base;
   const ratePct = ov ? ov.rate : Math.round(seed.rate * 100);
   const bonus = ov ? ov.bonus : seed.bonus;
   const commission = Math.round(seed.basis * (ratePct / 100));
-  return { base, ratePct, bonus, commission, gig: seed.gig, total: base + seed.gig + commission + bonus };
+  const gig = gigPay(seed.gigCounts, ov?.gigRates);
+  return { base, ratePct, bonus, commission, gig, total: base + gig + commission + bonus };
+}
+
+// ── Saved pay presets ─────────────────────────────────────────────────────────
+// A reusable pay template the admin can apply to any staffer to fill the form quickly.
+export interface PayPreset { id: string; name: string; base: number; rate: number; bonus: number; gigRates: Record<string, number> }
+
+function readPresets(): PayPreset[] {
+  if (typeof window === 'undefined') return [];
+  try { const raw = localStorage.getItem(PRESET_KEY); return raw ? (JSON.parse(raw) as PayPreset[]) : []; } catch { return []; }
+}
+function writePresets(list: PayPreset[]): void {
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+  window.dispatchEvent(new Event(EVT));
+}
+
+export function usePayPresets() {
+  const [presets, setPresets] = useState<PayPreset[]>([]);
+  useEffect(() => {
+    const load = () => setPresets(readPresets());
+    load();
+    window.addEventListener(EVT, load);
+    window.addEventListener('storage', load);
+    return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
+  }, []);
+  const addPreset = useCallback((p: Omit<PayPreset, 'id'>) => {
+    const list = readPresets();
+    const next = [{ ...p, id: `pp-${Date.now().toString(36)}` }, ...list];
+    writePresets(next); setPresets(next);
+  }, []);
+  const removePreset = useCallback((id: string) => {
+    const next = readPresets().filter((x) => x.id !== id);
+    writePresets(next); setPresets(next);
+  }, []);
+  return { presets, addPreset, removePreset };
 }

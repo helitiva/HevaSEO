@@ -796,6 +796,7 @@ export interface Payout {
   base: number;        // fixed monthly salary
   gigUnits: number;    // count of billable gigs delivered
   gig: number;         // sum of GIG_RATE[service] over those gigs (piece-rate pay)
+  gigCounts: { service: string; count: number }[]; // billable gigs grouped by service
   commission: number;  // round(basis × rate)
   bonus: number;       // admin-entered, 0 by default
   due: number;         // base + gig + commission + bonus
@@ -823,13 +824,16 @@ export const PAYOUTS: Payout[] = STAFF.map((s) => {
   const work = ORDERS.filter((o) => o.staff === s.name && PAYABLE_STATES.includes(o.status));
   const basis = work.reduce((a, o) => a + o.value, 0);
   const gig = work.reduce((a, o) => a + gigRateFor(o.service), 0);
+  const gigCounts = Object.entries(
+    work.reduce<Record<string, number>>((m, o) => { m[o.service] = (m[o.service] ?? 0) + 1; return m; }, {}),
+  ).map(([service, count]) => ({ service, count })).sort((a, b) => b.count - a.count);
   const rate = PAYOUT_RATE[s.role] ?? 0.28;
   const base = BASE_SALARY[s.role] ?? 800;
   const commission = Math.round(basis * rate);
   const bonus = 0;
   return {
     staffId: s.id, staff: s.name, role: s.role, active: s.active,
-    completedOrders: work.length, basis, rate, base, gigUnits: work.length, gig, commission, bonus,
+    completedOrders: work.length, basis, rate, base, gigUnits: work.length, gig, gigCounts, commission, bonus,
     due: base + gig + commission + bonus, lastPaidAt: '2026-06-05',
   };
 });

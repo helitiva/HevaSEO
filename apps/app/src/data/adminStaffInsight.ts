@@ -29,6 +29,7 @@ const REWARDS_MONTH = '2026-06';
 export interface StaffPayroll {
   base: number; gig: number; commission: number; bonus: number; due: number;
   rate: number; basis: number; completedOrders: number; lastPaidAt: string | null;
+  gigCounts: { service: string; count: number }[];
 }
 export interface StaffWallet { balance: number; available: number; clearing: number }
 export interface StaffPenaltyBlock { summary: PenaltySummary; pendingCount: number; items: StaffPenalty[] }
@@ -104,6 +105,7 @@ export function buildStaffInsight(staffId: string): StaffInsight | null {
     payroll: {
       base: payout?.base ?? 0, gig: payout?.gig ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
       due: payout?.due ?? 0, rate: payout?.rate ?? 0, basis: payout?.basis ?? 0, completedOrders: payout?.completedOrders ?? 0,
+      gigCounts: payout?.gigCounts ?? [],
       lastPaidAt: payout?.lastPaidAt ?? null,
     },
     wallet: { balance: fin.balance, available: fin.available, clearing: fin.clearing },
