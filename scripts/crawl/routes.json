@@ -1,0 +1,780 @@
+{
+  "generatedAt": "2026-06-28T06:50:14.148Z",
+  "devUrl": "http://localhost:4400",
+  "total": 89,
+  "byRole": {
+    "customer": 17,
+    "admin": 28,
+    "affiliate": 7,
+    "manager": 20,
+    "staff": 17
+  },
+  "identityCookies": {
+    "staff": "heva_as",
+    "customer": "heva_as_customer",
+    "mode": "heva_as_mode"
+  },
+  "routes": [
+    {
+      "url": "/credit",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/credit/page.tsx"
+    },
+    {
+      "url": "/dashboard",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/dashboard/page.tsx"
+    },
+    {
+      "url": "/docs/[id]",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/docs",
+      "source": "apps/app/src/app/(portal)/docs/[id]/page.tsx"
+    },
+    {
+      "url": "/docs",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/docs/page.tsx"
+    },
+    {
+      "url": "/inbox",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/inbox/page.tsx"
+    },
+    {
+      "url": "/notes/[id]/edit",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/notes",
+      "source": "apps/app/src/app/(portal)/notes/[id]/edit/page.tsx"
+    },
+    {
+      "url": "/notes/[id]",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/notes",
+      "source": "apps/app/src/app/(portal)/notes/[id]/page.tsx"
+    },
+    {
+      "url": "/notes/new",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/notes/new/page.tsx"
+    },
+    {
+      "url": "/notes",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/notes/page.tsx"
+    },
+    {
+      "url": "/orders",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/orders/page.tsx"
+    },
+    {
+      "url": "/projects/[id]",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/projects",
+      "source": "apps/app/src/app/(portal)/projects/[id]/page.tsx"
+    },
+    {
+      "url": "/projects",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/projects/page.tsx"
+    },
+    {
+      "url": "/services/[svc]",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "svc"
+      ],
+      "discoverFrom": "/services",
+      "source": "apps/app/src/app/(portal)/services/[svc]/page.tsx"
+    },
+    {
+      "url": "/services",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/services/page.tsx"
+    },
+    {
+      "url": "/settings",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/settings/page.tsx"
+    },
+    {
+      "url": "/support",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/(portal)/support/page.tsx"
+    },
+    {
+      "url": "/admin/affiliate",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/affiliate/page.tsx"
+    },
+    {
+      "url": "/admin/analytics",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/analytics/page.tsx"
+    },
+    {
+      "url": "/admin/assignment",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/assignment/page.tsx"
+    },
+    {
+      "url": "/admin/audit",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/audit/page.tsx"
+    },
+    {
+      "url": "/admin/broadcasts/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/broadcasts",
+      "source": "apps/app/src/app/admin/broadcasts/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/broadcasts",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/broadcasts/page.tsx"
+    },
+    {
+      "url": "/admin/catalog",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/catalog/page.tsx"
+    },
+    {
+      "url": "/admin/customers/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/customers",
+      "source": "apps/app/src/app/admin/customers/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/customers",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/customers/page.tsx"
+    },
+    {
+      "url": "/admin/docs/[id]/edit",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/docs",
+      "source": "apps/app/src/app/admin/docs/[id]/edit/page.tsx"
+    },
+    {
+      "url": "/admin/docs/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/docs",
+      "source": "apps/app/src/app/admin/docs/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/docs/new",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/docs/new/page.tsx"
+    },
+    {
+      "url": "/admin/docs",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/docs/page.tsx"
+    },
+    {
+      "url": "/admin/finance",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/finance/page.tsx"
+    },
+    {
+      "url": "/admin/managers",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/managers/page.tsx"
+    },
+    {
+      "url": "/admin/notes/[id]/edit",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/notes",
+      "source": "apps/app/src/app/admin/notes/[id]/edit/page.tsx"
+    },
+    {
+      "url": "/admin/notes/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/notes",
+      "source": "apps/app/src/app/admin/notes/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/notes/new",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/notes/new/page.tsx"
+    },
+    {
+      "url": "/admin/notes",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/notes/page.tsx"
+    },
+    {
+      "url": "/admin/orders/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/orders",
+      "source": "apps/app/src/app/admin/orders/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/orders",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/orders/page.tsx"
+    },
+    {
+      "url": "/admin",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/page.tsx"
+    },
+    {
+      "url": "/admin/review",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/review/page.tsx"
+    },
+    {
+      "url": "/admin/settings",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/settings/page.tsx"
+    },
+    {
+      "url": "/admin/staff/[id]",
+      "role": "admin",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/admin/staff",
+      "source": "apps/app/src/app/admin/staff/[id]/page.tsx"
+    },
+    {
+      "url": "/admin/staff/leave",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/staff/leave/page.tsx"
+    },
+    {
+      "url": "/admin/staff",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/staff/page.tsx"
+    },
+    {
+      "url": "/admin/tickets",
+      "role": "admin",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/admin/tickets/page.tsx"
+    },
+    {
+      "url": "/affiliate/assets",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/assets/page.tsx"
+    },
+    {
+      "url": "/affiliate/inbox",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/inbox/page.tsx"
+    },
+    {
+      "url": "/affiliate",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/page.tsx"
+    },
+    {
+      "url": "/affiliate/payouts",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/payouts/page.tsx"
+    },
+    {
+      "url": "/affiliate/referrals",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/referrals/page.tsx"
+    },
+    {
+      "url": "/affiliate/settings",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/(dash)/settings/page.tsx"
+    },
+    {
+      "url": "/affiliate/join",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/join/page.tsx"
+    },
+    {
+      "url": "/manager/assignment",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/assignment/page.tsx"
+    },
+    {
+      "url": "/manager/audit",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/audit/page.tsx"
+    },
+    {
+      "url": "/manager/customers/[id]",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/customers",
+      "source": "apps/app/src/app/manager/customers/[id]/page.tsx"
+    },
+    {
+      "url": "/manager/customers",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/customers/page.tsx"
+    },
+    {
+      "url": "/manager/docs/[id]",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/docs",
+      "source": "apps/app/src/app/manager/docs/[id]/page.tsx"
+    },
+    {
+      "url": "/manager/docs",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/docs/page.tsx"
+    },
+    {
+      "url": "/manager/inbox",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/inbox/page.tsx"
+    },
+    {
+      "url": "/manager/notes/[id]/edit",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/notes",
+      "source": "apps/app/src/app/manager/notes/[id]/edit/page.tsx"
+    },
+    {
+      "url": "/manager/notes/[id]",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/notes",
+      "source": "apps/app/src/app/manager/notes/[id]/page.tsx"
+    },
+    {
+      "url": "/manager/notes/new",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/notes/new/page.tsx"
+    },
+    {
+      "url": "/manager/notes",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/notes/page.tsx"
+    },
+    {
+      "url": "/manager/orders/[id]",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/orders",
+      "source": "apps/app/src/app/manager/orders/[id]/page.tsx"
+    },
+    {
+      "url": "/manager/orders",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/orders/page.tsx"
+    },
+    {
+      "url": "/manager",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/page.tsx"
+    },
+    {
+      "url": "/manager/performance",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/performance/page.tsx"
+    },
+    {
+      "url": "/manager/review",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/review/page.tsx"
+    },
+    {
+      "url": "/manager/settings",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/settings/page.tsx"
+    },
+    {
+      "url": "/manager/staff/[id]",
+      "role": "manager",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/manager/staff",
+      "source": "apps/app/src/app/manager/staff/[id]/page.tsx"
+    },
+    {
+      "url": "/manager/staff",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/staff/page.tsx"
+    },
+    {
+      "url": "/manager/tickets",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/tickets/page.tsx"
+    },
+    {
+      "url": "/",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/page.tsx",
+      "note": "redirects to /dashboard"
+    },
+    {
+      "url": "/staff/calendar",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/calendar/page.tsx"
+    },
+    {
+      "url": "/staff/deliverables",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/deliverables/page.tsx"
+    },
+    {
+      "url": "/staff/docs/[id]",
+      "role": "staff",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/staff/docs",
+      "source": "apps/app/src/app/staff/docs/[id]/page.tsx"
+    },
+    {
+      "url": "/staff/docs",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/docs/page.tsx"
+    },
+    {
+      "url": "/staff/finance",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/finance/page.tsx"
+    },
+    {
+      "url": "/staff/history/[code]",
+      "role": "staff",
+      "isDynamic": true,
+      "dynamicParams": [
+        "code"
+      ],
+      "discoverFrom": "/staff/history",
+      "source": "apps/app/src/app/staff/history/[code]/page.tsx"
+    },
+    {
+      "url": "/staff/inbox",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/inbox/page.tsx"
+    },
+    {
+      "url": "/staff/notes/[id]/edit",
+      "role": "staff",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/staff/notes",
+      "source": "apps/app/src/app/staff/notes/[id]/edit/page.tsx"
+    },
+    {
+      "url": "/staff/notes/[id]",
+      "role": "staff",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/staff/notes",
+      "source": "apps/app/src/app/staff/notes/[id]/page.tsx"
+    },
+    {
+      "url": "/staff/notes/new",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/notes/new/page.tsx"
+    },
+    {
+      "url": "/staff/notes",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/notes/page.tsx"
+    },
+    {
+      "url": "/staff/notifications",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/notifications/page.tsx"
+    },
+    {
+      "url": "/staff",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/page.tsx"
+    },
+    {
+      "url": "/staff/performance",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/performance/page.tsx"
+    },
+    {
+      "url": "/staff/settings",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/settings/page.tsx"
+    },
+    {
+      "url": "/staff/tasks/[id]",
+      "role": "staff",
+      "isDynamic": true,
+      "dynamicParams": [
+        "id"
+      ],
+      "discoverFrom": "/staff/tasks",
+      "source": "apps/app/src/app/staff/tasks/[id]/page.tsx"
+    },
+    {
+      "url": "/staff/tasks",
+      "role": "staff",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/staff/tasks/page.tsx"
+    }
+  ]
+}
