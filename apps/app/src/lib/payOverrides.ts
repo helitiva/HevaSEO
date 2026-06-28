@@ -79,9 +79,9 @@ export function gigPay(gigCounts: GigCount[], gigRates?: Record<string, number>,
 export interface PaySeed { base: number; rate: number; basis: number; gigCounts: GigCount[]; bonus: number }
 export function effectivePay(seed: PaySeed, ov?: PayOverride) {
   const base = ov ? ov.base : seed.base;
-  const ratePct = ov ? ov.rate : Math.round(seed.rate * 100);
+  const ratePct = ov ? ov.rate : Math.round(seed.rate * 1000) / 10; // keep 1 decimal (rates can be e.g. 3.4%)
   const bonus = ov ? ov.bonus : seed.bonus;
-  const commission = Math.round(seed.basis * (ratePct / 100));
+  const commission = Math.round(seed.basis * (ratePct / 100) * 100) / 100; // cents (decimal rates → cent-accurate)
   const gig = gigPay(seed.gigCounts, ov?.gigRates, ov?.gigPkgRates);
   return { base, ratePct, bonus, commission, gig, total: base + gig + commission + bonus };
 }

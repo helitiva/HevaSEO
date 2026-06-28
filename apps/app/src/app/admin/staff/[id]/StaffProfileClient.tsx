@@ -14,6 +14,7 @@ import { monthOf } from '@/lib/calendar';
 import { statusLabel, GIG_RATE, GIG_PACKAGES, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
 import { usePayOverride, usePayPresets, effectivePay, gigPay, gigRateOf, gigKey, type PayPreset } from '@/lib/payOverrides';
+import { packagePrice, servicePriceRange } from '@/lib/gigPricing';
 import { ACTIVITY_TYPE_META, PENALTY_RULES } from '@/data/staffMock';
 import type { StaffInsight } from '@/data/adminStaffInsight';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STATUS_META, WALLET_KIND_META } from '@/lib/staffFinance';
@@ -461,7 +462,7 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
     if (name?.trim()) addPreset({ name: name.trim(), base: dBase, rate: dRate, bonus: dBonus, gigRates: dGig, gigPkgRates: hasPkg(dPkg) ? dPkg : undefined });
   };
 
-  const previewCommission = Math.round(payroll.basis * (dRate / 100));
+  const previewCommission = Math.round(payroll.basis * (dRate / 100) * 100) / 100;
   const previewGig = gigPay(payroll.gigCounts, dGig, dPkg);
   const previewTotal = dBase + previewGig + previewCommission + dBonus;
 
@@ -525,19 +526,19 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
             {Field('Fixed salary', (
               <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
                 <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
-                <input type="number" min={0} step={50} value={dBase} onChange={(e) => setDBase(Number(e.target.value) || 0)} className={inp} />
+                <DecimalInput value={dBase} min={0} onChange={setDBase} className={inp} ariaLabel="Fixed salary" />
               </div>
             ), `role default ${money(payroll.base)}`)}
             {Field('Commission rate', (
               <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
-                <input type="number" min={0} max={100} step={1} value={dRate} onChange={(e) => setDRate(Number(e.target.value) || 0)} className={inp} />
+                <DecimalInput value={dRate} min={0} max={100} onChange={setDRate} className={inp} ariaLabel="Commission rate (percent)" />
                 <span className="shrink-0 border-l border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">%</span>
               </div>
             ), `× ${money(payroll.basis)} billable = ${money(previewCommission)}`)}
             {Field('Bonus', (
               <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
                 <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
-                <input type="number" min={0} step={10} value={dBonus} onChange={(e) => setDBonus(Number(e.target.value) || 0)} className={inp} />
+                <DecimalInput value={dBonus} min={0} onChange={setDBonus} className={inp} ariaLabel="Bonus" />
               </div>
             ), 'one-off this cycle')}
           </div>
@@ -559,9 +560,13 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
               <div className="grid gap-2 sm:grid-cols-2">
                 {GIG_SERVICES.map((svc) => {
                   const c = countOfService(svc);
+                  const range = servicePriceRange(svc);
                   return (
                     <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
-                      <span className="min-w-0 flex-1 text-sm font-medium" title={svc}>{svc}</span>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium" title={svc}>{svc}</span>
+                        {range && <span className="text-[10px] text-muted-foreground">sells {range[0] === range[1] ? money(range[0]) : `${money(range[0])}–${money(range[1])}`}</span>}
+                      </div>
                       <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
                       <RateInput value={dGig[svc] ?? GIG_RATE[svc]} onChange={(v) => setDGig((g) => ({ ...g, [svc]: v }))} />
                     </div>
@@ -572,20 +577,25 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
               <div className="space-y-2">
                 {GIG_SERVICES.filter((svc) => GIG_PACKAGES.some((p) => p.service === svc)).map((svc) => {
                   const svcRate = dGig[svc] ?? GIG_RATE[svc];
+                  const range = servicePriceRange(svc);
                   return (
                     <div key={svc} className="rounded-lg border border-border bg-background/50 p-2">
                       <div className="mb-1.5 flex items-center justify-between px-0.5">
                         <span className="text-sm font-semibold">{svc}</span>
-                        <span className="text-[10px] text-muted-foreground">service rate ${svcRate} · faded = inherits it</span>
+                        <span className="text-[10px] text-muted-foreground">{range && <>sells {range[0] === range[1] ? money(range[0]) : `${money(range[0])}–${money(range[1])}`} · </>}service rate ${svcRate} · faded = inherits it</span>
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {GIG_PACKAGES.filter((p) => p.service === svc).map(({ pkg }) => {
                           const key = gigKey(svc, pkg);
                           const c = countOfPkg(svc, pkg);
                           const custom = dPkg[key] !== undefined;
+                          const price = packagePrice(svc, pkg);
                           return (
                             <div key={key} className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
-                              <span className="min-w-0 flex-1 text-sm font-medium" title={pkg}>{pkg === '—' ? 'Standard' : pkg}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-medium" title={pkg}>{pkg === '—' ? 'Standard' : pkg}</span>
+                                {price != null && <span className="mt-0.5 block text-sm font-medium text-muted-foreground">sells {money(price)}</span>}
+                              </div>
                               <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
                               <RateInput value={dPkg[key] ?? svcRate} muted={!custom} onChange={(v) => setDPkg((m) => ({ ...m, [key]: v }))} />
                             </div>
@@ -616,14 +626,43 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
 }
 
 // Compact $-prefixed rate input used by the gig-pay grids. `muted` = an inherited (not yet
-// customised) rate, shown faded.
+// customised) rate, shown faded. Accepts decimal cents (e.g. 5.25).
 function RateInput({ value, onChange, muted }: { value: number; onChange: (v: number) => void; muted?: boolean }) {
   return (
     <div className={`flex w-20 shrink-0 items-center overflow-hidden rounded-md border bg-background focus-within:border-primary ${muted ? 'border-dashed border-border/60' : 'border-border'}`}>
       <span className="shrink-0 border-r border-border bg-muted px-1.5 py-1 text-xs text-muted-foreground">$</span>
-      <input type="number" min={0} step={1} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} className={`w-full bg-transparent px-1.5 py-1 text-right text-xs font-semibold tabular-nums outline-none ${muted ? 'text-muted-foreground' : ''}`} />
+      <DecimalInput value={value} min={0} onChange={onChange} ariaLabel="Gig rate" className={`w-full bg-transparent px-1.5 py-1 text-right text-xs font-semibold tabular-nums outline-none ${muted ? 'text-muted-foreground' : ''}`} />
     </div>
   );
+}
+
+// Decimal-friendly number field. A controlled `<input type="number">` coerced through Number()
+// drops a trailing "." mid-typing, so you can't type "5.25". This keeps a string buffer while
+// editing (so decimals type cleanly), emits the parsed number on every valid keystroke, and
+// normalises + clamps on blur. Re-syncs when the external value changes (e.g. a preset applied).
+function DecimalInput({ value, onChange, min, max, className, ariaLabel }: { value: number; onChange: (v: number) => void; min?: number; max?: number; className?: string; ariaLabel?: string }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    // Only overwrite the buffer when the prop diverges from what's typed (avoids clobbering "5.").
+    if (Number(text) !== value) setText(Number.isFinite(value) ? String(value) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handle = (raw: string) => {
+    setText(raw);
+    if (raw.trim() === '' || raw === '.' || raw === '-' || raw.endsWith('.')) return; // mid-typing
+    const n = Number(raw);
+    if (!Number.isNaN(n)) onChange(n);
+  };
+  const blur = () => {
+    let n = Number(text);
+    if (Number.isNaN(n)) n = 0;
+    if (min != null) n = Math.max(min, n);
+    if (max != null) n = Math.min(max, n);
+    onChange(n);
+    setText(String(n));
+  };
+  return <input type="text" inputMode="decimal" value={text} onChange={(e) => handle(e.target.value)} onBlur={blur} aria-label={ariaLabel} className={className} />;
 }
 
 /* ───────────────────────── Pay & wallet ───────────────────────── */
