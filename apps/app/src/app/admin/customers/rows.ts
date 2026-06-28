@@ -1,7 +1,8 @@
 import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer } from '@/data/adminMock';
 import type { CustomerRow, Health } from './CustomersClient';
+import { mockTodayDate } from '@/lib/today';
 
-const TODAY = new Date('2026-06-25T00:00:00');
+const TODAY = mockTodayDate();
 const CLOSED = ['completed', 'canceled'];
 
 // Derivation shared by the admin Customers page and the manager (pod-scoped) one.

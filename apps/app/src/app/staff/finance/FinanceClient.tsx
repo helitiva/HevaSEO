@@ -13,9 +13,10 @@ import {
   type StaffPenalty, type PayoutRequest, type WalletEntry, type PenaltyRule, type PayoutMethod, type PayoutMethodKind,
 } from '@/lib/staffFinance';
 import { rewardsEarned, rewardsOnOffer, REWARD_KIND_META, type Reward } from '@/lib/staffRewards';
+import { MOCK_TODAY } from '@/lib/today';
 
 const MIN_PAYOUT = 50;
-const TODAY = '2026-06-27';
+const TODAY = MOCK_TODAY;
 
 // Signed currency for the ledger — credits read "+$x", debits "−$x".
 const signed = (n: number): string => `${n < 0 ? '−' : '+'}${money(Math.abs(n))}`;

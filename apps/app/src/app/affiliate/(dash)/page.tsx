@@ -15,11 +15,12 @@ import { HowItWorks } from '@/components/affiliate/HowItWorks';
 import { rollupKpis, monthlySeries, funnelStats, earningStreak, projectMonth } from '@/lib/affiliate';
 import { portalDataFor } from '@/data/affiliatePortal';
 import { currentAffiliateId } from '@/lib/currentAffiliate';
+import { MOCK_TODAY } from '@/lib/today';
 
 export const metadata: Metadata = { title: 'Affiliate overview' };
 
 // Phase-0 mock anchor for "today" so run-rate/projection reads consistently.
-const TODAY = '2026-06-28';
+const TODAY = MOCK_TODAY;
 
 // Section anchor with a "view all" link to the deeper sub-page.
 function SectionHead({ title, icon, href, cta }: { title: string; icon: string; href?: string; cta?: string }) {

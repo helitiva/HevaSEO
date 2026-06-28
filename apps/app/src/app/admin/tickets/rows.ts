@@ -2,10 +2,11 @@ import {
   ORDERS, CUSTOMERS, CUSTOMER_EXTRA, CUSTOMER_LEDGER, TIER, SLA_LIMIT_H,
   type AdminCustomer, type AdminTicket,
 } from '@/data/adminMock';
+import { mockTodayDate, mockTodayAt } from '@/lib/today';
 
 // Fixed "now" so the mock SLA math is deterministic in the demo.
-const NOW = new Date('2026-06-25T14:00:00');
-const TODAY = new Date('2026-06-25T00:00:00');
+const NOW = mockTodayAt('14:00:00');
+const TODAY = mockTodayDate();
 const hoursSince = (iso: string) => (NOW.getTime() - new Date(iso).getTime()) / 3_600_000;
 const daysSince = (iso: string) => Math.round((TODAY.getTime() - new Date(iso).getTime()) / 86_400_000);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };

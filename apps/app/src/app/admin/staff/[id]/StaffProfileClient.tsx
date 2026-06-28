@@ -20,6 +20,7 @@ import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STAT
 import { COMMISSION_TIERS } from '@/lib/staff';
 import { REWARD_KIND_META } from '@/lib/staffRewards';
 import { impersonate } from '@/lib/impersonation';
+import { MOCK_TODAY, mockTodayDate } from '@/lib/today';
 
 export interface ProfileOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus;
@@ -216,7 +217,7 @@ function OverviewTab({ s, payDue, workload, capacity, util, over, teamAvg, tierM
   );
 }
 
-const PROFILE_TODAY = '2026-06-24';
+const PROFILE_TODAY = MOCK_TODAY;
 
 // Active workload — list (with deadline-window detail) or a month calendar of the staffer's
 // deadlines. The calendar reuses the same DeadlineCalendar the staff portal uses.
@@ -909,7 +910,7 @@ function TierLadder({ s }: { s: StaffInsight }) {
 
 function tenureFrom(since: string): string {
   const start = new Date(`${since}T00:00:00`);
-  const now = new Date('2026-06-26T00:00:00');
+  const now = mockTodayDate();
   const months = Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()));
   return months >= 12 ? `${Math.floor(months / 12)}y ${months % 12}m` : `${months}m`;
 }

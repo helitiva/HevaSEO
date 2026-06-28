@@ -5,8 +5,9 @@ import { ORDERS, PROJECTS, SERVICES, type Order, type OrderStatus, type ServiceK
 import { useOrdersStore } from './OrdersStore';
 import { CountUp } from './CountUp';
 import { QuickOrderButton } from './QuickOrderButton';
+import { mockTodayDate } from '@/lib/today';
 
-const TODAY = new Date('2026-06-25T00:00:00');
+const TODAY = mockTodayDate();
 const RANGES = [
   { days: 7, label: 'Last 7 days' },
   { days: 30, label: 'Last 30 days' },

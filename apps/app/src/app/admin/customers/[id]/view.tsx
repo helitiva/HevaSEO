@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money } from '@/data/adminMock';
+import { mockTodayDate } from '@/lib/today';
 import { CustomerProfileClient } from './CustomerProfileClient';
 
 // Shared by the admin and manager customer detail pages. `showMoney` defaults to
@@ -13,7 +14,7 @@ export async function CustomerDetailView({ id, showMoney = true }: { id: string;
   const orders = ORDERS.filter((o) => o.customer === c.company)
     .map((o) => ({ id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status, value: o.value, created: o.created }));
   const extra = CUSTOMER_EXTRA[id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
-  const today = new Date('2026-06-24T00:00:00');
+  const today = mockTodayDate();
   const churnDays = Math.round((today.getTime() - new Date(c.lastActive).getTime()) / 86400000);
   const aov = c.orders ? Math.round(c.spend / c.orders) : 0;
   const active = orders.filter((o) => !['completed', 'canceled'].includes(o.status)).length;

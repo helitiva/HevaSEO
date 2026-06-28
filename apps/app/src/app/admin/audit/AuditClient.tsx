@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { SlideOver } from '@/components/shared/SlideOver';
 import type { AuditEntry, AuditCategory, AuditEntity } from '@/data/adminMock';
+import { MOCK_TODAY, mockTodayAt } from '@/lib/today';
 
 type CatMeta = Record<AuditCategory, { label: string; icon: string; color: string }>;
 type EntMeta = Record<AuditEntity, { label: string; icon: string; href: string | null }>;
 interface Kpis { total: number; today: number; actors: number; destructive: number; topEntity: string }
 interface Props { events: AuditEntry[]; categoryMeta: CatMeta; entityMeta: EntMeta; kpis: Kpis }
 
-const TODAY = '2026-06-24';
-const NOW = new Date('2026-06-24T09:30:00');
+const TODAY = MOCK_TODAY;
+const NOW = mockTodayAt('09:30:00');
 const dayLabel = (d: string) => (d === TODAY ? 'Today' : d === '2026-06-23' ? 'Yesterday' : new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
 const initials = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
 const rel = (at: string) => {

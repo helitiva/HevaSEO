@@ -8,6 +8,7 @@ import {
   type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
 import { workStats as computeWorkStats, summariseEarnings, firstPassStreak, rankByComposite, type WorkItem, type MonthEarning } from '@/lib/staff';
+import { mockTodayDate } from '@/lib/today';
 import {
   walletBalance, availableToWithdraw, clearingTotal, pendingPenaltyCount,
   type WalletEntry, type StaffPenalty, type PayoutMethod, type PayoutRequest, type PenaltyRule,
@@ -542,7 +543,7 @@ export const activeWorkload = (staffId: string = CURRENT_STAFF.id): number =>
 
 // ---- Monthly earnings history (current month = real PAYOUTS; prior months seeded) ----
 const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const EARNINGS_NOW = new Date('2026-06-26T00:00:00');
+const EARNINGS_NOW = mockTodayDate();
 // Small deterministic hash so prior-month figures are stable across renders.
 function earnSeed(key: string): number {
   let h = 0x811c9dc5;
@@ -588,7 +589,7 @@ const ACT_TYPES = ['Content', 'Keyword', 'Optimization', 'Backlink', 'Audit', 'I
 const ACT_PAY: Record<string, number> = { Content: 22, Keyword: 18, Optimization: 35, Backlink: 30, Audit: 15, Indexer: 8 };
 const ACT_WEIGHT: Record<string, number> = { Content: 5, Keyword: 2, Optimization: 2, Backlink: 1, Audit: 1, Indexer: 1 };
 const ACT_WSUM = ACT_TYPES.reduce((a, t) => a + ACT_WEIGHT[t], 0);
-const ACT_NOW = new Date('2026-06-26T00:00:00Z');
+const ACT_NOW = mockTodayDate();
 const MS_DAY = 86_400_000;
 
 function actSlices(staffId: string, seedKey: string, intensity: number): ActivitySlice[] {

@@ -1,8 +1,9 @@
 import { ORDERS, STAFF, SERVICE_SKILL, customerByCompany, STAFF_MANAGER, managerOf, type AdminStaff } from '@/data/adminMock';
 import { rosterSignals } from '@/data/adminStaffInsight';
 import type { StaffVM, ActiveOrder, ManagerVM } from './StaffClient';
+import { mockTodayDate } from '@/lib/today';
 
-const TODAY = new Date('2026-06-24T00:00:00');
+const TODAY = mockTodayDate();
 // Orders that still sit on a staff member's plate (i.e. real current workload).
 const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 

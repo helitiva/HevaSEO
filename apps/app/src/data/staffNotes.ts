@@ -1,6 +1,7 @@
 // Personal notebook — each staffer's OWN private notes. Not customer-facing, not the per-task
 // self-note log. Supports rich attachments (image, link, YouTube video), free-form labels, and a
 // single category for grouping. Phase 0: seeded mock + client-side CRUD (no backend yet).
+import { MOCK_TODAY } from '@/lib/today';
 
 export type NoteAttachmentKind = 'image' | 'video' | 'link';
 export interface NoteAttachment {
@@ -93,7 +94,7 @@ export function linkHost(url: string): string {
   }
 }
 
-const now = '2026-06-27T09:00:00';
+const now = `${MOCK_TODAY}T09:00:00`;
 // ── Seed notes ──────────────────────────────────────────────────────────────
 export const SEED_NOTES: StaffNote[] = [
   {

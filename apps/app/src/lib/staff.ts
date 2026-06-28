@@ -1,8 +1,9 @@
 // Pure staff-surface logic. No money, no React — unit-tested in staff.test.ts.
 import type { OrderStatus, Priority } from '@/data/adminMock';
+import { MOCK_TODAY } from '@/lib/today';
 
 // Mock "now". Real backend uses the request clock.
-export const TODAY = '2026-06-26';
+export const TODAY = MOCK_TODAY;
 
 export function daysToDue(deadline: string | null, today = TODAY): number | null {
   if (!deadline) return null;

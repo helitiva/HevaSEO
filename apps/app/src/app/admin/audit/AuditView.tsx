@@ -1,7 +1,8 @@
 import { AUDIT_CATEGORY, AUDIT_ENTITY, type AuditEntity, type AuditEntry } from '@/data/adminMock';
 import { AuditClient } from './AuditClient';
+import { MOCK_TODAY } from '@/lib/today';
 
-const TODAY = '2026-06-24';
+const TODAY = MOCK_TODAY;
 
 // Shared by the admin Audit page and the manager (pod-scoped) one. KPIs recompute
 // from whatever slice of events is passed in.

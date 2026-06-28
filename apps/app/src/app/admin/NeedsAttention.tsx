@@ -9,6 +9,7 @@ import { buildOrderDetailProps } from '@/lib/orderDetail';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { money, type AdminOrder } from '@/data/adminMock';
+import { mockTodayDate } from '@/lib/today';
 
 type Tone = 'warn' | 'primary';
 
@@ -25,7 +26,7 @@ export function NeedsAttention({ overdue, awaiting, unassigned }: {
   unassigned: AdminOrder[];
 }) {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = mockTodayDate().toISOString().slice(0, 10);
   const selectedProps = selected ? buildOrderDetailProps(selected.id) : null;
 
   const columns: Column[] = [

@@ -1,8 +1,9 @@
 import { ORDERS, STAFF, customerByCompany, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { buildStaffInsight } from '@/data/adminStaffInsight';
 import type { ProfileOrder, Workload, TeamAvg } from './StaffProfileClient';
+import { mockTodayDate } from '@/lib/today';
 
-const TODAY = new Date('2026-06-24T00:00:00');
+const TODAY = mockTodayDate();
 const ACTIVE = new Set<OrderStatus>(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 const dueIn = (d: string | null) => (d ? Math.round((new Date(d).getTime() - TODAY.getTime()) / 86400000) : null);
 

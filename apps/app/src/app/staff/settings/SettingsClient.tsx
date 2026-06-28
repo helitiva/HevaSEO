@@ -8,6 +8,7 @@ import {
   leaveSummary, workingHoursSummary, LEAVE_ALLOWANCE, DEFAULT_NOTIF_PREFS, LANGUAGES, DATE_FORMATS,
   type NotifPref,
 } from '@/lib/staffSettings';
+import { MOCK_TODAY } from '@/lib/today';
 
 interface Profile { name: string; role: string; email: string; tz: string; since: string }
 interface Skill { key: string; label: string; icon: string; color: string }
@@ -33,7 +34,7 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
   const balance = leaveSummary(allLeave, LEAVE_ALLOWANCE);
   const schedule = workingHoursSummary(hours);
   const days = from && to ? leaveDays(from, to) : null;
-  const today = '2026-06-27';
+  const today = MOCK_TODAY;
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
 

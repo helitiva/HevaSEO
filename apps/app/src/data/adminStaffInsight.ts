@@ -6,6 +6,7 @@
 // invariant here — so payroll (base/commission/bonus/due, which derives from order value) and the
 // commission wallet are shown side by side.
 import { STAFF, PAYOUTS, ORDERS, managerOf, type OrderStatus, type Priority } from './adminMock';
+import { mockTodayDate } from '@/lib/today';
 import {
   workHistory, myWorkStats, earningsHistory, myEarningsSummary, myFinance, myPenalties, myRewards,
   myPayoutMethods, myPayouts, buildActivity,
@@ -150,7 +151,7 @@ export interface StaffRosterSignals {
   upcoming: UpcomingTask[]; // those due-soon items, soonest first
 }
 
-const ROSTER_TODAY = new Date('2026-06-24T00:00:00');
+const ROSTER_TODAY = mockTodayDate();
 const ROSTER_ACTIVE = new Set<OrderStatus>(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 const rosterDueIn = (d: string | null): number | null => (d ? Math.round((new Date(d).getTime() - ROSTER_TODAY.getTime()) / 86400000) : null);
 export function rosterSignals(staffId: string): StaffRosterSignals | null {

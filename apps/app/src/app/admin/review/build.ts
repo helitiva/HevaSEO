@@ -1,7 +1,8 @@
 import { ORDERS, DELIVERABLES, STAFF, tierOf, customerByCompany, qaCriteriaFor, SERVICE_INCLUDED, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier } from '@/data/adminMock';
+import { mockTodayDate } from '@/lib/today';
 
 const REVIEW_SLA_DAYS = 2;
-const TODAY = new Date('2026-06-25T00:00:00');
+const TODAY = mockTodayDate();
 const days = (a: string, b: Date) => Math.round((b.getTime() - new Date(a).getTime()) / 86400000);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
