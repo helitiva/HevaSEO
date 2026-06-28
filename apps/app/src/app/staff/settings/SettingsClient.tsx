@@ -9,6 +9,7 @@ import {
   type NotifPref,
 } from '@/lib/staffSettings';
 import { MOCK_TODAY } from '@/lib/today';
+import { useStaffViewOnly } from '@/lib/staffView';
 
 interface Profile { name: string; role: string; email: string; tz: string; since: string }
 interface Skill { key: string; label: string; icon: string; color: string }
@@ -17,6 +18,7 @@ interface SeedLeave { id: string; from: string; to: string; reason: string }
 interface LeaveRow { id: string; from: string; to: string; reason: string; status: LeaveStatus }
 
 export function SettingsClient({ profile, skills, hours, seededLeave }: { profile: Profile; skills: Skill[]; hours: DayHours[]; seededLeave: SeedLeave[] }) {
+  const viewOnly = useStaffViewOnly();
   // One source of truth for time off: the shared schedule (seeded = approved) + this session's requests.
   const seeded: LeaveRow[] = seededLeave.map((l) => ({ ...l, status: 'approved' as LeaveStatus }));
   const [requests, setRequests] = useState<LeaveRow[]>([]);
@@ -51,10 +53,18 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
 
   return (
     <div className="space-y-5">
+      {/* View-only notice — shown when a manager is observing this staffer's portal */}
+      {viewOnly && (
+        <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-card/50 px-4 py-3 text-sm text-muted-foreground">
+          <i className="ph-bold ph-lock-simple shrink-0 text-base" aria-hidden />
+          <span><span className="font-semibold">View only</span> — settings cannot be changed in manager view. You are observing this staffer's profile.</span>
+        </div>
+      )}
+
       {/* ───────────── Account ───────────── */}
       <SectionLabel icon="ph-user-circle" title="Account" />
 
-      <Card icon="ph-identification-card" title="Profile" action={<RequestBtn onClick={() => flash('Profile change requested — admin will review.')} />}>
+      <Card icon="ph-identification-card" title="Profile" action={!viewOnly ? <RequestBtn onClick={() => flash('Profile change requested — admin will review.')} /> : undefined}>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Name" value={profile.name} />
           <Field label="Role" value={profile.role} />
@@ -65,7 +75,7 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
         <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-lock-simple mr-1" aria-hidden />Profile details are admin-managed — use “Request change” to ask for an edit.</p>
       </Card>
 
-      <Card icon="ph-certificate" title="Skills" action={<RequestBtn onClick={() => flash('Skill change requested — admin will confirm.')} />}>
+      <Card icon="ph-certificate" title="Skills" action={!viewOnly ? <RequestBtn onClick={() => flash('Skill change requested — admin will confirm.')} /> : undefined}>
         {skills.length === 0 ? (
           <p className="text-sm text-muted-foreground">No skills set yet — admin assigns these.</p>
         ) : (
@@ -82,10 +92,10 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
       <Card icon="ph-shield-check" title="Account & security">
         <ul className="divide-y divide-border">
           <Row2 title="Password" sub="Last changed by admin">
-            <button onClick={() => flash('Password resets are handled by admin in this demo.')} className="btn-ghost">Change</button>
+            <button onClick={() => !viewOnly && flash('Password resets are handled by admin in this demo.')} disabled={viewOnly} className={`btn-ghost ${viewOnly ? 'cursor-not-allowed opacity-40' : ''}`}>Change</button>
           </Row2>
           <Row2 title="Two-factor authentication" sub={twoFactor ? 'Enabled — codes via authenticator app' : 'Add a second step at sign-in'}>
-            <Switch on={twoFactor} label="Two-factor authentication" onChange={(v) => { setTwoFactor(v); flash(v ? '2FA enabled.' : '2FA disabled.'); }} />
+            <Switch on={twoFactor} label="Two-factor authentication" onChange={(v) => { if (viewOnly) return; setTwoFactor(v); flash(v ? '2FA enabled.' : '2FA disabled.'); }} disabled={viewOnly} />
           </Row2>
           <Row2 title="Sign out" sub="End your session on this device">
             <Link href="/" className="btn-ghost">Sign out <i className="ph-bold ph-sign-out" aria-hidden /></Link>
@@ -99,7 +109,7 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
       <Card icon="ph-circle-half" title="Availability" action={
         <Link href="/staff/calendar" className="btn-ghost">Schedule &amp; handoff <i className="ph-bold ph-arrow-up-right" aria-hidden /></Link>
       }>
-        <AvailabilityToggle initial="available" />
+        <AvailabilityToggle initial="available" disabled={viewOnly} />
         <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/50 px-2.5 py-1.5 text-[11px] text-muted-foreground">
           <i className="ph-bold ph-clock text-primary" aria-hidden />
           Working {schedule.days} day{schedule.days === 1 ? '' : 's'}/week · ~{schedule.weekly}h. Edit working hours, time-off &amp; handoff on the <Link href="/staff/calendar" className="font-semibold text-primary hover:underline">Calendar</Link>.
@@ -118,23 +128,26 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs font-semibold text-muted-foreground">From</span>
-            <input type="date" min={today} value={from} onChange={(e) => { setFrom(e.target.value); setError(null); }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            <input type="date" min={today} value={from} onChange={(e) => { if (viewOnly) return; setFrom(e.target.value); setError(null); }}
+              disabled={viewOnly}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-50" />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-semibold text-muted-foreground">To</span>
-            <input type="date" min={from || today} value={to} onChange={(e) => { setTo(e.target.value); setError(null); }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            <input type="date" min={from || today} value={to} onChange={(e) => { if (viewOnly) return; setTo(e.target.value); setError(null); }}
+              disabled={viewOnly}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-50" />
           </label>
         </div>
         <label className="mt-3 block">
           <span className="mb-1 block text-xs font-semibold text-muted-foreground">Reason</span>
-          <textarea value={reason} onChange={(e) => { setReason(e.target.value); setError(null); }} rows={2} placeholder="A short note for your admin"
-            className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          <textarea value={reason} onChange={(e) => { if (viewOnly) return; setReason(e.target.value); setError(null); }} rows={2} placeholder="A short note for your admin"
+            disabled={viewOnly}
+            className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-50" />
         </label>
         <div className="mt-3 flex items-center gap-3">
-          <button onClick={submitLeave}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+          <button onClick={submitLeave} disabled={viewOnly}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
             <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> Send request
           </button>
           {days !== null && !error && <span className="text-xs text-muted-foreground">{days} day{days === 1 ? '' : 's'} off</span>}
@@ -165,12 +178,12 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
         <ul className="divide-y divide-border">
           <Row2 title="Theme" sub="Light or dark"><ThemeToggle /></Row2>
           <Row2 title="Language" sub="Interface language">
-            <select value={language} onChange={(e) => { setLanguage(e.target.value); flash('Language preference saved.'); }} className="select-sm">
+            <select value={language} onChange={(e) => { if (viewOnly) return; setLanguage(e.target.value); flash('Language preference saved.'); }} disabled={viewOnly} className={`select-sm ${viewOnly ? 'cursor-not-allowed opacity-50' : ''}`}>
               {LANGUAGES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
             </select>
           </Row2>
           <Row2 title="Date format" sub="How dates display">
-            <select value={dateFmt} onChange={(e) => { setDateFmt(e.target.value); flash('Date format saved.'); }} className="select-sm">
+            <select value={dateFmt} onChange={(e) => { if (viewOnly) return; setDateFmt(e.target.value); flash('Date format saved.'); }} disabled={viewOnly} className={`select-sm ${viewOnly ? 'cursor-not-allowed opacity-50' : ''}`}>
               {DATE_FORMATS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
           </Row2>
@@ -192,11 +205,11 @@ export function SettingsClient({ profile, skills, hours, seededLeave }: { profil
               </div>
               <label className="flex w-12 items-center justify-center gap-1 sm:gap-0">
                 <span className="text-[10px] text-muted-foreground sm:hidden">Email</span>
-                <Switch on={n.email} label={`${n.label} email`} onChange={(v) => setNotif(n.id, 'email', v)} />
+                <Switch on={n.email} label={`${n.label} email`} onChange={(v) => setNotif(n.id, 'email', v)} disabled={viewOnly} />
               </label>
               <label className="flex w-12 items-center justify-center gap-1 sm:gap-0">
                 <span className="text-[10px] text-muted-foreground sm:hidden">In-app</span>
-                <Switch on={n.inApp} label={`${n.label} in-app`} onChange={(v) => setNotif(n.id, 'inApp', v)} />
+                <Switch on={n.inApp} label={`${n.label} in-app`} onChange={(v) => setNotif(n.id, 'inApp', v)} disabled={viewOnly} />
               </label>
             </li>
           ))}
@@ -273,10 +286,11 @@ function RequestBtn({ onClick }: { onClick: () => void }) {
   return <button onClick={onClick} className="btn-ghost"><i className="ph-bold ph-pencil-simple-line" aria-hidden /> Request change</button>;
 }
 
-function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+function Switch({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={`relative h-5 w-9 shrink-0 rounded-full transition ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => !disabled && onChange(!on)}
+      disabled={disabled}
+      className={`relative h-5 w-9 shrink-0 rounded-full transition ${on ? 'bg-primary' : 'bg-muted-foreground/30'} ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}>
       <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} />
     </button>
   );

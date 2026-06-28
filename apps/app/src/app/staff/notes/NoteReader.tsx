@@ -11,9 +11,9 @@ const fmtFull = (iso: string) =>
 interface Props {
   note: StaffNote | null;
   onClose: () => void;
-  onEdit: () => void;
-  onTogglePin: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onTogglePin?: () => void;
+  onDelete?: () => void;
 }
 
 export function NoteReader({ note, onClose, onEdit, onTogglePin, onDelete }: Props) {
@@ -39,8 +39,8 @@ export function NoteReader({ note, onClose, onEdit, onTogglePin, onDelete }: Pro
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <HeaderBtn icon="ph-arrows-out-simple" label="Open full page" onClick={openFullPage} />
-          <HeaderBtn icon={note.pinned ? 'ph-push-pin-slash' : 'ph-push-pin'} label={note.pinned ? 'Unpin' : 'Pin'} onClick={onTogglePin} active={note.pinned} />
-          <HeaderBtn icon="ph-pencil-simple" label="Edit" onClick={onEdit} />
+          {onTogglePin && <HeaderBtn icon={note.pinned ? 'ph-push-pin-slash' : 'ph-push-pin'} label={note.pinned ? 'Unpin' : 'Pin'} onClick={onTogglePin} active={note.pinned} />}
+          {onEdit && <HeaderBtn icon="ph-pencil-simple" label="Edit" onClick={onEdit} />}
           <HeaderBtn icon="ph-x" label="Close" onClick={onClose} />
         </div>
       </div>
@@ -68,15 +68,21 @@ export function NoteReader({ note, onClose, onEdit, onTogglePin, onDelete }: Pro
         )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between gap-2 border-t border-border p-4">
-        <button onClick={onDelete} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:border-rose-300 hover:text-rose-500">
-          <i className="ph-bold ph-trash" aria-hidden /> Delete
-        </button>
-        <button onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
-          <i className="ph-bold ph-pencil-simple" aria-hidden /> Edit note
-        </button>
-      </div>
+      {/* Footer — mutation buttons only shown when not in view-only mode */}
+      {(onDelete || onEdit) && (
+        <div className="flex items-center justify-between gap-2 border-t border-border p-4">
+          {onDelete ? (
+            <button onClick={onDelete} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:border-rose-300 hover:text-rose-500">
+              <i className="ph-bold ph-trash" aria-hidden /> Delete
+            </button>
+          ) : <span />}
+          {onEdit && (
+            <button onClick={onEdit} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+              <i className="ph-bold ph-pencil-simple" aria-hidden /> Edit note
+            </button>
+          )}
+        </div>
+      )}
     </NoteModal>
   );
 }

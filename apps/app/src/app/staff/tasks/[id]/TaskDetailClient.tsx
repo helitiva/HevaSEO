@@ -10,6 +10,7 @@ import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
+import { useStaffViewOnly } from '@/lib/staffView';
 
 interface Props {
   task: StaffTask; deliverables: StaffDeliverable[]; messages: StaffMessage[];
@@ -22,6 +23,7 @@ interface Activity { icon: string; color: string; title: string; detail?: string
 
 export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes, authorName = CURRENT_STAFF.name }: Props) {
   const router = useRouter();
+  const viewOnly = useStaffViewOnly();
   const [status, setStatus] = useState<OrderStatus>(task.status);
   const [toast, setToast] = useState<string | null>(null);
   const actions = nextStaffActions(status);
@@ -102,9 +104,16 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
       {actions.length > 0 && (
         <div className="kcard mb-4 flex flex-wrap items-center gap-2">
+          {viewOnly && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <i className="ph-bold ph-lock-simple" aria-hidden /> View only — actions disabled
+            </span>
+          )}
           {actions.map((a) => (
-            <button key={a.to} onClick={() => transition(a.to, a.label)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition hover:opacity-90 ${a.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
+            <button key={a.to} onClick={() => !viewOnly && transition(a.to, a.label)}
+              disabled={viewOnly}
+              aria-disabled={viewOnly}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${viewOnly ? 'cursor-not-allowed opacity-40' : 'hover:opacity-90'} ${a.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
               <i className={`ph-bold ${a.icon}`} /> {a.label}
             </button>
           ))}
@@ -155,7 +164,14 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
             {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" /> {task.note}</p>}
           </div>
 
-          <DeliverableSubmit history={deliverables} onSubmit={submit} qaDone={qaDone} qaTotal={task.qa.length} lockReason={lockReason} status={status} />
+          <DeliverableSubmit
+            history={deliverables}
+            onSubmit={submit}
+            qaDone={qaDone}
+            qaTotal={task.qa.length}
+            lockReason={viewOnly ? 'View only — deliverable submission is disabled in manager view.' : lockReason}
+            status={status}
+          />
 
           <SelfNoteLog seed={selfNotes} author={authorName} />
         </div>

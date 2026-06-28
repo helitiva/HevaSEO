@@ -110,7 +110,7 @@ export function SupportClient() {
             <p className="text-sm font-semibold">Frequently Asked Questions</p>
             <div className="mt-3 space-y-1">
               {['How long until a link gets indexed?', 'How to top up & use credits', 'Refund / cancellation policy'].map((q) => (
-                <a key={q} href="http://localhost:4330/#faq" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-lg px-2 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"><span>{q}</span><i className="ph-bold ph-arrow-up-right" /></a>
+                <a key={q} href="/faq" className="flex items-center justify-between rounded-lg px-2 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"><span>{q}</span><i className="ph-bold ph-arrow-right" /></a>
               ))}
             </div>
           </div>

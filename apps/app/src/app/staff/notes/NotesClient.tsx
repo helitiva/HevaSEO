@@ -8,8 +8,10 @@ import { htmlToText } from '@/lib/sanitizeHtml';
 import { useNotes } from '@/data/notesStore';
 import { newNoteId, nowIso, type StaffNote } from '@/data/staffNotes';
 import type { Draft } from './NoteComposer';
+import { useStaffViewOnly } from '@/lib/staffView';
 
 export function NotesClient() {
+  const viewOnly = useStaffViewOnly();
   const { notes, mutate } = useNotes();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string>('all');
@@ -79,12 +81,18 @@ export function NotesClient() {
             <Chip key={c} active={category === c} onClick={() => setCategory(c)} label={c} />
           ))}
         </div>
-        <button
-          onClick={openCreate}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-        >
-          <i className="ph-bold ph-plus" aria-hidden /> New note
-        </button>
+        {viewOnly ? (
+          <span className="ml-auto flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3.5 py-2 text-xs text-muted-foreground">
+            <i className="ph-bold ph-lock-simple" aria-hidden /> View only
+          </span>
+        ) : (
+          <button
+            onClick={openCreate}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          >
+            <i className="ph-bold ph-plus" aria-hidden /> New note
+          </button>
+        )}
       </div>
 
       {/* Label filter row */}
@@ -114,9 +122,11 @@ export function NotesClient() {
               <p className="display text-lg font-bold">Your notebook is empty</p>
               <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Capture snippets, ideas, images, links and videos — all private to you.</p>
             </div>
-            <button onClick={openCreate} className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
-              <i className="ph-bold ph-plus" aria-hidden /> Create your first note
-            </button>
+            {!viewOnly && (
+              <button onClick={openCreate} className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
+                <i className="ph-bold ph-plus" aria-hidden /> Create your first note
+              </button>
+            )}
           </div>
         ) : (
           <EmptyState kind="no-match" />
@@ -129,9 +139,9 @@ export function NotesClient() {
               key={n.id}
               note={n}
               onOpen={() => setReaderId(n.id)}
-              onEdit={() => openEdit(n)}
-              onTogglePin={() => togglePin(n.id)}
-              onDelete={() => deleteNote(n.id)}
+              onEdit={viewOnly ? undefined : () => openEdit(n)}
+              onTogglePin={viewOnly ? undefined : () => togglePin(n.id)}
+              onDelete={viewOnly ? undefined : () => deleteNote(n.id)}
             />
           ))}
         </div>
@@ -140,12 +150,12 @@ export function NotesClient() {
       <NoteReader
         note={reader}
         onClose={() => setReaderId(null)}
-        onEdit={() => reader && openEdit(reader)}
-        onTogglePin={() => reader && togglePin(reader.id)}
-        onDelete={() => { if (reader) { deleteNote(reader.id); setReaderId(null); } }}
+        onEdit={viewOnly ? undefined : () => reader && openEdit(reader)}
+        onTogglePin={viewOnly ? undefined : () => reader && togglePin(reader.id)}
+        onDelete={viewOnly ? undefined : () => { if (reader) { deleteNote(reader.id); setReaderId(null); } }}
       />
 
-      <NoteComposer open={composer.open} note={composer.note} onClose={closeComposer} onSave={saveNote} />
+      {!viewOnly && <NoteComposer open={composer.open} note={composer.note} onClose={closeComposer} onSave={saveNote} />}
     </>
   );
 }

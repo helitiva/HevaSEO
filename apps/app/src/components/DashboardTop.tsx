@@ -7,7 +7,9 @@ import { CountUp } from './CountUp';
 import { QuickOrderButton } from './QuickOrderButton';
 import { mockTodayDate } from '@/lib/today';
 
-const TODAY = mockTodayDate();
+// TODAY is intentionally derived at call time (inside the component via useMemo) to avoid
+// a module-scope frozen date. This const is kept only for the range filter memo dep.
+// Do NOT use a module-scope `const TODAY = ...` here; it would freeze at server start.
 const RANGES = [
   { days: 7, label: 'Last 7 days' },
   { days: 30, label: 'Last 30 days' },
@@ -29,11 +31,14 @@ export function DashboardTop() {
   const [open, setOpen] = useState(false);
   const statusOf = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
 
+  // Compute the current date inside the render cycle so the filter window advances correctly.
+  const today = useMemo(() => mockTodayDate(), []);
+
   const orders = useMemo(() => {
     const all = [...addedOrders, ...ORDERS];
     if (!range) return all;
-    return all.filter((o) => { const d = parseUS(o.date); return d ? (TODAY.getTime() - d.getTime()) / 86400000 <= range : true; });
-  }, [addedOrders, range]);
+    return all.filter((o) => { const d = parseUS(o.date); return d ? (today.getTime() - d.getTime()) / 86400000 <= range : true; });
+  }, [addedOrders, range, today]);
 
   const total = orders.length;
   const completed = orders.filter((o) => statusOf(o) === 'completed').length;
@@ -156,12 +161,10 @@ export function DashboardTop() {
             <span className="pill pill-good">On time</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">On-time completion rate</p>
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-            <div className="flex items-end gap-4">
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={96} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">All time</p></div>
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight text-emerald-600"><CountUp value={100} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">This week</p></div>
-            </div>
-            <div className="ring hidden min-[480px]:block" style={{ ['--p' as string]: 96 }}><b>96%</b></div>
+          {/* TODO(backend): derive from real completion data — order records don't carry an onTime flag yet */}
+          <div className="mt-auto flex flex-col justify-end gap-1.5 pt-2">
+            <p className="display text-2xl font-semibold leading-none tracking-tight">—</p>
+            <p className="text-[11px] text-muted-foreground">Available once order delivery data is connected</p>
           </div>
         </div>
       </section>
