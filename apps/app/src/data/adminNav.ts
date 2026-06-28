@@ -17,6 +17,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   { title: 'Business', items: [
     { label: 'Finance', href: '/admin/finance', icon: 'ph-wallet' },
     { label: 'Catalog', href: '/admin/catalog', icon: 'ph-tag' },
+    { label: 'Affiliates', href: '/admin/affiliate', icon: 'ph-megaphone' },
     { label: 'Analytics', href: '/admin/analytics', icon: 'ph-chart-line-up' },
   ]},
   { title: 'Knowledge', items: [

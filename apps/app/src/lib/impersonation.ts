@@ -62,3 +62,27 @@ export function impersonateCustomer(id: string): void {
   setCustomerImpersonation(id);
   if (typeof window !== 'undefined') window.open('/dashboard', '_blank', 'noopener,noreferrer');
 }
+
+// ---- Affiliate (KOL partner) impersonation ----
+// The /affiliate portal renders for whichever partner this cookie names. Unset = the
+// default demo partner. Lets an admin open a partner's real dashboard as they see it.
+export const IMPERSONATE_AFFILIATE_COOKIE = 'heva_as_affiliate';
+
+export function setAffiliateImpersonation(id: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${IMPERSONATE_AFFILIATE_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=${MAX_AGE}; samesite=lax`;
+}
+export function clearAffiliateImpersonation(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${IMPERSONATE_AFFILIATE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+}
+export function readAffiliateImpersonation(): string | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(/(?:^|;\s*)heva_as_affiliate=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+// Set the cookie and open the partner's affiliate dashboard in a new tab.
+export function impersonateAffiliate(id: string): void {
+  setAffiliateImpersonation(id);
+  if (typeof window !== 'undefined') window.open('/affiliate', '_blank', 'noopener,noreferrer');
+}

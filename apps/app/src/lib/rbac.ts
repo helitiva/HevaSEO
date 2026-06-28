@@ -49,6 +49,7 @@ export type Capability =
   // --- Business intelligence — admin only, hidden from managers ---
   | 'finance.view' // revenue, payroll, cashflow
   | 'analytics.view'
+  | 'affiliate.manage' // run the affiliate/KOL program: partners, tiers, rules, payouts
   // --- Staff self-service surface (/staff/*) ---
   | 'staff.access' // enter the staff area
   | 'staff.work' // my day, tasks, calendar, deliverables
@@ -93,6 +94,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     'org.settings',
     'finance.view',
     'analytics.view',
+    'affiliate.manage',
     'pricing.view',
     'notes.internal.view',
   ],
@@ -138,6 +140,7 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   // Admin sub-routes that differ from the area umbrella (manager-blocked / specific)
   { prefix: '/admin/finance', capability: 'finance.view' },
   { prefix: '/admin/analytics', capability: 'analytics.view' },
+  { prefix: '/admin/affiliate', capability: 'affiliate.manage' },
   { prefix: '/admin/managers', capability: 'managers.manage' },
   { prefix: '/admin/settings', capability: 'org.settings' },
   { prefix: '/admin/audit', capability: 'audit.view' },

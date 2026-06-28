@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
+import { PartnerHoverCard } from '@/components/admin/PartnerHoverCard';
+import { referrerOf } from '@/data/adminAffiliate';
 import { impersonateCustomer } from '@/lib/impersonation';
 import { TIER, type OrderStatus, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney } from '@/lib/viewer';
@@ -60,6 +62,22 @@ const SEGMENTS: Segment[] = [
 const initials = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2);
 const joined = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 const ago = (d: number) => (d <= 0 ? 'today' : d === 1 ? '1d ago' : `${d}d ago`);
+
+// "Referred by @partner" — shows the acquiring affiliate (if any), with a hover dossier
+// and one-click open of their dashboard. Renders nothing for organically-acquired customers.
+function ReferrerTag({ customerId, className = '' }: { customerId: string; className?: string }) {
+  const ref = referrerOf(customerId);
+  if (!ref) return null;
+  return (
+    <span className={`flex items-center gap-1 text-[11px] text-muted-foreground ${className}`}>
+      <i className="ph-bold ph-megaphone shrink-0 text-primary/70" aria-hidden />
+      via{' '}
+      <PartnerHoverCard affiliateId={ref.id}>
+        <span className="font-medium text-primary hover:underline">{ref.handle}</span>
+      </PartnerHoverCard>
+    </span>
+  );
+}
 
 export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const money = useMoney();
@@ -332,6 +350,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                             <span className={`pill shrink-0 ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">{c.company} · {c.email}</span>
+                          <ReferrerTag customerId={c.id} className="mt-0.5" />
                         </span>
                       </span>
                     </td>
@@ -367,6 +386,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5"><CustomerHoverCard customer={c.id}><span className="truncate font-semibold">{c.name}</span></CustomerHoverCard><i className={`ph-fill ${t.icon} text-xs`} style={{ color: t.color }} title={t.label} /></span>
                       <span className="block truncate text-xs text-muted-foreground">{c.company}</span>
+                      <ReferrerTag customerId={c.id} className="mt-0.5" />
                     </span>
                   </span>
                   <span className={`pill shrink-0 ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
@@ -432,6 +452,7 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
             {c.atRisk && <span className="pill pill-warn">churn risk</span>}
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{c.company} · member since {joined(c.memberSince)}</p>
+          <ReferrerTag customerId={c.id} className="mt-1" />
           {c.tags.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{c.tags.map((tag) => <span key={tag} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{tag}</span>)}</div>}
         </div>
       </div>

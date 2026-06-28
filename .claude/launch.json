@@ -14,6 +14,12 @@
       "port": 3006
     },
     {
+      "name": "app-auto",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@heva/app", "exec", "next", "dev"],
+      "autoPort": true
+    },
+    {
       "name": "system-overview",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8099", "--directory", "system-overview"],

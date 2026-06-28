@@ -139,9 +139,57 @@ shared component; `money()` formatting. Charts as inline SVG following
 `commissionFor`, `rollupKpis`, `funnelStats`, `genCode`, `isCodeValid`. Matches
 the existing `*.test.ts` convention (e.g. `staffFinance.test.ts`).
 
+## 9b. FOMO / urgency layer (added in review pass)
+
+To make partners act, not just read, each surface got loss-aversion + urgency cues:
+
+- **Logic** (`lib/affiliate.ts`, tested): `nextTierUpside` (money left on the table =
+  volume × rate gap), `projectMonth` (run-rate projection), `earningStreak`.
+- **Data** (`data/affiliatePulse.ts`): leaderboard rank + near-miss, time-boxed
+  monthly challenge, live activity feed, program-wide social proof, anonymised
+  payout ticker, limited-time join offer. Aggregate/anonymised peer numbers only —
+  money-leak invariant intact.
+- **Dashboard**: momentum row (Rank · Challenge w/ live `Countdown` · Streak),
+  `ActivityPulse` (live feed), tier card shows the $ "left on the table".
+- **Referrals**: churn loss-aversion banner ("re-engage before they leave").
+- **Payouts**: "bigger payouts at the next tier" nudge + pending-clearing callout.
+- **Assets**: "partners who post weekly earn 3× more" nudge.
+- **Join**: social-proof stat bar, rotating live `PayoutTicker`, limited-time
+  "start at Silver" offer with a `Countdown`.
+
+**Adaptive dashboard layout** (by partner state):
+- **No referrals yet** → share link is the hero: `LinkBar` on top, then `HowItWorks`
+  (3-step + social proof), tier ladder (earning potential), assets to share. No
+  momentum/KPIs/charts (nothing to celebrate; empty zeros demotivate).
+- **≥1 referral** → momentum earns the top: momentum row + KPIs first, `LinkBar`
+  drops below, then tier/funnel, earnings+activity, referrals, ledger, assets.
+
+## 9c. Admin program management (added) — `/admin/affiliate`
+
+Admin-only surface (sees ALL money; managers excluded). New capability
+`affiliate.manage` in `lib/rbac.ts` (admin), route-gated, nav under **Business**.
+Tabbed like Finance (`?tab=`), in-session actions localStorage-persisted (mock):
+
+- **Overview**: KPI band (active partners + pending · referred customers ·
+  referred volume · program net · commission paid/claimed · **commission owed**),
+  program trend (reuses `EarningsChart`), top-partner leaderboard, payout-queue +
+  applications callouts.
+- **Partners**: sortable/filterable directory (tier, status, refs, volume,
+  commission, claimed, unclaimed, last active) + suspend/reactivate/approve.
+- **Payouts**: request queue with approve / mark-paid / reject + owed-vs-paid totals.
+- **Rules & tiers**: editable tier table + program rules (approval mode,
+  attribution, cookie window, hold days, min payout, recurring, self-referral
+  block) + pending-application approvals.
+
+Data: `data/adminAffiliate.ts` (~10 partners across tiers/statuses; Jane kept
+consistent with the partner-side demo; tier is **derived** from volume via the
+shared `tierFor` so the two views can't disagree). Components under
+`components/admin/affiliate/`.
+
 ## 10. Out of scope (future)
 
-- Admin-side affiliate management (approve/suspend, set custom rates, fraud review).
 - Real auth + persistence + click tracking + cookie attribution.
-- Promoting affiliate to a first-class RBAC role (the **C** upgrade).
+- Promoting affiliate to a first-class RBAC *role* (admin management is done;
+  the partner surface is still a fixed-persona surface, not a session role).
+- Fraud/abuse detection automation; custom per-partner rate overrides.
 - Lifting the public landing/join into the Astro marketing site for SEO.
