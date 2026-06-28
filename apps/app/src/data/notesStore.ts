@@ -11,10 +11,11 @@ import { SEED_NOTES, type StaffNote } from './staffNotes';
 const EVT = 'heva:notes-changed';
 
 function notesKey(): string {
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/manager')) {
-    return 'heva:manager:notes:v1';
-  }
-  return 'heva:staff:notes:v1';
+  const p = typeof window !== 'undefined' ? window.location.pathname : '';
+  if (p.startsWith('/admin')) return 'heva:admin:notes:v1';
+  if (p.startsWith('/manager')) return 'heva:manager:notes:v1';
+  if (p.startsWith('/staff')) return 'heva:staff:notes:v1';
+  return 'heva:customer:notes:v1';
 }
 
 function read(): StaffNote[] {

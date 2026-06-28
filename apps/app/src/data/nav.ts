@@ -34,6 +34,13 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: 'Resources',
+    items: [
+      { label: 'Docs & guides', href: '/docs', icon: 'ph-books' },
+      { label: 'Notes', href: '/notes', icon: 'ph-note-pencil' },
+    ],
+  },
+  {
     title: 'Account',
     items: [
       { label: 'Credit & Invoices', href: '/credit', icon: 'ph-wallet' },

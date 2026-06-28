@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState } from '@/components/staff/EmptyState';
-import { FORMAT_META, audienceMeta, type StaffDoc, type DocFormat } from '@/data/staffDocs';
+import { FORMAT_META, audienceMeta, audiencesOf, type StaffDoc, type DocFormat } from '@/data/staffDocs';
 import { usePortalBase } from '@/lib/portalBase';
 
 interface SkillChip { key: string; label: string; icon: string; color: string }
@@ -126,17 +126,18 @@ function FilterChip({ active, onClick, label, icon }: { active: boolean; onClick
 function DocCard({ doc }: { doc: StaffDoc }) {
   const base = usePortalBase();
   const fmt = FORMAT_META[doc.format];
-  const aud = audienceMeta(doc.audience);
+  const auds = audiencesOf(doc);
   return (
     <Link href={`${base}/docs/${doc.id}`} className="kcard group flex h-full flex-col gap-2 !cursor-pointer">
       <div className="flex items-start justify-between gap-2">
-        <span
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
-          style={{ backgroundColor: `${aud.color}1a`, color: aud.color }}
-        >
-          <i className={`ph-fill ${aud.icon}`} aria-hidden /> {aud.label}
+        <span className="flex flex-wrap items-center gap-1">
+          {auds.map((a) => { const m = audienceMeta(a); return (
+            <span key={a} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `${m.color}1a`, color: m.color }}>
+              <i className={`ph-fill ${m.icon}`} aria-hidden /> {m.label}
+            </span>
+          ); })}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <i className={`ph-bold ${fmt.icon}`} aria-hidden /> {fmt.label}
         </span>
       </div>

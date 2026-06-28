@@ -19,6 +19,10 @@ export const ADMIN_NAV: AdminNavSection[] = [
     { label: 'Catalog', href: '/admin/catalog', icon: 'ph-tag' },
     { label: 'Analytics', href: '/admin/analytics', icon: 'ph-chart-line-up' },
   ]},
+  { title: 'Knowledge', items: [
+    { label: 'Docs', href: '/admin/docs', icon: 'ph-books' },
+    { label: 'Notes', href: '/admin/notes', icon: 'ph-note-pencil' },
+  ]},
   { title: 'System', items: [
     { label: 'Audit log', href: '/admin/audit', icon: 'ph-scroll' },
     { label: 'Settings', href: '/admin/settings', icon: 'ph-gear-six' },

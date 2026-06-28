@@ -43,6 +43,7 @@ export type Capability =
   | 'managers.manage'
   | 'catalog.manage'
   | 'catalog.view' // read the service menu (managers see it; editing is admin-only)
+  | 'docs.manage' // author docs and distribute them to customers/staff/managers (admin only)
   | 'audit.view'
   | 'org.settings' // org-wide admin settings (not personal settings)
   // --- Business intelligence — admin only, hidden from managers ---
@@ -87,6 +88,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     'managers.manage',
     'catalog.manage',
     'catalog.view',
+    'docs.manage',
     'audit.view',
     'org.settings',
     'finance.view',
@@ -146,6 +148,8 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/admin/customers', capability: 'customers.manage' },
   { prefix: '/admin/staff', capability: 'staff.manage' },
   { prefix: '/admin/catalog', capability: 'catalog.manage' },
+  { prefix: '/admin/docs', capability: 'docs.manage' }, // author + distribute docs
+  { prefix: '/admin/notes', capability: 'admin.access' }, // admin's own notebook
   { prefix: '/admin', capability: 'admin.access' }, // overview + umbrella
 
   // Manager area (/manager/*) — the pod-scoped ops surface. Same ops capabilities
@@ -176,6 +180,8 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/staff', capability: 'staff.access' }, // my day + umbrella
 
   // Customer portal (root-level routes)
+  { prefix: '/docs', capability: 'portal.use' }, // admin-published tutorials/guides
+  { prefix: '/notes', capability: 'portal.use' }, // customer's private notebook
   { prefix: '/dashboard', capability: 'portal.use' },
   { prefix: '/projects', capability: 'portal.use' },
   { prefix: '/orders', capability: 'portal.use' },
