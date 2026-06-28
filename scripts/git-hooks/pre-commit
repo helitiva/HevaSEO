@@ -1,0 +1,15 @@
+#!/bin/sh
+# Block commits that introduce NEW code↔docs drift (a route or exported behavior with no
+# mention in docs/FEATURES.md), measured against scripts/crawl/doc-coverage.baseline.json.
+#
+# Enable once per clone:  git config core.hooksPath scripts/git-hooks
+# Accept intentional gaps: pnpm doc-coverage:accept   (then commit the updated baseline)
+# Bypass a single commit:  git commit --no-verify
+
+node scripts/crawl/manifest.mjs >/dev/null 2>&1
+if ! node scripts/crawl/doc-coverage.mjs --ci >/tmp/doc-coverage-precommit.txt 2>&1; then
+  cat /tmp/doc-coverage-precommit.txt
+  echo ""
+  echo "✗ pre-commit: new code↔docs drift. Document it in docs/FEATURES.md, or run: pnpm doc-coverage:accept"
+  exit 1
+fi

@@ -83,27 +83,57 @@ for (const file of sourceFiles) {
   }
 }
 
+// ── Baseline (accepted gaps) ────────────────────────────────────────────────────
+// CI fails only on drift that is NOT already in the baseline, so the existing known gaps don't
+// block every build — but any NEW undocumented route/behavior does. `--update-baseline` re-snapshots.
+const exportKey = (e) => `${e.file}::${e.name}`;
+const BASELINE_PATH = join(__dirname, 'doc-coverage.baseline.json');
+function readBaseline() {
+  try { return JSON.parse(readFileSync(BASELINE_PATH, 'utf8')); }
+  catch { return { routes: [], exports: [] }; }
+}
+
+if (args.has('--update-baseline')) {
+  const baseline = { routes: undocumentedRoutes, exports: undocumentedExports.map(exportKey) };
+  // writeFileSync imported lazily to keep the read-only path dependency-free.
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n');
+  console.log(`Baseline updated: ${baseline.routes.length} routes, ${baseline.exports.length} exports accepted → ${BASELINE_PATH.replace(REPO + '/', '')}`);
+  process.exit(0);
+}
+
+const baseline = readBaseline();
+const baseRoutes = new Set(baseline.routes);
+const baseExports = new Set(baseline.exports);
+const newRoutes = undocumentedRoutes.filter((u) => !baseRoutes.has(u));
+const newExports = undocumentedExports.filter((e) => !baseExports.has(exportKey(e)));
+
 // ── Output ──────────────────────────────────────────────────────────────────────
 const result = {
-  routes: { total: manifest.routes.length, undocumented: undocumentedRoutes },
-  exports: { scannedFiles: sourceFiles.length, undocumented: undocumentedExports },
+  routes: { total: manifest.routes.length, undocumented: undocumentedRoutes, new: newRoutes },
+  exports: { scannedFiles: sourceFiles.length, undocumented: undocumentedExports, new: newExports },
 };
 
 if (asJson) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   console.log(`\n📄 Doc-coverage report\n${'─'.repeat(48)}`);
-  console.log(`\nRoutes: ${undocumentedRoutes.length} undocumented / ${manifest.routes.length} total`);
-  for (const url of undocumentedRoutes) console.log(`  ✗ ${url}  — not named in FEATURES.md`);
+  console.log(`\nRoutes: ${undocumentedRoutes.length} undocumented / ${manifest.routes.length} total  (${newRoutes.length} new vs baseline)`);
+  for (const url of undocumentedRoutes) console.log(`  ${newRoutes.includes(url) ? '🆕' : '✗ '} ${url}`);
   if (!undocumentedRoutes.length) console.log('  ✓ every route is named in FEATURES.md');
 
-  // Group undocumented exports by file for readability.
   const byFile = new Map();
   for (const e of undocumentedExports) byFile.set(e.file, [...(byFile.get(e.file) ?? []), e.name]);
-  console.log(`\nExports: ${undocumentedExports.length} undocumented across ${byFile.size} files (of ${sourceFiles.length} scanned)`);
+  console.log(`\nExports: ${undocumentedExports.length} undocumented across ${byFile.size} files (${newExports.length} new vs baseline)`);
   for (const [file, names] of [...byFile].sort()) console.log(`  ✗ ${file}\n      ${names.join(', ')}`);
   if (!undocumentedExports.length) console.log('  ✓ every lib/data export is mentioned in a doc');
+
+  if (ciMode) {
+    const newCount = newRoutes.length + newExports.length;
+    console.log(`\n${newCount ? `❌ ${newCount} NEW gap(s) vs baseline — document them or run --update-baseline.` : '✅ no new drift vs baseline.'}`);
+  }
   console.log('');
 }
 
-if (ciMode && (undocumentedRoutes.length || undocumentedExports.length)) process.exit(1);
+// CI gates on NEW drift only (baseline = accepted debt).
+if (ciMode && (newRoutes.length || newExports.length)) process.exit(1);
