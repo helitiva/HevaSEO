@@ -17,7 +17,7 @@ The platform is a **Next.js 15 App Router** application in Phase-0 (full fronten
 |---|---|---|
 | **Customer** | `/` (root routes) | The paying client — orders services, tracks projects, manages credit, files support tickets, reads docs |
 | **Admin** | `/admin/*` | Full ops + business control — orders, assignments, deliverables review, finance, payroll, affiliate program, broadcasts, org settings |
-| **Manager** | `/manager/*` | Pod-scoped ops without money — same ops actions as admin but money-blind; can only see/act on their own pod's staff, customers, and orders |
+| **Manager** | `/manager/*` | Pod-scoped ops without money — same ops actions as admin but money-blind and **no service-catalog access**; can only see/act on their own pod's staff, customers, and orders |
 | **Staff** | `/staff/*` | Delivery workers — task execution, deliverable submission, personal finance/performance, knowledge base |
 | **Affiliate** | `/affiliate/*` | KOL referral partners — refer customers, earn tiered commissions, request payouts |
 
@@ -127,7 +127,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 |---|---|---|
 | Affiliate join / landing | Public landing page with social proof, tier strip, time-boxed offer, and sign-up form | `/affiliate/join` |
 | Affiliate overview | Adaptive dashboard: new partner sees onboarding hero; active partner sees commission KPIs, momentum, referral link | `/affiliate` |
-| Referral tracking | List of referred customers with volume, status ("active", "at-risk", "churned"); churn alert derived from status | `/affiliate/referrals` |
+| Referral tracking | List of referred customers with volume, status ("active", "churned"); a "slipping away" alert is derived from churned status | `/affiliate/referrals` |
 | Commission ledger & payouts | Earnings history, pending balance, payout request form; tier-upside nudge computed from real volume | `/affiliate/payouts` |
 | Promotional assets | Creative assets and referral link toolkit; conversion nudge | `/affiliate/assets` |
 | Partner settings | Payout method, referral code management | `/affiliate/settings` |
@@ -208,6 +208,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 |---|---|---|
 | Admin → customer impersonation | Admin can view the customer portal as any specific customer; cookie-based; identity banner shown; full `act` mode | `lib/impersonation.ts`; button in customer hover card and `/admin/customers/[id]` |
 | Admin/manager → staff impersonation | `act` mode (admin): full access as the staff member. `view` mode (manager): read-only look-in — cannot mutate tasks, notes, or settings | Button in staff list and profile; governed by `useImpersonatePolicy()` |
+| Admin → affiliate impersonation | Admin views the `/affiliate` portal as any specific partner; cookie-based (`heva_as_affiliate`); no mode flag — always `act` | "View as partner" button in `PartnerHoverCard` and `PartnerDrawer`; `lib/impersonation.ts` + `lib/currentAffiliate.ts` |
 
 ---
 
@@ -215,9 +216,9 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 
 `✓` = full access · `view` = read-only · `—` = not applicable · `✗` = blocked by RBAC
 
-> **Manager money-blind rule:** The manager role does NOT hold `finance.view`, `analytics.view`, `pricing.view`, `affiliate.manage`, `managers.manage`, or `org.settings`. All monetary figures (order value, customer LTV/spend, staff pay, revenue) are masked to `—` for manager viewers by four independent layers: the RBAC capability matrix (`lib/rbac.ts`), `ViewerProvider`/`useMoney()`/`useShowMoney()` hooks, explicit `showMoney={false}` server-component props, and pod-scoped data derivation in `managerPulse`/`managerPerf` that never reads monetary fields.
+> **Manager money-blind rule:** The manager role does NOT hold `finance.view`, `analytics.view`, `pricing.view`, `catalog.view`, `affiliate.manage`, `managers.manage`, or `org.settings`. All monetary figures (order value, customer LTV/spend, staff pay, revenue) are masked to `—` for manager viewers by four independent layers: the RBAC capability matrix (`lib/rbac.ts`), `ViewerProvider`/`useMoney()`/`useShowMoney()` hooks, explicit `showMoney={false}` server-component props, and pod-scoped data derivation in `managerPulse`/`managerPerf` that never reads monetary fields.
 
-> **Staff view / act impersonation distinction:** When a manager enters the staff portal as "View as" (`view` mode), they should be read-only across all staff pages. Currently `ViewOnlyGuard` is deployed only on `/staff/finance`. Task actions, notes CRUD, and settings mutations are **not yet guarded** — this is a HIGH-priority Phase-3 fix. `act` mode (admin only) grants full mutation rights.
+> **Staff view / act impersonation distinction:** When a manager enters the staff portal as "View as" (`view` mode), they are read-only across all staff pages. `useStaffViewOnly()` is enforced on `/staff/finance` (`ViewOnlyGuard`), `/staff/tasks/[id]` (`TaskDetailClient`), `/staff/notes` (`NotesClient`, `NoteFullEditor`), and `/staff/settings` (`SettingsClient`) — controls are disabled and their handlers short-circuit. `act` mode (admin only) grants full mutation rights.
 
 | Capability / Feature | Customer | Admin | Manager | Staff | Affiliate |
 |---|---|---|---|---|---|
@@ -232,7 +233,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | **Tickets — all / pod** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
 | **Finance — revenue / payroll / cashflow** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Finance — own earnings (staff)** | ✗ | ✗ | ✗ | ✓ | — |
-| **Finance — payout request (staff)** | ✗ | ✗ | ✗ | ✓ (view-only guard enforced) | — |
+| **Finance — payout request (staff)** | ✗ | ✗ | ✗ | ✓ | — |
 | **Credit & invoices (own)** | ✓ | — | — | — | — |
 | **Credit adjustment** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Broadcasts — compose/send/recall** | ✗ | ✓ | ✗ | ✗ | ✗ |
@@ -250,7 +251,8 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | **Customer impersonation** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Staff impersonation (act)** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Staff impersonation (view-only)** | ✗ | ✓ | ✓ | ✗ | ✗ |
-| **Catalog — view** | ✓ (service menu) | ✓ | ✓ (read-only) | ✗ | ✗ |
+| **Affiliate impersonation** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Catalog — view** | ✓ (service menu) | ✓ | ✗ | ✗ | ✗ |
 | **Catalog — manage (edit prices)** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Analytics (revenue/audience)** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Audit log** | ✗ | ✓ | ✓ (pod-scoped, money-stripped) | ✗ | ✗ |
@@ -377,23 +379,23 @@ flowchart LR
 | **Broadcasts — compose/send** | `data/broadcastStore.ts` (localStorage); `data/broadcasts.ts` → `BROADCAST_SEEDS` | mock — needs backend: `Broadcast` table + recipient event log |
 | **Broadcasts — inbox / analytics** | `data/broadcastStore.ts`; `lib/broadcastAnalytics.ts`; `lib/broadcastAudience.ts` | mock — read/click events in localStorage; needs `BroadcastEvent` table |
 | **Docs — authoring & storage** | `data/docsStore.ts` (localStorage); `lib/sanitizeHtml.ts` | mock — needs backend: `Doc` table with `audiences[]`, `requiredSkills[]`, RLS |
-| **Docs — audience gate** | `data/docsStore.ts` → `docsForCustomer`, `docsForStaff`, `docsForManager` | mock — needs backend: DB query with audience filter |
+| **Docs — audience gate** | `data/staffDocs.ts` → `docsForCustomer`, `docsForStaff`, `docsForManager` | mock — needs backend: DB query with audience filter |
 | **Staff docs — skill gate** | `data/staffDocs.ts` → `docsForStaff(skills)` | mock — needs backend |
 | **Notes** | `data/notesStore.ts` (localStorage, namespaced by surface); `data/staffNotes.ts` → `SEED_NOTES` | mock — needs backend: `Note` table per `userId`, `surface` |
 | **Affiliate tiers & commission math** | `lib/affiliate.ts` → `AFFILIATE_TIERS`, `tierFor`, `commissionFor`, `nextTierProgress` | Pure math lib — correct; needs backend data source |
 | **Affiliate portal data** | `data/affiliatePortal.ts` → `portalDataFor(id)`; `data/affiliateMock.ts` | mock — needs backend: `Affiliate`, `Referral`, `CommissionEvent`, `Payout` tables |
-| **Admin affiliate management** | `data/adminAffiliate.ts` → `adminAffiliates()`, `adminPayouts()`; `data/affiliatePulse.ts` → `programStats()` | mock — needs backend; `programStats()` runs at module load (frozen) |
+| **Admin affiliate management** | `data/adminAffiliate.ts` → `adminAffiliates()`, `adminPayouts()`; `data/affiliatePulse.ts` → `programStats()` | mock — needs backend; `programStats()` is a per-call function (not frozen); note `joinOffer()` IS called at module scope in `affiliate/join/page.tsx` → freezes at server start |
 | **Staff performance scorecard** | `lib/staff.ts` → `SCORE_MODEL`, `scoreBreakdown`, `improvementLever`, `commissionTierFor`; `data/staffMock.ts` | mock — `TODAY` now single-sourced from `lib/today.ts` (`MOCK_TODAY`); swap to a request-time clock there at backend |
 | **Staff rewards** | `lib/staffRewards.ts`; `data/staffMock.ts` | mock — needs backend milestone tracking |
 | **Manager scorecard** | `lib/managerPerf.ts` → `allManagerPerf`, `buildManagerPerf`, `companyBenchmark`, `MGR_SCORE_MODEL` | Pure derivation; correct; needs live ops data |
 | **Manager triage / pod signals** | `lib/managerPulse.ts` → `triageForPod`, `weekDeadlines`, `qaHealth`, `slaHealth`, `serviceMix`, `rosterWithRebalance`, `recentActivity` | Pure derivation; correct; depends on live `ORDERS`, `DELIVERABLES`, `TICKETS` |
 | **Manager pod scoping** | `lib/managerScope.ts` → `managerScope`, `ordersForPod`, `customersForPod`, `ticketsForPod`, `auditInPod` | `MANAGER_PERSONA = 'mgr1'` constant → replace with session manager id |
 | **RBAC / capability gate** | `lib/rbac.ts` → `ROLE_CAPABILITIES`, `can()`, `canAccessPath()`, `filterNav()` | UI-layer only; DB RLS is the real gate in Phase-3 |
-| **Impersonation** | `lib/impersonation.ts`; `lib/currentStaff.ts`; `lib/currentAffiliate.ts` | Cookie-based (`heva_as`, `heva_as_customer`, `heva_as_mode`); needs session/auth |
+| **Impersonation** | `lib/impersonation.ts`; `lib/currentStaff.ts`; `lib/currentAffiliate.ts` | Three cookie-based modes: staff (`heva_as` + `heva_as_mode`), customer (`heva_as_customer`), affiliate (`heva_as_affiliate`); `currentAffiliate.ts` scopes the `/affiliate` portal to the impersonated partner; needs session/auth |
 | **Staff availability** | `lib/availability.ts`; `data/staffMock.ts` → `MY_AVAILABILITY` | mock — module-scope singleton, not keyed to `staffId` |
 | **Staff settings** | `lib/staffSettings.ts`; `data/staffMock.ts` | mock — in-memory |
 | **Projects & folders** | `components/ProjectsStore.tsx` (in-memory React context); `data/mock.ts` → `PROJECTS` | mock — needs backend: `Project`, `Folder` tables |
-| **Customer dashboard KPIs** | `components/DashboardTop.tsx`; `data/mock.ts` → `ACTIVITY` | mock — `TODAY` frozen; on-time % hardcoded in JSX |
+| **Customer dashboard KPIs** | `components/DashboardTop.tsx`; `data/mock.ts` → `ACTIVITY` | mock — `TODAY` computed via `useMemo` (fixed); on-time rate deferred (shows `—`, awaiting backend completion data) |
 | **Audit log** | `data/adminMock.ts` → `AUDIT[]` | mock — needs backend: append-only event log, indexed by entity/actor/time |
 | **Service catalog (customer)** | `data/services.ts` → `SERVICES`, `SERVICE_CATALOG`; `@heva/catalog` (shared) | mock — `SERVICE_CATALOG` is a static map; needs backend for live pricing/availability |
 | **Catalog (admin)** | `data/services.ts`; `admin/catalog/page.tsx` | mock — needs backend: price/package CRUD |
@@ -408,16 +410,16 @@ flowchart LR
 The following are the most impactful gaps between the Phase-0 mock and a production backend, sourced from the audit:
 
 ### HIGH — RBAC / correctness
-1. **Staff view-only guards incomplete** — `ViewOnlyGuard` is only on `/staff/finance`. Task actions (`TaskDetailClient`), notes CRUD (`NotesClient`, `NoteFullEditor`), and settings (`SettingsClient`) must also call `useStaffViewOnly()` to respect the manager "view" impersonation mode.
+1. ~~Staff view-only guards incomplete~~ **✅ RESOLVED** — `useStaffViewOnly()` now gates task actions (`TaskDetailClient`), notes CRUD (`NotesClient`, `NoteFullEditor`), and settings (`SettingsClient`), matching `/staff/finance`.
 
 ### HIGH — Data correctness
-2. **Customer dashboard frozen/fake** — `DashboardTop.TODAY` is a module-scope constant; on-time % (96%/100%) is static JSX.
+2. ~~Customer dashboard frozen/fake~~ **✅ RESOLVED** — `TODAY` now computed via `useMemo`; the fabricated on-time % was removed (shows `—` with a backend TODO).
 3. **Customer `localhost:4330` support FAQ links** — 404 outside dev.
 4. **Staff notes seeded into customer notebook** — `notesStore` seeds `SEED_NOTES` (staff content) on a new customer's first visit.
 
 ### MEDIUM — Systemic
 5. **15+ hardcoded `TODAY` / month-anchor strings** across all surfaces — diverge from `MOCK_TODAY` and will produce wrong date math in production.
-6. **Module-scope data singletons** — `STAFF_NOTIFICATIONS`, `MY_AVAILABILITY`, affiliate `programStats()`/`joinOffer()` are frozen at server start; impersonation shows the wrong person's data.
+6. **Module-scope data singletons** — `STAFF_NOTIFICATIONS`, `MY_AVAILABILITY` (keyed to the demo persona) and the module-scope `joinOffer()` call in `affiliate/join/page.tsx` freeze at server start; impersonation shows the wrong person's data. (`programStats()` itself is a per-call function — not frozen.)
 7. **Financial fields in manager hydration payload** — order value, customer LTV/credit, and staff pay travel to the manager client in the RSC payload even though they are never rendered. Strip at the data layer before Phase-3.
 8. **`notFound()` missing** on `/admin/docs/[id]/edit` and `/admin/notes/[id]/edit` (and customer/manager equivalents) — blank editor instead of 404.
 
