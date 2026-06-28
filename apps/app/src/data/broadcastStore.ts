@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BROADCAST_SEEDS, isLive, type Broadcast, type BroadcastAudience } from './broadcasts';
+import { BROADCAST_SEEDS, isLive, isCritical, type Broadcast, type BroadcastAudience } from './broadcasts';
 
 // Editable broadcast store (Phase-0 mock). Built-in seeds + admin-created/edited messages in
 // localStorage, merged: a created message with a seed's id overrides it; a tombstone hides a
@@ -10,8 +10,24 @@ import { BROADCAST_SEEDS, isLive, type Broadcast, type BroadcastAudience } from 
 const KEY = 'heva:broadcasts:v1';
 const HIDDEN_KEY = 'heva:broadcasts:hidden:v1';
 const EVT = 'heva:broadcasts-changed';
+const ACTIVITY_KEY = 'heva:broadcasts:activity:v1';
 const readKey = (a: BroadcastAudience) => `heva:broadcast:read:${a}`;
 const dismissKey = (a: BroadcastAudience) => `heva:broadcast:dismissed:${a}`;
+const ackKey = (a: BroadcastAudience) => `heva:broadcast:acked:${a}`;
+const clickKey = (a: BroadcastAudience) => `heva:broadcast:clicked:${a}`;
+
+// Record that this audience's persona clicked a broadcast's CTA — feeds the click analytics.
+// (Reading it counts as reading too.) Call from CTA onClick in the recipient surfaces.
+export function markBroadcastClicked(aud: BroadcastAudience, id: string): void {
+  const c = readJson<string[]>(clickKey(aud), []); if (!c.includes(id)) writeJson(clickKey(aud), [...c, id]);
+  const r = readJson<string[]>(readKey(aud), []); if (!r.includes(id)) writeJson(readKey(aud), [...r, id]);
+}
+
+export interface BroadcastActivity { at: string; action: string; title: string; icon: string }
+function logActivity(action: string, title: string, icon: string): void {
+  const list = readJson<BroadcastActivity[]>(ACTIVITY_KEY, []);
+  writeJson(ACTIVITY_KEY, [{ at: new Date().toISOString(), action, title, icon }, ...list].slice(0, 40));
+}
 
 const SEEDS: Broadcast[] = BROADCAST_SEEDS.map((b) => ({ ...b, system: true }));
 const SEED_IDS = new Set(SEEDS.map((b) => b.id));
@@ -49,25 +65,52 @@ export function useBroadcasts() {
     return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
   }, []);
 
-  const saveBroadcast = useCallback((b: Broadcast) => {
+  const saveBroadcast = useCallback((b: Broadcast, logAs?: string) => {
     const list = readJson<Broadcast[]>(KEY, []);
-    const entry = { ...b, system: false };
+    const existed = list.some((x) => x.id === b.id) || SEED_IDS.has(b.id);
+    const entry = { ...b, system: false, updatedAt: existed ? new Date().toISOString() : b.updatedAt };
     const i = list.findIndex((x) => x.id === b.id);
     const next = i >= 0 ? list.map((x, n) => (n === i ? entry : x)) : [entry, ...list];
     writeJson(KEY, next); setCreated(next);
     if (SEED_IDS.has(b.id)) { const h = readJson<string[]>(HIDDEN_KEY, []).filter((x) => x !== b.id); writeJson(HIDDEN_KEY, h); setHidden(h); }
+    logActivity(logAs ?? (existed ? 'Edited' : 'Sent'), b.title, existed ? 'ph-pencil-simple' : 'ph-paper-plane-tilt');
   }, []);
   const setActive = useCallback((id: string, active: boolean) => {
     const cur = mergeAll(readJson<Broadcast[]>(KEY, []), readJson<string[]>(HIDDEN_KEY, [])).find((b) => b.id === id);
-    if (cur) saveBroadcast({ ...cur, active });
+    if (cur) { saveBroadcast({ ...cur, active }, active ? 'Restored' : 'Recalled'); }
   }, [saveBroadcast]);
   const removeBroadcast = useCallback((id: string) => {
+    const cur = mergeAll(readJson<Broadcast[]>(KEY, []), readJson<string[]>(HIDDEN_KEY, [])).find((b) => b.id === id);
     const next = readJson<Broadcast[]>(KEY, []).filter((b) => b.id !== id);
     writeJson(KEY, next); setCreated(next);
     if (SEED_IDS.has(id)) { const h = readJson<string[]>(HIDDEN_KEY, []); if (!h.includes(id)) { const u = [...h, id]; writeJson(HIDDEN_KEY, u); setHidden(u); } }
+    if (cur) logActivity('Deleted', cur.title, 'ph-trash');
   }, []);
 
   return { all: mergeAll(created, hidden), created, ready, saveBroadcast, setActive, removeBroadcast, isSeed: isSeedBroadcast };
+}
+
+// Per-audience reach/read/ack snapshot for a message (Phase-0: each audience is one persona).
+export interface BroadcastStat { audience: BroadcastAudience; read: boolean; dismissed: boolean; acked: boolean }
+export function broadcastStats(b: Broadcast): BroadcastStat[] {
+  return b.audiences.map((a) => ({
+    audience: a,
+    read: readJson<string[]>(readKey(a), []).includes(b.id),
+    dismissed: readJson<string[]>(dismissKey(a), []).includes(b.id),
+    acked: readJson<string[]>(ackKey(a), []).includes(b.id),
+  }));
+}
+
+// Admin activity feed (sent / edited / recalled / deleted).
+export function useBroadcastActivity() {
+  const [items, setItems] = useState<BroadcastActivity[]>([]);
+  useEffect(() => {
+    const load = () => setItems(readJson<BroadcastActivity[]>(ACTIVITY_KEY, []));
+    load();
+    window.addEventListener(EVT, load); window.addEventListener('storage', load);
+    return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
+  }, []);
+  return items;
 }
 
 // Shared: live messages an audience should see, newest/pinned first.
@@ -112,29 +155,54 @@ export function useInbox(aud: BroadcastAudience) {
     const ids = liveForAudience(readJson<Broadcast[]>(KEY, []), readJson<string[]>(HIDDEN_KEY, []), aud).map((b) => b.id);
     writeJson(readKey(aud), ids); setRead(ids);
   }, [aud]);
+  const markUnread = useCallback((id: string) => {
+    const next = readJson<string[]>(readKey(aud), []).filter((x) => x !== id);
+    writeJson(readKey(aud), next); setRead(next);
+  }, [aud]);
 
-  return { items, unread, ready, isRead: (id: string) => readSet.has(id), markRead, markAllRead };
+  return { items, unread, ready, isRead: (id: string) => readSet.has(id), markRead, markAllRead, markUnread };
 }
 
-// ── Recipient: overview banners (dismiss state) ───────────────────────────────
-export function useBanners(aud: BroadcastAudience) {
-  const { created, hidden } = useStoreState();
+// Shared dismiss/ack state hook for the banner + site-alert surfaces.
+function useDismissAck(aud: BroadcastAudience) {
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [acked, setAcked] = useState<string[]>([]);
   useEffect(() => {
-    const load = () => setDismissed(readJson<string[]>(dismissKey(aud), []));
+    const load = () => { setDismissed(readJson<string[]>(dismissKey(aud), [])); setAcked(readJson<string[]>(ackKey(aud), [])); };
     load();
     window.addEventListener(EVT, load); window.addEventListener('storage', load);
     return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
   }, [aud]);
-
-  const banners = useMemo(
-    () => liveForAudience(created, hidden, aud).filter((b) => b.banner && !dismissed.includes(b.id)),
-    [created, hidden, aud, dismissed],
-  );
   const dismiss = useCallback((id: string) => {
     const cur = readJson<string[]>(dismissKey(aud), []);
     if (!cur.includes(id)) { const next = [...cur, id]; writeJson(dismissKey(aud), next); setDismissed(next); }
   }, [aud]);
+  const acknowledge = useCallback((id: string) => {
+    const a = readJson<string[]>(ackKey(aud), []); if (!a.includes(id)) { const na = [...a, id]; writeJson(ackKey(aud), na); setAcked(na); }
+    const d = readJson<string[]>(dismissKey(aud), []); if (!d.includes(id)) { const nd = [...d, id]; writeJson(dismissKey(aud), nd); setDismissed(nd); }
+    const r = readJson<string[]>(readKey(aud), []); if (!r.includes(id)) writeJson(readKey(aud), [...r, id]);
+  }, [aud]);
+  return { dismissed, acked, dismiss, acknowledge };
+}
 
-  return { banners, dismiss };
+// ── Recipient: overview banners (non-critical, banner-flagged) ─────────────────
+export function useBanners(aud: BroadcastAudience) {
+  const { created, hidden } = useStoreState();
+  const { dismissed, dismiss, acknowledge } = useDismissAck(aud);
+  const banners = useMemo(
+    () => liveForAudience(created, hidden, aud).filter((b) => b.banner && !isCritical(b) && !dismissed.includes(b.id)),
+    [created, hidden, aud, dismissed],
+  );
+  return { banners, dismiss, acknowledge };
+}
+
+// ── Recipient: site-wide alert bar (critical kinds, every page) ────────────────
+export function useSiteAlerts(aud: BroadcastAudience) {
+  const { created, hidden } = useStoreState();
+  const { dismissed, dismiss, acknowledge } = useDismissAck(aud);
+  const alerts = useMemo(
+    () => liveForAudience(created, hidden, aud).filter((b) => isCritical(b) && !dismissed.includes(b.id)),
+    [created, hidden, aud, dismissed],
+  );
+  return { alerts, dismiss, acknowledge };
 }

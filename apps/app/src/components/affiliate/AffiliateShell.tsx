@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import { AffiliateSidebar } from './AffiliateSidebar';
 import { AffiliateTopbar, type AffiliateIdentity } from './AffiliateTopbar';
 import { BroadcastBanner } from '../broadcast/BroadcastBanner';
+import { SiteAlertBar } from '../broadcast/SiteAlertBar';
+import { BroadcastToaster } from '../broadcast/BroadcastToaster';
 import { adminAffiliates } from '@/data/adminAffiliate';
 import { DEFAULT_AFFILIATE_ID } from '@/data/affiliatePortal';
 import { readAffiliateImpersonation, clearAffiliateImpersonation } from '@/lib/impersonation';
@@ -45,11 +47,13 @@ export function AffiliateShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
+        <SiteAlertBar />
         <main ref={mainRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 pt-4 sm:pb-6 lg:px-7">
           {pathname === '/affiliate' && <div className="mb-4"><BroadcastBanner /></div>}
           <div key={pathname} className="page-anim">{children}</div>
         </main>
       </div>
+      <BroadcastToaster />
     </div>
   );
 }

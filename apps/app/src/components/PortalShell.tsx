@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { BroadcastBanner } from './broadcast/BroadcastBanner';
+import { SiteAlertBar } from './broadcast/SiteAlertBar';
+import { BroadcastToaster } from './broadcast/BroadcastToaster';
 import { CUSTOMERS } from '@/data/adminMock';
 import { readCustomerImpersonation, clearCustomerImpersonation } from '@/lib/impersonation';
 
@@ -50,11 +52,13 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
+        <SiteAlertBar />
         <main ref={mainRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 pt-4 sm:pb-6 lg:px-7">
           {pathname === '/dashboard' && <div className="mb-4"><BroadcastBanner /></div>}
           <div key={pathname} className="page-anim">{children}</div>
         </main>
       </div>
+      <BroadcastToaster />
     </div>
   );
 }

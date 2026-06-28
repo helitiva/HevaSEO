@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useInbox } from '@/data/broadcastStore';
+import { useInbox, markBroadcastClicked } from '@/data/broadcastStore';
 import { useBroadcastAudience } from '@/lib/broadcastAudience';
 import { KIND_META, type BroadcastKind } from '@/data/broadcasts';
 import { ago } from '@/lib/relativeTime';
@@ -12,12 +12,14 @@ import { ago } from '@/lib/relativeTime';
 // (synced with the bell). Pinned + newest first.
 export function InboxClient() {
   const aud = useBroadcastAudience();
-  const { items, unread, markRead, markAllRead, isRead } = useInbox(aud);
+  const { items, unread, markRead, markAllRead, markUnread, isRead } = useInbox(aud);
   const [filter, setFilter] = useState<'all' | BroadcastKind>('all');
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const kindsPresent = [...new Set(items.map((b) => b.kind))];
-  const shown = filter === 'all' ? items : items.filter((b) => b.kind === filter);
+  const byKind = filter === 'all' ? items : items.filter((b) => b.kind === filter);
+  const shown = unreadOnly ? byKind.filter((b) => !isRead(b.id)) : byKind;
 
   return (
     <section className="mx-auto max-w-3xl space-y-4">
@@ -29,10 +31,11 @@ export function InboxClient() {
         {unread > 0 && <button onClick={markAllRead} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-checks mr-1" />Mark all read</button>}
       </div>
 
-      {kindsPresent.length > 1 && (
+      {items.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          <Chip active={filter === 'all'} onClick={() => setFilter('all')}>All <span className="opacity-70">{items.length}</span></Chip>
-          {kindsPresent.map((k) => { const m = KIND_META[k]; return (
+          <Chip active={filter === 'all' && !unreadOnly} onClick={() => { setFilter('all'); setUnreadOnly(false); }}>All <span className="opacity-70">{items.length}</span></Chip>
+          {unread > 0 && <Chip active={unreadOnly} onClick={() => setUnreadOnly((v) => !v)}><i className="ph-fill ph-circle text-primary" /> Unread <span className="opacity-70">{unread}</span></Chip>}
+          {kindsPresent.length > 1 && kindsPresent.map((k) => { const m = KIND_META[k]; return (
             <Chip key={k} active={filter === k} onClick={() => setFilter(k)}><i className={`ph-bold ${m.icon}`} style={{ color: m.color }} /> {m.label}</Chip>
           ); })}
         </div>
@@ -63,8 +66,14 @@ export function InboxClient() {
                         <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: `${m.color}1a`, color: m.color }}>{m.label}</span>
                         {b.pinned && <i className="ph-fill ph-push-pin text-amber-500" title="Pinned" aria-hidden />}
                         {b.article && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-article" />Article</span>}
+                        {b.requireAck && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Action required</span>}
                         <span className="ml-auto text-[11px] text-muted-foreground">{ago(b.createdAt)}</span>
                         {!read && <span className="h-2 w-2 rounded-full bg-primary" aria-label="unread" />}
+                        {read && (
+                          <button onClick={(e) => { e.stopPropagation(); markUnread(b.id); }} title="Mark as unread" aria-label="Mark as unread" className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-foreground">
+                            <i className="ph-bold ph-envelope-simple" aria-hidden />
+                          </button>
+                        )}
                         {expandable && <i className={`ph-bold ph-caret-down text-muted-foreground transition ${expanded ? 'rotate-180' : ''}`} aria-hidden />}
                       </div>
                       <p className={`mt-1 ${read ? 'font-semibold' : 'font-bold'}`}>{b.title}</p>
@@ -74,7 +83,7 @@ export function InboxClient() {
                       )}
                       <div className="mt-2 flex items-center gap-3">
                         {b.cta && (
-                          <Link href={b.cta.href} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90" style={{ background: m.color }}>
+                          <Link href={b.cta.href} onClick={(e) => { e.stopPropagation(); markBroadcastClicked(aud, b.id); }} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90" style={{ background: m.color }}>
                             {b.cta.label} <i className="ph-bold ph-arrow-right" aria-hidden />
                           </Link>
                         )}

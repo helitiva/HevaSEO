@@ -20,9 +20,19 @@ export interface Broadcast {
   pinned?: boolean;
   cta?: BroadcastCta | null;
   createdAt: string;            // ISO datetime
+  updatedAt?: string;           // last edit
+  publishAt?: string | null;    // ISO datetime; future = scheduled, not yet delivered
   expiresAt?: string | null;    // ISO date; past = no longer delivered
+  requireAck?: boolean;         // recipient must acknowledge (can't just dismiss)
   active: boolean;              // recalled → false
   system?: boolean;             // built-in seed (read-only)
+}
+
+// Critical kinds surface as a site-wide alert bar (every page), not just the overview banner.
+export const CRITICAL_KINDS: BroadcastKind[] = ['maintenance', 'outage'];
+export function isCritical(b: Broadcast): boolean { return CRITICAL_KINDS.includes(b.kind); }
+export function isScheduled(b: Broadcast, now = new Date()): boolean {
+  return Boolean(b.publishAt && new Date(b.publishAt).getTime() > now.getTime());
 }
 
 export const AUDIENCE_META: Record<BroadcastAudience, { label: string; icon: string; color: string }> = {
@@ -48,7 +58,8 @@ export const KINDS = Object.keys(KIND_META) as BroadcastKind[];
 
 export function isLive(b: Broadcast, now = new Date()): boolean {
   if (!b.active) return false;
-  if (b.expiresAt && new Date(b.expiresAt).getTime() < now.getTime()) return false;
+  if (b.publishAt && new Date(b.publishAt).getTime() > now.getTime()) return false; // scheduled
+  if (b.expiresAt && new Date(b.expiresAt).getTime() < now.getTime()) return false; // expired
   return true;
 }
 

@@ -24,6 +24,8 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
   const [ctaLabel, setCtaLabel] = useState(editing?.cta?.label ?? '');
   const [ctaHref, setCtaHref] = useState(editing?.cta?.href ?? '');
   const [expiresAt, setExpiresAt] = useState(editing?.expiresAt ?? '');
+  const [publishAt, setPublishAt] = useState(editing?.publishAt ?? '');
+  const [requireAck, setRequireAck] = useState(Boolean(editing?.requireAck));
   const [useArticle, setUseArticle] = useState(Boolean(editing?.article));
   const [articleHtml, setArticleHtml] = useState(editing?.article ?? '');
 
@@ -31,15 +33,18 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
   const everyone = audiences.length === BROADCAST_AUDIENCES.length;
   const m = KIND_META[kind];
   const canSave = title.trim().length > 0 && body.trim().length > 0 && audiences.length > 0;
+  const scheduled = Boolean(publishAt) && new Date(publishAt).getTime() > Date.now();
 
   const save = () => {
     if (!canSave) return;
     const b: Broadcast = {
       id: editing?.id ?? newBroadcastId(),
       title: title.trim(), body: body.trim(), kind, audiences, banner, pinned,
+      requireAck,
       article: useArticle && !htmlIsEmpty(articleHtml) ? sanitizeHtml(articleHtml) : undefined,
       cta: ctaLabel.trim() && ctaHref.trim() ? { label: ctaLabel.trim(), href: ctaHref.trim() } : null,
       createdAt: editing?.createdAt ?? nowIso(),
+      publishAt: publishAt || null,
       expiresAt: expiresAt || null,
       active: editing?.active ?? true,
     };
@@ -110,13 +115,20 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
               <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="accent-primary" />
               <span className="flex-1">Pin to top</span><i className="ph-bold ph-push-pin text-muted-foreground" />
             </label>
+            <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm sm:col-span-2">
+              <input type="checkbox" checked={requireAck} onChange={(e) => setRequireAck(e.target.checked)} className="accent-primary" />
+              <span className="flex-1">Require acknowledgement <span className="text-muted-foreground">— readers must confirm; can&apos;t just dismiss</span></span><i className="ph-bold ph-seal-check text-muted-foreground" />
+            </label>
           </div>
 
-          {/* cta + expiry */}
-          <div className="grid gap-3 sm:grid-cols-3">
+          {/* schedule + cta + expiry */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Schedule send <span className="font-normal normal-case">(optional)</span></label><input type="datetime-local" value={publishAt ?? ''} onChange={(e) => setPublishAt(e.target.value)} className={inp} /></div>
+            <div><label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Expires <span className="font-normal normal-case">(optional)</span></label><input type="date" value={expiresAt ?? ''} onChange={(e) => setExpiresAt(e.target.value)} className={inp} /></div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div><label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">CTA label <span className="font-normal normal-case">(optional)</span></label><input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Read more" className={inp} /></div>
             <div><label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">CTA link</label><input value={ctaHref} onChange={(e) => setCtaHref(e.target.value)} placeholder="/docs" className={inp} /></div>
-            <div><label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Expires <span className="font-normal normal-case">(optional)</span></label><input type="date" value={expiresAt ?? ''} onChange={(e) => setExpiresAt(e.target.value)} className={inp} /></div>
           </div>
 
           {/* preview */}
@@ -138,7 +150,7 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
           <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
           <button onClick={save} disabled={!canSave} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:opacity-40">
-            <i className="ph-bold ph-paper-plane-tilt" /> {editing ? 'Save changes' : 'Send message'}
+            <i className={`ph-bold ${scheduled ? 'ph-clock' : 'ph-paper-plane-tilt'}`} /> {editing ? 'Save changes' : scheduled ? 'Schedule' : 'Send message'}
           </button>
         </div>
       </div>
