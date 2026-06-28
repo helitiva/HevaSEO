@@ -74,11 +74,18 @@ export function customersForPod(scope: ManagerScope): AdminCustomer[] {
   return CUSTOMERS.filter((c) => scope.customerCompanies.has(c.company));
 }
 
-/** Tickets belonging to pod customers (or explicitly assigned to a pod member). */
+/**
+ * Tickets this pod owns. An ASSIGNED ticket belongs to the assignee's pod only —
+ * so a ticket on a shared customer (e.g. Acme, served by several pods) no longer
+ * bleeds into every pod that touches that customer. An UNASSIGNED ticket belongs
+ * to whichever pod(s) serve the customer, since any of them could pick it up.
+ * This keeps SLA accountability honest: a manager is measured on their own queue.
+ */
 export function ticketsForPod(scope: ManagerScope): AdminTicket[] {
-  return TICKETS.filter(
-    (t) => scope.customerCompanies.has(t.customer) ||
-      (t.assignee !== null && scope.staffNames.has(t.assignee)),
+  return TICKETS.filter((t) =>
+    t.assignee !== null
+      ? scope.staffNames.has(t.assignee)
+      : scope.customerCompanies.has(t.customer),
   );
 }
 

@@ -2,6 +2,13 @@
 export type OrderStatus = 'new'|'confirmed'|'assigned'|'in_progress'|'internal_review'|'delivered'|'changes_requested'|'approved'|'completed'|'canceled';
 export type Priority = 'low'|'med'|'high';
 
+/** The mock's "now". Orders/deliverables cluster here; single source for date math. */
+export { MOCK_TODAY } from '@/lib/today';
+/** Order statuses that still consume a delivery slot (not terminal). */
+export const ACTIVE_ORDER_STATUS: ReadonlySet<OrderStatus> = new Set([
+  'assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered',
+]);
+
 export interface AdminOrder {
   id: string; code: string; customer: string; service: string; pkg: string;
   status: OrderStatus; priority: Priority; source: 'quick'|'dashboard';
@@ -101,6 +108,19 @@ export const ORDERS: AdminOrder[] = [
   { id: 'o37', code: 'AUD-1037', customer: 'Cobalt Studio', service: 'Audit', pkg: 'Standard', status: 'completed', priority: 'low', source: 'quick', value: 39, staff: 'Mai T.', deadline: '2026-06-21', created: '2026-06-15' },
   { id: 'o38', code: 'CNT-1038', customer: 'Lumen', service: 'Content', pkg: '5 articles', status: 'approved', priority: 'med', source: 'dashboard', value: 60, staff: 'Huy N.', deadline: '2026-06-23', created: '2026-06-16' },
 ];
+
+// When each assigned order was routed to a staffer. Derived deterministically from `created` (a
+// stand-in for a real assigned_at column) so the manager-performance "time-to-assign" signal has a
+// gap to measure: how quickly the owning manager routes incoming work. Unassigned orders are absent.
+export const ORDER_ASSIGNED_AT: Record<string, string> = Object.fromEntries(
+  ORDERS.filter((o) => o.staff !== null).map((o) => {
+    // Stable 0–2 day routing lag keyed off the order id, capped at the deadline.
+    const lag = (o.id.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)) % 3;
+    const at = new Date(`${o.created}T00:00:00Z`);
+    at.setUTCDate(at.getUTCDate() + lag);
+    return [o.id, at.toISOString().slice(0, 10)] as const;
+  }),
+);
 
 // ---- Deliverable Review (module 4): versioned submissions per order ----
 export interface AdminDeliverable {
@@ -359,8 +379,9 @@ export const STAFF: AdminStaff[] = [
 // the manager-tier admin accounts; see ADMIN_SETTINGS.admins.)
 export interface AdminManager { id: string; name: string; email: string; title: string; rank: string; skills: string[]; }
 export const MANAGERS: AdminManager[] = [
-  { id: 'mgr1', name: 'Sofia Marin', email: 'sofia@hevaseo.com', title: 'Operations Manager', rank: 'Senior Manager', skills: ['keyword', 'backlink'] },
-  { id: 'mgr2', name: 'Ken Rivera',  email: 'ken@hevaseo.com',   title: 'Delivery Manager',   rank: 'Lead Manager',   skills: ['content', 'optimize'] },
+  { id: 'mgr1', name: 'Sofia Marin',   email: 'sofia@hevaseo.com', title: 'Operations Manager',          rank: 'Senior Manager', skills: ['keyword', 'backlink'] },
+  { id: 'mgr2', name: 'Ken Rivera',    email: 'ken@hevaseo.com',   title: 'Delivery Manager',            rank: 'Lead Manager',   skills: ['content', 'optimize'] },
+  { id: 'mgr3', name: 'Nadia Okonkwo', email: 'nadia@hevaseo.com', title: 'Quality & Analytics Manager', rank: 'Manager',        skills: ['optimize', 'keyword'] },
 ];
 // Account-level note about a client / their project, shown to whoever works their orders.
 export const CLIENT_NOTE: Record<string, string> = {
@@ -373,8 +394,9 @@ export const CLIENT_NOTE: Record<string, string> = {
 };
 // Which manager owns which staff member (staff id → manager id).
 export const STAFF_MANAGER: Record<string, string> = {
-  s1: 'mgr1', s2: 'mgr1', s5: 'mgr1',  // Sofia — search & links pod
-  s3: 'mgr2', s4: 'mgr2', s6: 'mgr2',  // Ken — content & optimization pod
+  s1: 'mgr1', s2: 'mgr1',  // Sofia — search & links pod
+  s3: 'mgr2', s4: 'mgr2',  // Ken — content pod
+  s5: 'mgr3', s6: 'mgr3',  // Nadia — analytics & quality pod (Tom is paused)
 };
 export const managerOf = (staffId: string): AdminManager | null =>
   MANAGERS.find((m) => m.id === STAFF_MANAGER[staffId]) ?? null;
@@ -957,11 +979,14 @@ export interface LeaveRequest {
   id: string; staffId: string; staffName: string; role: string;
   from: string; to: string; days: number; reason: string;
   status: LeaveStatus; requestedAt: string;
+  // When the owning manager acted on it (null while pending). Drives the
+  // leave-decision latency in the manager-performance "responsiveness" lever.
+  decidedAt: string | null;
 }
 export const LEAVE_REQUESTS: LeaveRequest[] = [
-  { id: 'lv1', staffId: 's2', staffName: 'Linh P.', role: 'Backlink Specialist', from: '2026-07-03', to: '2026-07-07', days: 5, reason: 'Family trip — planned months ago.', status: 'pending', requestedAt: '2026-06-25' },
-  { id: 'lv2', staffId: 's4', staffName: 'Diego R.', role: 'Content Specialist', from: '2026-06-30', to: '2026-06-30', days: 1, reason: 'Medical appointment in the afternoon.', status: 'pending', requestedAt: '2026-06-26' },
-  { id: 'lv3', staffId: 's5', staffName: 'Aria K.', role: 'SEO Analyst', from: '2026-07-14', to: '2026-07-18', days: 5, reason: 'Annual leave.', status: 'pending', requestedAt: '2026-06-24' },
-  { id: 'lv4', staffId: 's1', staffName: 'Mai T.', role: 'Senior SEO Specialist', from: '2026-06-19', to: '2026-06-20', days: 2, reason: 'Conference attendance.', status: 'approved', requestedAt: '2026-06-12' },
-  { id: 'lv5', staffId: 's6', staffName: 'Tom B.', role: 'Link Builder', from: '2026-06-10', to: '2026-06-14', days: 5, reason: 'Personal time.', status: 'declined', requestedAt: '2026-06-02' },
+  { id: 'lv1', staffId: 's2', staffName: 'Linh P.', role: 'Backlink Specialist', from: '2026-07-03', to: '2026-07-07', days: 5, reason: 'Family trip — planned months ago.', status: 'pending', requestedAt: '2026-06-25', decidedAt: null },
+  { id: 'lv2', staffId: 's4', staffName: 'Diego R.', role: 'Content Specialist', from: '2026-06-30', to: '2026-06-30', days: 1, reason: 'Medical appointment in the afternoon.', status: 'pending', requestedAt: '2026-06-26', decidedAt: null },
+  { id: 'lv3', staffId: 's5', staffName: 'Aria K.', role: 'SEO Analyst', from: '2026-07-14', to: '2026-07-18', days: 5, reason: 'Annual leave.', status: 'pending', requestedAt: '2026-06-24', decidedAt: null },
+  { id: 'lv4', staffId: 's1', staffName: 'Mai T.', role: 'Senior SEO Specialist', from: '2026-06-19', to: '2026-06-20', days: 2, reason: 'Conference attendance.', status: 'approved', requestedAt: '2026-06-12', decidedAt: '2026-06-13' },
+  { id: 'lv5', staffId: 's6', staffName: 'Tom B.', role: 'Link Builder', from: '2026-06-10', to: '2026-06-14', days: 5, reason: 'Personal time.', status: 'declined', requestedAt: '2026-06-02', decidedAt: '2026-06-05' },
 ];

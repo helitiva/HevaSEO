@@ -1,4 +1,4 @@
-import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, type Tier, type AdminStaff } from '@/data/adminMock';
+import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, MOCK_TODAY, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff } from '@/data/adminMock';
 
 const factsOf = (o: (typeof ORDERS)[number]) => {
   const c = customerByCompany(o.customer);
@@ -9,7 +9,7 @@ const factsOf = (o: (typeof ORDERS)[number]) => {
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
 const seqMap = new Map([...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
-const TODAY = new Date('2026-06-24T00:00:00');
+const TODAY = new Date(`${MOCK_TODAY}T00:00:00`);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
 function rank(service: string, pkg: string, roster: readonly AdminStaff[]) {
@@ -51,8 +51,7 @@ export function buildAssignmentProps(roster: readonly AdminStaff[] = STAFF) {
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
   // Current in-flight work per staff (their real workload, for the board + rebalance).
-  const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
-  const assigned = ORDERS.filter((o) => o.staff && rosterNames.has(o.staff) && ACTIVE.has(o.status)).map((o) => {
+  const assigned = ORDERS.filter((o) => o.staff && rosterNames.has(o.staff) && ACTIVE_ORDER_STATUS.has(o.status)).map((o) => {
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;

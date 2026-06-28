@@ -1,9 +1,11 @@
 import {
   ORDERS, STAFF, MANAGERS, STAFF_MANAGER, LEAVE_REQUESTS, SKILL_META,
 } from '@/data/adminMock';
+import { mockTodayDate } from '@/lib/today';
+import { allManagerPerf, companyBenchmark, type ManagerPerf } from '@/lib/managerPerf';
 import { ManagersClient, type ManagerMeta, type StaffMemberVM, type TeamLeaveVM } from './ManagersClient';
 
-const TODAY = new Date('2026-06-24T00:00:00');
+const TODAY = mockTodayDate();
 const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 
 function daysToDue(deadline: string | null): number {
@@ -33,5 +35,11 @@ export default function ManagersPage() {
     from: l.from, to: l.to, days: l.days, reason: l.reason, status: l.status,
   }));
 
-  return <ManagersClient managers={managers} staff={staff} leave={leave} skillMeta={SKILL_META} />;
+  // Manager Score per pod (seeded standing) + the company benchmark the cards rank against.
+  // Computed once and reused, so the score model runs a single pass per render.
+  const perfList = allManagerPerf();
+  const perfById: Record<string, ManagerPerf> = Object.fromEntries(perfList.map((p) => [p.id, p]));
+  const benchmark = companyBenchmark(perfList);
+
+  return <ManagersClient managers={managers} staff={staff} leave={leave} skillMeta={SKILL_META} perfById={perfById} benchmark={benchmark} />;
 }

@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { RingStat } from '@/components/admin/RingStat';
+import { Sparkline } from '@/components/staff/Sparkline';
+import {
+  MgrScoreBar, MgrLeverRows, WeakestCallout, MgrLeverStrip,
+} from '@/components/manager/ManagerScorecard';
 import { money } from '@/data/adminMock';
+import type { ManagerPerf, CompanyBenchmark } from '@/lib/managerPerf';
 
 // ── view-model types (built in page.tsx) ──────────────────────────────────────
 export interface StaffMemberVM {
@@ -21,9 +27,9 @@ export interface TeamLeaveVM {
 type SkillMeta = Record<string, { label: string; icon: string; color: string }>;
 type LeaveState = Record<string, 'pending' | 'approved' | 'declined'>;
 type Assignment = Record<string, string | null>; // staffId → managerId | null
-type SortKey = 'team' | 'util' | 'quality' | 'name';
+type SortKey = 'score' | 'team' | 'util' | 'quality' | 'name';
 
-const SORT_LABEL: Record<SortKey, string> = { team: 'Team size', util: 'Utilization', quality: 'Avg quality', name: 'Name' };
+const SORT_LABEL: Record<SortKey, string> = { score: 'Manager score', team: 'Team size', util: 'Utilization', quality: 'Avg quality', name: 'Name' };
 
 // ── derived per-manager shape, recomputed from live assignment ──
 interface DerivedManager extends ManagerMeta {
@@ -53,11 +59,12 @@ function derive(meta: ManagerMeta, staff: StaffMemberVM[], leave: TeamLeaveVM[],
   };
 }
 
-export function ManagersClient({ managers, staff, leave, skillMeta }: {
+export function ManagersClient({ managers, staff, leave, skillMeta, perfById, benchmark }: {
   managers: ManagerMeta[]; staff: StaffMemberVM[]; leave: TeamLeaveVM[]; skillMeta: SkillMeta;
+  perfById: Record<string, ManagerPerf>; benchmark: CompanyBenchmark;
 }) {
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortKey>('team');
+  const [sortBy, setSortBy] = useState<SortKey>('score');
   const [panelId, setPanelId] = useState<string | null>(null);
   // live staff→manager assignment (admin edits this on the page)
   const [assignment, setAssignment] = useState<Assignment>(() => Object.fromEntries(staff.map((s) => [s.id, s.managerId])));
@@ -99,16 +106,23 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
     const load = derived.reduce((n, m) => n + m.load, 0);
     const act = derived.filter((m) => m.activeCount > 0);
     const assigned = staff.length - unmanaged.length;
+    // A pod "needs coaching" when its score is low or it carries a real risk flag
+    // (a meaningful overdue pile-up or a live SLA breach — not a single late order).
+    const atRisk = managers.filter((m) => {
+      const p = perfById[m.id];
+      if (!p) return false;
+      return p.composite < 75 || p.stats.overdue > 2 || p.stats.breachedTickets > 0;
+    }).length;
     return {
       managers: managers.length,
       staff: assigned,
       util: cap ? Math.round((load / cap) * 100) : 0,
-      avgQuality: act.length ? Math.round(act.reduce((n, m) => n + m.avgQuality, 0) / act.length) : 0,
+      avgScore: benchmark.avgComposite,
       span: managers.length ? (assigned / managers.length).toFixed(1) : '0',
       pending: derived.reduce((n, m) => n + m.pendingLeave, 0),
-      overloaded: derived.reduce((n, m) => n + m.overloaded, 0),
+      atRisk,
     };
-  }, [derived, managers, staff, unmanaged]);
+  }, [derived, managers, staff, unmanaged, perfById, benchmark]);
 
   const visible = useMemo(() => derived
     .filter((m) => {
@@ -120,8 +134,9 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
     .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name)
       : sortBy === 'util' ? b.util - a.util
       : sortBy === 'quality' ? b.avgQuality - a.avgQuality
+      : sortBy === 'score' ? (perfById[b.id]?.composite ?? 0) - (perfById[a.id]?.composite ?? 0)
       : b.teamSize - a.teamSize),
-    [derived, search, sortBy]);
+    [derived, search, sortBy, perfById]);
 
   const panel = panelId ? derived.find((m) => m.id === panelId) ?? null : null;
 
@@ -147,11 +162,11 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
       {/* KPIs */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi icon="ph-user-circle-gear" label="Managers" value={String(totals.managers)} />
+        <Kpi icon="ph-medal" label="Avg manager score" value={String(totals.avgScore)} tone={totals.avgScore >= 80 ? 'good' : 'warn'} sub="across all pods" />
         <Kpi icon="ph-users-three" label="Staff managed" value={String(totals.staff)} sub={`${totals.span} avg span`} />
         <Kpi icon="ph-gauge" label="Team utilization" value={`${totals.util}%`} tone={totals.util >= 90 ? 'warn' : 'good'} />
-        <Kpi icon="ph-seal-check" label="Avg quality" value={`${totals.avgQuality}%`} />
         <Kpi icon="ph-airplane-takeoff" label="Pending leave" value={String(totals.pending)} tone={totals.pending ? 'warn' : 'good'} sub="awaiting you" />
-        <Kpi icon="ph-warning-circle" label="Overloaded" value={String(totals.overloaded)} tone={totals.overloaded ? 'warn' : 'good'} sub="staff over cap" />
+        <Kpi icon="ph-lifebuoy" label="Needs coaching" value={String(totals.atRisk)} tone={totals.atRisk ? 'warn' : 'good'} sub="pods at risk" />
       </div>
 
       {/* unmanaged / unassign drop zone — visible when there are unmanaged staff or a drag is in progress */}
@@ -205,7 +220,7 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
         <div className="grid gap-4 lg:grid-cols-2">
           {visible.map((m) => (
             <ManagerCard
-              key={m.id} m={m} onOpen={() => setPanelId(m.id)}
+              key={m.id} m={m} perf={perfById[m.id]} onOpen={() => setPanelId(m.id)}
               dragId={dragId} isOver={overTarget === m.id}
               onChipDragStart={setDragId} onChipDragEnd={endDrag}
               onCardEnter={() => dragId && setOverTarget(m.id)}
@@ -220,7 +235,7 @@ export function ManagersClient({ managers, staff, leave, skillMeta }: {
       {panel && (
         <SlideOver open onClose={() => setPanelId(null)} title={panel.name}>
           <ManagerPanel
-            m={panel} allStaff={staff} managers={managers} assignment={assignment} skillMeta={skillMeta} leaveState={leaveState}
+            m={panel} perf={perfById[panel.id]} benchmark={benchmark} allStaff={staff} managers={managers} assignment={assignment} skillMeta={skillMeta} leaveState={leaveState}
             onAssign={assign} onDecide={decide}
           />
         </SlideOver>
@@ -255,14 +270,15 @@ function ManagerSelect({ managers, value, onChange, includeUnassign }: {
 }
 
 // ── directory card ────────────────────────────────────────────────────────────
-function ManagerCard({ m, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd, onCardEnter, onCardLeave, onCardDrop }: {
-  m: DerivedManager; onOpen: () => void;
+function ManagerCard({ m, perf, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd, onCardEnter, onCardLeave, onCardDrop }: {
+  m: DerivedManager; perf?: ManagerPerf; onOpen: () => void;
   dragId: string | null; isOver: boolean;
   onChipDragStart: (staffId: string) => void; onChipDragEnd: () => void;
   onCardEnter: () => void; onCardLeave: (e: React.DragEvent) => void; onCardDrop: () => void;
 }) {
   const dragActive = dragId !== null;
   const dropping = isOver && !m.team.some((s) => s.id === dragId); // only highlight if it would actually move
+  const trendDelta = perf ? perf.trend[perf.trend.length - 1] - (perf.trend[perf.trend.length - 2] ?? perf.trend[perf.trend.length - 1]) : 0;
   return (
     <div
       role="button" tabIndex={0} onClick={onOpen}
@@ -281,6 +297,13 @@ function ManagerCard({ m, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd
           <p className="truncate text-xs text-muted-foreground">{m.title}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
+          {perf && (
+            <span className="flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5" title={`Manager score ${perf.composite}/100 · rank #${perf.rank?.rank} of ${perf.rank?.total}`}>
+              <span className="display text-sm font-bold">{perf.composite}</span>
+              <span className="text-[10px] font-semibold text-muted-foreground">#{perf.rank?.rank}</span>
+              <i className={`ph-bold text-[11px] ${trendDelta >= 0 ? 'ph-trend-up text-emerald-500' : 'ph-trend-down text-amber-500'}`} aria-hidden />
+            </span>
+          )}
           {m.pendingLeave > 0 && <span className="pill pill-warn"><i className="ph-bold ph-airplane-takeoff" aria-hidden />{m.pendingLeave} leave</span>}
           {m.overdue > 0 && <span className="pill" style={{ background: '#ef44441f', color: '#dc2626' }}><i className="ph-bold ph-warning-circle" aria-hidden />{m.overdue} overdue</span>}
         </div>
@@ -310,8 +333,18 @@ function ManagerCard({ m, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.min(m.util, 100)}%`, background: m.util >= 100 ? 'hsl(var(--destructive))' : m.util >= 90 ? '#f59e0b' : 'hsl(var(--primary))' }} /></div>
       </div>
 
+      {perf && (
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Score levers</span>
+            {perf.weakest && <span className="flex items-center gap-1 text-amber-600"><i className={`ph-bold ${perf.weakest.icon}`} aria-hidden />Coach: {perf.weakest.label}</span>}
+          </div>
+          <MgrLeverStrip levers={perf.levers} />
+        </div>
+      )}
+
       <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/60 pt-3 text-center">
-        <Stat label="Team" value={String(m.teamSize)} />
+        <Stat label="Score" value={perf ? String(perf.composite) : '—'} />
         <Stat label="Quality" value={`${m.avgQuality}%`} />
         <Stat label="On-time" value={`${m.avgOnTime}%`} tone={m.avgOnTime < 85 ? 'warn' : undefined} />
         <Stat label="In flight" value={money(m.valueInFlight)} />
@@ -321,8 +354,9 @@ function ManagerCard({ m, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd
 }
 
 // ── detail panel ──────────────────────────────────────────────────────────────
-function ManagerPanel({ m, allStaff, managers, assignment, skillMeta, leaveState, onAssign, onDecide }: {
-  m: DerivedManager; allStaff: StaffMemberVM[]; managers: ManagerMeta[]; assignment: Assignment;
+function ManagerPanel({ m, perf, benchmark, allStaff, managers, assignment, skillMeta, leaveState, onAssign, onDecide }: {
+  m: DerivedManager; perf?: ManagerPerf; benchmark: CompanyBenchmark;
+  allStaff: StaffMemberVM[]; managers: ManagerMeta[]; assignment: Assignment;
   skillMeta: SkillMeta; leaveState: LeaveState;
   onAssign: (staffId: string, managerId: string | null) => void;
   onDecide: (id: string, status: 'approved' | 'declined', who: string) => void;
@@ -346,6 +380,43 @@ function ManagerPanel({ m, allStaff, managers, assignment, skillMeta, leaveState
           <p className="text-xs text-muted-foreground">{m.teamSize} staff · {m.activeCount} active</p>
         </div>
       </div>
+
+      {/* Performance & coaching — the Manager Score, how it's built, and the lever to push */}
+      {perf && (
+        <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-start gap-4">
+            <RingStat pct={perf.composite} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold">Manager score</p>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">#{perf.rank?.rank} of {perf.rank?.total}</span>
+                <span className={`pill ${perf.composite >= benchmark.avgComposite ? 'pill-good' : 'pill-warn'}`} title="vs company average">
+                  {perf.composite >= benchmark.avgComposite ? '+' : ''}{perf.composite - benchmark.avgComposite} vs avg
+                </span>
+              </div>
+              <div className="mt-2"><MgrScoreBar levers={perf.levers} composite={perf.composite} /></div>
+              <div className="mt-2"><Sparkline data={perf.trend} h={48} /></div>
+            </div>
+          </div>
+
+          <WeakestCallout weakest={perf.weakest} />
+
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Lever breakdown <span className="font-normal normal-case">· | goal · | company avg</span></p>
+            <MgrLeverRows levers={perf.levers} bench={benchmark.avgByLever} weakestKey={perf.weakest?.key ?? null} />
+          </div>
+
+          {/* Operating discipline — what sits on this manager personally */}
+          <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+            <PanelStat label="Review turn" value={`${perf.stats.reviewTurnaroundDays}d`} tone={perf.stats.reviewTurnaroundDays <= 1 ? 'good' : 'warn'} />
+            <PanelStat label="Awaiting" value={String(perf.stats.awaitingReview)} tone={perf.stats.oldestReviewWaitDays > 1 ? 'warn' : 'good'} />
+            <PanelStat label="SLA breach" value={String(perf.stats.breachedTickets)} tone={perf.stats.breachedTickets ? 'warn' : 'good'} />
+            <PanelStat label="Leave dec." value={`${perf.stats.avgLeaveDecisionDays}d`} tone={perf.stats.pendingLeave ? 'warn' : 'good'} />
+            <PanelStat label="Assign lag" value={`${perf.stats.avgAssignLagDays}d`} tone={perf.stats.avgAssignLagDays <= 1 ? 'good' : 'warn'} />
+            <PanelStat label="Growth" value={`${perf.stats.improving}↑ ${perf.stats.slipping}↓`} tone={perf.stats.slipping ? 'warn' : 'good'} />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2">
         <PanelStat label="Utilization" value={`${m.util}%`} tone={m.util >= 90 ? 'warn' : 'good'} />

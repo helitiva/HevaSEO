@@ -12,8 +12,10 @@ export const MANAGER_NAV: AdminNavSection[] = [
     { label: 'Assignment', href: '/manager/assignment', icon: 'ph-flow-arrow' },
     { label: 'Review', href: '/manager/review', icon: 'ph-seal-check' },
     { label: 'Tickets', href: '/manager/tickets', icon: 'ph-lifebuoy' },
+    { label: 'Inbox', href: '/manager/inbox', icon: 'ph-tray' },
   ]},
   { title: 'My pod', items: [
+    { label: 'My performance', href: '/manager/performance', icon: 'ph-chart-line-up' },
     { label: 'Customers', href: '/manager/customers', icon: 'ph-users' },
     { label: 'Staff', href: '/manager/staff', icon: 'ph-user-gear' },
   ]},
