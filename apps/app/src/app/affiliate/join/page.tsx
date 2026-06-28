@@ -32,7 +32,7 @@ export default function AffiliateJoinPage() {
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">H</span>
           <span className="display text-sm font-bold">HevaSEO <span className="text-primary">Partners</span></span>
         </span>
-        <Link href="/affiliate" className="text-sm font-semibold text-muted-foreground transition hover:text-foreground">
+        <Link href="/login" className="text-sm font-semibold text-muted-foreground transition hover:text-foreground">
           Already a partner? <span className="text-primary">Sign in</span>
         </Link>
       </header>

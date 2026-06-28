@@ -5,15 +5,19 @@ import { money } from '@/data/adminMock';
 import { pctDelta, type PayoutStatus } from '@/lib/affiliate';
 import { EarningsChart } from '@/components/affiliate/EarningsChart';
 import {
-  adminAffiliates, adminPayouts, programSeries,
-  DEFAULT_RULES, defaultTierRows, tierRowFor, newlyPaidTotal,
+  adminPayouts, programSeries,
+  DEFAULT_RULES, defaultTierRows, newlyPaidTotal,
   type PartnerStatus, type ProgramRules, type EditableTier,
 } from '@/data/adminAffiliate';
+import { useAdminAffiliates } from '@/data/affiliateAdminStore';
+import { AFFILIATE_TIERS } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
 import { PayoutsTab } from './PayoutsTab';
 import { RulesTab } from './RulesTab';
 import { PartnerDrawer } from './PartnerDrawer';
+import { PartnerCreateModal } from './PartnerCreateModal';
+import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 type TabKey = 'overview' | 'partners' | 'payouts' | 'rules';
 const TABS: { key: TabKey; label: string; icon: string }[] = [
@@ -40,6 +44,11 @@ export function AffiliateAdminClient() {
   const [rules, setRules] = usePersistedState<ProgramRules>('rules', DEFAULT_RULES);
   const [tierRows, setTierRows] = usePersistedState<EditableTier[]>('tiers', defaultTierRows());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Merged seed + admin-created partners, each carrying its effectiveTier (override
+  // wins over volume-derived). The overrides map is read so we can flag pinned tiers.
+  const { partners: mergedPartners, overrides } = useAdminAffiliates();
 
   // Base payout statuses, to tell which requests the admin newly marked paid this session.
   const basePayoutStatus = useMemo(
@@ -53,12 +62,12 @@ export function AffiliateAdminClient() {
   // Partner balances reconcile with the payout queue: a request marked PAID raises the
   // partner's `claimed` (and lowers unclaimed), so headline, table and drawer all agree.
   const partners = useMemo(
-    () => adminAffiliates().map((p) => ({
+    () => mergedPartners.map((p) => ({
       ...p,
       status: statusOverride[p.id] ?? p.status,
       claimed: p.claimed + newlyPaidTotal(p.id, payouts, basePayoutStatus),
     })),
-    [statusOverride, payouts, basePayoutStatus],
+    [mergedPartners, statusOverride, payouts, basePayoutStatus],
   );
 
   const setPartnerStatus = (id: string, next: PartnerStatus) => setStatusOverride({ ...statusOverride, [id]: next });
@@ -78,11 +87,15 @@ export function AffiliateAdminClient() {
   const owed = payouts.filter((p) => p.status === 'requested' || p.status === 'approved').reduce((s, p) => s + p.amount, 0);
   const newRequests = payouts.filter((p) => p.status === 'requested').length;
 
+  // Resolve a partner's display tier: the override id if pinned, else volume-derived.
+  // Rate follows the admin-edited tier rows so the leaderboard matches the Rules tab.
+  const rateForTier = (id: string) =>
+    tierRows.find((t) => t.id === id)?.rate ?? AFFILIATE_TIERS.find((t) => t.id === id)?.rate ?? 0;
   const leaders = partners
     .filter((p) => p.status === 'active')
     .sort((a, b) => b.commission - a.commission)
     .slice(0, 5)
-    .map((p) => ({ ...p, tier: tierRowFor(tierRows, p.volume) }));
+    .map((p) => ({ ...p, tier: { id: p.effectiveTier, rate: rateForTier(p.effectiveTier) } }));
   const selected = partners.find((p) => p.id === selectedId) ?? null;
 
   // MoM deltas from the program trend, to match the partner dashboard's polish.
@@ -94,9 +107,15 @@ export function AffiliateAdminClient() {
 
   return (
     <section className="space-y-5">
-      <div>
-        <h1 className="display text-2xl font-bold tracking-tight">Affiliate program</h1>
-        <p className="text-sm text-muted-foreground">Partners, tiers, rules &amp; payouts — who&apos;s driving revenue and what you owe them.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="display text-2xl font-bold tracking-tight">Affiliate program</h1>
+          <p className="text-sm text-muted-foreground">Partners, tiers, rules &amp; payouts — who&apos;s driving revenue and what you owe them.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <OutboxButton />
+          <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />New partner</button>
+        </div>
       </div>
 
       {/* tabs */}
@@ -169,13 +188,14 @@ export function AffiliateAdminClient() {
         </div>
       )}
 
-      {tab === 'partners' && <PartnersTab partners={partners} tierRows={tierRows} onToggle={setPartnerStatus} onSelect={setSelectedId} />}
+      {tab === 'partners' && <PartnersTab partners={partners} tierRows={tierRows} overrides={overrides} onToggle={setPartnerStatus} onSelect={setSelectedId} />}
       {tab === 'payouts' && <PayoutsTab payouts={payouts} onAction={setPayoutStatus} />}
       {tab === 'rules' && (
         <RulesTab rules={rules} setRules={setRules} tierRows={tierRows} setTierRows={setTierRows} applications={pending} onToggle={setPartnerStatus} />
       )}
 
       <PartnerDrawer partner={selected} payouts={payouts} tierRows={tierRows} onToggle={setPartnerStatus} onClose={() => setSelectedId(null)} />
+      {createOpen && <PartnerCreateModal onClose={() => setCreateOpen(false)} />}
     </section>
   );
 }

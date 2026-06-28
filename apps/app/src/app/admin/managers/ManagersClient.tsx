@@ -11,6 +11,10 @@ import {
 } from '@/components/manager/ManagerScorecard';
 import { money } from '@/data/adminMock';
 import type { ManagerPerf, CompanyBenchmark } from '@/lib/managerPerf';
+import { createAccount } from '@/lib/auth';
+import { addCreatedManager, useCreatedManagers } from '@/data/managerAccountsStore';
+import { CredentialPanel } from '@/components/admin/accounts/CredentialPanel';
+import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 // ── view-model types (built in page.tsx) ──────────────────────────────────────
 export interface StaffMemberVM {
@@ -59,13 +63,24 @@ function derive(meta: ManagerMeta, staff: StaffMemberVM[], leave: TeamLeaveVM[],
   };
 }
 
-export function ManagersClient({ managers, staff, leave, skillMeta, perfById, benchmark }: {
+export function ManagersClient({ managers: managersProp, staff, leave, skillMeta, perfById, benchmark }: {
   managers: ManagerMeta[]; staff: StaffMemberVM[]; leave: TeamLeaveVM[]; skillMeta: SkillMeta;
   perfById: Record<string, ManagerPerf>; benchmark: CompanyBenchmark;
 }) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('score');
   const [panelId, setPanelId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
+
+  // Merge admin-provisioned managers/admins into the directory (Phase-0 overlay).
+  // Created entries carry a `createdByAdmin` flag so the card can show a "New" state.
+  const createdManagers = useCreatedManagers();
+  const managers = useMemo<ManagerMeta[]>(
+    () => [...managersProp, ...createdManagers.map((c) => ({ id: c.id, name: c.name, title: c.title, email: c.email }))],
+    [managersProp, createdManagers],
+  );
+  const createdIds = useMemo(() => new Set(createdManagers.map((c) => c.id)), [createdManagers]);
   // live staff→manager assignment (admin edits this on the page)
   const [assignment, setAssignment] = useState<Assignment>(() => Object.fromEntries(staff.map((s) => [s.id, s.managerId])));
   const [leaveState, setLeaveState] = useState<LeaveState>(() => Object.fromEntries(leave.map((l) => [l.id, l.status])));
@@ -82,6 +97,14 @@ export function ManagersClient({ managers, staff, leave, skillMeta, perfById, be
   const decide = (id: string, status: 'approved' | 'declined', who: string) => {
     setLeaveState((s) => ({ ...s, [id]: status }));
     notify(`${who}'s leave ${status === 'approved' ? 'approved ✓' : 'declined'}`);
+  };
+  const addManager = (data: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => {
+    const id = data.role === 'admin' ? `adm${Date.now()}` : `mgr${Date.now()}`;
+    // Create the login account (lib/auth emails mock credentials to the outbox).
+    const { account, tempPassword } = createAccount({ role: data.role, name: data.name, email: data.email, entityId: id });
+    addCreatedManager({ id, name: data.name, email: account.email, title: data.title || (data.role === 'admin' ? 'Administrator' : 'Manager'), rank: data.rank, role: data.role, createdAt: new Date().toISOString() });
+    setCreds({ email: account.email, password: tempPassword });
+    notify(`${data.name} added as ${data.role} — credentials emailed`);
   };
 
   // ── drag a staff chip onto a manager card (or the unassign zone) ──
@@ -156,7 +179,10 @@ export function ManagersClient({ managers, staff, leave, skillMeta, perfById, be
           <h1 className="display text-2xl font-bold tracking-tight">Managers</h1>
           <p className="text-sm text-muted-foreground">Team leads, their staff, capacity and approvals — assign who manages whom.</p>
         </div>
-        <button onClick={() => notify('Invite manager — wire to backend later')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add manager</button>
+        <div className="flex items-center gap-2">
+          <OutboxButton />
+          <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add manager</button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -220,7 +246,7 @@ export function ManagersClient({ managers, staff, leave, skillMeta, perfById, be
         <div className="grid gap-4 lg:grid-cols-2">
           {visible.map((m) => (
             <ManagerCard
-              key={m.id} m={m} perf={perfById[m.id]} onOpen={() => setPanelId(m.id)}
+              key={m.id} m={m} perf={perfById[m.id]} isNew={createdIds.has(m.id)} onOpen={() => setPanelId(m.id)}
               dragId={dragId} isOver={overTarget === m.id}
               onChipDragStart={setDragId} onChipDragEnd={endDrag}
               onCardEnter={() => dragId && setOverTarget(m.id)}
@@ -247,6 +273,8 @@ export function ManagersClient({ managers, staff, leave, skillMeta, perfById, be
           <i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}
         </div>
       )}
+
+      {addOpen && <AddManagerModal creds={creds} onClose={() => { setAddOpen(false); setCreds(null); }} onSave={addManager} />}
     </section>
   );
 }
@@ -270,8 +298,8 @@ function ManagerSelect({ managers, value, onChange, includeUnassign }: {
 }
 
 // ── directory card ────────────────────────────────────────────────────────────
-function ManagerCard({ m, perf, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd, onCardEnter, onCardLeave, onCardDrop }: {
-  m: DerivedManager; perf?: ManagerPerf; onOpen: () => void;
+function ManagerCard({ m, perf, isNew, onOpen, dragId, isOver, onChipDragStart, onChipDragEnd, onCardEnter, onCardLeave, onCardDrop }: {
+  m: DerivedManager; perf?: ManagerPerf; isNew?: boolean; onOpen: () => void;
   dragId: string | null; isOver: boolean;
   onChipDragStart: (staffId: string) => void; onChipDragEnd: () => void;
   onCardEnter: () => void; onCardLeave: (e: React.DragEvent) => void; onCardDrop: () => void;
@@ -293,7 +321,7 @@ function ManagerCard({ m, perf, onOpen, dragId, isOver, onChipDragStart, onChipD
       <div className="flex items-start gap-3">
         <Avatar name={m.name} size={44} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{m.name}</p>
+          <p className="flex items-center gap-1.5 truncate font-semibold">{m.name}{isNew && <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"><i className="ph-bold ph-sparkle" aria-hidden />New</span>}</p>
           <p className="truncate text-xs text-muted-foreground">{m.title}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
@@ -589,6 +617,66 @@ function PanelStat({ label, value, tone }: { label: string; value: string; tone?
     <div className="rounded-lg border border-border bg-background/40 p-2 text-center">
       <p className={`display text-base font-bold leading-none ${col}`}>{value}</p>
       <p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+// ── add manager / admin modal ─────────────────────────────────────────────────
+function AddManagerModal({ creds, onClose, onSave }: {
+  creds: { email: string; password: string } | null;
+  onClose: () => void;
+  onSave: (d: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => void;
+}) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [title, setTitle] = useState('');
+  const [rank, setRank] = useState('Team Lead');
+  const [role, setRole] = useState<'manager' | 'admin'>('manager');
+  const inp = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary';
+  const lbl = 'mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground';
+  const emailValid = /.+@.+\..+/.test(email.trim());
+  const canSave = name.trim().length > 1 && emailValid;
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center p-4">
+      <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+        <p className="display mb-4 text-base font-bold">{creds ? 'Account created' : 'Add manager or admin'}</p>
+        {creds ? (
+          <>
+            <CredentialPanel email={creds.email} password={creds.password} />
+            <div className="mt-5 flex justify-end">
+              <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-check" aria-hidden /> Done</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div>
+                <label className={lbl}>Role</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['manager', 'admin'] as const).map((r) => { const on = role === r; return (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold capitalize transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}>
+                      <i className={`ph-bold ${r === 'admin' ? 'ph-shield-star' : 'ph-user-circle-gear'}`} aria-hidden /> {r}
+                    </button>
+                  ); })}
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">{role === 'admin' ? 'Full admin access to every surface.' : 'Pod-scoped, money-blind manager portal.'}</p>
+              </div>
+              <div><label className={lbl}>Name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sofia Marin" className={inp} autoFocus /></div>
+              <div><label className={lbl}>Email (login)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. sofia@hevaseo.com" className={inp} />{email && !emailValid && <p className="mt-1 text-[11px] text-rose-500">Enter a valid email.</p>}</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lbl}>Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Delivery Manager" className={inp} /></div>
+                <div><label className={lbl}>Rank</label><input value={rank} onChange={(e) => setRank(e.target.value)} placeholder="e.g. Team Lead" className={inp} /></div>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), title: title.trim(), rank: rank.trim(), role })} disabled={!canSave} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Create account</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

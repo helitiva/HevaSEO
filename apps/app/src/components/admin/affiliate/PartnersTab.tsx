@@ -2,16 +2,19 @@
 import { useMemo, useState } from 'react';
 import { money } from '@/data/adminMock';
 import type { TierId } from '@/lib/affiliate';
-import { partnerUnclaimed, tierRowFor, type AdminAffiliate, type PartnerStatus, type EditableTier } from '@/data/adminAffiliate';
-import { StatusBadge, TierBadge } from './shared';
+import { partnerUnclaimed, tierRowFor, type PartnerStatus, type EditableTier } from '@/data/adminAffiliate';
+import { isTierOverridden, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
+import { StatusBadge } from './shared';
+import { TierEditControl } from './TierEditControl';
 import { PartnerHoverCard } from '../PartnerHoverCard';
 
 type SortKey = 'name' | 'refs' | 'volume' | 'commission' | 'claimed' | 'unclaimed' | 'lastActiveAt';
 const STATUS_FILTERS: (PartnerStatus | 'all')[] = ['all', 'active', 'pending', 'suspended'];
 
-export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
-  partners: AdminAffiliate[];
+export function PartnersTab({ partners, tierRows, overrides, onToggle, onSelect }: {
+  partners: AdminAffiliateWithTier[];
   tierRows: EditableTier[];
+  overrides: Record<string, TierId>;
   onToggle: (id: string, next: PartnerStatus) => void;
   onSelect: (id: string) => void;
 }) {
@@ -23,8 +26,10 @@ export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
 
   const rows = useMemo(() => {
     const enriched = partners.map((p) => {
-      const t = tierRowFor(tierRows, p.volume);
-      return { ...p, tierId: t.id, rate: t.rate, unclaimed: partnerUnclaimed(p) };
+      // Effective tier (override wins over volume) with the rate from the admin-edited rows.
+      const tierId = p.effectiveTier;
+      const rate = tierRows.find((t) => t.id === tierId)?.rate ?? tierRowFor(tierRows, p.volume).rate;
+      return { ...p, tierId, rate, overridden: isTierOverridden(p.id, overrides), unclaimed: partnerUnclaimed(p) };
     });
     const filtered = enriched.filter((p) =>
       (status === 'all' || p.status === status) &&
@@ -35,7 +40,7 @@ export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
       const cmp = typeof va === 'string' ? va.localeCompare(vb as string) : (va as number) - (vb as number);
       return cmp * dir;
     });
-  }, [partners, tierRows, status, tier, q, sort, dir]);
+  }, [partners, tierRows, overrides, status, tier, q, sort, dir]);
 
   const toggleSort = (k: SortKey) => {
     if (k === sort) setDir((d) => (d === 1 ? -1 : 1));
@@ -110,7 +115,7 @@ export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
                       </span>
                     </PartnerHoverCard>
                   </td>
-                  <td className="px-3 py-2.5">{p.status === 'pending' ? <span className="text-xs text-muted-foreground">—</span> : <TierBadge tier={p.tierId} rate={p.rate} />}</td>
+                  <td className="px-3 py-2.5">{p.status === 'pending' ? <span className="text-xs text-muted-foreground">—</span> : <TierEditControl partnerId={p.id} tier={p.tierId} rate={p.rate} overridden={p.overridden} />}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={p.status} /></td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{p.refs}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{money(p.volume)}</td>
