@@ -1,0 +1,429 @@
+# HevaSEO — Feature Catalog
+
+> **Audience:** Backend engineers, new hires, and product stakeholders.
+> **Source of truth:** This document is derived from the Phase-0 mock codebase via the page-crawler audit pipeline (`docs/audit/`). Where the mock fakes a value it is marked **mock — needs backend**.
+
+---
+
+## 1. Overview
+
+HevaSEO is a multi-tenant SEO-services SaaS platform where an agency sells packaged SEO services (keyword research, backlinks, content, audits, optimization, web design, indexing) to business customers. The agency uses an internal ops workforce (staff + managers) to deliver the work. An affiliate/KOL referral program drives customer acquisition.
+
+The platform is a **Next.js 15 App Router** application in Phase-0 (full frontend on mock data; no backend yet). All data lives in module-scope TypeScript constants and `localStorage`; every feature is production-quality UI waiting for real queries.
+
+### The Five Roles
+
+| Role | Area | Purpose |
+|---|---|---|
+| **Customer** | `/` (root routes) | The paying client — orders services, tracks projects, manages credit, files support tickets, reads docs |
+| **Admin** | `/admin/*` | Full ops + business control — orders, assignments, deliverables review, finance, payroll, affiliate program, broadcasts, org settings |
+| **Manager** | `/manager/*` | Pod-scoped ops without money — same ops actions as admin but money-blind; can only see/act on their own pod's staff, customers, and orders |
+| **Staff** | `/staff/*` | Delivery workers — task execution, deliverable submission, personal finance/performance, knowledge base |
+| **Affiliate** | `/affiliate/*` | KOL referral partners — refer customers, earn tiered commissions, request payouts |
+
+Total routes: **89** (customer 17, admin 28, manager 20, staff 17, affiliate 7).
+
+---
+
+## 2. Feature Catalog
+
+Features are grouped by domain. Each entry includes a 1–2 line description and the routes that expose it.
+
+### 2.1 Orders
+
+**Order lifecycle management** — the central entity. An order tracks one service package purchased by a customer through statuses: `new → confirmed → assigned → in_progress → internal_review → delivered → approved/changes_requested → completed`. Cancellation is possible at any point.
+
+| Feature | Description | Routes |
+|---|---|---|
+| Order board / explorer | Multi-view (Kanban, List, Table) order browser with sort, filter, and date-range controls | `/admin/orders`, `/manager/orders`, `/orders` (customer) |
+| Order detail | Full order card: status, staff, customer, service/package, deadline, deliverable history, internal notes, customer view | `/admin/orders/[id]`, `/manager/orders/[id]` |
+| Customer order view | Customer-facing Kanban/List/Table board scoped to their own orders; drag-to-reorder columns, view toggles persisted to `localStorage` | `/orders` |
+| Order creation | New orders placed from the service catalog; quick-create available from the admin command center | `/services/[svc]` (customer), admin command center |
+| SLA / deadline tracking | Deadline field on each order; overdue detection and priority signals in triage queues | All order-listing routes |
+
+### 2.2 Assignment & Routing
+
+**Staff assignment engine** — maps unassigned orders to available staff, either manually or via rule-based auto-routing.
+
+| Feature | Description | Routes |
+|---|---|---|
+| Assignment board | Drag-and-drop unassigned orders onto staff cards; shows per-staff workload, capacity, and skill match | `/admin/assignment`, `/manager/assignment` |
+| Bulk assignment | Select multiple orders and assign to one staff member | `/admin/assignment`, `/manager/assignment` |
+| Assignment rule engine | Configurable rules that pin or auto-route an order by service + package to a specific staff member or "auto" mode | `/admin/assignment` (admin-only; rule CRUD) |
+| Triage queue | Prioritized action queue: overdue, awaiting-review, changes-requested, SLA-urgent, unrouted — manager's primary work surface | `/manager` (overview) |
+| Rebalance suggestion | Detects load imbalance in a pod and suggests moving work from the most-loaded to a skill-compatible lighter staffer | `/manager` (overview) |
+
+### 2.3 Deliverables & Review
+
+**The delivery loop** — staff submit work; admins and managers review; customers approve or request changes.
+
+| Feature | Description | Routes |
+|---|---|---|
+| Deliverable submission | Staff attach work and submit for review; versioned (v1, v2…) so revision history is preserved | `/staff/tasks/[id]`, `/staff/deliverables` |
+| Review queue | All pending deliverables, newest first; filter by staff, service, or "sent back" | `/admin/review`, `/manager/review` |
+| Approve / send back | Reviewer approves or sends back with feedback; triggers order status transition | `/admin/review`, `/manager/review` |
+| Deliverables list (staff) | Staff-facing list of their own submitted work, with status and feedback | `/staff/deliverables` |
+| Task detail (staff) | Full task card: brief, deadline, priority, keyboard shortcuts (j/k/s), state machine actions (Start → Submit → Resume) | `/staff/tasks/[id]` |
+| Task history | Completed-task archive per staffer; shows commission earned, rating, on-time flag | `/staff/history/[code]` |
+
+### 2.4 Tickets / Support
+
+**Customer support — multi-channel ticket management.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Ticket list & management | Admin/manager view of all open/pending/resolved tickets; sortable, assignable, SLA-tiered | `/admin/tickets`, `/manager/tickets` |
+| Customer support portal | Customer creates and tracks their own tickets; SLA info displayed; reply flow | `/support` |
+| SLA tracking | Tickets tagged `urgent` or `standard`; urgency breached when age exceeds SLA limit in hours | Ticket views on all ops surfaces |
+| Ticket thread | Conversation thread (customer ↔ staff) per ticket | `/support` (customer), `/admin/tickets`, `/manager/tickets` |
+
+### 2.5 Finance & Payroll
+
+**Business intelligence — admin-only; the manager surface is explicitly excluded.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Finance overview | Revenue metrics, payroll summary, cashflow indicators | `/admin/finance` (admin-only) |
+| Payroll model | Staff payout = base salary + commission + bonus; penalties deducted; `adminPayroll.ts` | `/admin/finance` |
+| Staff wallet (staff self) | Staff see their own commission ledger, pending balance, payout history | `/staff/finance` |
+| Payout request (staff) | Staff request withdrawals to a registered payout method; status: requested → approved → paid | `/staff/finance` |
+| Penalty system | Auto-flagged (revision rounds, late, rating) and manual penalties; staff can dispute | `/staff/finance`, `/staff/performance` |
+| Customer credit & invoices | Credit balance, spend, transaction history, invoices; runway calculation | `/credit` |
+| Credit adjustment | Admin-only: adjust a customer's credit balance | `/admin/customers/[id]` |
+| Affiliate finance overview | Admin view of partner tiers, earnings, and payout approvals | `/admin/affiliate` |
+
+### 2.6 Broadcasts / Messaging
+
+**Admin-to-everyone messaging system** — one-to-many announcements with per-message analytics.
+
+| Feature | Description | Routes |
+|---|---|---|
+| Compose & send broadcast | Rich text + optional long-form article; target audience(s): customer / staff / manager / affiliate; schedule for later | `/admin/broadcasts` |
+| Broadcast management | List, search, recall, duplicate, re-send (nudge), delete broadcasts | `/admin/broadcasts` |
+| Broadcast analytics | Per-message read timeline, audience funnel, hour heatmap, read/click counts; CSV export | `/admin/broadcasts/[id]` |
+| Alert bar (overview banner) | Live / critical broadcasts show an alert bar on each audience's home page | Audience home pages |
+| Inbox (recipient) | Each role surface has an inbox showing broadcasts addressed to them; mark read, dismiss | `/inbox`, `/staff/inbox`, `/manager/inbox`, `/affiliate/inbox` |
+| Bell / notification count | Unread broadcast count visible in the sidebar badge | All sidebars |
+
+### 2.7 Docs & Notes
+
+**Knowledge distribution (docs) and private notebooks (notes).**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Doc authoring | Admin creates docs with rich HTML (sanitized), tags, audience targeting (customer/staff/manager), pinned flag | `/admin/docs/new`, `/admin/docs/[id]/edit` |
+| Doc distribution | Audience-gated: a doc reaches only the audiences it was distributed to; staff docs are additionally skill-gated | `docsStore` (shared data layer) |
+| Doc library (recipient) | Each surface shows only docs addressed to their audience; staff also see only docs matching their skills | `/docs`, `/staff/docs`, `/manager/docs` |
+| Doc reader | Full doc rendered from sanitized HTML; no raw user HTML reaches the DOM | `/docs/[id]`, `/staff/docs/[id]`, `/admin/docs/[id]`, `/manager/docs/[id]` |
+| Notes (private notebook) | Per-role private rich-text notebook; sanitized HTML at save; notes are namespaced by surface and never shared across roles | `/notes`, `/staff/notes`, `/manager/notes`, `/admin/notes` (and `/new`, `/[id]`, `/[id]/edit` for each) |
+
+### 2.8 Affiliate / KOL Program
+
+**Tiered referral program — affiliates earn commission on referred customer order volume.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Affiliate join / landing | Public landing page with social proof, tier strip, time-boxed offer, and sign-up form | `/affiliate/join` |
+| Affiliate overview | Adaptive dashboard: new partner sees onboarding hero; active partner sees commission KPIs, momentum, referral link | `/affiliate` |
+| Referral tracking | List of referred customers with volume, status ("active", "at-risk", "churned"); churn alert derived from status | `/affiliate/referrals` |
+| Commission ledger & payouts | Earnings history, pending balance, payout request form; tier-upside nudge computed from real volume | `/affiliate/payouts` |
+| Promotional assets | Creative assets and referral link toolkit; conversion nudge | `/affiliate/assets` |
+| Partner settings | Payout method, referral code management | `/affiliate/settings` |
+| Admin affiliate management | Directory of all partners; tier override, approve/reject payouts, earnings chart (`programSeries`), partner-level detail | `/admin/affiliate` |
+
+### 2.9 Staff Performance
+
+**Ops-quality metrics for delivery staff and their managers.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Staff scorecard | Composite score (0–100) across quality, on-time, throughput; score breakdown; coaching lever; team ranking; reward progress | `/staff/performance` |
+| Reward milestones | Milestone unlocks based on composite score; animated progress bars | `/staff/performance` |
+| Staff profile (admin/manager) | Deep view: workload, skill breakdown, pay snapshot (admin-only), task history, leave record | `/admin/staff/[id]`, `/manager/staff/[id]` |
+| Staff roster | Directory of all staff / pod staff with workload KPIs; add staff (admin); reassign pod (admin) | `/admin/staff`, `/manager/staff` |
+| Staff leave queue | Admin approves/declines leave requests; leave latency counted in manager score | `/admin/staff/leave` |
+| Manager scorecard | 5-lever composite (delivery, quality, responsiveness, team-health, growth) + coaching action; peer benchmark | `/manager/performance`, `/admin/managers` |
+| Manager directory | Admin oversight of all managers; pod summaries, value-in-flight, performance composite | `/admin/managers` |
+| Staff insights (hover card) | Rich hover card surfaced in admin views: finance, performance, skill tags, workload — same data as profile | Admin surfaces globally |
+
+### 2.10 Customer Projects & Services
+
+**Customer-facing project and service management.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Project management | Create/edit/delete projects and folders; drag-and-drop project into folder; associate orders with a project | `/projects`, `/projects/[id]` |
+| Service catalog (customer) | Browse available and coming-soon services; data-driven availability | `/services` |
+| Service order | Select a service, pick a package and plan, submit a new order | `/services/[svc]` |
+| Dashboard | Order counts, service mix, on-time rate, activity feed, date-range filter | `/dashboard` |
+
+### 2.11 Settings
+
+**Per-role configuration.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Customer settings | Profile, billing details, API key, plan selection, password change, 2FA toggle | `/settings` |
+| Staff settings | Profile editing, working-hours toggles, time-off entries, handoff policy | `/staff/settings` |
+| Manager settings | Name, email, notification prefs; pod-info read-only | `/manager/settings` |
+| Affiliate settings | Payout method, referral code | `/affiliate/settings` |
+| Org settings (admin) | Org-wide admin configuration; restricted to `org.settings` capability | `/admin/settings` |
+
+### 2.12 Audit Log
+
+**Immutable event log — admin and managers see a filtered view.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Audit log (admin) | Full chronological event stream: all entities (order, customer, staff, ticket, deliverable, catalog, auth) with actor, action, diff | `/admin/audit` |
+| Audit log (manager) | Pod-scoped view — only events touching this pod's staff, customers, or orders; financial events stripped via `isMoneyEvent()` | `/manager/audit` |
+
+### 2.13 Service Catalog (Admin)
+
+**Admin management of the service product line.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Catalog view | Service list with pricing (flat, range, usage-based, custom), packages, and group structure | `/admin/catalog` |
+| Catalog management | Edit prices, descriptions, upsells — single source for both the admin view and the customer ordering surface (`@heva/catalog`) | `/admin/catalog` |
+
+### 2.14 Analytics
+
+**Business intelligence — admin-only.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Revenue analytics | Revenue chart, service mix by revenue, geographic distribution, top customers by LTV | `/admin/analytics` |
+| Audience analytics | Traffic and conversion funnel; channel breakdown | `/admin/analytics` |
+| Support stats | Ticket volume, resolution rate, avg first-response time | `/admin/analytics` |
+| Team performance overview | Composite summary of team delivery quality | `/admin/analytics` |
+
+### 2.15 Impersonation
+
+**Cross-role administrative tool.**
+
+| Feature | Description | Routes |
+|---|---|---|
+| Admin → customer impersonation | Admin can view the customer portal as any specific customer; cookie-based; identity banner shown; full `act` mode | `lib/impersonation.ts`; button in customer hover card and `/admin/customers/[id]` |
+| Admin/manager → staff impersonation | `act` mode (admin): full access as the staff member. `view` mode (manager): read-only look-in — cannot mutate tasks, notes, or settings | Button in staff list and profile; governed by `useImpersonatePolicy()` |
+
+---
+
+## 3. Feature ↔ Role Matrix
+
+`✓` = full access · `view` = read-only · `—` = not applicable · `✗` = blocked by RBAC
+
+> **Manager money-blind rule:** The manager role does NOT hold `finance.view`, `analytics.view`, `pricing.view`, `affiliate.manage`, `managers.manage`, or `org.settings`. All monetary figures (order value, customer LTV/spend, staff pay, revenue) are masked to `—` for manager viewers by four independent layers: the RBAC capability matrix (`lib/rbac.ts`), `ViewerProvider`/`useMoney()`/`useShowMoney()` hooks, explicit `showMoney={false}` server-component props, and pod-scoped data derivation in `managerPulse`/`managerPerf` that never reads monetary fields.
+
+> **Staff view / act impersonation distinction:** When a manager enters the staff portal as "View as" (`view` mode), they should be read-only across all staff pages. Currently `ViewOnlyGuard` is deployed only on `/staff/finance`. Task actions, notes CRUD, and settings mutations are **not yet guarded** — this is a HIGH-priority Phase-3 fix. `act` mode (admin only) grants full mutation rights.
+
+| Capability / Feature | Customer | Admin | Manager | Staff | Affiliate |
+|---|---|---|---|---|---|
+| **Orders — view own** | ✓ | — | — | — | — |
+| **Orders — view all** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Orders — view value/pricing** | ✓ (own) | ✓ | ✗ (money-blind) | ✗ | ✗ |
+| **Assignment board** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Assignment rules (CRUD)** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Deliverable submission** | ✗ | ✗ | ✗ | ✓ | ✗ |
+| **Deliverable review (approve/send back)** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Tickets — own only** | ✓ | — | — | — | — |
+| **Tickets — all / pod** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Finance — revenue / payroll / cashflow** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Finance — own earnings (staff)** | ✗ | ✗ | ✗ | ✓ | — |
+| **Finance — payout request (staff)** | ✗ | ✗ | ✗ | ✓ (view-only guard incomplete) | — |
+| **Credit & invoices (own)** | ✓ | — | — | — | — |
+| **Credit adjustment** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Broadcasts — compose/send/recall** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Inbox (receive broadcasts)** | ✓ | — | ✓ | ✓ | ✓ |
+| **Docs — author & distribute** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Docs — read (audience-gated)** | ✓ (customer audience) | ✓ (all) | ✓ (manager audience) | ✓ (staff + skill-gated) | — |
+| **Notes (private notebook)** | ✓ | ✓ | ✓ | ✓ | — |
+| **Staff roster — view** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Staff roster — manage (add/edit/remove)** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Staff finance (others')** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Staff leave — approve/decline** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Manager directory** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Manager performance** | ✗ | ✓ | ✓ (own pod) | ✗ | ✗ |
+| **Customer directory** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
+| **Customer impersonation** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Staff impersonation (act)** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Staff impersonation (view-only)** | ✗ | ✓ | ✓ | ✗ | ✗ |
+| **Catalog — view** | ✓ (service menu) | ✓ | ✓ (read-only) | ✗ | ✗ |
+| **Catalog — manage (edit prices)** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Analytics (revenue/audience)** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Audit log** | ✗ | ✓ | ✓ (pod-scoped, money-stripped) | ✗ | ✗ |
+| **Org settings** | ✗ | ✓ | ✗ | ✗ | ✗ |
+| **Affiliate program — manage** | ✗ | ✓ | ✗ | ✗ | — |
+| **Affiliate portal (own)** | ✗ | ✗ | ✗ | ✗ | ✓ |
+| **Projects** | ✓ | ✗ | ✗ | ✗ | ✗ |
+| **My Day / task board (staff)** | ✗ | ✗ | ✗ | ✓ | ✗ |
+| **Staff calendar** | ✗ | ✗ | ✗ | ✓ | ✗ |
+| **Staff performance / rewards** | ✗ | view (via profile) | view (pod-scoped) | ✓ | ✗ |
+| **Penalty management** | ✗ | ✓ | ✗ | view (own) | ✗ |
+
+---
+
+## 4. Feature ↔ Feature Flows
+
+### 4.1 Order Lifecycle
+
+```mermaid
+flowchart LR
+    A([Customer places order\n/services/svc]) --> B[Order created\nstatus: new]
+    B --> C{Admin confirms}
+    C --> D[status: confirmed]
+    D --> E{Assignment board\nManual or rule}
+    E --> F[status: assigned\nstaff linked]
+    F --> G[Staff: My Day\n/staff/tasks/id]
+    G --> H[status: in_progress]
+    H --> I[Staff submits deliverable\nDeliverableSubmit]
+    I --> J[status: internal_review\nDeliverable: submitted]
+    J --> K{Review queue\n/admin/review\n/manager/review}
+    K -->|Approve| L[status: delivered\nCustomer notified]
+    K -->|Send back| M[status: changes_requested\nDeliverable: changes_requested]
+    M --> G
+    L --> N{Customer approves}
+    N -->|Approve| O[status: completed]
+    N -->|Request changes| M
+```
+
+### 4.2 Broadcast → Inbox → Bell
+
+```mermaid
+flowchart LR
+    A([Admin composes broadcast\n/admin/broadcasts]) --> B{Audience select\ncustomer/staff/manager/affiliate}
+    B --> C[Saved to broadcastStore\nlocalStorage]
+    C --> D[Alert bar shows\non audience home page]
+    C --> E[Inbox lists message\n/inbox · /staff/inbox\n/manager/inbox · /affiliate/inbox]
+    C --> F[Bell badge increments\nunread count]
+    E --> G[Recipient reads/dismisses\nmarkBroadcastRead]
+    G --> H[Analytics: read event\nlogged in broadcastStore]
+    H --> I[Admin analytics\n/admin/broadcasts/id\nread timeline · funnel · heatmap]
+    J([Admin recalls/nudges]) --> C
+```
+
+### 4.3 Affiliate Referral → Commission → Payout
+
+```mermaid
+flowchart LR
+    A([Affiliate shares referral link\n/affiliate/assets]) --> B[Customer clicks link\nCookie: referral code]
+    B --> C[Customer signs up &\nplaces orders]
+    C --> D[Referred order volume\naccumulates on affiliate]
+    D --> E{Tier check\nlib/affiliate.ts: tierFor}
+    E -->|Bronze 0-4999| F[10% commission rate]
+    E -->|Silver 5k-19999| G[15% commission rate]
+    E -->|Gold 20k-49999| H[20% commission rate]
+    E -->|Platinum 50k+| I[25% commission rate]
+    F & G & H & I --> J[Commission events\nlogged in commission ledger]
+    J --> K[Pending balance\n/affiliate/payouts]
+    K --> L([Affiliate requests payout])
+    L --> M[Admin reviews\n/admin/affiliate]
+    M -->|Approve| N[status: approved → paid]
+    M -->|Reject| O[status: rejected]
+```
+
+### 4.4 Staff Task → Deliverable → Review → Customer
+
+```mermaid
+flowchart TD
+    A[Order assigned to staff] --> B[Task appears on\n/staff & /staff/tasks]
+    B --> C[Staff starts task\nstatus: in_progress]
+    C --> D[Staff submits deliverable\nDeliverableSubmit form]
+    D --> E[Deliverable versioned\nstatus: submitted]
+    E --> F[Triage queue alert\n/manager overview]
+    E --> G[Review queue item\n/admin/review or /manager/review]
+    G -->|Send back| H[Deliverable: changes_requested\nFeedback attached]
+    H --> I[Staff resumes task\nnew deliverable version]
+    I --> E
+    G -->|Approve| J[Order status: delivered]
+    J --> K[Customer sees\norder status update\n/orders]
+```
+
+### 4.5 Docs Distribution
+
+```mermaid
+flowchart LR
+    A([Admin authors doc\n/admin/docs/new]) --> B[sanitizeHtml at save\nlib/sanitizeHtml.ts]
+    B --> C[Doc stored in docsStore\nwith audiences array]
+    C --> D{Audience gate\ndocsForCustomer\ndocsForStaff\ndocsForManager}
+    D -->|audiences: customer| E[/docs customer library]
+    D -->|audiences: staff + skills| F[/staff/docs\nskill-gated]
+    D -->|audiences: manager| G[/manager/docs\nmanager library]
+    D -->|all| H[/admin/docs\nadmin sees all]
+```
+
+---
+
+## 5. Feature ↔ Data Map
+
+> "mock — needs backend" flags values that are currently hardcoded constants, module-scope singletons, or `localStorage` — not derived from a real database query.
+
+| Feature | Lib / Data Module(s) | Backend note |
+|---|---|---|
+| **Order list** | `data/adminMock.ts` → `ORDERS[]` | mock — needs backend: DB table with `status`, `staffId`, `customerId`, `deadline` |
+| **Order detail** | `lib/orderDetail.ts` → `buildOrderDetailProps` | mock — needs backend |
+| **Order creation (customer)** | `data/services.ts` → `SERVICE_CATALOG`; `components/OrdersStore.tsx` | `OrdersStore` is in-memory React context; needs `POST /orders` |
+| **Assignment board** | `data/adminMock.ts` → `ORDERS`, `STAFF`, `RULES`; `admin/assignment/build.ts` | `RULES` array → assignment-rule table; `seqMap` must be per-request |
+| **Assignment rule engine** | `data/adminMock.ts` → `RULES[]` | mock — needs backend |
+| **Deliverable submission** | `data/staffMock.ts` → `DELIVERABLES[]`; `data/adminMock.ts` → `DELIVERABLES` | mock — needs backend: versioned deliverable with `orderId`, `staffId`, `submittedAt`, `status` |
+| **Review queue** | `admin/review/build.ts` → `buildReviewProps`; `data/adminMock.ts` → `DELIVERABLES` | mock — needs backend |
+| **Ticket management** | `data/adminMock.ts` → `TICKETS[]` | mock — needs backend: SLA timer computed server-side |
+| **Customer support** | `components/SupportClient.tsx`; `data/adminMock.ts` → `SEED_TICKETS` | mock — needs backend: scoped to `customerId`, real thread persistence |
+| **Admin finance** | `data/adminMock.ts` → `REVENUE_*`, `OPS_KPIS`; `data/adminPayroll.ts` | mock — needs backend: all revenue/payroll from real transactions |
+| **Staff finance (own)** | `lib/staffFinance.ts` (types + math); `data/staffMock.ts` (earnings, wallet, penalties, payouts) | mock — needs backend: `StaffEarnings`, `WalletEntry`, `StaffPenalty`, `PayoutRequest` tables |
+| **Customer credit & invoices** | `components/CreditStore.tsx` (in-memory context); `data/mock.ts` → `INVOICES`, `CREDIT_BALANCE` | mock — needs backend: `CreditAccount`, `Invoice` tables scoped to `customerId` |
+| **Broadcasts — compose/send** | `data/broadcastStore.ts` (localStorage); `data/broadcasts.ts` → `BROADCAST_SEEDS` | mock — needs backend: `Broadcast` table + recipient event log |
+| **Broadcasts — inbox / analytics** | `data/broadcastStore.ts`; `lib/broadcastAnalytics.ts`; `lib/broadcastAudience.ts` | mock — read/click events in localStorage; needs `BroadcastEvent` table |
+| **Docs — authoring & storage** | `data/docsStore.ts` (localStorage); `lib/sanitizeHtml.ts` | mock — needs backend: `Doc` table with `audiences[]`, `requiredSkills[]`, RLS |
+| **Docs — audience gate** | `data/docsStore.ts` → `docsForCustomer`, `docsForStaff`, `docsForManager` | mock — needs backend: DB query with audience filter |
+| **Staff docs — skill gate** | `data/staffDocs.ts` → `docsForStaff(skills)` | mock — needs backend |
+| **Notes** | `data/notesStore.ts` (localStorage, namespaced by surface); `data/staffNotes.ts` → `SEED_NOTES` | mock — needs backend: `Note` table per `userId`, `surface` |
+| **Affiliate tiers & commission math** | `lib/affiliate.ts` → `AFFILIATE_TIERS`, `tierFor`, `commissionFor`, `nextTierProgress` | Pure math lib — correct; needs backend data source |
+| **Affiliate portal data** | `data/affiliatePortal.ts` → `portalDataFor(id)`; `data/affiliateMock.ts` | mock — needs backend: `Affiliate`, `Referral`, `CommissionEvent`, `Payout` tables |
+| **Admin affiliate management** | `data/adminAffiliate.ts` → `adminAffiliates()`, `adminPayouts()`; `data/affiliatePulse.ts` → `programStats()` | mock — needs backend; `programStats()` runs at module load (frozen) |
+| **Staff performance scorecard** | `lib/staff.ts` → `SCORE_MODEL`, `scoreBreakdown`, `improvementLever`, `commissionTierFor`; `data/staffMock.ts` | mock — `TODAY = '2026-06-26'` (frozen); needs request-time clock |
+| **Staff rewards** | `lib/staffRewards.ts`; `data/staffMock.ts` | mock — needs backend milestone tracking |
+| **Manager scorecard** | `lib/managerPerf.ts` → `allManagerPerf`, `buildManagerPerf`, `companyBenchmark`, `MGR_SCORE_MODEL` | Pure derivation; correct; needs live ops data |
+| **Manager triage / pod signals** | `lib/managerPulse.ts` → `triageForPod`, `weekDeadlines`, `qaHealth`, `slaHealth`, `serviceMix`, `rosterWithRebalance`, `recentActivity` | Pure derivation; correct; depends on live `ORDERS`, `DELIVERABLES`, `TICKETS` |
+| **Manager pod scoping** | `lib/managerScope.ts` → `managerScope`, `ordersForPod`, `customersForPod`, `ticketsForPod`, `auditInPod` | `MANAGER_PERSONA = 'mgr1'` constant → replace with session manager id |
+| **RBAC / capability gate** | `lib/rbac.ts` → `ROLE_CAPABILITIES`, `can()`, `canAccessPath()`, `filterNav()` | UI-layer only; DB RLS is the real gate in Phase-3 |
+| **Impersonation** | `lib/impersonation.ts`; `lib/currentStaff.ts`; `lib/currentAffiliate.ts` | Cookie-based (`heva_as`, `heva_as_customer`, `heva_as_mode`); needs session/auth |
+| **Staff availability** | `lib/availability.ts`; `data/staffMock.ts` → `MY_AVAILABILITY` | mock — module-scope singleton, not keyed to `staffId` |
+| **Staff settings** | `lib/staffSettings.ts`; `data/staffMock.ts` | mock — in-memory |
+| **Projects & folders** | `components/ProjectsStore.tsx` (in-memory React context); `data/mock.ts` → `PROJECTS` | mock — needs backend: `Project`, `Folder` tables |
+| **Customer dashboard KPIs** | `components/DashboardTop.tsx`; `data/mock.ts` → `ACTIVITY` | mock — `TODAY` frozen; on-time % hardcoded in JSX |
+| **Audit log** | `data/adminMock.ts` → `AUDIT[]` | mock — needs backend: append-only event log, indexed by entity/actor/time |
+| **Service catalog (customer)** | `data/services.ts` → `SERVICES`, `SERVICE_CATALOG`; `@heva/catalog` (shared) | mock — `SERVICE_CATALOG` is a static map; needs backend for live pricing/availability |
+| **Catalog (admin)** | `data/services.ts`; `admin/catalog/page.tsx` | mock — needs backend: price/package CRUD |
+| **Analytics** | `data/adminMock.ts` → `REVENUE_*`, `USER_STATS`, `TICKET_STATS`; `admin/analytics/page.tsx` | mock — all constants; needs real aggregation queries |
+| **Leave requests** | `data/adminMock.ts` → `LEAVE_REQUESTS[]` | mock — needs backend |
+| **HTML sanitization (all surfaces)** | `lib/sanitizeHtml.ts` | Production-ready: DOMParser-based allowlist; no changes needed |
+
+---
+
+## 6. Known Mock Gaps (Phase-3 Backlog)
+
+The following are the most impactful gaps between the Phase-0 mock and a production backend, sourced from the audit:
+
+### HIGH — RBAC / correctness
+1. **Staff view-only guards incomplete** — `ViewOnlyGuard` is only on `/staff/finance`. Task actions (`TaskDetailClient`), notes CRUD (`NotesClient`, `NoteFullEditor`), and settings (`SettingsClient`) must also call `useStaffViewOnly()` to respect the manager "view" impersonation mode.
+
+### HIGH — Data correctness
+2. **Customer dashboard frozen/fake** — `DashboardTop.TODAY` is a module-scope constant; on-time % (96%/100%) is static JSX.
+3. **Customer `localhost:4330` support FAQ links** — 404 outside dev.
+4. **Staff notes seeded into customer notebook** — `notesStore` seeds `SEED_NOTES` (staff content) on a new customer's first visit.
+
+### MEDIUM — Systemic
+5. **15+ hardcoded `TODAY` / month-anchor strings** across all surfaces — diverge from `MOCK_TODAY` and will produce wrong date math in production.
+6. **Module-scope data singletons** — `STAFF_NOTIFICATIONS`, `MY_AVAILABILITY`, affiliate `programStats()`/`joinOffer()` are frozen at server start; impersonation shows the wrong person's data.
+7. **Financial fields in manager hydration payload** — order value, customer LTV/credit, and staff pay travel to the manager client in the RSC payload even though they are never rendered. Strip at the data layer before Phase-3.
+8. **`notFound()` missing** on `/admin/docs/[id]/edit` and `/admin/notes/[id]/edit` (and customer/manager equivalents) — blank editor instead of 404.
+
+### LOW
+9. **`metadata` exports missing** — 0/17 staff pages, 0/20 manager pages, 27/28 admin pages, 6 customer routes have no browser-tab title.
+10. **`aria-hidden` missing on decorative icons** — `<i className="ph-…">` throughout every surface.
+11. **Bare inbox pages** — `/affiliate/inbox` and `/manager/inbox` render `<InboxClient/>` with no `PageHeader` or `metadata`.
+
+---
+
+*Generated by the Phase-2 docs step of the page-crawler pipeline. Source: `docs/audit/INDEX.md` + per-surface audits + `lib/rbac.ts` + nav configs.*
