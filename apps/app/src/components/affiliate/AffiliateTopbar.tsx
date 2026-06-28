@@ -1,5 +1,6 @@
 'use client';
 import { ThemeToggle } from '../ThemeToggle';
+import { BroadcastBell } from '../broadcast/BroadcastBell';
 import { tierFor } from '@/lib/affiliate';
 
 export interface AffiliateIdentity {
@@ -28,6 +29,7 @@ export function AffiliateTopbar({ onMenu, identity }: { onMenu?: () => void; ide
         <i className="ph-fill ph-crown-simple" /> {tier.label} · {Math.round(tier.rate * 100)}%
       </span>
       <ThemeToggle />
+      <BroadcastBell />
       <span className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md ${identity.impersonated ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : 'bg-gradient-to-br from-brand-500 to-brand-700'}`}>
         {identity.avatarInitials}
       </span>

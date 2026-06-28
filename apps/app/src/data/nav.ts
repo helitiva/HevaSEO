@@ -16,6 +16,7 @@ export const NAV: NavSection[] = [
     title: 'Overview',
     items: [
       { label: 'Overview', href: '/dashboard', icon: 'ph-squares-four' },
+      { label: 'Inbox', href: '/inbox', icon: 'ph-tray' },
       { label: 'Projects', href: '/projects', icon: 'ph-globe-hemisphere-west' },
       { label: 'Orders', href: '/orders', icon: 'ph-kanban', badge: '9' },
     ],

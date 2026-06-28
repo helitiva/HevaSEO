@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ManagerSidebar } from './ManagerSidebar';
 import { ManagerTopbar } from './ManagerTopbar';
+import { BroadcastBanner } from '../broadcast/BroadcastBanner';
 import { ViewerProvider } from '@/lib/viewer';
 
 export function ManagerShell({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <ManagerTopbar onMenu={() => setOpen(true)} />
         <main ref={mainRef} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-5 sm:pb-6 lg:px-7">
+          {pathname === '/manager' && <div className="mb-4"><BroadcastBanner /></div>}
           <div key={pathname} className="page-anim">{children}</div>
         </main>
       </div>

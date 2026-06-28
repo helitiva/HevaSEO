@@ -7,6 +7,7 @@ export interface AffiliateNavSection { title: string; items: AffiliateNavItem[];
 export const AFFILIATE_NAV: AffiliateNavSection[] = [
   { title: 'Program', items: [
     { label: 'Overview',  href: '/affiliate',           icon: 'ph-squares-four' },
+    { label: 'Inbox',     href: '/affiliate/inbox',     icon: 'ph-tray' },
     { label: 'Referrals', href: '/affiliate/referrals', icon: 'ph-users-three' },
     { label: 'Payouts',   href: '/affiliate/payouts',   icon: 'ph-wallet' },
   ]},

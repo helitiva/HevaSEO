@@ -8,6 +8,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
     { label: 'Assignment', href: '/admin/assignment', icon: 'ph-flow-arrow' },
     { label: 'Review', href: '/admin/review', icon: 'ph-seal-check' },
     { label: 'Tickets', href: '/admin/tickets', icon: 'ph-lifebuoy' },
+    { label: 'Broadcasts', href: '/admin/broadcasts', icon: 'ph-megaphone' },
   ]},
   { title: 'People', items: [
     { label: 'Customers', href: '/admin/customers', icon: 'ph-users' },

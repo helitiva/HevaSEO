@@ -50,6 +50,7 @@ export type Capability =
   | 'finance.view' // revenue, payroll, cashflow
   | 'analytics.view'
   | 'affiliate.manage' // run the affiliate/KOL program: partners, tiers, rules, payouts
+  | 'broadcasts.manage' // send/recall messages to customers/staff/managers/affiliates (admin)
   // --- Staff self-service surface (/staff/*) ---
   | 'staff.access' // enter the staff area
   | 'staff.work' // my day, tasks, calendar, deliverables
@@ -95,6 +96,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
     'finance.view',
     'analytics.view',
     'affiliate.manage',
+    'broadcasts.manage',
     'pricing.view',
     'notes.internal.view',
   ],
@@ -153,6 +155,7 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/admin/catalog', capability: 'catalog.manage' },
   { prefix: '/admin/docs', capability: 'docs.manage' }, // author + distribute docs
   { prefix: '/admin/notes', capability: 'admin.access' }, // admin's own notebook
+  { prefix: '/admin/broadcasts', capability: 'broadcasts.manage' }, // send/recall messages
   { prefix: '/admin', capability: 'admin.access' }, // overview + umbrella
 
   // Manager area (/manager/*) — the pod-scoped ops surface. Same ops capabilities
@@ -168,6 +171,7 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/manager/audit', capability: 'audit.view' },
   { prefix: '/manager/docs', capability: 'manager.access' }, // knowledge base (admin-published)
   { prefix: '/manager/notes', capability: 'manager.access' }, // private notebook
+  { prefix: '/manager/inbox', capability: 'manager.access' }, // broadcasts inbox
   { prefix: '/manager', capability: 'manager.access' }, // overview + personal settings + umbrella
 
   // Staff sub-routes
@@ -180,11 +184,13 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/staff/performance', capability: 'staff.self' },
   { prefix: '/staff/notifications', capability: 'staff.self' },
   { prefix: '/staff/settings', capability: 'staff.self' },
+  { prefix: '/staff/inbox', capability: 'staff.self' }, // broadcasts inbox
   { prefix: '/staff', capability: 'staff.access' }, // my day + umbrella
 
   // Customer portal (root-level routes)
   { prefix: '/docs', capability: 'portal.use' }, // admin-published tutorials/guides
   { prefix: '/notes', capability: 'portal.use' }, // customer's private notebook
+  { prefix: '/inbox', capability: 'portal.use' }, // broadcasts inbox
   { prefix: '/dashboard', capability: 'portal.use' },
   { prefix: '/projects', capability: 'portal.use' },
   { prefix: '/orders', capability: 'portal.use' },
