@@ -15,7 +15,7 @@ import {
 // doc can go to several audiences at once. Saving publishes it to the shared docs store.
 export function DocComposer({ editId }: { editId?: string }) {
   const router = useRouter();
-  const { docs, addDoc, updateDoc } = useDocs();
+  const { docs, saveDoc } = useDocs();
   const existing = useMemo(() => (editId ? docs.find((d) => d.id === editId) ?? null : null), [docs, editId]);
 
   const [title, setTitle] = useState(existing?.title ?? '');
@@ -53,7 +53,7 @@ export function DocComposer({ editId }: { editId?: string }) {
       resources: existing?.resources ?? [],
       pinned,
     };
-    if (existing) updateDoc(id, doc); else addDoc(doc);
+    saveDoc(doc); // add new, or override a seed/created doc by id
     router.push('/admin/docs');
   };
 

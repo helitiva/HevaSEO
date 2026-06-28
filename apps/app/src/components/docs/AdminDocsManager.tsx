@@ -13,7 +13,7 @@ const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(
 // controls to publish a new one, edit, or unpublish the ones admin created. Seeds are
 // system docs (read-only); admin-created docs are fully editable.
 export function AdminDocsManager() {
-  const { docs, created, removeDoc } = useDocs();
+  const { docs, created, removeDoc, isSeed } = useDocs();
   const [filter, setFilter] = useState<DocAudience | 'all'>('all');
   const [confirm, setConfirm] = useState<{ id: string; title: string } | null>(null);
 
@@ -85,12 +85,12 @@ export function AdminDocsManager() {
                 </td>
                 <td className="p-3 text-muted-foreground"><i className={`ph-bold ${FORMAT_META[d.format].icon} mr-1`} />{FORMAT_META[d.format].label}</td>
                 <td className="p-3 text-muted-foreground">{fmtDate(d.updatedAt)}</td>
-                <td className="p-3">{d.system ? <span className="pill">system</span> : <span className="pill pill-good">yours</span>}</td>
+                <td className="p-3">{d.system ? <span className="pill">built-in</span> : isSeed(d.id) ? <span className="pill pill-warn">edited</span> : <span className="pill pill-good">yours</span>}</td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-2.5">
                     <Link href={`/admin/docs/${d.id}`} title="View" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-eye" /></Link>
-                    {!d.system && <Link href={`/admin/docs/${d.id}/edit`} title="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" /></Link>}
-                    {!d.system && <button onClick={() => setConfirm({ id: d.id, title: d.title })} title="Unpublish" className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" /></button>}
+                    <Link href={`/admin/docs/${d.id}/edit`} title="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" /></Link>
+                    <button onClick={() => setConfirm({ id: d.id, title: d.title })} title={isSeed(d.id) ? 'Hide' : 'Unpublish'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" /></button>
                   </div>
                 </td>
               </tr>
