@@ -1,6 +1,7 @@
 import { ThemeToggle } from '../ThemeToggle';
 import { NotifBell } from './NotifBell';
 import { BroadcastBell } from '../broadcast/BroadcastBell';
+import { AccountMenu } from '../auth/AccountMenu';
 
 export function StaffTopbar({ onMenu, identity }: { onMenu?: () => void; identity?: { name: string; initials: string } }) {
   const initials = identity?.initials ?? 'HN';
@@ -21,7 +22,7 @@ export function StaffTopbar({ onMenu, identity }: { onMenu?: () => void; identit
       <ThemeToggle />
       <BroadcastBell />
       <NotifBell />
-      <span title={identity ? `Impersonating ${identity.name}` : undefined} className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md ${identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : 'bg-gradient-to-br from-brand-500 to-brand-700'}`}>{initials}</span>
+      <AccountMenu initials={initials} title={identity ? `Impersonating ${identity.name}` : undefined} accentClass={identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : undefined} />
     </header>
   );
 }

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminAffiliates, partnerTier, type AdminAffiliate } from '@/data/adminAffiliate';
 import { genCode, type TierId } from '@/lib/affiliate';
-import { createAccount, type Account } from '@/lib/auth';
+import { createAccount, registerUser, accountByEmail, type Account } from '@/lib/auth';
 
 // Admin-side overlay over the affiliate seeds (Phase-0 mock, localStorage only).
 // Two overlays, same window-event pattern as broadcastStore:
@@ -77,6 +77,33 @@ export function createPartner(input: CreatePartnerInput): { account: Account; te
 
   const { account, tempPassword } = createAccount({ role: 'affiliate', name: partner.name, email: partner.email, entityId: id });
   return { account, tempPassword, partner };
+}
+
+// Public self-signup from the affiliate register page. Creates a PENDING partner (admin approves
+// later) + a login account with the applicant's chosen password, and signs them in. Tier is left
+// to derive from volume (0 → Bronze) — no override pinned.
+export interface RegisterAffiliateInput {
+  name: string; email: string; password: string; handle: string; platform: string; niche: string; code?: string;
+}
+export function registerAffiliateSelf(input: RegisterAffiliateInput): { ok: true; account: Account } | { ok: false; error: string } {
+  if (accountByEmail(input.email)) return { ok: false, error: 'An account with this email already exists.' };
+  const id = newPartnerId();
+  const partner: AdminAffiliate = {
+    id,
+    name: input.name.trim(),
+    handle: input.handle.trim() || `@${input.name.trim().split(/\s+/)[0]?.toLowerCase() ?? 'partner'}`,
+    avatarInitials: initialsOf(input.name),
+    platform: input.platform.trim() || 'Other',
+    niche: input.niche.trim() || 'General',
+    email: input.email.trim(),
+    code: (input.code?.trim() || genCode(input.name)).toUpperCase(),
+    status: 'pending',
+    joinedAt: todayIso(),
+    lastActiveAt: todayIso(),
+    refs: 0, volume: 0, commission: 0, claimed: 0,
+  };
+  writeJson(CREATED_KEY, [partner, ...readJson<AdminAffiliate[]>(CREATED_KEY, [])]);
+  return registerUser({ role: 'affiliate', name: partner.name, email: partner.email, password: input.password, entityId: id });
 }
 
 // Set (or clear with null = revert to volume-derived) a partner's tier override.

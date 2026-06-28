@@ -1,4 +1,5 @@
 import { ThemeToggle } from '../ThemeToggle';
+import { AccountMenu } from '../auth/AccountMenu';
 
 export function AdminTopbar({ onMenu }: { onMenu?: () => void }) {
   return (
@@ -17,7 +18,7 @@ export function AdminTopbar({ onMenu }: { onMenu?: () => void }) {
         <i className="ph-bold ph-bell text-lg" aria-hidden />
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
       </button>
-      <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-md">AD</span>
+      <AccountMenu initials="AD" />
     </header>
   );
 }

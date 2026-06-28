@@ -110,18 +110,24 @@ export function createAccount(input: CreateAccountInput): { account: Account; te
   return { account, tempPassword };
 }
 
-// Self-signup (customer/dashboard user).
-export function registerCustomer(input: { name: string; email: string; password: string }): { ok: true; account: Account } | { ok: false; error: string } {
+// Self-signup with a chosen password (any role). Creates the account, mails a welcome note, and
+// signs the user in. Used by the customer and affiliate register pages.
+export function registerUser(input: { role: AuthRole; name: string; email: string; password: string; entityId?: string }): { ok: true; account: Account } | { ok: false; error: string } {
   if (accountByEmail(input.email)) return { ok: false, error: 'An account with this email already exists.' };
   const account: Account = {
-    id: newAccountId(), role: 'customer', name: input.name.trim(), email: input.email.trim(),
-    password: input.password, createdAt: new Date().toISOString(), status: 'active',
+    id: newAccountId(), role: input.role, name: input.name.trim(), email: input.email.trim(),
+    password: input.password, entityId: input.entityId, createdAt: new Date().toISOString(), status: 'active',
   };
   const created = readJson<Account[]>(ACCOUNTS_KEY, []);
   writeCreated([account, ...created]);
   pushOutbox({ to: account.email, kind: 'welcome', subject: 'Welcome to HevaSEO', body: `Hi ${account.name},\n\nYour HevaSEO account is ready. Sign in any time at /login.` });
   setSession(account);
   return { ok: true, account };
+}
+
+// Self-signup (customer/dashboard user).
+export function registerCustomer(input: { name: string; email: string; password: string }): { ok: true; account: Account } | { ok: false; error: string } {
+  return registerUser({ role: 'customer', ...input });
 }
 
 export function updateAccount(id: string, patch: Partial<Account>): void {

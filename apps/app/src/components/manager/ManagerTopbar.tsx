@@ -1,5 +1,6 @@
 import { ThemeToggle } from '../ThemeToggle';
 import { BroadcastBell } from '../broadcast/BroadcastBell';
+import { AccountMenu } from '../auth/AccountMenu';
 import { MANAGERS } from '@/data/adminMock';
 import { MANAGER_PERSONA } from '@/lib/managerScope';
 
@@ -25,7 +26,7 @@ export function ManagerTopbar({ onMenu }: { onMenu?: () => void }) {
       )}
       <ThemeToggle />
       <BroadcastBell />
-      <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white shadow-md">{initials}</span>
+      <AccountMenu initials={initials} accentClass="bg-gradient-to-br from-emerald-500 to-emerald-700" />
     </header>
   );
 }

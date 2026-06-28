@@ -2,6 +2,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { NotifTicker } from './NotifTicker';
 import { CreditButton } from './CreditButton';
 import { BroadcastBell } from './broadcast/BroadcastBell';
+import { AccountMenu } from './auth/AccountMenu';
 
 export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: { company: string; initials: string } }) {
   const initials = identity?.initials ?? 'HV';
@@ -31,9 +32,7 @@ export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: {
       <CreditButton />
       <ThemeToggle />
       <BroadcastBell />
-      <span title={identity ? `Impersonating ${identity.company}` : undefined} className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md ${identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : 'bg-gradient-to-br from-brand-500 to-brand-700'}`}>
-        {initials}
-      </span>
+      <AccountMenu initials={initials} title={identity ? `Impersonating ${identity.company}` : undefined} accentClass={identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : undefined} />
     </header>
   );
 }
