@@ -289,6 +289,7 @@ export function workStats(items: WorkItem[]): WorkStats {
 export interface MonthEarning {
   month: string; label: string;            // '2026-06' · 'Jun'
   base: number; commission: number; bonus: number; takeHome: number;
+  gig?: number;                            // piece-rate gig pay that month (current cycle)
   tasks: number;                           // tasks completed that month (commission driver)
 }
 export interface EarningsSummary {

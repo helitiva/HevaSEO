@@ -787,15 +787,18 @@ export const INVOICES: Invoice[] = [
   { id: 'inv8', code: 'INV-2035', customer: 'Peak Digital', customerId: 'c5', issued: '2026-05-25', due: '2026-06-09', amount: 79, status: 'paid', orderCodes: ['KW-1007'] },
 ];
 
-// Staff payroll — fixed monthly salary + commission on billable (delivered+)
-// work + an admin-entered bonus. Total due = base + commission + bonus.
+// Staff payroll — fixed monthly salary + GIG PAY (a flat piece-rate per delivered gig, by
+// service) + commission on billable work + an admin-entered bonus.
+// Total due = base + gig + commission + bonus.
 export interface Payout {
   staffId: string; staff: string; role: string; active: boolean;
   completedOrders: number; basis: number; rate: number;
   base: number;        // fixed monthly salary
+  gigUnits: number;    // count of billable gigs delivered
+  gig: number;         // sum of GIG_RATE[service] over those gigs (piece-rate pay)
   commission: number;  // round(basis × rate)
   bonus: number;       // admin-entered, 0 by default
-  due: number;         // base + commission + bonus
+  due: number;         // base + gig + commission + bonus
   lastPaidAt: string | null;
 }
 export const PAYABLE_STATES: OrderStatus[] = ['delivered', 'internal_review', 'approved', 'completed'];
@@ -808,17 +811,26 @@ export const BASE_SALARY: Record<string, number> = {
   'Senior SEO Specialist': 1200, 'Backlink Specialist': 950, 'Content Lead': 1300,
   'Content Specialist': 900, 'SEO Analyst': 900, 'Link Builder': 700,
 };
+// Gig pay — a flat amount a staffer earns for each delivered gig, by service. Piece-rate on
+// top of salary (e.g. a backlink package pays $5, a content gig $3, an audit $2). Keyed by the
+// order's `service`; an unlisted service pays the default. Editable per service in the future.
+export const GIG_RATE: Record<string, number> = {
+  Backlink: 5, Content: 3, Keyword: 4, Optimization: 4, Audit: 2, Indexer: 2, 'Web Design': 8,
+};
+export const GIG_RATE_DEFAULT = 3;
+export const gigRateFor = (service: string): number => GIG_RATE[service] ?? GIG_RATE_DEFAULT;
 export const PAYOUTS: Payout[] = STAFF.map((s) => {
   const work = ORDERS.filter((o) => o.staff === s.name && PAYABLE_STATES.includes(o.status));
   const basis = work.reduce((a, o) => a + o.value, 0);
+  const gig = work.reduce((a, o) => a + gigRateFor(o.service), 0);
   const rate = PAYOUT_RATE[s.role] ?? 0.28;
   const base = BASE_SALARY[s.role] ?? 800;
   const commission = Math.round(basis * rate);
   const bonus = 0;
   return {
     staffId: s.id, staff: s.name, role: s.role, active: s.active,
-    completedOrders: work.length, basis, rate, base, commission, bonus,
-    due: base + commission + bonus, lastPaidAt: '2026-06-05',
+    completedOrders: work.length, basis, rate, base, gigUnits: work.length, gig, commission, bonus,
+    due: base + gig + commission + bonus, lastPaidAt: '2026-06-05',
   };
 });
 

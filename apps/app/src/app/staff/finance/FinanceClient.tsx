@@ -134,12 +134,24 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
         <div className="kcard flex flex-col justify-between">
           <div>
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <i className="ph-bold ph-calendar-check text-primary" aria-hidden /> Base salary · payroll
+              <i className="ph-bold ph-calendar-check text-primary" aria-hidden /> Salary + gig · payroll
             </p>
-            <p className="display mt-1 text-2xl font-bold">{money(earnings.base)}<span className="text-sm font-medium text-muted-foreground">/mo</span></p>
+            <p className="display mt-1 text-2xl font-bold">{money(earnings.takeHome)}<span className="text-sm font-medium text-muted-foreground">/mo</span></p>
           </div>
           <div className="mt-3 space-y-1.5 text-sm">
             <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Fixed salary</span>
+              <span className="font-semibold tabular-nums">{money(earnings.base)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Gig pay <span className="text-xs">· {earnings.gigUnits} gig{earnings.gigUnits === 1 ? '' : 's'} delivered</span></span>
+              <span className="font-semibold tabular-nums">{earnings.gig ? `+${money(earnings.gig)}` : money(0)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Commission + bonus</span>
+              <span className="font-semibold tabular-nums">{money(earnings.commission + earnings.bonus)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-1.5">
               <span className="text-muted-foreground">Next payday</span>
               <span className="font-semibold">{payday.label} <span className="text-xs font-normal text-muted-foreground">· in {payday.days}d</span></span>
             </div>
@@ -159,7 +171,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
 
       {/* ── KPI strip ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile icon="ph-coins" label="This month take-home" value={money(earnings.takeHome)} hint="base + commission + bonus" tone="good" />
+        <KpiTile icon="ph-coins" label="This month take-home" value={money(earnings.takeHome)} hint="salary + gig + commission + bonus" tone="good" />
         <KpiTile icon="ph-chart-line-up" label="Year to date" value={money(summary.ytd)} hint={`${history.length} months`} />
         <KpiTile icon="ph-seal-check" label="First-pass rate" value={`${firstPassRate}%`} hint="fewer fines" tone={firstPassRate >= 80 ? 'good' : 'warn'} />
         <KpiTile icon="ph-warning-octagon" label="Pending fines" value={String(pendingFines)} hint={pendingFines ? 'review in Penalties' : 'all clear'} tone={pendingFines ? 'warn' : 'good'} />

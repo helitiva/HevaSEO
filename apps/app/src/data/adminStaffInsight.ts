@@ -27,7 +27,7 @@ import { rewardsEarned, rewardsOnOffer, type Reward } from '@/lib/staffRewards';
 const REWARDS_MONTH = '2026-06';
 
 export interface StaffPayroll {
-  base: number; commission: number; bonus: number; due: number;
+  base: number; gig: number; commission: number; bonus: number; due: number;
   rate: number; completedOrders: number; lastPaidAt: string | null;
 }
 export interface StaffWallet { balance: number; available: number; clearing: number }
@@ -102,7 +102,7 @@ export function buildStaffInsight(staffId: string): StaffInsight | null {
     revisions: revisionReasons(history),
     customers: tasksByCustomer(history),
     payroll: {
-      base: payout?.base ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
+      base: payout?.base ?? 0, gig: payout?.gig ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
       due: payout?.due ?? 0, rate: payout?.rate ?? 0, completedOrders: payout?.completedOrders ?? 0,
       lastPaidAt: payout?.lastPaidAt ?? null,
     },

@@ -7,7 +7,7 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { CashflowChart } from '@/components/admin/finance/CashflowChart';
 import {
   FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CASHFLOW, CUSTOMERS, ORDERS,
-  TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, TIER, money,
+  TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
   type Transaction, type TxKind, type Invoice, type InvoiceStatus, type Payout, type ManagerPayout,
   type AdminOrder, type AdminCustomer,
 } from '@/data/adminMock';
@@ -588,13 +588,15 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
 /* ---------------------------------------------------------------- Payouts */
 type PayoutOverride = { base: number; rate: number; bonus: number };
 
-// Effective comp for a payout, applying any admin override.
+// Effective comp for a payout, applying any admin override. Gig pay is a fixed piece-rate
+// total (not overridable here), so it flows straight through into the net.
 function effComp(p: Payout, ov?: PayoutOverride) {
   const base = ov ? ov.base : p.base;
   const rate = ov ? ov.rate / 100 : p.rate;
   const bonus = ov ? ov.bonus : p.bonus;
   const commission = Math.round(p.basis * rate);
-  return { base, rate, bonus, commission, total: base + commission + bonus };
+  const gig = p.gig;
+  return { base, rate, bonus, commission, gig, total: base + gig + commission + bonus };
 }
 
 // Manager comp: fixed salary + y% commission on the pod's billable order value + x% bonus
@@ -666,6 +668,7 @@ function PayoutsTab() {
   }
 
   const totBase = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).base, 0);
+  const totGig = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).gig, 0);
   const totComm = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0);
   const totBonus = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0);
   const totPen = rows.reduce((a, p) => a + currentPenalties(p.staffId).applied, 0);
@@ -678,21 +681,31 @@ function PayoutsTab() {
       {/* commission rates legend */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
         <i className="ph-bold ph-percent text-primary" />
-        <span className="font-semibold text-foreground">Rates this period:</span>
+        <span className="font-semibold text-foreground">Commission rates:</span>
         {Object.entries(PAYOUT_RATE).map(([role, rate]) => (
           <span key={role} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
             {role} <span className="font-bold text-foreground">{Math.round(rate * 100)}%</span>
           </span>
         ))}
       </div>
+      {/* gig (piece-rate) legend */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
+        <i className="ph-bold ph-package text-primary" />
+        <span className="font-semibold text-foreground">Gig pay per delivered gig:</span>
+        {Object.entries(GIG_RATE).map(([service, rate]) => (
+          <span key={service} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
+            {service} <span className="font-bold text-foreground">{money(rate)}</span>
+          </span>
+        ))}
+      </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Fixed salary + commission on billable work + bonus, less penalties withheld this cycle · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay{pendingPenStaff > 0 && <> · <span className="font-semibold text-amber-600">{pendingPenStaff} with fines pending review</span></>}. Click a row to edit salary, rate or bonus.</p>
+      <p className="px-1 text-xs text-muted-foreground">Fixed salary + gig pay (piece-rate per delivered gig) + commission on billable work + bonus, less penalties withheld this cycle · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay{pendingPenStaff > 0 && <> · <span className="font-semibold text-amber-600">{pendingPenStaff} with fines pending review</span></>}. Click a row to edit salary, rate or bonus.</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Commission</th>
+              <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Gig pay</th><th className="p-3">Commission</th>
               <th className="p-3">Bonus</th><th className="p-3">Penalty</th><th className="p-3">Net pay</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
@@ -721,6 +734,10 @@ function PayoutsTab() {
                     {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" />}
                   </td>
                   <td className="p-3 tabular-nums">
+                    {e.gig ? money(e.gig) : <span className="text-muted-foreground">—</span>}
+                    <span className="ml-1 text-[10px] text-muted-foreground" title="Delivered gigs this cycle">· {p.gigUnits} gig{p.gigUnits === 1 ? '' : 's'}</span>
+                  </td>
+                  <td className="p-3 tabular-nums">
                     {money(e.commission)}
                     <span className={`ml-1 text-[10px] font-semibold ${rateChanged ? 'text-amber-700' : 'text-muted-foreground'}`}>@ {dispRate}%</span>
                   </td>
@@ -747,6 +764,7 @@ function PayoutsTab() {
             <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
               <td className="p-3 text-muted-foreground">{rows.length} staff</td>
               <td className="p-3 tabular-nums">{money(totBase)}</td>
+              <td className="p-3 tabular-nums">{money(totGig)}</td>
               <td className="p-3 tabular-nums">{money(totComm)}</td>
               <td className="p-3 tabular-nums text-emerald-600">{money(totBonus)}</td>
               <td className="p-3 tabular-nums text-rose-600">{totPen > 0 ? `−${money(totPen)}` : money(0)}</td>
@@ -941,7 +959,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   const rateChanged = !!override && Math.round(override.rate) !== roleRate;
   const bonusSet = e.bonus !== 0;
   const previewCommission = Math.round(p.basis * (draftRate / 100));
-  const previewTotal = draftBase + previewCommission + draftBonus;
+  const previewTotal = draftBase + p.gig + previewCommission + draftBonus;
   // Penalties withheld this cycle + the staffer's recent fine history (for context).
   const penCycle = currentPenalties(p.staffId);
   const penHistory = myPenalties(p.staffId);
@@ -986,6 +1004,10 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Fixed salary{baseChanged && <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</dt>
               <dd className="font-semibold tabular-nums">{money(e.base)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Gig pay <span className="text-xs">(piece-rate · {p.gigUnits} gig{p.gigUnits === 1 ? '' : 's'})</span></dt>
+              <dd className={`font-semibold tabular-nums ${e.gig ? '' : 'text-muted-foreground'}`}>{e.gig ? money(e.gig) : money(0)}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Commission <span className="text-xs">({effRatePct}% × {money(p.basis)} billable){rateChanged && <span className="ml-1 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</span></dt>

@@ -107,7 +107,7 @@ export function deliverableStats(staffId: string = CURRENT_STAFF.id): Deliverabl
 // take-home — never the Payout's `basis`/`rate`, so commission can't be reverse-engineered into
 // the customer revenue behind it. This is the one place money is intentionally shown to staff.
 export interface StaffEarnings {
-  base: number; commission: number; bonus: number; takeHome: number;
+  base: number; gig: number; gigUnits: number; commission: number; bonus: number; takeHome: number;
   lastPaid: { month: string; amount: number } | null;
 }
 export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | null {
@@ -119,7 +119,7 @@ export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | 
   const lastPaid = past
     ? { month: past.note?.split(' ')[0] ?? past.at.slice(0, 7), amount: Math.abs(past.amount) }
     : null;
-  return { base: p.base, commission: p.commission, bonus: p.bonus, takeHome: p.due, lastPaid };
+  return { base: p.base, gig: p.gig, gigUnits: p.gigUnits, commission: p.commission, bonus: p.bonus, takeHome: p.due, lastPaid };
 }
 
 // ---- Customers the staffer is actively caring for (derived from their board; no money) ----
@@ -562,7 +562,7 @@ export function earningsHistory(staffId: string = CURRENT_STAFF.id, months = 6):
     const tasks = archive.filter((a) => a.completedAt.slice(0, 7) === ym).length;
     if (i === 0 && current) {
       // current month: the authoritative live payout (matches the Earnings card)
-      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base: current.base, commission: current.commission, bonus: current.bonus, takeHome: current.takeHome, tasks });
+      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base: current.base, gig: current.gig, commission: current.commission, bonus: current.bonus, takeHome: current.takeHome, tasks });
     } else {
       const seed = earnSeed(`${staffId}-${ym}`);
       // commission tracks that month's task volume, with a little organic jitter
