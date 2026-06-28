@@ -896,8 +896,9 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
         <span className="ml-auto text-[11px] text-muted-foreground">{period.lines.length} staff · {t.tasks} billable tasks</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi icon="ph-money" label="Base salary" value={money(t.base)} />
+        <Kpi icon="ph-package" label="Gig pay" value={money(t.gig)} />
         <Kpi icon="ph-percent" label="Commission" value={money(t.commission)} />
         <Kpi icon="ph-gift" label="Bonus" value={money(t.bonus)} tone="good" />
         <Kpi icon="ph-gavel" label="Penalties" value={t.penalties > 0 ? `−${money(t.penalties)}` : money(0)} tone={t.penalties > 0 ? 'warn' : 'primary'} />
@@ -908,7 +909,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3 text-right">Tasks</th><th className="p-3 text-right">Fixed</th><th className="p-3 text-right">Commission</th>
+              <th className="p-3">Staff</th><th className="p-3 text-right">Tasks</th><th className="p-3 text-right">Fixed</th><th className="p-3 text-right">Gig</th><th className="p-3 text-right">Commission</th>
               <th className="p-3 text-right">Bonus</th><th className="p-3 text-right">Penalty</th><th className="p-3 text-right">Net</th><th className="p-3 w-28">Share</th>
             </tr>
           </thead>
@@ -918,6 +919,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
                 <td className="p-3"><StaffHoverCard staff={l.staffId}><Link href={`/admin/staff/${l.staffId}`} className="font-medium hover:underline">{l.staff}</Link></StaffHoverCard><span className="text-muted-foreground"> · {l.role}</span>{!l.active && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">inactive</span>}</td>
                 <td className="p-3 text-right tabular-nums text-muted-foreground">{l.tasks}</td>
                 <td className="p-3 text-right tabular-nums">{money(l.base)}</td>
+                <td className="p-3 text-right tabular-nums">{l.gig ? money(l.gig) : <span className="text-muted-foreground">—</span>}</td>
                 <td className="p-3 text-right tabular-nums">{money(l.commission)}</td>
                 <td className="p-3 text-right tabular-nums">{l.bonus ? <span className="font-semibold text-emerald-600">+{money(l.bonus)}</span> : <span className="text-muted-foreground">—</span>}</td>
                 <td className="p-3 text-right tabular-nums">{l.penalties > 0 ? <span className="font-semibold text-rose-600">−{money(l.penalties)}</span> : <span className="text-muted-foreground">—</span>}</td>
@@ -931,6 +933,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
               <td className="p-3 text-muted-foreground">{lines.length} staff</td>
               <td className="p-3 text-right tabular-nums">{t.tasks}</td>
               <td className="p-3 text-right tabular-nums">{money(t.base)}</td>
+              <td className="p-3 text-right tabular-nums">{money(t.gig)}</td>
               <td className="p-3 text-right tabular-nums">{money(t.commission)}</td>
               <td className="p-3 text-right tabular-nums text-emerald-600">{money(t.bonus)}</td>
               <td className="p-3 text-right tabular-nums text-rose-600">{t.penalties > 0 ? `−${money(t.penalties)}` : money(0)}</td>
@@ -940,7 +943,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
           </tfoot>
         </table>
       </div>
-      <p className="px-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Base is the fixed monthly salary ({gran === 'quarter' ? '×3 for the quarter' : 'one month'}); commission &amp; bonus track that period&apos;s delivered work; penalties are fines applied in the period.</p>
+      <p className="px-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Net = base + gig + commission + bonus − penalties. Base is the fixed monthly salary ({gran === 'quarter' ? '×3 for the quarter' : 'one month'}); gig is piece-rate pay (current cycle only in this mock); commission &amp; bonus track that period&apos;s delivered work; penalties are fines applied in the period.</p>
     </div>
   );
 }
