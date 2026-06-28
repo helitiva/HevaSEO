@@ -31,7 +31,7 @@ export function ReferralsTable({
     <th className={`px-3 py-2 font-semibold ${className}`}>
       <button type="button" onClick={() => toggle(k)} className="inline-flex items-center gap-1 hover:text-foreground">
         {children}
-        {sort === k && <i className={`ph-bold text-[10px] ${dir === 1 ? 'ph-caret-up' : 'ph-caret-down'}`} />}
+        {sort === k && <i className={`ph-bold text-[10px] ${dir === 1 ? 'ph-caret-up' : 'ph-caret-down'}`} aria-hidden />}
       </button>
     </th>
   );

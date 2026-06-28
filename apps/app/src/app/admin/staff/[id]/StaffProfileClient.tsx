@@ -479,7 +479,7 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
       right={editing ? <span className="text-xs text-muted-foreground">editing</span> : (
         <div className="flex items-center gap-2">
           {override && <span className="pill pill-warn" title="A custom override is set">custom</span>}
-          <button onClick={startEdit} className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-pencil-simple" />Set pay</button>
+          <button onClick={startEdit} className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-pencil-simple" aria-hidden />Set pay</button>
         </div>
       )}>
       {!editing ? (
@@ -509,15 +509,15 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
         <div className="space-y-3">
           {/* presets bar */}
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-bookmarks text-primary" />Presets</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-bookmarks text-primary" aria-hidden />Presets</span>
             {presets.length === 0 && <span className="text-[11px] text-muted-foreground">none saved yet — set the pay below, then “Save as preset”.</span>}
             {presets.map((p) => (
               <span key={p.id} className="group inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-0.5 text-xs">
                 <button onClick={() => applyPreset(p)} className="font-semibold hover:text-primary" title={`Apply: salary ${money(p.base)} · ${p.rate}% · bonus ${money(p.bonus)}`}>{p.name}</button>
-                <button onClick={() => removePreset(p.id)} aria-label="Remove preset" className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><i className="ph-bold ph-x text-[10px]" /></button>
+                <button onClick={() => removePreset(p.id)} aria-label="Remove preset" className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><i className="ph-bold ph-x text-[10px]" aria-hidden /></button>
               </span>
             ))}
-            <button onClick={saveAsPreset} className="ml-auto inline-flex items-center gap-1 rounded-lg border border-dashed border-border px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5"><i className="ph-bold ph-plus" />Save as preset</button>
+            <button onClick={saveAsPreset} className="ml-auto inline-flex items-center gap-1 rounded-lg border border-dashed border-border px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5"><i className="ph-bold ph-plus" aria-hidden />Save as preset</button>
           </div>
 
           {/* salary / rate / bonus */}
@@ -545,7 +545,7 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
           {/* gig rates — per service, or advanced per package */}
           <div className="rounded-xl border border-border bg-muted/20 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-package text-primary" />Gig pay — rate per {gigMode}</p>
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-package text-primary" aria-hidden />Gig pay — rate per {gigMode}</p>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-muted-foreground">{payroll.completedOrders} gigs · gig pay <span className="font-semibold text-foreground">{money(previewGig)}</span></span>
                 <div className="inline-flex rounded-lg border border-border p-0.5 text-[11px] font-semibold">

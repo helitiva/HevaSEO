@@ -28,15 +28,15 @@ export function InboxClient() {
           <h1 className="display text-2xl font-bold tracking-tight">Inbox</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Messages &amp; announcements from the HevaSEO team{unread > 0 && <> · <span className="font-semibold text-foreground">{unread} unread</span></>}.</p>
         </div>
-        {unread > 0 && <button onClick={markAllRead} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-checks mr-1" />Mark all read</button>}
+        {unread > 0 && <button onClick={markAllRead} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-checks mr-1" aria-hidden />Mark all read</button>}
       </div>
 
       {items.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           <Chip active={filter === 'all' && !unreadOnly} onClick={() => { setFilter('all'); setUnreadOnly(false); }}>All <span className="opacity-70">{items.length}</span></Chip>
-          {unread > 0 && <Chip active={unreadOnly} onClick={() => setUnreadOnly((v) => !v)}><i className="ph-fill ph-circle text-primary" /> Unread <span className="opacity-70">{unread}</span></Chip>}
+          {unread > 0 && <Chip active={unreadOnly} onClick={() => setUnreadOnly((v) => !v)}><i className="ph-fill ph-circle text-primary" aria-hidden /> Unread <span className="opacity-70">{unread}</span></Chip>}
           {kindsPresent.length > 1 && kindsPresent.map((k) => { const m = KIND_META[k]; return (
-            <Chip key={k} active={filter === k} onClick={() => setFilter(k)}><i className={`ph-bold ${m.icon}`} style={{ color: m.color }} /> {m.label}</Chip>
+            <Chip key={k} active={filter === k} onClick={() => setFilter(k)}><i className={`ph-bold ${m.icon}`} style={{ color: m.color }} aria-hidden /> {m.label}</Chip>
           ); })}
         </div>
       )}
@@ -65,7 +65,7 @@ export function InboxClient() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: `${m.color}1a`, color: m.color }}>{m.label}</span>
                         {b.pinned && <i className="ph-fill ph-push-pin text-amber-500" title="Pinned" aria-hidden />}
-                        {b.article && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-article" />Article</span>}
+                        {b.article && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-article" aria-hidden />Article</span>}
                         {b.requireAck && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Action required</span>}
                         <span className="ml-auto text-[11px] text-muted-foreground">{ago(b.createdAt)}</span>
                         {!read && <span className="h-2 w-2 rounded-full bg-primary" aria-label="unread" />}

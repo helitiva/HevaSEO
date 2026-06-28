@@ -183,8 +183,8 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         subtitle={`${kpis.total} accounts · ${kpis.claimed} claimed · ${kpis.shadow} shadow`}
         actions={
           <>
-            <button onClick={() => notify(`Exported ${filtered.length} customers · CSV`)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Export</button>
-            <button onClick={() => notify('New customer — form coming soon')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-plus mr-1" />Add customer</button>
+            <button onClick={() => notify(`Exported ${filtered.length} customers · CSV`)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />Export</button>
+            <button onClick={() => notify('New customer — form coming soon')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-plus mr-1" aria-hidden />Add customer</button>
           </>
         }
       />
@@ -202,8 +202,8 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       {/* Insight bento */}
       <div className="rounded-2xl border border-border bg-card">
         <button onClick={() => setBentoOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-3 text-sm font-semibold">
-          <span className="flex items-center gap-2"><i className="ph-bold ph-chart-pie-slice text-primary" /> Insights</span>
-          <i className={`ph-bold ph-caret-down transition ${bentoOpen ? 'rotate-180' : ''}`} />
+          <span className="flex items-center gap-2"><i className="ph-bold ph-chart-pie-slice text-primary" aria-hidden /> Insights</span>
+          <i className={`ph-bold ph-caret-down transition ${bentoOpen ? 'rotate-180' : ''}`} aria-hidden />
         </button>
         {bentoOpen && (
           <div className="grid gap-4 border-t border-border p-5 lg:grid-cols-3">
@@ -215,7 +215,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                   return (
                     <button key={tier} onClick={() => setSeg(tier)} className="block w-full text-left">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} />{t.label}</span>
+                        <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} aria-hidden />{t.label}</span>
                         <span className="text-muted-foreground">{count} · <b className="text-foreground">{pct}%</b></span>
                       </div>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: t.color }} /></div>
@@ -256,12 +256,12 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                         <Link href={`/admin/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
                         <p className="text-[11px] text-muted-foreground">{ago(c.churnDays)} · {money(c.spend)} LTV</p>
                       </div>
-                      <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" /></a>
+                      <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden /></a>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="grid place-items-center py-6 text-center"><i className="ph-bold ph-confetti mb-1 text-xl text-emerald-500" /><p className="text-sm text-muted-foreground">No one at risk right now.</p></div>
+                <div className="grid place-items-center py-6 text-center"><i className="ph-bold ph-confetti mb-1 text-xl text-emerald-500" aria-hidden /><p className="text-sm text-muted-foreground">No one at risk right now.</p></div>
               )}
             </Panel>
           </div>
@@ -272,7 +272,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
-            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, company or email…" className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           <select value={sort} onChange={(e) => pickSort(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
@@ -302,9 +302,9 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm">
           <span className="font-semibold">{selected.size} selected</span>
           <span className="flex-1" />
-          <button onClick={() => bulk('Email sent')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" />Email</button>
-          <button onClick={() => bulk('Tag added')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-tag mr-1" />Add tag</button>
-          <button onClick={() => bulk('Exported')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Export</button>
+          <button onClick={() => bulk('Email sent')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" aria-hidden />Email</button>
+          <button onClick={() => bulk('Tag added')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-tag mr-1" aria-hidden />Add tag</button>
+          <button onClick={() => bulk('Exported')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />Export</button>
           <button onClick={clearSel} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
         </div>
       )}
@@ -312,7 +312,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       {/* Results */}
       {filtered.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-border bg-card py-16 text-center">
-          <i className="ph-bold ph-users mb-2 text-2xl text-muted-foreground" />
+          <i className="ph-bold ph-users mb-2 text-2xl text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">No customers match your filters.</p>
           <button onClick={() => { setQuery(''); setSeg('all'); }} className="mt-2 text-xs font-semibold text-primary hover:underline">Clear filters</button>
         </div>
@@ -398,7 +398,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs">
                   <span className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${h.dot}`} /><span className={`font-medium ${h.text}`}>{h.label}</span></span>
-                  <span className="text-muted-foreground">{ago(c.churnDays)}{c.openTickets > 0 && <> · <i className="ph-bold ph-lifebuoy" /> {c.openTickets}</>}</span>
+                  <span className="text-muted-foreground">{ago(c.churnDays)}{c.openTickets > 0 && <> · <i className="ph-bold ph-lifebuoy" aria-hidden /> {c.openTickets}</>}</span>
                 </div>
               </div>
             );
@@ -410,11 +410,11 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
           <span className="text-muted-foreground">{filtered.length} results · page {curPage} of {pageCount}</span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-left" /></button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-left" aria-hidden /></button>
             {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
               <button key={p} onClick={() => setPage(p)} aria-label={`Page ${p}`} aria-current={curPage === p ? 'page' : undefined} className={`grid h-8 w-8 place-items-center rounded-lg border text-xs font-semibold transition ${curPage === p ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'}`}>{p}</button>
             ))}
-            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={curPage === pageCount} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-right" /></button>
+            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={curPage === pageCount} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-right" aria-hidden /></button>
           </div>
         </div>
       )}
@@ -423,7 +423,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         {panelCust && <CustomerPanel c={panelCust} notify={notify} prev={prevCust} next={nextCust} onNav={setPanelId} onCopy={() => copyCustLink(panelCust.id)} copied={copied} />}
       </SlideOver>
 
-      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
+      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
     </section>
   );
 }
@@ -437,9 +437,9 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
-        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
-        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" aria-hidden /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" aria-hidden /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} aria-hidden />{copied ? 'Copied' : 'Copy'}</button>
       </div>
       {/* identity */}
       <div className="flex items-start gap-3">
@@ -447,7 +447,7 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="display text-lg font-bold tracking-tight">{c.name}</span>
-            <i className={`ph-fill ${t.icon}`} style={{ color: t.color }} title={`${t.label} tier`} />
+            <i className={`ph-fill ${t.icon}`} style={{ color: t.color }} title={`${t.label} tier`} aria-hidden />
             <span className={`pill ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
             {c.atRisk && <span className="pill pill-warn">churn risk</span>}
           </div>
@@ -459,12 +459,12 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
 
       {/* actions */}
       <div className="grid grid-cols-2 gap-2">
-        <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" />Email</a>
-        <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" />Impersonate</button>
+        <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden />Email</a>
+        <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" aria-hidden />Impersonate</button>
       </div>
       <div className="flex items-center gap-2">
-        <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" />Open full profile</Link>
-        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+        <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" aria-hidden />Open full profile</Link>
+        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
       </div>
 
       {/* KPI grid */}
@@ -567,7 +567,7 @@ function SortHead({ label, col, align, sort, dir, onSort }: { label: string; col
     <th onClick={() => onSort(col)} className={`cursor-pointer select-none p-3 hover:text-foreground ${align === 'right' ? 'text-right' : ''} ${active ? 'text-foreground' : ''}`}>
       <span className="inline-flex items-center gap-1">
         {label}
-        {active ? <i className={`ph-bold ${dir === 'asc' ? 'ph-arrow-up' : 'ph-arrow-down'} text-[10px] text-primary`} /> : <i className="ph-bold ph-arrows-down-up text-[10px] opacity-30" />}
+        {active ? <i className={`ph-bold ${dir === 'asc' ? 'ph-arrow-up' : 'ph-arrow-down'} text-[10px] text-primary`} aria-hidden /> : <i className="ph-bold ph-arrows-down-up text-[10px] opacity-30" aria-hidden />}
       </span>
     </th>
   );
@@ -583,7 +583,7 @@ function RowMenu({ c, notify, onView }: { c: CustomerRow; notify: (m: string) =>
   ];
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Actions"><i className="ph-bold ph-dots-three-outline" /></button>
+      <button onClick={() => setOpen((v) => !v)} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Actions"><i className="ph-bold ph-dots-three-outline" aria-hidden /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />

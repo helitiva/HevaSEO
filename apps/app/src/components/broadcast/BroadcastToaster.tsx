@@ -39,7 +39,7 @@ export function BroadcastToaster() {
         <p className="truncate text-sm font-semibold">{toast.title}</p>
         <p className="truncate text-[11px] text-muted-foreground">{toast.body}</p>
       </div>
-      <button onClick={(e) => { e.preventDefault(); setToast(null); }} aria-label="Dismiss" className="shrink-0 text-muted-foreground hover:text-foreground"><i className="ph-bold ph-x" /></button>
+      <button onClick={(e) => { e.preventDefault(); setToast(null); }} aria-label="Dismiss" className="shrink-0 text-muted-foreground hover:text-foreground"><i className="ph-bold ph-x" aria-hidden /></button>
     </Link>
   );
 }

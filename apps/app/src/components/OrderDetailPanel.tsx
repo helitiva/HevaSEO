@@ -34,7 +34,7 @@ function Stars({ value, onChange, size = 'text-2xl' }: { value: number; onChange
           onClick={() => onChange(n)}
           className={`${size} leading-none transition hover:scale-110`}
         >
-          <i className={`ph-fill ph-star ${n <= (hover || value) ? 'text-amber-500' : 'text-muted-foreground/30'}`} />
+          <i className={`ph-fill ph-star ${n <= (hover || value) ? 'text-amber-500' : 'text-muted-foreground/30'}`} aria-hidden />
         </button>
       ))}
     </div>
@@ -45,7 +45,7 @@ function Stars({ value, onChange, size = 'text-2xl' }: { value: number; onChange
 function StarsStatic({ value, size = 'text-base' }: { value: number; size?: string }) {
   return (
     <div className={`flex gap-0.5 ${size}`}>
-      {[1, 2, 3, 4, 5].map((n) => <i key={n} className={`ph-fill ph-star ${n <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} />)}
+      {[1, 2, 3, 4, 5].map((n) => <i key={n} className={`ph-fill ph-star ${n <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} aria-hidden />)}
     </div>
   );
 }
@@ -54,7 +54,7 @@ function StarsStatic({ value, size = 'text-base' }: { value: number; size?: stri
 function Cell({ icon, label, full, children }: { icon: string; label: string; full?: boolean; children: React.ReactNode }) {
   return (
     <div className={`flex min-w-0 items-center gap-2 ${full ? 'col-span-3' : ''}`}>
-      <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] text-muted-foreground"><i className={`ph-bold ${icon}`} /> {label}</span>
+      <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] text-muted-foreground"><i className={`ph-bold ${icon}`} aria-hidden /> {label}</span>
       <span className="min-w-0 flex-1 truncate text-[13px]">{children}</span>
     </div>
   );
@@ -128,7 +128,7 @@ function Panel({ order }: { order: Order }) {
         <div className="flex flex-col gap-3 p-5 sm:p-[30px]">
           {/* header */}
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[order.service].icon}`} /> {SERVICES[order.service].label}</span>
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[order.service].icon}`} aria-hidden /> {SERVICES[order.service].label}</span>
             <span className="font-mono text-[11px] text-muted-foreground">#{order.id}</span>
           </div>
           {/* title + status on one line */}
@@ -146,10 +146,10 @@ function Panel({ order }: { order: Order }) {
           <div className="border-y border-border py-3">
             <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
               <Cell icon="ph-tag" label="Service">
-                <span className="inline-flex items-center gap-1.5"><i className={`ph-bold ${SERVICES[order.service].icon} text-muted-foreground`} /><span className="font-medium">{SERVICES[order.service].label}</span><span className="text-muted-foreground">· {order.sub}</span></span>
+                <span className="inline-flex items-center gap-1.5"><i className={`ph-bold ${SERVICES[order.service].icon} text-muted-foreground`} aria-hidden /><span className="font-medium">{SERVICES[order.service].label}</span><span className="text-muted-foreground">· {order.sub}</span></span>
               </Cell>
               <Cell icon="ph-stack" label="Project">
-                {pid ? <Link href={`/projects/${pid}`} className="font-semibold text-primary hover:underline">{proj?.name} <i className="ph-bold ph-arrow-up-right text-[11px]" /></Link> : <span>{proj?.name ?? '—'}</span>}
+                {pid ? <Link href={`/projects/${pid}`} className="font-semibold text-primary hover:underline">{proj?.name} <i className="ph-bold ph-arrow-up-right text-[11px]" aria-hidden /></Link> : <span>{proj?.name ?? '—'}</span>}
               </Cell>
               <Cell icon="ph-globe-simple" label="Website">
                 <span className="font-medium">{order.multiWeb ? 'Multi-site' : order.domain}</span>{order.multiWeb && <span className="ml-1 rounded bg-muted px-1 text-[9px] font-bold uppercase text-foreground/60">multi</span>}
@@ -180,7 +180,7 @@ function Panel({ order }: { order: Order }) {
             </div>
 
             <button onClick={() => setShowAll((v) => !v)} className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition hover:text-foreground">
-              <i className={`ph-bold ph-caret-down transition-transform duration-300 ${showAll ? 'rotate-180' : ''}`} /> {showAll ? 'Show less' : 'Show all fields'}
+              <i className={`ph-bold ph-caret-down transition-transform duration-300 ${showAll ? 'rotate-180' : ''}`} aria-hidden /> {showAll ? 'Show less' : 'Show all fields'}
             </button>
           </div>
 
@@ -188,7 +188,7 @@ function Panel({ order }: { order: Order }) {
           {intake.length > 0 && (
             <section>
               <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <i className="ph-bold ph-note-pencil text-primary" /> Order brief
+                <i className="ph-bold ph-note-pencil text-primary" aria-hidden /> Order brief
               </p>
               <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl border border-border bg-muted/30 p-4 sm:grid-cols-2">
                 {intake.map((f, i) => (
@@ -220,8 +220,8 @@ function Panel({ order }: { order: Order }) {
                         aria-expanded={open}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] transition hover:bg-muted/40"
                       >
-                        <i className={`ph-bold ph-caret-right shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
-                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" />
+                        <i className={`ph-bold ph-caret-right shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden />
+                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" aria-hidden />
                         <span className="min-w-0 truncate">{d.name}</span>
                         <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{d.revisions.length} version{d.revisions.length > 1 ? 's' : ''}</span>
                         <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: dp.bg, color: dp.fg }}>{dp.label}</span>
@@ -247,17 +247,17 @@ function Panel({ order }: { order: Order }) {
                                         onClick={() => toast(f.kind === 'link' ? `Opening ${f.name}` : `Downloading ${f.name}`)}
                                         className="flex w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-primary/50"
                                       >
-                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} />
+                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} aria-hidden />
                                         <span className="min-w-0 truncate">{f.name}</span>
                                         {f.meta && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{f.meta}</span>}
-                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} />
+                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} aria-hidden />
                                       </button>
                                     ))}
                                   </div>
                                 )}
                                 {r.feedback && (
                                   <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] leading-relaxed text-amber-600">
-                                    <i className="ph-bold ph-chat-circle-text mr-1" /><span className="font-semibold">Your feedback:</span> {r.feedback}
+                                    <i className="ph-bold ph-chat-circle-text mr-1" aria-hidden /><span className="font-semibold">Your feedback:</span> {r.feedback}
                                   </div>
                                 )}
                               </li>
@@ -278,7 +278,7 @@ function Panel({ order }: { order: Order }) {
             <div className="space-y-1 text-[12px] text-muted-foreground">
               {activity.map((a, i) => (
                 <div key={i} className="flex items-center gap-1.5">
-                  <i className={`ph-fill ph-circle text-[7px] ${i === 0 ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                  <i className={`ph-fill ph-circle text-[7px] ${i === 0 ? 'text-primary' : 'text-muted-foreground/50'}`} aria-hidden />
                   <span className={i === 0 ? 'text-foreground' : ''}>{a.label}</span>
                   <span className="ml-auto">{a.date}</span>
                 </div>
@@ -305,26 +305,26 @@ function Panel({ order }: { order: Order }) {
               onSubmit={(e) => { e.preventDefault(); if (draft.trim()) { addComment(order.id, draft.trim()); setDraft(''); toast('Comment added'); } }}
             >
               <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add a comment…" className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary" />
-              <button type="submit" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50" disabled={!draft.trim()}><i className="ph-bold ph-paper-plane-tilt" /></button>
+              <button type="submit" aria-label="Send comment" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50" disabled={!draft.trim()}><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
             </form>
           </section>
         </div>
 
         {/* footer actions */}
         <div className="sticky bottom-0 mt-auto flex gap-1.5 border-t border-border bg-card/95 px-3 py-3 backdrop-blur sm:gap-2 sm:px-[30px] sm:py-3.5">
-          <button onClick={() => setModal('message')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent sm:text-[13px]"><i className="ph-bold ph-chat-circle-dots" /> Message</button>
+          <button onClick={() => setModal('message')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent sm:text-[13px]"><i className="ph-bold ph-chat-circle-dots" aria-hidden /> Message</button>
           {status === 'review' ? (
             <>
-              <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-amber-500/40 py-2 text-xs font-semibold text-amber-600 transition hover:bg-amber-500/10 sm:text-[13px]"><i className="ph-bold ph-arrow-counter-clockwise" /> <span className="sm:hidden">Changes</span><span className="hidden sm:inline">Request changes</span></button>
-              <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 sm:text-[13px]"><i className="ph-bold ph-check" /> Approve</button>
+              <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-amber-500/40 py-2 text-xs font-semibold text-amber-600 transition hover:bg-amber-500/10 sm:text-[13px]"><i className="ph-bold ph-arrow-counter-clockwise" aria-hidden /> <span className="sm:hidden">Changes</span><span className="hidden sm:inline">Request changes</span></button>
+              <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 sm:text-[13px]"><i className="ph-bold ph-check" aria-hidden /> Approve</button>
             </>
           ) : (
             <>
-              <button onClick={() => setModal('review')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent sm:text-[13px]"><i className="ph-bold ph-clipboard-text" /> Review</button>
-              <button onClick={orderAgain} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90 sm:text-[13px]"><i className="ph-bold ph-plus" /> Order again</button>
+              <button onClick={() => setModal('review')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent sm:text-[13px]"><i className="ph-bold ph-clipboard-text" aria-hidden /> Review</button>
+              <button onClick={orderAgain} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90 sm:text-[13px]"><i className="ph-bold ph-plus" aria-hidden /> Order again</button>
             </>
           )}
-          <button onClick={close} aria-label="Close" className="flex shrink-0 items-center justify-center rounded-lg border border-border px-2.5 py-2 text-muted-foreground transition hover:bg-accent sm:hidden"><i className="ph-bold ph-x" /></button>
+          <button onClick={close} aria-label="Close" className="flex shrink-0 items-center justify-center rounded-lg border border-border px-2.5 py-2 text-muted-foreground transition hover:bg-accent sm:hidden"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
       </aside>
 
@@ -359,7 +359,7 @@ function Panel({ order }: { order: Order }) {
                 <p className="text-[11px] text-muted-foreground">Posts to this order&apos;s conversation — {order.owner !== 'Unassigned' ? order.owner : 'the team'} will be notified.</p>
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={closeModal} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                  <button type="submit" disabled={!msg.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" /> Send</button>
+                  <button type="submit" disabled={!msg.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /> Send</button>
                 </div>
               </form>
             );
@@ -380,7 +380,7 @@ function Panel({ order }: { order: Order }) {
                     const dp = DELIV_PILL[d.status];
                     return (
                       <div key={i} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[13px]">
-                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" />
+                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" aria-hidden />
                         <span className="min-w-0 truncate">{d.name}</span>
                         <span className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: dp.bg, color: dp.fg }}>{dp.label}</span>
                       </div>
@@ -394,7 +394,7 @@ function Panel({ order }: { order: Order }) {
                 <div className="rounded-xl border border-border bg-muted/30 p-4">
                   {reviewed ? (
                     <div className="space-y-2.5 text-center">
-                      <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-600"><i className="ph-bold ph-check-circle" /> Thanks for your review!</p>
+                      <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-600"><i className="ph-bold ph-check-circle" aria-hidden /> Thanks for your review!</p>
                       <div className="flex items-center justify-center gap-2 text-[12px] text-muted-foreground">Service <StarsStatic value={rating} size="text-base" /></div>
                       {order.owner !== 'Unassigned' && (attitude > 0 || skill > 0) && (
                         <div className="flex items-center justify-center gap-5 text-[12px] text-muted-foreground">
@@ -435,7 +435,7 @@ function Panel({ order }: { order: Order }) {
                         className="mt-4 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm leading-relaxed outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                       <div className="mt-3 flex justify-end">
-                        <button type="button" disabled={rating === 0} onClick={() => { setReviewed(true); toast('Thanks for your review!'); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-star" /> Submit review</button>
+                        <button type="button" disabled={rating === 0} onClick={() => { setReviewed(true); toast('Thanks for your review!'); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-star" aria-hidden /> Submit review</button>
                       </div>
                     </>
                   )}
@@ -443,8 +443,8 @@ function Panel({ order }: { order: Order }) {
               ) : (
                 deliverables.length > 0 && (
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 px-3.5 py-2 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/10"><i className="ph-bold ph-arrow-counter-clockwise" /> Request changes</button>
-                    <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"><i className="ph-bold ph-check" /> Approve</button>
+                    <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 px-3.5 py-2 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/10"><i className="ph-bold ph-arrow-counter-clockwise" aria-hidden /> Request changes</button>
+                    <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"><i className="ph-bold ph-check" aria-hidden /> Approve</button>
                   </div>
                 )
               )}

@@ -21,7 +21,7 @@ export default async function ReferralsPage() {
       {slipping.length > 0 && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/[0.06] px-4 py-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-500/15 text-rose-500">
-            <i className="ph-fill ph-warning-octagon" />
+            <i className="ph-fill ph-warning-octagon" aria-hidden />
           </span>
           <div>
             <p className="text-sm font-semibold">{slipping.length} referral{slipping.length > 1 ? 's are' : ' is'} slipping away</p>

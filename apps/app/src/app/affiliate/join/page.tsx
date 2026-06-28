@@ -42,7 +42,7 @@ export default function AffiliateJoinPage() {
         <section className="lg:pt-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-primary">
-              <i className="ph-fill ph-megaphone" /> Affiliate program
+              <i className="ph-fill ph-megaphone" aria-hidden /> Affiliate program
             </span>
             <PayoutTicker />
           </div>
@@ -77,7 +77,7 @@ export default function AffiliateJoinPage() {
             {BENEFITS.map((b) => (
               <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-                  <i className={`ph-bold ${b.icon}`} />
+                  <i className={`ph-bold ${b.icon}`} aria-hidden />
                 </span>
                 <p className="mt-3 text-sm font-bold">{b.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{b.body}</p>
@@ -91,7 +91,7 @@ export default function AffiliateJoinPage() {
             {AFFILIATE_TIERS.map((t, i) => (
               <span key={t.id} className="inline-flex items-center gap-1.5">
                 <span className="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground">{t.label} {Math.round(t.rate * 100)}%</span>
-                {i < AFFILIATE_TIERS.length - 1 && <i className="ph-bold ph-caret-right text-[10px]" />}
+                {i < AFFILIATE_TIERS.length - 1 && <i className="ph-bold ph-caret-right text-[10px]" aria-hidden />}
               </span>
             ))}
           </div>
@@ -102,7 +102,7 @@ export default function AffiliateJoinPage() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/[0.14] to-card px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/20 text-amber-600">
-                <i className="ph-fill ph-gift" />
+                <i className="ph-fill ph-gift" aria-hidden />
               </span>
               <div>
                 <p className="text-sm font-bold">{offer.headline}</p>

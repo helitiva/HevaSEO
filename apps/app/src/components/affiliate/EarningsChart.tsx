@@ -37,7 +37,7 @@ export function EarningsChart({ data }: { data: MonthPoint[] }) {
     <section className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-line-up text-primary" /> Earnings over time</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-line-up text-primary" aria-hidden /> Earnings over time</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">{money(totalC)}</span> commission across {safe.length} months
           </p>

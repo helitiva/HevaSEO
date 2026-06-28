@@ -13,7 +13,7 @@ export function QuickOrderButton({ label = 'New order', icon = 'ph-plus', classN
   const href = `${pathname}?neworder=pick${projectDomain ? `&project=${encodeURIComponent(projectDomain)}` : ''}`;
   return (
     <button onClick={() => router.push(href, { scroll: false })} className={className}>
-      <i className={`ph-bold ${icon}`} /> {label}
+      <i className={`ph-bold ${icon}`} aria-hidden /> {label}
     </button>
   );
 }

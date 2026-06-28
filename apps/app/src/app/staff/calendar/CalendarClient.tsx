@@ -81,7 +81,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
         <div className="inline-flex rounded-lg border border-border p-0.5">
           {(['month', 'timeline', 'agenda', 'availability'] as View[]).map((v) => (
             <button key={v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 text-sm font-semibold transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <i className={`ph-bold ${VIEW_META[v].icon} mr-1`} />{VIEW_META[v].label}
+              <i className={`ph-bold ${VIEW_META[v].icon} mr-1`} aria-hidden />{VIEW_META[v].label}
             </button>
           ))}
         </div>
@@ -90,7 +90,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
             <button onClick={() => setService('')} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${!service ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>All</button>
             {services.map((s) => { const m = serviceMeta(s); const on = service === s; return (
               <button key={s} onClick={() => setService(on ? '' : s)} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition" style={on ? { background: m.color, color: '#fff' } : { background: `${m.color}1a`, color: m.color }}>
-                <i className={`ph-bold ${m.icon}`} />{s}
+                <i className={`ph-bold ${m.icon}`} aria-hidden />{s}
               </button>
             ); })}
           </div>
@@ -99,7 +99,7 @@ export function CalendarClient({ tasks, initialMonth, today }: { tasks: CalTask[
       </div>
 
       {view !== 'availability' && shown.length === 0 && (
-        <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-funnel mb-1 block text-xl" />No deadlines match this filter.</div>
+        <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-funnel mb-1 block text-xl" aria-hidden />No deadlines match this filter.</div>
       )}
       {view === 'month' && shown.length > 0 && <DeadlineCalendar tasks={shown} initialMonth={initialMonth} today={today} offDays={offDays} hours={avail.hours} />}
       {view === 'timeline' && shown.length > 0 && <GanttTimeline tasks={shown} today={today} offDays={offDays} />}
@@ -137,7 +137,7 @@ function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; 
                     <span className="block text-[10px] uppercase text-muted-foreground">{new Date(`${t.deadline}T00:00:00`).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}</span>
                     <span className="block text-base font-bold leading-none">{t.deadline.slice(8)}</span>
                   </span>
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} aria-hidden /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{t.code}</span>{t.service}</span>
                     <span className="mt-0.5 flex flex-wrap items-center gap-1.5"><span className="truncate text-xs text-muted-foreground">{t.customer}</span><CareTags company={t.customer} /></span>
@@ -145,7 +145,7 @@ function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; 
                   <PriorityBadge priority={t.priority} />
                   <StatusBadge status={t.status} />
                   {sla && <span className={`hidden shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold sm:inline ${TONE[sla.tone]}`}>{sla.label}</span>}
-                  <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" />
+                  <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" aria-hidden />
                 </a>
               </li>
             ); })}
@@ -154,8 +154,8 @@ function AgendaList({ tasks, today, focus }: { tasks: CalTask[]; today: string; 
       ))}
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-muted-foreground">
         <span className="font-semibold">Care:</span>
-        <span className="flex items-center gap-1"><i className="ph-fill ph-crown text-[#a855f7]" /> VIP / <i className="ph-fill ph-medal text-[#f59e0b]" /> Gold = higher rank</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-seal-warning text-rose-500" /> Particular = handle carefully</span>
+        <span className="flex items-center gap-1"><i className="ph-fill ph-crown text-[#a855f7]" aria-hidden /> VIP / <i className="ph-fill ph-medal text-[#f59e0b]" aria-hidden /> Gold = higher rank</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-seal-warning text-rose-500" aria-hidden /> Particular = handle carefully</span>
         <span className="flex items-center gap-1"><span className="h-3 w-0.5 rounded bg-amber-500" /> = do first</span>
         <span className="ml-auto">Highest-care clients are listed first.</span>
       </p>
@@ -170,7 +170,7 @@ function Kpi({ icon, label, value, tone, onClick }: { icon: string; label: strin
     <Tag onClick={onClick} className={`kcard !p-3 w-full text-left ${onClick ? 'cursor-pointer transition hover:border-primary/50' : ''}`}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-        <i className={`ph-bold ${icon} ${col}`} />
+        <i className={`ph-bold ${icon} ${col}`} aria-hidden />
       </div>
       <p className="display mt-1 text-2xl font-bold leading-none">{value}</p>
     </Tag>

@@ -31,7 +31,7 @@ export function UsageLinkList({ usage, onCount }: { usage: SvcUsage; onCount: (n
       onClick={() => setMode(m)}
       className={`rounded-md px-3 py-1.5 transition ${mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
     >
-      <i className={`ph-bold ${icon} mr-1`} />{label}
+      <i className={`ph-bold ${icon} mr-1`} aria-hidden />{label}
     </button>
   );
 
@@ -40,7 +40,7 @@ export function UsageLinkList({ usage, onCount }: { usage: SvcUsage; onCount: (n
       <div className="rounded-2xl border border-primary/30 bg-primary/[0.05] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-link text-primary" /> Your backlink URLs</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-link text-primary" aria-hidden /> Your backlink URLs</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {mode === 'paste'
                 ? count > 0 ? `${count.toLocaleString('en-US')} URLs detected` : 'Paste your URLs — one per line.'
@@ -73,11 +73,11 @@ export function UsageLinkList({ usage, onCount }: { usage: SvcUsage; onCount: (n
         ) : (
           <div className="mt-3">
             <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] p-3 text-[11px] leading-relaxed text-muted-foreground">
-              <i className="ph-fill ph-info mt-0.5 shrink-0 text-primary" />
+              <i className="ph-fill ph-info mt-0.5 shrink-0 text-primary" aria-hidden />
               <span>Paste your URLs into {usage.sampleUrl ? (<a href={usage.sampleUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">our sample sheet</a>) : 'a sheet'}. If you share a Sheet link, <b className="font-semibold text-foreground">grant access to hello@hevaseo.com</b>.</span>
             </div>
             <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-background p-4 transition hover:border-primary/50">
-              <i className="ph-bold ph-table text-2xl text-primary" />
+              <i className="ph-bold ph-table text-2xl text-primary" aria-hidden />
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{fileName || 'Upload .csv / .txt / .xlsx'}</span><span className="block text-[11px] text-muted-foreground">One URL per row.</span></span>
               <input type="file" name="links_file" accept=".csv,.txt,.xlsx,.xls" className="sr-only" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? '')} />
               <span className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Browse</span>

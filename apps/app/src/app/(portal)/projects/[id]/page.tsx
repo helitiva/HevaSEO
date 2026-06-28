@@ -35,7 +35,7 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="grid place-items-center py-20 text-center">
-        <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" /></span>
+        <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" aria-hidden /></span>
         <p className="mt-3 font-semibold">Project not found</p>
         <Link href="/projects" className="mt-1 text-sm text-primary hover:underline">← Back to projects</Link>
       </div>
@@ -51,7 +51,7 @@ export default function ProjectDetailPage() {
 
   const Stat = ({ label, value, color }: { label: string; value: number; color?: string }) => (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      {color ? <span className="h-2 w-2 rounded-full" style={{ background: color }} /> : <i className="ph-bold ph-stack text-muted-foreground" />}
+      {color ? <span className="h-2 w-2 rounded-full" style={{ background: color }} /> : <i className="ph-bold ph-stack text-muted-foreground" aria-hidden />}
       <span className="text-muted-foreground">{label}</span>
       <b className="font-semibold text-foreground">{value}</b>
     </span>
@@ -62,17 +62,17 @@ export default function ProjectDetailPage() {
       {/* breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         <Link href="/projects" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" aria-label="Back to projects">
-          <i className="ph-bold ph-arrow-left" />
+          <i className="ph-bold ph-arrow-left" aria-hidden />
         </Link>
         <nav className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
           <Link href="/projects" className="hover:text-foreground">Projects</Link>
           {path.map((f) => (
             <span key={f.id} className="flex items-center gap-1.5">
-              <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" />
+              <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" aria-hidden />
               <span style={{ color: f.color }}>{f.name}</span>
             </span>
           ))}
-          <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" />
+          <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" aria-hidden />
           <span className="font-semibold text-foreground">{project.domain}</span>
         </nav>
       </div>
@@ -82,13 +82,13 @@ export default function ProjectDetailPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(project.domain) }}>{initials(project.domain)}</span>
           <h1 className="display text-xl font-semibold tracking-tight">{project.domain}</h1>
-          <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" /></a>
+          <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" aria-label="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
           <QuickOrderButton label="Order a service" projectDomain={project.domain} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
         </div>
 
         <p className="mt-3 flex gap-1.5 text-sm text-muted-foreground">
-          <i className="ph-bold ph-note-pencil mt-0.5 shrink-0" />
+          <i className="ph-bold ph-note-pencil mt-0.5 shrink-0" aria-hidden />
           <span>{project.note}</span>
         </p>
 
@@ -99,7 +99,7 @@ export default function ProjectDetailPage() {
           <Stat label="In review" value={count('review')} color={STATUSES.review.color} />
           <Stat label="Completed" value={count('completed')} color={STATUSES.completed.color} />
           <span className="inline-flex items-center gap-1.5 text-sm sm:ml-auto">
-            <i className="ph-bold ph-wallet text-muted-foreground" />
+            <i className="ph-bold ph-wallet text-muted-foreground" aria-hidden />
             <span className="text-muted-foreground">Total cost</span>
             <b className="font-semibold text-foreground">${totalCost.toLocaleString('en-US')}</b>
           </span>

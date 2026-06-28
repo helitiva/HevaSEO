@@ -86,7 +86,7 @@ export function FinanceClient() {
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition ${tab === t.key ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <i className={`ph-bold ${t.icon}`} />{t.label}
+            <i className={`ph-bold ${t.icon}`} aria-hidden />{t.label}
           </button>
         ))}
       </div>
@@ -125,7 +125,7 @@ function OverviewTab() {
           {alerts.map((a, i) => (
             <Link key={i} href={a.href} scroll={false}
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:brightness-105 ${a.tone === 'bad' ? 'border-rose-500/40 bg-rose-500/5 text-rose-600' : 'border-amber-500/40 bg-amber-500/5 text-amber-700'}`}>
-              <i className={`ph-bold ${a.icon}`} />{a.text}<i className="ph-bold ph-arrow-right opacity-60" />
+              <i className={`ph-bold ${a.icon}`} aria-hidden />{a.text}<i className="ph-bold ph-arrow-right opacity-60" aria-hidden />
             </Link>
           ))}
         </div>
@@ -135,7 +135,7 @@ function OverviewTab() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" /> Net flow · 30d</p>
+          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" aria-hidden /> Net flow · 30d</p>
           <div className="space-y-3">
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
@@ -164,7 +164,7 @@ function OverviewTab() {
 
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-primary" /> Recent transactions</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-primary" aria-hidden /> Recent transactions</p>
             <Link href="?tab=transactions" scroll={false} className="text-xs font-semibold text-primary hover:underline">All →</Link>
           </div>
           <ul className="divide-y divide-border/60">
@@ -180,7 +180,7 @@ function RecentRow({ t }: { t: Transaction }) {
   const meta = TX_KIND[t.kind];
   return (
     <li className="flex items-center gap-3 py-2.5 text-sm">
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} /></span>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{t.party} <span className="text-muted-foreground">· {meta.label}</span></p>
         <p className="text-[11px] text-muted-foreground">{t.at}{t.orderCode ? ` · ${t.orderCode}` : ''}</p>
@@ -252,21 +252,21 @@ function TransactionsTab() {
           <input type="date" value={to} min={from} max={TX_MAX} onChange={(e) => setTo(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
         </div>
         <div className="relative ml-auto min-w-[12rem] flex-1 sm:flex-none">
-          <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" />
+          <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search party, note, order…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
         </div>
         <button onClick={exportCsv} disabled={rows.length === 0}
           title="Download the filtered transactions as CSV"
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">
-          <i className="ph-bold ph-download-simple" />Export CSV
+          <i className="ph-bold ph-download-simple" aria-hidden />Export CSV
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
         <span>{rows.length} transactions</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-emerald-600" />Top-ups <span className="font-semibold text-emerald-600">{money(topUps)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-receipt text-emerald-600" />Revenue <span className="font-semibold text-emerald-600">{money(revenue)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-up text-rose-500" />Out <span className="font-semibold text-rose-500">{money(Math.abs(sumOut))}</span></span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-emerald-600" aria-hidden />Top-ups <span className="font-semibold text-emerald-600">{money(topUps)}</span></span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-receipt text-emerald-600" aria-hidden />Revenue <span className="font-semibold text-emerald-600">{money(revenue)}</span></span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-up text-rose-500" aria-hidden />Out <span className="font-semibold text-rose-500">{money(Math.abs(sumOut))}</span></span>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -286,12 +286,12 @@ function TransactionsTab() {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(t); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
                   <td className="whitespace-nowrap p-3 text-muted-foreground">{t.at}</td>
-                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} />{meta.label}</span></td>
+                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />{meta.label}</span></td>
                   <td className="p-3"><span className="font-medium">{t.party}</span>{t.orderCode && <span className="text-muted-foreground"> · {t.orderCode}</span>}</td>
-                  <td className="p-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><i className={`ph-bold ${TX_METHOD[t.method].icon}`} />{TX_METHOD[t.method].label}</span></td>
+                  <td className="p-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><i className={`ph-bold ${TX_METHOD[t.method].icon}`} aria-hidden />{TX_METHOD[t.method].label}</span></td>
                   <td className="p-3"><TxStatusPill status={t.status} /></td>
                   <td className="p-3 text-right"><Amount n={t.amount} status={t.status} /></td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
+                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
@@ -313,7 +313,7 @@ function TxDetail({ t }: { t: Transaction }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <span className={`grid h-12 w-12 place-items-center rounded-xl ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon} text-xl`} /></span>
+        <span className={`grid h-12 w-12 place-items-center rounded-xl ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon} text-xl`} aria-hidden /></span>
         <div>
           <p className="display text-2xl font-bold leading-none"><Amount n={t.amount} status={t.status} /></p>
           <p className="mt-1 text-xs text-muted-foreground">{meta.label} · {t.at}</p>
@@ -336,11 +336,11 @@ function TxDetail({ t }: { t: Transaction }) {
       <div className="flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
         {cust && (
           <>
-            <Link href={`/admin/customers/${cust.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" />Customer profile</Link>
-            <a href={`/admin/customers/${cust.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" /></a>
+            <Link href={`/admin/customers/${cust.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
+            <a href={`/admin/customers/${cust.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
           </>
         )}
-        {t.orderCode && <Link href="/admin/orders" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" />View order</Link>}
+        {t.orderCode && <Link href="/admin/orders" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" aria-hidden />View order</Link>}
       </div>
     </div>
   );
@@ -386,7 +386,7 @@ function WalletsTab() {
         <p className="px-1 text-xs text-muted-foreground">{rows.length} customers holding {money(liability)} in prepaid credit · {money(baseTopped + sessionAdded)} topped up to date. Click a row for the ledger.</p>
         <button onClick={() => setTopup({ open: true })}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110">
-          <i className="ph-bold ph-plus-circle" />Top up a customer
+          <i className="ph-bold ph-plus-circle" aria-hidden />Top up a customer
         </button>
       </div>
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -421,7 +421,7 @@ function WalletsTab() {
                     <button onClick={() => setTopup({ open: true, presetId: c.id })}
                       className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent">Top up</button>
                   </td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
+                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
@@ -459,7 +459,7 @@ function TopupForm({ presetId, balanceOf, onSubmit, onClose }: {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600"><i className="ph-bold ph-plus-circle text-xl" /></span>
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600"><i className="ph-bold ph-plus-circle text-xl" aria-hidden /></span>
         <div>
           <p className="display text-lg font-bold leading-none">Add wallet credit</p>
           <p className="mt-0.5 text-xs text-muted-foreground">Grant prepaid credit so a customer can try paid services.</p>
@@ -506,7 +506,7 @@ function TopupForm({ presetId, balanceOf, onSubmit, onClose }: {
         <button onClick={onClose} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
         <button onClick={() => valid && onSubmit(cid, amount, note)} disabled={!valid}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40">
-          <i className="ph-bold ph-plus-circle" />Add {money(amount > 0 ? amount : 0)} credit
+          <i className="ph-bold ph-plus-circle" aria-hidden />Add {money(amount > 0 ? amount : 0)} credit
         </button>
       </div>
     </div>
@@ -525,7 +525,7 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
     <div className="space-y-5">
       {/* header */}
       <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i className="ph-bold ph-wallet text-xl" /></span>
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i className="ph-bold ph-wallet text-xl" aria-hidden /></span>
         <div className="min-w-0">
           <p className="display text-xl font-bold leading-none">{c.company}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{c.name} · <span style={{ color: tier.color }}>{tier.label}</span></p>
@@ -562,7 +562,7 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
               const isAdmin = t.id.startsWith('atu-');
               return (
                 <li key={t.id} className="flex items-center gap-3 p-3 text-sm">
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} /></span>
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{isAdmin ? 'Admin top-up' : meta.label}{t.orderCode ? <span className="text-muted-foreground"> · {t.orderCode}</span> : ''}{isAdmin && <span className="ml-1.5 rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-600">new</span>}</p>
                     <p className="text-[11px] text-muted-foreground">{t.at} · {TX_METHOD[t.method].label}{isAdmin && t.note ? ` · ${t.note}` : ''}</p>
@@ -579,8 +579,8 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
       </div>
 
       <div className="flex gap-2 border-t border-border pt-4">
-        <button onClick={onTopup} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-plus-circle" />Top up</button>
-        <Link href={`/admin/customers/${c.id}`} className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 font-semibold transition hover:bg-accent"><i className="ph-bold ph-user" />Profile</Link>
+        <button onClick={onTopup} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-plus-circle" aria-hidden />Top up</button>
+        <Link href={`/admin/customers/${c.id}`} className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 font-semibold transition hover:bg-accent"><i className="ph-bold ph-user" aria-hidden />Profile</Link>
       </div>
     </div>
   );
@@ -683,7 +683,7 @@ function PayoutsTab() {
       {granToggle}
       {/* commission rates legend */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
-        <i className="ph-bold ph-percent text-primary" />
+        <i className="ph-bold ph-percent text-primary" aria-hidden />
         <span className="font-semibold text-foreground">Commission rates:</span>
         {Object.entries(PAYOUT_RATE).map(([role, rate]) => (
           <span key={role} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
@@ -693,7 +693,7 @@ function PayoutsTab() {
       </div>
       {/* gig (piece-rate) legend */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
-        <i className="ph-bold ph-package text-primary" />
+        <i className="ph-bold ph-package text-primary" aria-hidden />
         <span className="font-semibold text-foreground">Gig pay per delivered gig:</span>
         {Object.entries(GIG_RATE).map(([service, rate]) => (
           <span key={service} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
@@ -734,7 +734,7 @@ function PayoutsTab() {
                   </td>
                   <td className="p-3 tabular-nums">
                     {money(e.base)}
-                    {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" />}
+                    {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" aria-hidden />}
                   </td>
                   <td className="p-3 tabular-nums">
                     {e.gig ? money(e.gig) : <span className="text-muted-foreground">—</span>}
@@ -758,7 +758,7 @@ function PayoutsTab() {
                       : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={net <= 0}
                           className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">Mark paid</button>}
                   </td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
+                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
@@ -781,7 +781,7 @@ function PayoutsTab() {
       {/* ---- Manager payroll ---- */}
       <div className="space-y-2 pt-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-1">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-user-circle-gear text-primary" />Manager payroll</h3>
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-user-circle-gear text-primary" aria-hidden />Manager payroll</h3>
           <span className="text-[11px] text-muted-foreground">Fixed salary + commission on the value of orders their pod handles + a % of the bonuses they award their staff. Rates are editable per manager.</span>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -981,7 +981,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
       {/* staff header */}
       <div className="flex items-center gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-          <i className="ph-bold ph-user text-xl" />
+          <i className="ph-bold ph-user text-xl" aria-hidden />
         </span>
         <div className="min-w-0">
           <p className="display text-xl font-bold leading-none">{p.staff}</p>
@@ -999,7 +999,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Compensation this period</p>
             {!paid && (
               <button onClick={startEditing} className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground">
-                <i className="ph-bold ph-pencil-simple text-[10px]" /> Edit
+                <i className="ph-bold ph-pencil-simple text-[10px]" aria-hidden /> Edit
               </button>
             )}
           </div>
@@ -1167,12 +1167,12 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
         <div className="border-t border-border pt-4">
           <button onClick={onMarkPaid}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110">
-            <i className="ph-bold ph-check-circle" /> Mark {money(netPay)} as paid
+            <i className="ph-bold ph-check-circle" aria-hidden /> Mark {money(netPay)} as paid
           </button>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 py-3 text-sm font-semibold text-emerald-600">
-          <i className="ph-bold ph-check-circle" /> Paid this session
+          <i className="ph-bold ph-check-circle" aria-hidden /> Paid this session
         </div>
       )}
     </div>
@@ -1237,14 +1237,14 @@ function InvoicesTab() {
                         <>
                           {st === 'overdue' && (
                             reminded
-                              ? <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-check" />Reminded</span>
+                              ? <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-check" aria-hidden />Reminded</span>
                               : <button onClick={() => setRemindedIds((s) => ({ ...s, [i.id]: true }))}
                                   title={`Send a payment reminder to ${i.customer}`}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold transition hover:bg-accent"><i className="ph-bold ph-bell" />Remind</button>
+                                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold transition hover:bg-accent"><i className="ph-bold ph-bell" aria-hidden />Remind</button>
                           )}
                           <button onClick={() => setPaidIds((s) => ({ ...s, [i.id]: true }))}
                             title={`Mark ${i.code} as paid`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-check-circle" />Mark paid</button>
+                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-check-circle" aria-hidden />Mark paid</button>
                         </>
                       )}
                     </div>
@@ -1320,7 +1320,7 @@ function Kpi({ icon, label, value, hint, tone = 'primary' }: { icon: string; lab
       <span className="kpi-glow" />
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-        <i className={`ph-bold ${icon} ${toneColor}`} />
+        <i className={`ph-bold ${icon} ${toneColor}`} aria-hidden />
       </div>
       <p className="display mt-auto text-2xl font-bold tracking-tight">{value}</p>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}

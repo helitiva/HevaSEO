@@ -35,7 +35,7 @@ export default function CommandCenter() {
           <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel} · live operational snapshot</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/admin/analytics" className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50"><i className="ph-bold ph-chart-line-up mr-1 text-primary" />Full analytics</Link>
+          <Link href="/admin/analytics" className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50"><i className="ph-bold ph-chart-line-up mr-1 text-primary" aria-hidden />Full analytics</Link>
           <span className="pill pill-live"><span /> Live</span>
         </div>
       </div>
@@ -74,7 +74,7 @@ export default function CommandCenter() {
       {/* order pipeline */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-flow-arrow text-primary" /> Order pipeline</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-flow-arrow text-primary" aria-hidden /> Order pipeline</p>
           <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{activeTotal}</span> active · {pipeTotal} total</p>
         </div>
         <div className="seg" style={{ height: '0.75rem' }}>
@@ -94,17 +94,17 @@ export default function CommandCenter() {
 
       {/* needs attention — the action core */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bell-ringing text-primary" /> Needs attention</p>
+        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bell-ringing text-primary" aria-hidden /> Needs attention</p>
         <NeedsAttention overdue={overdue} awaiting={awaiting} unassigned={unassigned} />
       </div>
 
       {/* recent activity */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scroll text-primary" /> Recent activity</p>
+        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scroll text-primary" aria-hidden /> Recent activity</p>
         <ul className="space-y-2.5">
           {AUDIT.map((a) => (
             <li key={a.id} className="flex items-center gap-3 text-sm">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${ACTION_ICON[a.action] ?? 'ph-dot'}`} /></span>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${ACTION_ICON[a.action] ?? 'ph-dot'}`} aria-hidden /></span>
               <span className="min-w-0 flex-1 truncate"><span className="font-medium">{a.change}</span> <span className="text-muted-foreground">· {a.actor}</span></span>
               <span className="shrink-0 text-xs text-muted-foreground">{a.at.slice(11)}</span>
             </li>

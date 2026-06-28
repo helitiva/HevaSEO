@@ -40,7 +40,7 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-shopping-cart-simple text-primary" /> Revenue by source</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-shopping-cart-simple text-primary" aria-hidden /> Revenue by source</p>
           <div className="flex items-center gap-4">
             <Donut segs={srcSegs} centerValue={money(srcTotal)} centerLabel="MTD" size={120} />
             <div className="space-y-2 text-xs">
@@ -58,7 +58,7 @@ export default function AnalyticsPage() {
 
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-crown-simple text-primary" /> Top revenue</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-crown-simple text-primary" aria-hidden /> Top revenue</p>
             <Link href="/admin/customers" className="text-xs font-semibold text-primary hover:underline">All →</Link>
           </div>
           <div className="space-y-2.5">

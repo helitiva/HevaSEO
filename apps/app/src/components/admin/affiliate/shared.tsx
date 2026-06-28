@@ -72,7 +72,7 @@ export function TierBadge({ tier, rate }: { tier: TierId; rate: number }) {
   const label = tier.charAt(0).toUpperCase() + tier.slice(1);
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold capitalize ${TIER_META[tier]}`}>
-      <i className="ph-fill ph-crown-simple text-[10px]" /> {label} · {Math.round(rate * 100)}%
+      <i className="ph-fill ph-crown-simple text-[10px]" aria-hidden /> {label} · {Math.round(rate * 100)}%
     </span>
   );
 }

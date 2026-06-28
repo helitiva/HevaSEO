@@ -44,7 +44,7 @@ export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
   const Th = ({ k, children, right }: { k: SortKey; children: React.ReactNode; right?: boolean }) => (
     <th className={`px-3 py-2 font-semibold ${right ? 'text-right' : ''}`}>
       <button type="button" onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 hover:text-foreground ${right ? 'flex-row-reverse' : ''}`}>
-        {children}{sort === k && <i className={`ph-bold text-[10px] ${dir === 1 ? 'ph-caret-up' : 'ph-caret-down'}`} />}
+        {children}{sort === k && <i className={`ph-bold text-[10px] ${dir === 1 ? 'ph-caret-up' : 'ph-caret-down'}`} aria-hidden />}
       </button>
     </th>
   );
@@ -66,7 +66,7 @@ export function PartnersTab({ partners, tierRows, onToggle, onSelect }: {
           <option value="gold">Gold</option><option value="platinum">Platinum</option>
         </select>
         <div className="ml-auto flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm">
-          <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+          <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search partner / code…" className="w-44 bg-transparent text-xs outline-none" />
         </div>
       </div>

@@ -43,7 +43,7 @@ export function JoinClient() {
       <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-full bg-emerald-500/15 text-emerald-600">
-            <i className="ph-fill ph-check-circle text-2xl" />
+            <i className="ph-fill ph-check-circle text-2xl" aria-hidden />
           </span>
           <div>
             <h2 className="display text-xl font-bold">You&apos;re in, {name.split(' ')[0]} 🎉</h2>
@@ -57,7 +57,7 @@ export function JoinClient() {
               <p className={labelCls}>Your affiliate link</p>
               <div className="flex items-stretch gap-2">
                 <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
-                  <i className="ph-bold ph-link text-primary" />
+                  <i className="ph-bold ph-link text-primary" aria-hidden />
                   <span className="truncate font-mono text-sm">{done.url}</span>
                 </div>
                 <CopyButton value={done.url} label="Copy" />
@@ -78,7 +78,7 @@ export function JoinClient() {
 
         <Link href="/affiliate"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
-          Go to your dashboard <i className="ph-bold ph-arrow-right" />
+          Go to your dashboard <i className="ph-bold ph-arrow-right" aria-hidden />
         </Link>
       </div>
     );
@@ -165,7 +165,7 @@ export function JoinClient() {
 
       <button type="submit" disabled={!canSubmit}
         className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
-        Create my affiliate link <i className="ph-bold ph-arrow-right" />
+        Create my affiliate link <i className="ph-bold ph-arrow-right" aria-hidden />
       </button>
     </form>
   );

@@ -42,7 +42,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
   return (
     <div className="kcard">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-file-arrow-up text-primary" /> Deliverable</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-file-arrow-up text-primary" aria-hidden /> Deliverable</p>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
           {lockReason ? (status ?? '').replace('_', ' ') : history.length ? `resubmission · v${nextV}` : 'first submission · v1'}
         </span>
@@ -53,7 +53,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
           {history.map((d) => (
             <li key={d.id} className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs">
               <span className="font-semibold">v{d.version}</span>
-              <i className={`ph-bold ${d.kind === 'link' ? 'ph-link' : 'ph-file-text'} text-muted-foreground`} />
+              <i className={`ph-bold ${d.kind === 'link' ? 'ph-link' : 'ph-file-text'} text-muted-foreground`} aria-hidden />
               <span className="truncate text-muted-foreground">{d.fileName ?? d.url}</span>
               <span className={`pill ${d.status === 'approved' ? 'pill-live' : d.status === 'changes_requested' ? 'pill-warn' : 'pill-good'} ml-auto shrink-0`}>{d.status.replace('_', ' ')}</span>
             </li>
@@ -75,7 +75,7 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
       </label>
       {file && (
         <button onClick={() => setFile(null)} className="mt-1.5 text-xs text-muted-foreground hover:text-destructive">
-          <i className="ph-bold ph-x" /> Remove {file}
+          <i className="ph-bold ph-x" aria-hidden /> Remove {file}
         </button>
       )}
 
@@ -100,13 +100,13 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
 
       {qaTotal > 0 && !qaComplete && (
         <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-          <i className="ph-bold ph-warning-circle" /> {qaDone}/{qaTotal} acceptance checks ticked — worth finishing your self-check first.
+          <i className="ph-bold ph-warning-circle" aria-hidden /> {qaDone}/{qaTotal} acceptance checks ticked — worth finishing your self-check first.
         </p>
       )}
 
       <button disabled={!canSubmit} onClick={() => onSubmit(note.trim(), customerNote.trim() || undefined)}
         className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-        <i className="ph-bold ph-paper-plane-tilt" /> Submit v{nextV} for review
+        <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> Submit v{nextV} for review
       </button>
       {!canSubmit && <p className="mt-1 text-center text-[11px] text-muted-foreground">Attach a file or link, and add a note.</p>}
       </>)}

@@ -69,7 +69,7 @@ export function LinkBar({ code }: { code: string }) {
           {/* Deep-link builder */}
           <div className="mt-4 rounded-xl border border-border bg-card/60 p-3">
             <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-              <i className="ph-bold ph-magic-wand" /> Build a tracked link to any page
+              <i className="ph-bold ph-magic-wand" aria-hidden /> Build a tracked link to any page
             </p>
             <div className="flex flex-wrap items-stretch gap-2">
               <div className="flex flex-wrap gap-1.5">
@@ -78,7 +78,7 @@ export function LinkBar({ code }: { code: string }) {
                     className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
                       targetPath === t.path ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'
                     }`}>
-                    <i className={`ph-bold ${t.icon}`} /> {t.label}
+                    <i className={`ph-bold ${t.icon}`} aria-hidden /> {t.label}
                   </button>
                 ))}
               </div>

@@ -73,7 +73,7 @@ export function DocComposer({ editId }: { editId?: string }) {
 
       {/* Distribution — the key control */}
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-paper-plane-tilt" />Distribute to</p>
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-paper-plane-tilt" aria-hidden />Distribute to</p>
         <div className="flex flex-wrap gap-1.5">
           {DISTRIBUTABLE_AUDIENCES.map((a) => {
             const m = audienceMeta(a);
@@ -123,7 +123,7 @@ export function DocComposer({ editId }: { editId?: string }) {
       <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
         <button onClick={() => router.push('/admin/docs')} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent">Cancel</button>
         <button onClick={save} disabled={!canSave} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40">
-          <i className="ph-bold ph-paper-plane-tilt" /> {existing ? 'Save changes' : 'Publish doc'}
+          <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> {existing ? 'Save changes' : 'Publish doc'}
         </button>
       </div>
     </div>

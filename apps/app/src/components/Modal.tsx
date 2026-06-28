@@ -41,13 +41,13 @@ export function Modal({
       <div className={`${closing ? 'modal-out' : 'modal-in'} scrollbar-thin relative z-10 max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            {icon && <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><i className={`ph-bold ${icon} text-lg`} /></span>}
+            {icon && <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><i className={`ph-bold ${icon} text-lg`} aria-hidden /></span>}
             <div>
               <h3 className="display text-lg font-semibold tracking-tight">{title}</h3>
               {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
-          <button onClick={close} aria-label="Close" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" /></button>
+          <button onClick={close} aria-label="Close" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
         <div className="mt-4">{children({ close })}</div>
       </div>

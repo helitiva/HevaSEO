@@ -24,7 +24,7 @@ export default async function PayoutsPage() {
 
       {next && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3 text-sm">
-          <i className="ph-fill ph-rocket-launch text-emerald-600" />
+          <i className="ph-fill ph-rocket-launch text-emerald-600" aria-hidden />
           <span>
             <b>{money(pending)}</b> is clearing now. Reach <b>{next.label}</b> and your next orders pay{' '}
             <b className="text-emerald-600">{Math.round(next.rate * 100)}%</b> instead of {Math.round(rate * 100)}% — bigger payouts, same effort.

@@ -21,7 +21,7 @@ export function ServiceMix({ data }: { data: ServiceMixRow[] }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-donut text-primary" /> Service mix</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-donut text-primary" aria-hidden /> Service mix</p>
         <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
           {(['value', 'orders'] as const).map((k) => (
             <button key={k} type="button" onClick={() => setBy(k)}

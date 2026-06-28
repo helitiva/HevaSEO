@@ -88,7 +88,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           onClick={() => setMethod('card')}
           className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition ${method === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40'}`}
         >
-          <i className="ph-bold ph-credit-card text-base" /> Card
+          <i className="ph-bold ph-credit-card text-base" aria-hidden /> Card
         </button>
         <button
           type="button"
@@ -104,7 +104,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           {/* express wallets */}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => pay('Apple Pay')} className="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
-              <i className="ph-fill ph-apple-logo text-base" /> Pay
+              <i className="ph-fill ph-apple-logo text-base" aria-hidden /> Pay
             </button>
             <button type="button" onClick={() => pay('Google Pay')} className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent">
               <span className="font-bold"><span className="text-[#4285f4]">G</span> Pay</span>
@@ -121,7 +121,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
               <label className="lbl">Card number</label>
               <div className="relative">
                 <input value={card} onChange={(e) => setCard(fmtCard(e.target.value))} inputMode="numeric" className="field pr-14 font-mono" placeholder="1234 5678 9012 3456" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2">{brand ? <BrandMark brand={brand} /> : <i className="ph-bold ph-credit-card text-muted-foreground" />}</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">{brand ? <BrandMark brand={brand} /> : <i className="ph-bold ph-credit-card text-muted-foreground" aria-hidden />}</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -132,7 +132,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           </div>
 
           <button type="button" onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-            <i className="ph-bold ph-lock-simple" /> Pay ${amount}
+            <i className="ph-bold ph-lock-simple" aria-hidden /> Pay ${amount}
           </button>
         </>
       ) : (
@@ -150,7 +150,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       {/* trust footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <i className="ph-bold ph-lock-simple text-emerald-500" /> Payments secured by <b className="text-foreground">Stripe</b> · we never store your card details
+          <i className="ph-bold ph-lock-simple text-emerald-500" aria-hidden /> Payments secured by <b className="text-foreground">Stripe</b> · we never store your card details
         </p>
         <div className="flex items-center gap-1.5">
           <BrandMark brand="visa" /><BrandMark brand="mastercard" /><BrandMark brand="amex" />

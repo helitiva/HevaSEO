@@ -160,7 +160,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
           <div className="mb-2 flex items-center gap-1.5">
             <button onClick={() => setReSubOnly((v) => !v)} className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${reSubOnly ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}>Re-subs</button>
             <button onClick={() => setOverdueOnly((v) => !v)} className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${overdueOnly ? 'border-amber-500 bg-amber-500/10 text-amber-700' : 'border-border text-muted-foreground hover:bg-accent'}`}>Overdue</button>
-            <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search  /" className="w-full rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
+            <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search  /" className="w-full rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
           </div>
           <div className="mb-1 flex items-center justify-between px-0.5 text-[11px] text-muted-foreground"><span>{visible.length} to review</span><span>SLA {stats.slaDays}d</span></div>
           <div className="scrollbar-thin max-h-[38rem] space-y-1 overflow-y-auto pr-1">
@@ -175,20 +175,20 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 <div className="mt-1 flex items-center gap-1.5 text-[11px]">
                   <span className="truncate text-muted-foreground">{q.service} · {q.pkg}</span>
                   <span className="ml-auto flex shrink-0 items-center gap-1">
-                    <StaffHoverCard staff={q.staff ?? ''}><span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 font-semibold text-foreground"><i className="ph-bold ph-user-circle text-primary" />{q.staff}</span></StaffHoverCard>
-                    <i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} title={q.customer} />
+                    <StaffHoverCard staff={q.staff ?? ''}><span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-0.5 font-semibold text-foreground"><i className="ph-bold ph-user-circle text-primary" aria-hidden />{q.staff}</span></StaffHoverCard>
+                    <i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} title={q.customer} aria-hidden />
                   </span>
                 </div>
               </button>
             ))}
-            {visible.length === 0 && <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground"><i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" />Inbox zero — nothing to review.</p>}
+            {visible.length === 0 && <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground"><i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" aria-hidden />Inbox zero — nothing to review.</p>}
           </div>
         </div>
 
         {/* review pane */}
         <div className="min-w-0 rounded-2xl border border-border bg-card p-5">
           {!selected ? (
-            <div className="grid h-full min-h-[20rem] place-items-center text-center text-sm text-muted-foreground"><div><i className="ph-bold ph-coffee mb-2 block text-3xl text-emerald-500" />All caught up. Nice work.</div></div>
+            <div className="grid h-full min-h-[20rem] place-items-center text-center text-sm text-muted-foreground"><div><i className="ph-bold ph-coffee mb-2 block text-3xl text-emerald-500" aria-hidden />All caught up. Nice work.</div></div>
           ) : (
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-2">
@@ -197,13 +197,13 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 {selected.isResubmission && <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600">re-submission · v{selected.latest.version}</span>}
                 <div className="ml-auto flex items-center gap-2">
                   <Link href={`/admin/orders/${selected.id}`} className="text-xs font-semibold text-primary hover:underline">Open full order →</Link>
-                  <a href={`/admin/orders/${selected.id}`} target="_blank" rel="noopener noreferrer" title="Open order in a new tab" aria-label="Open order in a new tab" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" /></a>
+                  <a href={`/admin/orders/${selected.id}`} target="_blank" rel="noopener noreferrer" title="Open order in a new tab" aria-label="Open order in a new tab" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
                 </div>
               </div>
 
               {selected.isResubmission && selected.priorNote && (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                  <p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700"><i className="ph-bold ph-arrow-u-up-left" />Previously sent back — verify it's addressed</p>
+                  <p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700"><i className="ph-bold ph-arrow-u-up-left" aria-hidden />Previously sent back — verify it's addressed</p>
                   “{selected.priorNote}”
                 </div>
               )}
@@ -228,7 +228,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 {showMoney && <KV label="Order value" value={money(selected.value)} />}
                 <KV label="Deadline" value={selected.deadline ?? '—'} />
                 <KV label="Submitted by" value={selected.staff ?? '—'} />
-                <KVNode label="Filed under"><span className="inline-flex items-center gap-1 text-sm font-medium"><i className="ph-bold ph-folders text-muted-foreground" />{selected.project}<i className="ph-bold ph-caret-right text-muted-foreground" />{selected.folder}</span></KVNode>
+                <KVNode label="Filed under"><span className="inline-flex items-center gap-1 text-sm font-medium"><i className="ph-bold ph-folders text-muted-foreground" aria-hidden />{selected.project}<i className="ph-bold ph-caret-right text-muted-foreground" aria-hidden />{selected.folder}</span></KVNode>
                 <KV label="Source" value={`via ${selected.source}`} />
               </div>
 
@@ -236,7 +236,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Customer brief</p>
                 <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">{selected.brief.map((f) => <KV key={f.label} label={f.label} value={f.value} />)}</div>
                 {selected.customerNote
-                  ? <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm"><p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-chat-circle-text" />Note from customer</p>{selected.customerNote}</div>
+                  ? <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm"><p className="mb-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary"><i className="ph-bold ph-chat-circle-text" aria-hidden />Note from customer</p>{selected.customerNote}</div>
                   : <p className="mt-2 text-xs text-muted-foreground">No note from the customer.</p>}
               </div>
 
@@ -249,14 +249,14 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">v{v.version}</span>
                         {v.kind === 'file'
-                          ? <a href="#" onClick={(e) => e.preventDefault()} className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-file-arrow-down" />{v.fileName}</a>
-                          : <a href={v.url ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-link" />Open link</a>}
-                        <button onClick={() => setPreviewId((p) => (p === v.id ? null : v.id))} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-eye mr-1" />{previewId === v.id ? 'Hide' : 'Preview'}</button>
+                          ? <a href="#" onClick={(e) => e.preventDefault()} className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-file-arrow-down" aria-hidden />{v.fileName}</a>
+                          : <a href={v.url ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden />Open link</a>}
+                        <button onClick={() => setPreviewId((p) => (p === v.id ? null : v.id))} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-eye mr-1" aria-hidden />{previewId === v.id ? 'Hide' : 'Preview'}</button>
                         <span className="ml-auto text-xs text-muted-foreground">{v.submittedAt}</span>
                         <StatusChip status={v.status} />
                       </div>
-                      {v.note && <p className="mt-1.5 text-sm text-muted-foreground"><i className="ph-bold ph-chat-text mr-1" />{v.note}</p>}
-                      {v.reviewNote && <p className="mt-1.5 rounded-lg bg-amber-500/5 px-2 py-1.5 text-xs text-amber-700"><i className="ph-bold ph-warning mr-1" />Sent back: {v.reviewNote}</p>}
+                      {v.note && <p className="mt-1.5 text-sm text-muted-foreground"><i className="ph-bold ph-chat-text mr-1" aria-hidden />{v.note}</p>}
+                      {v.reviewNote && <p className="mt-1.5 rounded-lg bg-amber-500/5 px-2 py-1.5 text-xs text-amber-700"><i className="ph-bold ph-warning mr-1" aria-hidden />Sent back: {v.reviewNote}</p>}
                       {previewId === v.id && <PreviewBox v={v} />}
                     </div>
                   ))}
@@ -291,13 +291,13 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                   and a customer-facing message. Distinct accent colours + audience badges so the
                   two are never confused. Each has its own quick-fill presets. */}
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-chats-circle text-primary" />Leave a note</p>
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-chats-circle text-primary" aria-hidden />Leave a note</p>
                 <div className="grid items-start gap-3 sm:grid-cols-2">
                   {/* —— To staff (internal) —— */}
                   <div className="overflow-hidden rounded-xl border border-indigo-400/40 bg-indigo-500/5">
                     <div className="flex items-center gap-1.5 border-b border-indigo-400/30 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-300">
-                      <i className="ph-bold ph-user-circle" />To {selected.staff ?? 'staff'}
-                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-lock-simple" />Internal</span>
+                      <i className="ph-bold ph-user-circle" aria-hidden />To {selected.staff ?? 'staff'}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-lock-simple" aria-hidden />Internal</span>
                       <span className="ml-auto"><SnippetPicker snippets={staffSnips} current={noteStaff} onPick={(s) => setNoteStaff((p) => insertSnippet(p, s))} onAdd={(s) => setStaffSnips((l) => [s, ...l])} onRemove={(s) => setStaffSnips((l) => l.filter((x) => x !== s))} /></span>
                     </div>
                     <div className="p-2.5">
@@ -308,8 +308,8 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                   {/* —— To customer (visible) —— */}
                   <div className="overflow-hidden rounded-xl border border-sky-400/40 bg-sky-500/5">
                     <div className="flex items-center gap-1.5 border-b border-sky-400/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
-                      <i className="ph-bold ph-chat-circle-text" />To {selected.customer}
-                      <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-eye" />Customer sees</span>
+                      <i className="ph-bold ph-chat-circle-text" aria-hidden />To {selected.customer}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"><i className="ph-fill ph-eye" aria-hidden />Customer sees</span>
                       <span className="ml-auto"><SnippetPicker snippets={customerSnips} current={noteCustomer} onPick={(s) => setNoteCustomer((p) => insertSnippet(p, s))} onAdd={(s) => setCustomerSnips((l) => [s, ...l])} onRemove={(s) => setCustomerSnips((l) => l.filter((x) => x !== s))} /></span>
                     </div>
                     <div className="p-2.5">
@@ -319,13 +319,13 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                 </div>
                 <div className="mt-2 flex items-center justify-end gap-2">
                   {(noteStaff.trim() || noteCustomer.trim()) && <button onClick={() => { setNoteStaff(''); setNoteCustomer(''); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear both</button>}
-                  <button onClick={() => sendNotes(selected)} disabled={!noteStaff.trim() && !noteCustomer.trim()} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-paper-plane-tilt mr-1" />Send notes</button>
+                  <button onClick={() => sendNotes(selected)} disabled={!noteStaff.trim() && !noteCustomer.trim()} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-paper-plane-tilt mr-1" aria-hidden />Send notes</button>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                <button onClick={() => approve(selected)} disabled={!allChecked(selected)} title={allChecked(selected) ? 'Approve & complete (a)' : 'Tick all criteria first'} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-check-circle mr-1" />Approve</button>
-                <button onClick={() => { setCrModal(selected); setCrNote(''); }} className="rounded-lg border border-amber-500/40 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-500/10"><i className="ph-bold ph-arrow-u-up-left mr-1" />Request changes</button>
+                <button onClick={() => approve(selected)} disabled={!allChecked(selected)} title={allChecked(selected) ? 'Approve & complete (a)' : 'Tick all criteria first'} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-check-circle mr-1" aria-hidden />Approve</button>
+                <button onClick={() => { setCrModal(selected); setCrNote(''); }} className="rounded-lg border border-amber-500/40 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-500/10"><i className="ph-bold ph-arrow-u-up-left mr-1" aria-hidden />Request changes</button>
                 {!allChecked(selected) && <span className="text-xs text-muted-foreground">Tick all {selected.checklist.length} criteria to enable approval.</span>}
               </div>
             </div>

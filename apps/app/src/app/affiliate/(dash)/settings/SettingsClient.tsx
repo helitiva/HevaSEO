@@ -23,7 +23,7 @@ export function SettingsClient({ me }: { me: Affiliate }) {
     <div className="grid gap-4 lg:grid-cols-2">
       {/* Profile */}
       <section className="rounded-2xl border border-border bg-card p-5">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user text-primary" /> Profile</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user text-primary" aria-hidden /> Profile</p>
         <div className="mt-4 space-y-3">
           <Field label="Display name"><input className={input} defaultValue={me.name} /></Field>
           <Field label="Email"><input className={input} defaultValue={me.email} type="email" /></Field>
@@ -41,7 +41,7 @@ export function SettingsClient({ me }: { me: Affiliate }) {
       <div className="space-y-4">
         {/* Affiliate code */}
         <section className="rounded-2xl border border-border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-ticket text-primary" /> Affiliate code</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-ticket text-primary" aria-hidden /> Affiliate code</p>
           <p className="mt-0.5 text-xs text-muted-foreground">Your shareable code. Keep it short and memorable.</p>
           <div className="mt-3">
             <input
@@ -59,19 +59,19 @@ export function SettingsClient({ me }: { me: Affiliate }) {
             type="button" disabled={!valid || !changed || saved} onClick={() => setSaved(true)}
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
           >
-            <i className={`ph-bold ${saved ? 'ph-check' : 'ph-floppy-disk'}`} /> {saved ? 'Saved' : 'Save code'}
+            <i className={`ph-bold ${saved ? 'ph-check' : 'ph-floppy-disk'}`} aria-hidden /> {saved ? 'Saved' : 'Save code'}
           </button>
         </section>
 
         {/* Payout method */}
         <section className="rounded-2xl border border-border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bank text-primary" /> Payout method</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bank text-primary" aria-hidden /> Payout method</p>
           <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-            <span className="flex items-center gap-2"><i className="ph-bold ph-paypal-logo text-[#003087]" /> {me.payoutLabel}</span>
+            <span className="flex items-center gap-2"><i className="ph-bold ph-paypal-logo text-[#003087]" aria-hidden /> {me.payoutLabel}</span>
             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">default</span>
           </div>
           <button type="button" className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition hover:bg-muted">
-            <i className="ph-bold ph-plus" /> Add payout method
+            <i className="ph-bold ph-plus" aria-hidden /> Add payout method
           </button>
         </section>
       </div>

@@ -109,9 +109,9 @@ export function SettingsClient({ settings }: Props) {
     <div className="relative">
       <div className="relative mb-4 max-w-md">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
-          <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+          <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
           <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setQuery('')} placeholder="Search settings…" aria-label="Search settings" className="w-full bg-transparent outline-none" />
-          {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground hover:text-foreground" /></button>}
+          {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground hover:text-foreground" aria-hidden /></button>}
         </div>
         {query.trim() && (
           <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
@@ -187,14 +187,14 @@ export function SettingsClient({ settings }: Props) {
 
               <div className="mb-2 mt-6 flex items-center gap-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Composite score weights <span className={`ml-1 ${scoreSum === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>(sum {scoreSum}%)</span></p>
-                {scoreSum !== 100 && <button onClick={balanceScoring} className="ml-auto rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/20"><i className="ph-bold ph-scales mr-1" />Auto-balance to 100%</button>}
+                {scoreSum !== 100 && <button onClick={balanceScoring} className="ml-auto rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/20"><i className="ph-bold ph-scales mr-1" aria-hidden />Auto-balance to 100%</button>}
               </div>
               <Slider label="Quality" value={s.scoring.quality} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, quality: v } }))} />
               <Slider label="On-time" value={s.scoring.onTime} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, onTime: v } }))} />
               <Slider label="Throughput" value={s.scoring.throughput} suffix="%" onChange={(v) => setS((p) => ({ ...p, scoring: { ...p.scoring, throughput: v } }))} />
 
               <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3">
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><i className="ph-bold ph-eye text-primary" />Live preview — how staff rank for a new order</p>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><i className="ph-bold ph-eye text-primary" aria-hidden />Live preview — how staff rank for a new order</p>
                 <ScorePreview weights={s.scoring} />
               </div>
             </Card>
@@ -232,8 +232,8 @@ export function SettingsClient({ settings }: Props) {
         <div className="modal-in fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:left-52">
           <div className="mx-auto flex max-w-5xl items-center gap-3 pl-12 sm:pl-0">
             {errors.length > 0
-              ? <span className="flex items-center gap-2 text-sm font-medium text-destructive"><i className="ph-fill ph-x-circle" />{errors[0]}</span>
-              : <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· logged to the audit log · ⌘S to save</span></span>}
+              ? <span className="flex items-center gap-2 text-sm font-medium text-destructive"><i className="ph-fill ph-x-circle" aria-hidden />{errors[0]}</span>
+              : <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" aria-hidden />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· logged to the audit log · ⌘S to save</span></span>}
             <div className="ml-auto flex gap-2">
               <button onClick={discard} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Discard</button>
               <button onClick={save} disabled={!canSave} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" title={errors.length ? errors[0] : 'Save changes'}>Save changes</button>
@@ -257,7 +257,7 @@ function Card({ title, hint, onReset, children }: { title: string; hint?: string
           <h2 className="text-lg font-bold tracking-tight">{title}</h2>
           {hint && <p className="mt-0.5 max-w-prose text-sm text-muted-foreground">{hint}</p>}
         </div>
-        {onReset && <button onClick={onReset} title="Reset this section to defaults" className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-counter-clockwise mr-1" />Reset</button>}
+        {onReset && <button onClick={onReset} title="Reset this section to defaults" className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-arrow-counter-clockwise mr-1" aria-hidden />Reset</button>}
       </div>
       {children}
     </div>
@@ -296,7 +296,7 @@ function SlaTable({ title, rows, get, set }: { title: string; rows: [string, str
               <input type="number" min={0} aria-label={`${label} first response hours`} value={t.firstResponseH} onChange={(e) => set(k, 'firstResponseH', +e.target.value)} className={`w-20 rounded-lg border bg-background px-2 py-1 text-sm outline-none focus:border-primary ${bad ? 'border-amber-500' : 'border-border'}`} />
               <input type="number" min={0} aria-label={`${label} resolution hours`} value={t.resolutionH} onChange={(e) => set(k, 'resolutionH', +e.target.value)} className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary" />
             </div>
-            {bad && <p className="mt-1 text-[11px] font-medium text-amber-600"><i className="ph-bold ph-warning mr-1" />First response ({t.firstResponseH}h) exceeds resolution ({t.resolutionH}h)</p>}
+            {bad && <p className="mt-1 text-[11px] font-medium text-amber-600"><i className="ph-bold ph-warning mr-1" aria-hidden />First response ({t.firstResponseH}h) exceeds resolution ({t.resolutionH}h)</p>}
           </div>
         ); })}
       </div>
@@ -344,9 +344,9 @@ function EmailSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Disp
             <span className="text-[11px] font-semibold text-muted-foreground">Variables:</span>
             {t.vars.map((v) => <button key={v} onClick={() => setT('body', `${t.body}{{${v}}}`)} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] hover:bg-primary/10 hover:text-primary">{`{{${v}}}`}</button>)}
           </div>
-          {unknownVars.length > 0 && <p className="text-[11px] font-medium text-amber-600"><i className="ph-bold ph-warning mr-1" />Unknown variable(s): {[...new Set(unknownVars)].map((v) => `{{${v}}}`).join(', ')}</p>}
+          {unknownVars.length > 0 && <p className="text-[11px] font-medium text-amber-600"><i className="ph-bold ph-warning mr-1" aria-hidden />Unknown variable(s): {[...new Set(unknownVars)].map((v) => `{{${v}}}`).join(', ')}</p>}
           <div className="rounded-xl border border-border bg-muted/30 p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-eye" />Preview</p>
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-eye" aria-hidden />Preview</p>
             <p className="text-sm font-semibold">{renderTpl(t.subject, s.business.name)}</p>
             <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{renderTpl(t.body, s.business.name)}</p>
           </div>
@@ -371,7 +371,7 @@ function AdminsSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Dis
     <Card title="Admins" hint="People who can sign in to this dashboard. Master admin can invite or deactivate others." onReset={onReset}>
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{s.admins.filter((a) => a.status === 'active').length} active · {s.admins.length} total</span>
-        <button onClick={() => setInviting((v) => !v)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"><i className="ph-bold ph-user-plus mr-1" />Invite admin</button>
+        <button onClick={() => setInviting((v) => !v)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Invite admin</button>
       </div>
       {inviting && (
         <div className="modal-in mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
@@ -387,7 +387,7 @@ function AdminsSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Dis
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 text-sm font-semibold">{a.name}
                 {a.role === 'Master admin' && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{a.role}</span>}
-                {a.twoFA && <i className="ph-fill ph-shield-check text-xs text-emerald-600" title="2FA enabled" />}
+                {a.twoFA && <i className="ph-fill ph-shield-check text-xs text-emerald-600" title="2FA enabled" aria-hidden />}
               </p>
               <p className="truncate text-xs text-muted-foreground">{a.email} · {a.lastActive}</p>
             </div>

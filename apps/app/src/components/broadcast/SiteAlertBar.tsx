@@ -22,7 +22,7 @@ export function SiteAlertBar() {
       {alerts.length > 1 && <span className="shrink-0 rounded-full bg-background/60 px-1.5 text-[10px] font-bold text-muted-foreground">+{alerts.length - 1}</span>}
       {b.requireAck
         ? <button onClick={() => acknowledge(b.id)} className="shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90" style={{ background: m.color }}>Acknowledge</button>
-        : <button onClick={() => dismiss(b.id)} aria-label="Dismiss alert" className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-background/60"><i className="ph-bold ph-x" /></button>}
+        : <button onClick={() => dismiss(b.id)} aria-label="Dismiss alert" className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-background/60"><i className="ph-bold ph-x" aria-hidden /></button>}
     </div>
   );
 }

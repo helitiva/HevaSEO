@@ -103,7 +103,7 @@ export function SettingsView() {
       <aside className="lg:sticky lg:top-[84px] h-fit rounded-2xl border border-border bg-card p-2">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`set-tab${tab === t.key ? ' active' : ''}`}>
-            <i className={`ph-bold ${t.icon}`} /> {t.label}
+            <i className={`ph-bold ${t.icon}`} aria-hidden /> {t.label}
           </button>
         ))}
       </aside>
@@ -158,9 +158,9 @@ export function SettingsView() {
             <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
               <h2 className="display text-base font-semibold tracking-tight">Login sessions</h2>
               <div className="mt-3 space-y-2.5 text-sm">
-                <div className="flex items-center gap-3"><i className="ph-bold ph-desktop text-muted-foreground" /><div className="flex-1"><p className="font-medium">Chrome · macOS</p><p className="text-[11px] text-muted-foreground">San Francisco · This device</p></div><span className="pill pill-good">Current</span></div>
+                <div className="flex items-center gap-3"><i className="ph-bold ph-desktop text-muted-foreground" aria-hidden /><div className="flex-1"><p className="font-medium">Chrome · macOS</p><p className="text-[11px] text-muted-foreground">San Francisco · This device</p></div><span className="pill pill-good">Current</span></div>
                 {mobileSession
-                  ? <div className="flex items-center gap-3"><i className="ph-bold ph-device-mobile text-muted-foreground" /><div className="flex-1"><p className="font-medium">Safari · iPhone</p><p className="text-[11px] text-muted-foreground">San Francisco · 2 days ago</p></div><button onClick={() => { setMobileSession(false); toast('Signed out of Safari · iPhone'); }} className="text-xs font-semibold text-destructive hover:underline">Sign out</button></div>
+                  ? <div className="flex items-center gap-3"><i className="ph-bold ph-device-mobile text-muted-foreground" aria-hidden /><div className="flex-1"><p className="font-medium">Safari · iPhone</p><p className="text-[11px] text-muted-foreground">San Francisco · 2 days ago</p></div><button onClick={() => { setMobileSession(false); toast('Signed out of Safari · iPhone'); }} className="text-xs font-semibold text-destructive hover:underline">Sign out</button></div>
                   : <p className="rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">No other active sessions.</p>}
               </div>
             </div>
@@ -191,14 +191,14 @@ export function SettingsView() {
             <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 lg:p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-400/20 text-amber-500"><i className="ph-fill ph-crown text-xl" /></span>
+                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-400/20 text-amber-500"><i className="ph-fill ph-crown text-xl" aria-hidden /></span>
                   <div><p className="display text-lg font-semibold">{plan} plan</p><p className="text-xs text-muted-foreground">{planDesc}</p></div>
                 </div>
                 <button onClick={() => setPlanOpen(true)} className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Manage plan</button>
               </div>
               <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-primary/20 pt-4">
                 <div><p className="text-xs text-muted-foreground">Credit balance</p><p className="display text-2xl font-semibold tracking-tight">${balance.toLocaleString('en-US')}</p></div>
-                <a href="/credit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-plus" /> Top up credits</a>
+                <a href="/credit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-plus" aria-hidden /> Top up credits</a>
               </div>
             </div>
             <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
@@ -214,7 +214,7 @@ export function SettingsView() {
             <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
               <div className="flex items-center justify-between"><h2 className="display text-base font-semibold tracking-tight">Payment methods</h2><a href="/credit" className="text-xs font-semibold text-primary hover:underline">+ Add</a></div>
               <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                <i className="ph-bold ph-credit-card text-xl text-primary" />
+                <i className="ph-bold ph-credit-card text-xl text-primary" aria-hidden />
                 <div className="flex-1 text-sm"><p className="font-medium">Visa •••• 4242</p><p className="text-[11px] text-muted-foreground">Expires 08/27</p></div>
                 <span className="pill pill-good">Default</span>
               </div>
@@ -240,8 +240,8 @@ export function SettingsView() {
               <p className="text-xs text-muted-foreground">Use this to integrate HevaSEO into your systems.</p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <input className="field font-mono" style={{ maxWidth: '24rem' }} value={apiKey} readOnly />
-                <button onClick={copyKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-copy" /> Copy</button>
-                <button onClick={regenerateKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold text-destructive transition hover:bg-destructive/10"><i className="ph-bold ph-arrows-clockwise" /> Regenerate</button>
+                <button onClick={copyKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-copy" aria-hidden /> Copy</button>
+                <button onClick={regenerateKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold text-destructive transition hover:bg-destructive/10"><i className="ph-bold ph-arrows-clockwise" aria-hidden /> Regenerate</button>
               </div>
             </div>
             <form onSubmit={saved('Webhook saved')} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
@@ -276,7 +276,7 @@ export function SettingsView() {
                     onClick={() => { setPlan(p.key); toast(`Switched to the ${p.key} plan`); close(); }}
                     className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition ${active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                   >
-                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}><i className="ph-bold ph-crown" /></span>
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}><i className="ph-bold ph-crown" aria-hidden /></span>
                     <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{p.key}</span><span className="block text-[11px] text-muted-foreground">{p.desc}</span></span>
                     {active && <span className="pill pill-good shrink-0">Current</span>}
                   </button>
@@ -312,7 +312,7 @@ function AppearancePanel() {
           const on = cur === o.key;
           return (
             <button key={o.key} onClick={() => setTheme(o.key)} className={`rounded-xl border-2 p-4 text-left transition hover:border-primary/50 ${on ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
-              <i className={`ph-bold ${o.icon} text-xl ${o.color}`} /><p className="mt-2 text-sm font-semibold">{o.label}</p>
+              <i className={`ph-bold ${o.icon} text-xl ${o.color}`} aria-hidden /><p className="mt-2 text-sm font-semibold">{o.label}</p>
             </button>
           );
         })}

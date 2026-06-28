@@ -69,11 +69,11 @@ export function SelfNoteLog({ seed, author }: { seed: SelfNote[]; author: string
   return (
     <div className="kcard">
       <p className="flex items-center gap-2 text-sm font-semibold">
-        <i className="ph-bold ph-notebook text-primary" /> Work log
+        <i className="ph-bold ph-notebook text-primary" aria-hidden /> Work log
         <span className="ml-auto text-[11px] font-normal text-muted-foreground">{notes.length} note{notes.length === 1 ? '' : 's'}</span>
       </p>
       <p className="mb-3 mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <i className="ph-bold ph-lock-simple" /> Private to you, your manager &amp; admin · not shown to the customer
+        <i className="ph-bold ph-lock-simple" aria-hidden /> Private to you, your manager &amp; admin · not shown to the customer
       </p>
 
       {/* Composer */}
@@ -92,11 +92,11 @@ export function SelfNoteLog({ seed, author }: { seed: SelfNote[]; author: string
             {pending.map((a, i) => (
               <span key={i} className="group relative inline-flex items-center gap-1 rounded-md border border-border bg-background px-1.5 py-1 text-[11px]">
                 {a.kind === 'image' ? <img src={a.url} alt={a.name} className="h-9 w-9 rounded object-cover" />
-                  : a.kind === 'video' ? <i className="ph-bold ph-video-camera text-base text-primary" />
-                  : a.kind === 'link' ? <i className="ph-bold ph-link text-base text-primary" />
-                  : <i className="ph-bold ph-file text-base text-muted-foreground" />}
+                  : a.kind === 'video' ? <i className="ph-bold ph-video-camera text-base text-primary" aria-hidden />
+                  : a.kind === 'link' ? <i className="ph-bold ph-link text-base text-primary" aria-hidden />
+                  : <i className="ph-bold ph-file text-base text-muted-foreground" aria-hidden />}
                 <span className="max-w-[9rem] truncate">{a.name}</span>
-                <button onClick={() => removePending(i)} aria-label="Remove attachment" className="ml-0.5 text-muted-foreground hover:text-destructive"><i className="ph-bold ph-x" /></button>
+                <button onClick={() => removePending(i)} aria-label="Remove attachment" className="ml-0.5 text-muted-foreground hover:text-destructive"><i className="ph-bold ph-x" aria-hidden /></button>
               </span>
             ))}
           </div>
@@ -118,7 +118,7 @@ export function SelfNoteLog({ seed, author }: { seed: SelfNote[]; author: string
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <i className="ph-bold ph-clock" />
+            <i className="ph-bold ph-clock" aria-hidden />
             <input
               type="datetime-local"
               value={when}
@@ -128,8 +128,8 @@ export function SelfNoteLog({ seed, author }: { seed: SelfNote[]; author: string
             />
           </label>
           <span className="flex items-center gap-1">
-            <button onClick={() => fileRef.current?.click()} aria-label="Attach image or video" className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent"><i className="ph-bold ph-image" /></button>
-            <button onClick={() => setLinkOpen((v) => !v)} aria-label="Attach link" className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent"><i className="ph-bold ph-link-simple" /></button>
+            <button onClick={() => fileRef.current?.click()} aria-label="Attach image or video" className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent"><i className="ph-bold ph-image" aria-hidden /></button>
+            <button onClick={() => setLinkOpen((v) => !v)} aria-label="Attach link" className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent"><i className="ph-bold ph-link-simple" aria-hidden /></button>
             <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
           </span>
           <button
@@ -137,7 +137,7 @@ export function SelfNoteLog({ seed, author }: { seed: SelfNote[]; author: string
             disabled={!body.trim() && pending.length === 0}
             className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <i className="ph-bold ph-plus" /> Add note
+            <i className="ph-bold ph-plus" aria-hidden /> Add note
           </button>
         </div>
       </div>
@@ -158,7 +158,7 @@ function NoteEntry({ note }: { note: SelfNote }) {
   return (
     <div className="rounded-xl border border-border bg-background p-2.5">
       <p className="mb-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <i className="ph-bold ph-user-circle" /><span className="font-semibold text-foreground">{note.author}</span> · {note.at}
+        <i className="ph-bold ph-user-circle" aria-hidden /><span className="font-semibold text-foreground">{note.author}</span> · {note.at}
       </p>
       {note.body && <p className="whitespace-pre-wrap text-sm">{note.body}</p>}
       {note.attachments.length > 0 && (
@@ -180,13 +180,13 @@ function Attachment({ a }: { a: SelfNoteAttachment }) {
   if (a.kind === 'link') {
     return (
       <a href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary hover:underline">
-        <i className="ph-bold ph-link" /><span className="max-w-[14rem] truncate">{a.name ?? a.url}</span><i className="ph-bold ph-arrow-square-out" />
+        <i className="ph-bold ph-link" aria-hidden /><span className="max-w-[14rem] truncate">{a.name ?? a.url}</span><i className="ph-bold ph-arrow-square-out" aria-hidden />
       </a>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px]">
-      <i className="ph-bold ph-file-text text-muted-foreground" /><span className="max-w-[12rem] truncate">{a.name ?? 'file'}</span>
+      <i className="ph-bold ph-file-text text-muted-foreground" aria-hidden /><span className="max-w-[12rem] truncate">{a.name ?? 'file'}</span>
     </span>
   );
 }

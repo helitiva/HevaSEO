@@ -31,14 +31,14 @@ export function CommissionLedger({
     <section className="rounded-2xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-wallet text-primary" /> Commission & payouts</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-wallet text-primary" aria-hidden /> Commission & payouts</p>
           <p className="mt-0.5 text-xs text-muted-foreground">Your earnings — withdraw cleared balance to {payoutLabel}</p>
         </div>
         <button
           type="button" disabled={available === 0 || requested} onClick={() => setRequested(true)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
         >
-          <i className={`ph-bold ${requested ? 'ph-check' : 'ph-arrow-line-down'}`} />
+          <i className={`ph-bold ${requested ? 'ph-check' : 'ph-arrow-line-down'}`} aria-hidden />
           {requested ? 'Payout requested' : `Request payout · ${money(available)}`}
         </button>
       </div>
@@ -81,7 +81,7 @@ export function CommissionLedger({
           <div className="space-y-1.5">
             {payouts.map((p) => (
               <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm">
-                <i className="ph-bold ph-arrow-line-down text-muted-foreground" />
+                <i className="ph-bold ph-arrow-line-down text-muted-foreground" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{money(p.amount)}</p>
                   <p className="text-xs text-muted-foreground">{p.at} · {p.method}</p>

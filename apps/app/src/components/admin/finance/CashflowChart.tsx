@@ -36,7 +36,7 @@ export function CashflowChart({ data }: { data: CashflowPoint[] }) {
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-wave-sine text-primary" /> Cashflow · in vs out</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-wave-sine text-primary" aria-hidden /> Cashflow · in vs out</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Last {period} days · <span className="font-semibold text-emerald-600">+{money(totalIn)}</span> in · <span className="font-semibold text-rose-500">−{money(totalOut)}</span> out · net <span className={`font-semibold ${net >= 0 ? 'text-foreground' : 'text-rose-500'}`}>{money(net)}</span>
           </p>

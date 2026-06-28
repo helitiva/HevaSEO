@@ -34,14 +34,14 @@ export function AvailabilityPanel({ value, onSave, today }: { value: StaffAvaila
       {/* status + working hours */}
       <div className="kcard">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" /> Working hours</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" aria-hidden /> Working hours</p>
           <button onClick={() => setD((p) => { const mon = p.hours.find((h) => h.day === 0); return mon ? { ...p, hours: p.hours.map((h) => (h.day >= 1 && h.day <= 4 ? { ...h, on: mon.on, start: mon.start, end: mon.end } : h)) } : p; })}
-            className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-copy mr-1" />Copy Mon → weekdays</button>
+            className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"><i className="ph-bold ph-copy mr-1" aria-hidden />Copy Mon → weekdays</button>
         </div>
         <div className="mb-4 grid grid-cols-3 gap-1.5">
           {(Object.keys(STATUS) as AvailStatus[]).map((s) => (
             <button key={s} onClick={() => setD((p) => ({ ...p, status: s }))} className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-semibold transition ${d.status === s ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-              <i className={`ph-bold ${STATUS[s].icon}`} />{STATUS[s].label}
+              <i className={`ph-bold ${STATUS[s].icon}`} aria-hidden />{STATUS[s].label}
             </button>
           ))}
         </div>
@@ -64,14 +64,14 @@ export function AvailabilityPanel({ value, onSave, today }: { value: StaffAvaila
 
       {/* time off */}
       <div className="kcard">
-        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-airplane-takeoff text-primary" /> Time off</p>
+        <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-airplane-takeoff text-primary" aria-hidden /> Time off</p>
         <div className="mb-3 space-y-1.5">
           {d.timeOff.length === 0 && <p className="text-xs text-muted-foreground">No time off scheduled.</p>}
           {d.timeOff.map((t) => (
             <div key={t.id} className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm">
-              <i className="ph-bold ph-calendar-x text-amber-500" />
+              <i className="ph-bold ph-calendar-x text-amber-500" aria-hidden />
               <span className="min-w-0 flex-1"><b className="font-medium">{t.reason}</b> <span className="text-xs text-muted-foreground">· {t.from} → {t.to}</span></span>
-              <button onClick={() => removeOff(t.id)} aria-label="Remove" className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-x" /></button>
+              <button onClick={() => removeOff(t.id)} aria-label="Remove" className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-x" aria-hidden /></button>
             </div>
           ))}
         </div>
@@ -82,30 +82,30 @@ export function AvailabilityPanel({ value, onSave, today }: { value: StaffAvaila
           </div>
           <div className="flex gap-2">
             <input value={off.reason} onChange={(e) => setOff((o) => ({ ...o, reason: e.target.value }))} placeholder="Reason (optional)" className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary" />
-            <button onClick={addOff} disabled={!off.from || !off.to} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"><i className="ph-bold ph-plus" /> Add</button>
+            <button onClick={addOff} disabled={!off.from || !off.to} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-40"><i className="ph-bold ph-plus" aria-hidden /> Add</button>
           </div>
         </div>
       </div>
 
       {/* handoff policy + preview */}
       <div className="kcard lg:col-span-2">
-        <p className="mb-1 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-arrows-split text-primary" /> When I’m away — how should my new tasks be routed?</p>
+        <p className="mb-1 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-arrows-split text-primary" aria-hidden /> When I’m away — how should my new tasks be routed?</p>
         <p className="mb-3 text-xs text-muted-foreground">The system weighs how urgent the service is against how attached the customer is to working with you.</p>
         <div className="grid gap-2 md:grid-cols-3">
           {(Object.keys(HANDOFF_META) as HandoffPolicy[]).map((k) => { const m = HANDOFF_META[k]; const on = d.handoff === k; return (
             <button key={k} onClick={() => setD((p) => ({ ...p, handoff: k }))} className={`rounded-xl border p-3 text-left transition ${on ? 'border-primary bg-primary/5 ring-1 ring-primary/30' : 'border-border hover:border-primary/40'}`}>
-              <p className="flex items-center gap-1.5 text-sm font-semibold"><i className={`ph-bold ${m.icon} ${on ? 'text-primary' : ''}`} />{m.label}</p>
+              <p className="flex items-center gap-1.5 text-sm font-semibold"><i className={`ph-bold ${m.icon} ${on ? 'text-primary' : ''}`} aria-hidden />{m.label}</p>
               <p className="mt-1 text-xs text-muted-foreground">{m.blurb}</p>
             </button>
           ); })}
         </div>
 
         <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><i className="ph-bold ph-eye text-primary" /> How it plays out</p>
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><i className="ph-bold ph-eye text-primary" aria-hidden /> How it plays out</p>
           <div className="space-y-1.5">
             {HANDOFF_SCENARIOS.map((sc) => { const r = resolveHandoff(d.handoff, sc.urgent, sc.loyal); return (
               <div key={sc.label} className="flex items-center gap-2 text-xs">
-                <i className={`ph-bold ${sc.urgent ? 'ph-fire text-destructive' : sc.loyal ? 'ph-heart text-rose-500' : 'ph-user'} shrink-0`} />
+                <i className={`ph-bold ${sc.urgent ? 'ph-fire text-destructive' : sc.loyal ? 'ph-heart text-rose-500' : 'ph-user'} shrink-0`} aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{sc.label}</span>
                 <span className={`shrink-0 rounded-md px-2 py-0.5 font-semibold ${r === 'reassign' ? 'bg-primary/10 text-primary' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
                   {r === 'reassign' ? '→ reassign to a teammate' : '⏳ hold for you'}
@@ -117,7 +117,7 @@ export function AvailabilityPanel({ value, onSave, today }: { value: StaffAvaila
 
         {dirty && (
           <div className="modal-in mt-4 flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2">
-            <span className="text-sm font-medium"><i className="ph-fill ph-warning-circle mr-1 text-amber-500" />Unsaved changes</span>
+            <span className="text-sm font-medium"><i className="ph-fill ph-warning-circle mr-1 text-amber-500" aria-hidden />Unsaved changes</span>
             <div className="ml-auto flex gap-2">
               <button onClick={() => setD(clone(value))} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Discard</button>
               <button onClick={save} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90">Save</button>

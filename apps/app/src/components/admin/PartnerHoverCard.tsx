@@ -71,7 +71,7 @@ export function PartnerHoverCard({ affiliateId, children, className = '' }: { af
 
         {/* tier + refs */}
         <div className="mt-2.5 flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-1.5">
-          <span className="inline-flex items-center gap-1 text-xs font-bold capitalize text-amber-600"><i className="ph-fill ph-crown-simple text-[11px]" />{tier.label} · {Math.round(tier.rate * 100)}%</span>
+          <span className="inline-flex items-center gap-1 text-xs font-bold capitalize text-amber-600"><i className="ph-fill ph-crown-simple text-[11px]" aria-hidden />{tier.label} · {Math.round(tier.rate * 100)}%</span>
           <span className="text-[11px] text-muted-foreground">{a.refs} referrals</span>
         </div>
 

@@ -49,7 +49,7 @@ export default function DashboardPage() {
           <SpecialistChat className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90" />
           <div className="mt-3 grid gap-2">
             <QuickOrderButton label="Create new order" icon="ph-plus text-primary" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent" />
-            <Link href="/credit" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" /> Top up credits</Link>
+            <Link href="/credit" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" aria-hidden /> Top up credits</Link>
           </div>
         </div>
       </section>

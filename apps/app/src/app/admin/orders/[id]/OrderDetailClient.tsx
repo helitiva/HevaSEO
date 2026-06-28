@@ -118,11 +118,11 @@ export function OrderDetailClient(p: OrderDetailProps) {
           {/* compact header card */}
           <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={`${areaBase}/orders`} className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
+            <Link href={`${areaBase}/orders`} className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders" aria-label="Back to orders"><i className="ph-bold ph-arrow-left" aria-hidden /></Link>
             <span className="display text-xl font-bold tracking-tight">{o.code}</span>
             <span className="text-xs font-semibold text-muted-foreground">#{o.seq}</span>
             <PriorityBadge priority={priority} /><StatusBadge status={status} />
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} /> {banner.text}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} aria-hidden /> {banner.text}</span>
         </div>
 
           <div className="scrollbar-thin mt-3 min-w-0 overflow-x-auto"><ProgressTracker status={status} /></div>
@@ -130,8 +130,8 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <p className="text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-xs">
-                {p.prev ? <Link href={`${areaBase}/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
-                {p.next ? <Link href={`${areaBase}/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
+                {p.prev ? <Link href={`${areaBase}/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`} aria-label={`Previous order: ${p.prev.code}`}><i className="ph-bold ph-caret-left" aria-hidden /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" aria-hidden /></span>}
+                {p.next ? <Link href={`${areaBase}/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`} aria-label={`Next order: ${p.next.code}`}><i className="ph-bold ph-caret-right" aria-hidden /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" aria-hidden /></span>}
               </div>
               {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
               {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
@@ -163,22 +163,22 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <div className="mt-4 border-t border-border pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Package · {money(o.value)}</p>
               <p className="mt-0.5 text-sm font-semibold">{o.service} · {o.pkg}</p>
-              <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}</ul>
+              <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden />{x}</li>)}</ul>
             </div>
           </Card>
 
           <Card icon="ph-note-pencil" title="Customer intake — full submission">
             <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
-              <i className="ph-bold ph-folders text-primary" />
+              <i className="ph-bold ph-folders text-primary" aria-hidden />
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
               <span className="font-semibold">{p.project}</span>
-              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" />
-              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" />{p.folder}</span>
+              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{p.folder}</span>
             </div>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{p.brief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
             {p.addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" /> Upsells added at checkout</p>
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" aria-hidden /> Upsells added at checkout</p>
                 <div className="space-y-1 text-sm">
                   {p.addons.map((a) => <div key={a.name} className="flex justify-between"><span>{a.name} <span className="text-muted-foreground">· {a.tier}</span></span><span className="font-semibold">+{money(a.price)}</span></div>)}
                   <div className="mt-1 flex justify-between border-t border-emerald-500/20 pt-1 font-semibold"><span>Upsell total</span><span>{money(p.addonsTotal)}</span></div>
@@ -212,7 +212,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
             </div>
 
             <div className="mt-4 rounded-xl border border-border bg-background/40 p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-note text-primary" /> Notes to staff {staff ? <span className="text-foreground">· {staff}</span> : <span>· unassigned</span>}</p>
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-note text-primary" aria-hidden /> Notes to staff {staff ? <span className="text-foreground">· {staff}</span> : <span>· unassigned</span>}</p>
               <div className="space-y-1.5">
                 {staffNotes.map((n, i) => (
                   <div key={i} className="rounded-lg border border-border bg-card p-2 text-sm">
@@ -231,7 +231,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <p className="mb-2 mt-4 text-xs font-semibold text-muted-foreground">Deliverables</p>
             {submitted ? (
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3">
-                <div className="flex items-center gap-3"><i className="ph-bold ph-file-text text-2xl text-primary" /><div><p className="text-sm font-medium">{o.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {staff ?? '—'}</p></div></div>
+                <div className="flex items-center gap-3"><i className="ph-bold ph-file-text text-2xl text-primary" aria-hidden /><div><p className="text-sm font-medium">{o.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {staff ?? '—'}</p></div></div>
                 {status === 'delivered' && <div className="flex gap-2"><button onClick={() => transition('approved')} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Approve</button><button onClick={() => setNoteOpen(true)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">Request changes</button></div>}
               </div>
             ) : <p className="text-sm text-muted-foreground">Awaiting submission from staff.</p>}
@@ -283,7 +283,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
       </div>
 
       {/* overlays */}
-      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
+      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
 
       {picker && (
         <Overlay onClose={() => setPicker(false)} title="Assign staff">
@@ -349,14 +349,14 @@ function MoreMenu({ onAssign, onRefund, onCancel, canCancel, canRefund = true }:
   ];
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent" aria-label="More actions"><i className="ph-bold ph-dots-three-outline" /></button>
-      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} /> {i.label}</button>)}</div></>)}
+      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent" aria-label="More actions"><i className="ph-bold ph-dots-three-outline" aria-hidden /></button>
+      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} aria-hidden /> {i.label}</button>)}</div></>)}
     </div>
   );
 }
 
 function ProgressTracker({ status }: { status: OrderStatus }) {
-  if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" /> Order canceled</span>;
+  if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" aria-hidden /> Order canceled</span>;
   const idx = STAGE_OF[status];
   const changes = status === 'changes_requested';
   return (
@@ -365,7 +365,7 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
         <Fragment key={s.label}>
           {i > 0 && <span className={`mx-1.5 mt-3 h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
           <div className="flex shrink-0 flex-col items-center gap-1">
-            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
+            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" aria-hidden /> : i + 1}</span>
             <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}{changes && i === idx ? ' ·changes' : ''}</span>
           </div>
         </Fragment>
@@ -379,7 +379,7 @@ function Overlay({ title, children, onClose }: { title: string; children: ReactN
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <div className="order-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between"><p className="display text-base font-bold">{title}</p><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" /></button></div>
+        <div className="mb-3 flex items-center justify-between"><p className="display text-base font-bold">{title}</p><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent" aria-label="Close"><i className="ph-bold ph-x" aria-hidden /></button></div>
         {children}
       </div>
     </div>

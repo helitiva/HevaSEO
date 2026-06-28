@@ -80,7 +80,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   return (
     <section className="mx-auto max-w-5xl">
       <Link href="/staff/tasks" className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
-        <i className="ph-bold ph-arrow-left" /> Back to tasks
+        <i className="ph-bold ph-arrow-left" aria-hidden /> Back to tasks
       </Link>
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <NavBtn href={prevId ? `/staff/tasks/${prevId}` : null} icon="ph-caret-left" label="Previous task" />
@@ -89,13 +89,13 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         <StatusBadge status={status} />
         <PriorityBadge priority={task.priority} />
         <span className="ml-auto flex items-center gap-2">
-          {task.deadline && <span className={`hidden items-center gap-1 text-xs sm:flex ${days !== null && days < 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}><i className="ph-bold ph-calendar-blank" />due {task.deadline}</span>}
+          {task.deadline && <span className={`hidden items-center gap-1 text-xs sm:flex ${days !== null && days < 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}><i className="ph-bold ph-calendar-blank" aria-hidden />due {task.deadline}</span>}
           <SlaChip daysToDue={days} />
-          <button onClick={copyLink} aria-label="Copy share link" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-link" /></button>
+          <button onClick={copyLink} aria-label="Copy share link" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-link" aria-hidden /></button>
           <NavBtn href={nextId ? `/staff/tasks/${nextId}` : null} icon="ph-caret-right" label="Next task" />
         </span>
       </div>
-      <p className="mb-4 text-xs text-muted-foreground">{task.customer} · <i className="ph-bold ph-eye-slash align-middle" /> pricing hidden from staff</p>
+      <p className="mb-4 text-xs text-muted-foreground">{task.customer} · <i className="ph-bold ph-eye-slash align-middle" aria-hidden /> pricing hidden from staff</p>
 
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <ClientCard c={client} />
@@ -114,7 +114,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
               disabled={viewOnly}
               aria-disabled={viewOnly}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${viewOnly ? 'cursor-not-allowed opacity-40' : 'hover:opacity-90'} ${a.primary ? 'bg-primary text-primary-foreground' : 'border border-border'}`}>
-              <i className={`ph-bold ${a.icon}`} /> {a.label}
+              <i className={`ph-bold ${a.icon}`} aria-hidden /> {a.label}
             </button>
           ))}
           <span className="ml-auto text-xs text-muted-foreground"><kbd className="rounded border border-border bg-muted px-1">j</kbd>/<kbd className="rounded border border-border bg-muted px-1">k</kbd> move · <kbd className="rounded border border-border bg-muted px-1">s</kbd> submit</span>
@@ -124,7 +124,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
       {status === 'changes_requested' && (
         <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5">
           <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
-            <i className="ph-bold ph-arrow-counter-clockwise" /> Changes requested{changeRequest ? ` · v${changeRequest.version}` : ''}
+            <i className="ph-bold ph-arrow-counter-clockwise" aria-hidden /> Changes requested{changeRequest ? ` · v${changeRequest.version}` : ''}
           </p>
           <p className="mt-1 text-sm text-amber-900 dark:text-amber-100">{changeRequest?.reviewNote ?? task.note ?? 'The reviewer asked for changes before this can be approved.'}</p>
           <p className="mt-1.5 text-[11px] text-amber-700/80 dark:text-amber-400/70">— {manager.name}{changeRequest?.reviewedAt ? ` · ${changeRequest.reviewedAt}` : ''}. Address the notes, then Resume and resubmit a new version.</p>
@@ -134,7 +134,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
           <div className="kcard">
-            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clipboard-text text-primary" /> Customer brief <span className="ml-auto text-[11px] font-normal text-muted-foreground">{task.brief.length} fields · submitted at checkout</span></p>
+            <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clipboard-text text-primary" aria-hidden /> Customer brief <span className="ml-auto text-[11px] font-normal text-muted-foreground">{task.brief.length} fields · submitted at checkout</span></p>
             {task.brief.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">No brief was submitted with this order.</p>
             ) : (
@@ -155,13 +155,13 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
               {task.qa.map((c, i) => (
                 <li key={c}>
                   <button onClick={() => toggleQa(i)} aria-pressed={qaChecked[i]} className="flex w-full items-center gap-2 rounded-md py-0.5 text-left transition hover:bg-muted/50">
-                    <i className={`ph-bold shrink-0 ${qaChecked[i] ? 'ph-check-square text-emerald-500' : 'ph-square text-muted-foreground'}`} />
+                    <i className={`ph-bold shrink-0 ${qaChecked[i] ? 'ph-check-square text-emerald-500' : 'ph-square text-muted-foreground'}`} aria-hidden />
                     <span className={qaChecked[i] ? 'text-muted-foreground line-through' : ''}>{c}</span>
                   </button>
                 </li>
               ))}
             </ul>
-            {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" /> {task.note}</p>}
+            {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" aria-hidden /> {task.note}</p>}
           </div>
 
           <DeliverableSubmit
@@ -214,10 +214,10 @@ function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created, c
 
   return (
     <div className={`kcard flex flex-col ${className ?? ''}`}>
-      <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chats-circle text-primary" /> Revisions & feedback
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chats-circle text-primary" aria-hidden /> Revisions & feedback
         {deliverables.length > 0 && <span className="ml-auto text-[11px] font-normal text-muted-foreground">{deliverables.length} version{deliverables.length === 1 ? '' : 's'}</span>}
       </p>
-      <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-flag-pennant" /> Order created · {created}</p>
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-flag-pennant" aria-hidden /> Order created · {created}</p>
       <div className="scrollbar-thin -mr-1 flex-1 space-y-3 overflow-y-auto pr-1">
         {ordered.length === 0
           ? <p className="grid h-full place-content-center rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">No revisions yet — submit your first version to start the thread.</p>
@@ -225,7 +225,7 @@ function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created, c
       </div>
       {sessionLog.length > 0 && (
         <div className="mt-2 space-y-1 border-t border-border pt-2">
-          {sessionLog.map((l, i) => <p key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className={`ph-bold ${l.icon}`} />{l.title} · {l.at}</p>)}
+          {sessionLog.map((l, i) => <p key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><i className={`ph-bold ${l.icon}`} aria-hidden />{l.title} · {l.at}</p>)}
         </div>
       )}
     </div>
@@ -245,19 +245,19 @@ function RevBubble({ e }: { e: RevEvent }) {
         <div className={`mt-0.5 inline-block space-y-1.5 rounded-2xl px-3 py-2 text-left text-sm ${mine ? 'bg-primary/10' : changes ? 'bg-amber-500/10' : approved ? 'bg-emerald-500/10' : 'bg-muted'}`}>
           {mine ? (
             <>
-              <p className="flex items-center gap-1 text-[11px] font-semibold text-primary"><i className="ph-bold ph-file-arrow-up" />Submitted v{e.v}</p>
+              <p className="flex items-center gap-1 text-[11px] font-semibold text-primary"><i className="ph-bold ph-file-arrow-up" aria-hidden />Submitted v{e.v}</p>
               {e.note && <p><span className="text-[11px] font-semibold text-muted-foreground">To reviewer · </span>{e.note}</p>}
               {e.customerMsg && <p><span className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">To customer · </span>{e.customerMsg}</p>}
               {((e.files?.length ?? 0) + (e.links?.length ?? 0) > 0) && (
                 <div className="flex flex-wrap gap-1.5">
-                  {e.files?.map((f) => <span key={f} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px]"><i className="ph-bold ph-file-text text-muted-foreground" /><span className="max-w-[11rem] truncate">{f}</span></span>)}
-                  {e.links?.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:underline"><i className="ph-bold ph-link" />Open link<i className="ph-bold ph-arrow-square-out" /></a>)}
+                  {e.files?.map((f) => <span key={f} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px]"><i className="ph-bold ph-file-text text-muted-foreground" aria-hidden /><span className="max-w-[11rem] truncate">{f}</span></span>)}
+                  {e.links?.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden />Open link<i className="ph-bold ph-arrow-square-out" aria-hidden /></a>)}
                 </div>
               )}
             </>
           ) : (
             <>
-              {(changes || approved) && <p className={`flex items-center gap-1 text-[11px] font-semibold ${changes ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}><i className={`ph-bold ${changes ? 'ph-arrow-counter-clockwise' : 'ph-seal-check'}`} />{changes ? 'Changes requested' : 'Approved'}</p>}
+              {(changes || approved) && <p className={`flex items-center gap-1 text-[11px] font-semibold ${changes ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}><i className={`ph-bold ${changes ? 'ph-arrow-counter-clockwise' : 'ph-seal-check'}`} aria-hidden />{changes ? 'Changes requested' : 'Approved'}</p>}
               {e.rating ? <Stars value={e.rating} /> : null}
               {e.body && <p>{e.body}</p>}
             </>
@@ -269,7 +269,7 @@ function RevBubble({ e }: { e: RevEvent }) {
 }
 
 function Stars({ value }: { value: number }) {
-  return <span className="inline-flex items-center gap-0.5" aria-label={`${value} of 5`}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={`ph-fill ph-star text-xs ${i <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} />)}<span className="ml-1 text-[11px] font-semibold">{value}.0</span></span>;
+  return <span className="inline-flex items-center gap-0.5" aria-label={`${value} of 5`}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={`ph-fill ph-star text-xs ${i <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} aria-hidden />)}<span className="ml-1 text-[11px] font-semibold">{value}.0</span></span>;
 }
 
 // Client context: order history, service mix, prior staff, and the account note.
@@ -277,7 +277,7 @@ function ClientCard({ c }: { c: ClientSummary }) {
   const top = c.byService[0]?.count ?? 1;
   return (
     <div className="kcard">
-      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-buildings text-primary" /> Client <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">{c.company}</span></p>
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-buildings text-primary" aria-hidden /> Client <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">{c.company}</span></p>
       <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
         {c.tier && <span className="rounded-md bg-muted px-2 py-0.5 font-semibold capitalize">{c.tier} tier</span>}
         {c.since && <span className="text-muted-foreground">client since {c.since}</span>}
@@ -306,7 +306,7 @@ function ClientCard({ c }: { c: ClientSummary }) {
           </span>
         )) : <span className="text-xs text-muted-foreground">No prior staff on record.</span>}
       </div>
-      {c.note && <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-note-pencil mr-1 text-muted-foreground" />{c.note}</p>}
+      {c.note && <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-note-pencil mr-1 text-muted-foreground" aria-hidden />{c.note}</p>}
     </div>
   );
 }
@@ -334,11 +334,11 @@ function ManagerPanel({ m, seed }: { m: ManagerInfo; seed: StaffMessage[] }) {
       {m.skills.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
           {m.skills.map((s) => { const meta = SKILL_META[s]; return meta ? (
-            <span key={s} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${meta.color}1a`, color: meta.color }}><i className={`ph-bold ${meta.icon}`} />{meta.label}</span>
+            <span key={s} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${meta.color}1a`, color: meta.color }}><i className={`ph-bold ${meta.icon}`} aria-hidden />{meta.label}</span>
           ) : null; })}
         </div>
       )}
-      {m.note && <p className="mb-3 rounded-lg border-l-2 border-primary bg-primary/5 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-quotes mr-1 text-primary" />{m.note}</p>}
+      {m.note && <p className="mb-3 rounded-lg border-l-2 border-primary bg-primary/5 px-2.5 py-1.5 text-xs"><i className="ph-bold ph-quotes mr-1 text-primary" aria-hidden />{m.note}</p>}
       <p className="mb-1.5 text-xs font-medium text-muted-foreground">Chat with {first}</p>
       <div className="mb-2 max-h-40 space-y-2 overflow-y-auto">
         {msgs.length === 0 ? <p className="text-xs text-muted-foreground">No messages yet — say hi.</p> : msgs.map((x, i) => (
@@ -349,7 +349,7 @@ function ManagerPanel({ m, seed }: { m: ManagerInfo; seed: StaffMessage[] }) {
       </div>
       <div className="mt-auto flex gap-2">
         <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder={`Message ${first}…`} aria-label={`Message ${first}`} className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none focus:border-primary" />
-        <button onClick={send} aria-label="Send message" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"><i className="ph-bold ph-paper-plane-tilt" /></button>
+        <button onClick={send} aria-label="Send message" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
       </div>
     </div>
   );
@@ -383,6 +383,6 @@ function BriefValue({ label, value }: { label: string; value: string }) {
 }
 
 function NavBtn({ href, icon, label }: { href: string | null; icon: string; label: string }) {
-  if (!href) return <span className="grid h-9 w-9 place-items-center rounded-lg border border-border opacity-30"><i className={`ph-bold ${icon}`} /></span>;
-  return <Link href={href} aria-label={label} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className={`ph-bold ${icon}`} /></Link>;
+  if (!href) return <span className="grid h-9 w-9 place-items-center rounded-lg border border-border opacity-30"><i className={`ph-bold ${icon}`} aria-hidden /></span>;
+  return <Link href={href} aria-label={label} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className={`ph-bold ${icon}`} aria-hidden /></Link>;
 }

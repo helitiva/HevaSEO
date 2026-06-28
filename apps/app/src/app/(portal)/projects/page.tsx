@@ -19,15 +19,15 @@ function ProjectMenu({ project, onEdit, onDelete }: { project: Project; onEdit: 
   return (
     <span className="relative ml-auto" onClick={stop}>
       <button type="button" aria-label="Project settings" title="Project settings" onClick={(e) => { stop(e); setOpen((v) => !v); }} className="card-gear">
-        <i className="ph-bold ph-gear-six" />
+        <i className="ph-bold ph-gear-six" aria-hidden />
       </button>
       {open && (
         <>
           <span className="fixed inset-0 z-40" onClick={(e) => { stop(e); setOpen(false); }} />
           <span className="absolute right-0 z-50 mt-1 block w-44 rounded-xl border border-border bg-card p-1 shadow-xl">
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" /> Edit project</button>
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); router.push(`/projects/${project.id}`); }} className={item}><i className="ph-bold ph-arrow-square-out text-muted-foreground" /> Open</button>
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" /> Delete</button>
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" aria-hidden /> Edit project</button>
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); router.push(`/projects/${project.id}`); }} className={item}><i className="ph-bold ph-arrow-square-out text-muted-foreground" aria-hidden /> Open</button>
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" aria-hidden /> Delete</button>
           </span>
         </>
       )}
@@ -48,14 +48,14 @@ function FolderMenu({ label, onEdit, onDelete }: { label: string; onEdit: () => 
         onClick={(e) => { stop(e); setOpen((v) => !v); }}
         className={`grid h-6 w-6 place-items-center rounded-md text-muted-foreground transition hover:bg-background hover:text-foreground ${open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       >
-        <i className="ph-bold ph-gear-six text-[13px]" />
+        <i className="ph-bold ph-gear-six text-[13px]" aria-hidden />
       </button>
       {open && (
         <>
           <span className="fixed inset-0 z-40" onClick={(e) => { stop(e); setOpen(false); }} />
           <span className="absolute right-0 z-50 mt-1 block w-40 rounded-xl border border-border bg-card p-1 shadow-xl">
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" /> Edit folder</button>
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" /> Delete</button>
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" aria-hidden /> Edit folder</button>
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" aria-hidden /> Delete</button>
           </span>
         </>
       )}
@@ -177,7 +177,7 @@ function ProjectsInner() {
       onDrop={id === 'all' ? undefined : (e) => { e.preventDefault(); setDragOverFolder(null); const pid = e.dataTransfer.getData('text/plain'); if (pid) moveProjectToFolder(pid, id); }}
     >
       <button type="button" onClick={() => setFolder(id)} className="flex min-w-0 flex-1 items-center gap-[.55rem] text-left">
-        <i className="ph-bold ph-folder shrink-0" style={{ color: color ?? 'currentColor' }} />
+        <i className="ph-bold ph-folder shrink-0" style={{ color: color ?? 'currentColor' }} aria-hidden />
         <span className="truncate">{name}</span>
       </button>
       {id !== 'all' && (
@@ -202,8 +202,8 @@ function ProjectsInner() {
           <p className="mt-1 text-sm text-muted-foreground">Organize websites into folders · track campaigns & overall status</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setModal('folder')} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-folder-plus" /> Folder</button>
-          <button onClick={() => setModal('project')} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-plus" /> New project</button>
+          <button onClick={() => setModal('folder')} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-folder-plus" aria-hidden /> Folder</button>
+          <button onClick={() => setModal('project')} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-plus" aria-hidden /> New project</button>
         </div>
       </div>
 
@@ -224,7 +224,7 @@ function ProjectsInner() {
               ))}
             </div>
             <p className="mt-2 px-2 text-[10px] leading-relaxed text-muted-foreground">
-              <i className="ph-bold ph-folders" /> Group your websites into folders to track campaigns by client.
+              <i className="ph-bold ph-folders" aria-hidden /> Group your websites into folders to track campaigns by client.
             </p>
           </div>
         </aside>
@@ -233,12 +233,12 @@ function ProjectsInner() {
         <section className="min-w-0 flex-1">
           <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/70 p-3 backdrop-blur md:flex-row md:items-center">
             <div className="flex min-w-0 shrink items-center gap-2 text-sm">
-              <i className="ph-bold ph-folder-open text-primary" />
+              <i className="ph-bold ph-folder-open text-primary" aria-hidden />
               <span className="truncate font-semibold">{folder === 'all' ? 'All projects' : folderName(folder)}</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 md:ml-auto md:flex-nowrap md:shrink-0">
               <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm">
-                <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+                <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter by domain…" className="w-28 bg-transparent outline-none placeholder:text-muted-foreground sm:w-40" />
               </div>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm outline-none">
@@ -257,14 +257,14 @@ function ProjectsInner() {
           {filtered.length === 0 ? (
             folder !== 'all' && !search && status === 'all' && svc === 'all' ? (
               <div className="mt-5 grid place-items-center rounded-2xl border border-dashed border-border py-16 text-center">
-                <span className="grid h-12 w-12 place-items-center rounded-xl text-xl" style={{ background: `${folderColor(folder)}1a`, color: folderColor(folder) }}><i className="ph-bold ph-folder-open" /></span>
+                <span className="grid h-12 w-12 place-items-center rounded-xl text-xl" style={{ background: `${folderColor(folder)}1a`, color: folderColor(folder) }}><i className="ph-bold ph-folder-open" aria-hidden /></span>
                 <p className="mt-3 font-semibold">{folderName(folder)} is empty</p>
                 <p className="mt-1 text-sm text-muted-foreground">Drag a project here, or create one in this folder.</p>
-                <button onClick={() => setModal('project')} className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" /> New project</button>
+                <button onClick={() => setModal('project')} className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" aria-hidden /> New project</button>
               </div>
             ) : (
               <div className="mt-5 grid place-items-center rounded-2xl border border-dashed border-border py-16 text-center">
-                <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" /></span>
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" aria-hidden /></span>
                 <p className="mt-3 font-semibold">No matching projects</p>
                 <p className="mt-1 text-sm text-muted-foreground">Try adjusting the filters, or create a new project.</p>
               </div>
@@ -285,7 +285,7 @@ function ProjectsInner() {
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">
                           <span className="chip" style={{ background: `${folderColor(p.folder)}1a`, color: folderColor(p.folder) }}>
-                            <i className="ph-bold ph-folder" /> {p.label}
+                            <i className="ph-bold ph-folder" aria-hidden /> {p.label}
                           </span>
                           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
                         </div>
@@ -293,7 +293,7 @@ function ProjectsInner() {
                     </div>
 
                     <p className="note mt-3 flex gap-1.5 text-[12px] leading-snug text-muted-foreground">
-                      <i className="ph-bold ph-note-pencil mt-px shrink-0" />
+                      <i className="ph-bold ph-note-pencil mt-px shrink-0" aria-hidden />
                       <span className="line-clamp-2">{p.note}</span>
                     </p>
 
@@ -358,7 +358,7 @@ function ProjectsInner() {
               <p className="text-sm text-muted-foreground">Remove <b className="text-foreground">{deleteTarget.domain}</b> and stop tracking its campaigns? This can&apos;t be undone.</p>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                <button type="button" onClick={() => { deleteProject(deleteTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" /> Delete project</button>
+                <button type="button" onClick={() => { deleteProject(deleteTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" aria-hidden /> Delete project</button>
               </div>
             </div>
           )}
@@ -390,7 +390,7 @@ function ProjectsInner() {
                 </p>
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                  <button type="button" onClick={() => { removeFolder(deleteFolderTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" /> Delete folder</button>
+                  <button type="button" onClick={() => { removeFolder(deleteFolderTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" aria-hidden /> Delete folder</button>
                 </div>
               </div>
             );

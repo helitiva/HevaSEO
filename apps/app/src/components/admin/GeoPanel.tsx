@@ -22,7 +22,7 @@ export function GeoPanel() {
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <i className="ph-bold ph-globe-hemisphere-west text-primary" /> Visitors by location
+          <i className="ph-bold ph-globe-hemisphere-west text-primary" aria-hidden /> Visitors by location
         </p>
         <p className="text-xs text-muted-foreground">
           via IP ·{' '}

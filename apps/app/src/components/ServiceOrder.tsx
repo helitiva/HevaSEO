@@ -236,7 +236,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
     const active = p.id === planId;
     const radioDot = (
       <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 ${active ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-transparent'}`}>
-        <i className="ph-bold ph-check text-[9px]" />
+        <i className="ph-bold ph-check text-[9px]" aria-hidden />
       </span>
     );
 
@@ -261,12 +261,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
             </div>
             <div className="shrink-0 text-right">
               <div className="display text-lg font-bold tracking-tight">{p.priceLabel ?? `$${p.price}`}</div>
-              <div className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" />{p.sla}</div>
+              <div className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" aria-hidden />{p.sla}</div>
             </div>
           </div>
           <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 border-t border-border/70 pt-3 text-[11px] text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
             {p.features.map((ft) => (
-              <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 shrink-0 text-primary" /><span>{ft}</span></li>
+              <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 shrink-0 text-primary" aria-hidden /><span>{ft}</span></li>
             ))}
           </ul>
         </label>
@@ -290,10 +290,10 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
         </div>
         <p className="display mt-1.5 pl-6 text-xl font-bold leading-none tracking-tight">{p.priceLabel ?? `$${p.price}`}</p>
         <p className="mt-1.5 pl-6 text-[11px] text-muted-foreground">{p.summary}</p>
-        <p className="mt-1 pl-6 text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" />{p.sla}</p>
+        <p className="mt-1 pl-6 text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" aria-hidden />{p.sla}</p>
         <ul className="mt-2.5 space-y-1.5 border-t border-border/70 pl-6 pt-2.5 text-[11px] text-muted-foreground">
           {p.features.map((ft) => (
-            <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 text-primary" /><span>{ft}</span></li>
+            <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 text-primary" aria-hidden /><span>{ft}</span></li>
           ))}
         </ul>
       </label>
@@ -323,7 +323,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
               {catalog.groups.map((g) => (
                 <div key={g.id}>
                   <div className="flex items-center gap-2">
-                    {g.icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${g.icon}`} /></span>}
+                    {g.icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${g.icon}`} aria-hidden /></span>}
                     <div>
                       <p className="text-sm font-semibold">{g.title}</p>
                       {g.subtitle && <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>}
@@ -345,7 +345,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
 
         {/* brief */}
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-note-pencil text-primary" /> Project brief</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-note-pencil text-primary" aria-hidden /> Project brief</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {/* project + folder assignment — defaults to auto, editable later */}
             <div className="flex flex-col gap-3 sm:col-span-2">
@@ -384,7 +384,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
               )}
               {proj === AUTO && (
                 <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                  <i className="ph-bold ph-info mt-px shrink-0 text-primary" />
+                  <i className="ph-bold ph-info mt-px shrink-0 text-primary" aria-hidden />
                   We&apos;ll create a project{folderId === AUTO ? ' in a folder' : ''} for this order — rename or move it anytime in Projects.
                 </p>
               )}
@@ -399,12 +399,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
         {/* add-on details — revealed for ticked upsells (uses the chosen tier's fields) */}
         {chosen.some((c) => c.tier.fields && c.tier.fields.length > 0) && (
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.04] p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-plus-circle text-emerald-600" /> Add-on details</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-plus-circle text-emerald-600" aria-hidden /> Add-on details</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">A couple of extras for the add-ons you picked — we reuse the project &amp; contact details, so nothing&apos;s asked twice.</p>
             <div className="mt-4 space-y-4">
               {chosen.filter((c) => c.tier.fields && c.tier.fields.length > 0).map(({ addon, tier }) => (
                 <div key={addon.id} className="rounded-xl border border-border bg-card p-3.5">
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold"><i className={`ph-bold ${addon.icon} text-primary`} /> {addon.name} · {tier.name}</p>
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold"><i className={`ph-bold ${addon.icon} text-primary`} aria-hidden /> {addon.name} · {tier.name}</p>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
                     {tier.fields!.map(field)}
                   </div>
@@ -419,7 +419,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
       <aside className="h-max lg:sticky lg:top-4">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border bg-muted/40 px-5 py-3">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-receipt text-primary" /> Order summary</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-receipt text-primary" aria-hidden /> Order summary</p>
           </div>
           <div className="px-5 py-4">
             <div className="flex items-baseline justify-between gap-3">
@@ -437,18 +437,18 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
                 </div>
                 <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
                   {catalog.included.slice(0, 3).map((b) => (
-                    <li key={b.title} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" /><span>{b.title}</span></li>
+                    <li key={b.title} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden /><span>{b.title}</span></li>
                   ))}
                 </ul>
               </>
             ) : (
               <>
                 <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  <i className="ph-bold ph-clock text-primary" /> Delivery {plan?.sla}
+                  <i className="ph-bold ph-clock text-primary" aria-hidden /> Delivery {plan?.sla}
                 </p>
                 <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
                   {(plan?.features ?? []).slice(0, 4).map((ft) => (
-                    <li key={ft} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" /><span>{ft}</span></li>
+                    <li key={ft} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden /><span>{ft}</span></li>
                   ))}
                 </ul>
               </>
@@ -467,7 +467,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
 
             {addons.length > 0 && (
               <div className="mt-4 border-t border-border pt-3">
-                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary"><i className="ph-fill ph-plus-circle" /> Add &amp; save — checkout-only</p>
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary"><i className="ph-fill ph-plus-circle" aria-hidden /> Add &amp; save — checkout-only</p>
                 <div className="mt-2 space-y-2">
                   {addons.map((a) => {
                     const on = a.id in picks;
@@ -518,7 +518,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
               {vipOff > 0 && (
                 <>
                   {!catalog.bulk && <div className="flex items-center justify-between text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{subtotalText}</span></div>}
-                  <div className="flex items-center justify-between text-[13px] font-semibold text-amber-600"><span className="inline-flex items-center gap-1.5"><i className="ph-fill ph-crown" /> VIP member −15%</span><span>−${vipOff}</span></div>
+                  <div className="flex items-center justify-between text-[13px] font-semibold text-amber-600"><span className="inline-flex items-center gap-1.5"><i className="ph-fill ph-crown" aria-hidden /> VIP member −15%</span><span>−${vipOff}</span></div>
                 </>
               )}
               <div className="flex items-center justify-between pt-0.5">
@@ -528,12 +528,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
             </div>
             {saved > 0 && !plan?.priceLabel && (
               <div className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-600">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white"><i className="ph-fill ph-seal-percent text-[11px]" /></span>
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white"><i className="ph-fill ph-seal-percent text-[11px]" aria-hidden /></span>
                 You save ${saved}{savedBase > 0 ? ` (${Math.round((saved / savedBase) * 100)}%)` : ''}
               </div>
             )}
             <button type="submit" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
-              Place order <i className="ph-bold ph-arrow-right" />
+              Place order <i className="ph-bold ph-arrow-right" aria-hidden />
             </button>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">No charge yet — a specialist confirms scope &amp; final price within 24h.</p>
           </div>
@@ -547,7 +547,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
           <p className="display text-lg font-bold leading-none">{totalText}</p>
         </div>
         <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[.98]">
-          Place order <i className="ph-bold ph-arrow-right" />
+          Place order <i className="ph-bold ph-arrow-right" aria-hidden />
         </button>
       </div>
     </form>

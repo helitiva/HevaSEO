@@ -72,7 +72,7 @@ export function NewFolderModal({
 
             <div className="flex items-center justify-end gap-2 pt-1">
               <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-              <button type="submit" disabled={!name.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-check" /> {submitLabel}</button>
+              <button type="submit" disabled={!name.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-check" aria-hidden /> {submitLabel}</button>
             </div>
           </form>
         );

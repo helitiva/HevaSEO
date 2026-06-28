@@ -59,7 +59,7 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
       <div className="modal-in relative grid max-h-[90vh] w-full max-w-3xl grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <p className="display text-base font-bold">{editing ? 'Edit message' : 'New message'}</p>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent"><i className="ph-bold ph-x" /></button>
+          <button onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
 
         <div className="scrollbar-thin space-y-4 overflow-y-auto px-5 py-4">
@@ -109,15 +109,15 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
               <input type="checkbox" checked={banner} onChange={(e) => setBanner(e.target.checked)} className="accent-primary" />
-              <span className="flex-1">Show as overview banner</span><i className="ph-bold ph-flag-banner text-muted-foreground" />
+              <span className="flex-1">Show as overview banner</span><i className="ph-bold ph-flag-banner text-muted-foreground" aria-hidden />
             </label>
             <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
               <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="accent-primary" />
-              <span className="flex-1">Pin to top</span><i className="ph-bold ph-push-pin text-muted-foreground" />
+              <span className="flex-1">Pin to top</span><i className="ph-bold ph-push-pin text-muted-foreground" aria-hidden />
             </label>
             <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm sm:col-span-2">
               <input type="checkbox" checked={requireAck} onChange={(e) => setRequireAck(e.target.checked)} className="accent-primary" />
-              <span className="flex-1">Require acknowledgement <span className="text-muted-foreground">— readers must confirm; can&apos;t just dismiss</span></span><i className="ph-bold ph-seal-check text-muted-foreground" />
+              <span className="flex-1">Require acknowledgement <span className="text-muted-foreground">— readers must confirm; can&apos;t just dismiss</span></span><i className="ph-bold ph-seal-check text-muted-foreground" aria-hidden />
             </label>
           </div>
 
@@ -138,9 +138,9 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: `${m.color}22`, color: m.color }}><i className={`ph-fill ${m.icon} text-xl`} aria-hidden /></span>
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 font-semibold">{title || 'Message title'}{m.celebratory && <i className="ph-fill ph-sparkle text-amber-400" />}</p>
+                  <p className="flex items-center gap-2 font-semibold">{title || 'Message title'}{m.celebratory && <i className="ph-fill ph-sparkle text-amber-400" aria-hidden />}</p>
                   <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">{body || 'Your message body will appear here.'}</p>
-                  {ctaLabel && ctaHref && <span className="mt-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white" style={{ background: m.color }}>{ctaLabel} <i className="ph-bold ph-arrow-right" /></span>}
+                  {ctaLabel && ctaHref && <span className="mt-2 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white" style={{ background: m.color }}>{ctaLabel} <i className="ph-bold ph-arrow-right" aria-hidden /></span>}
                 </div>
               </div>
             </div>
@@ -150,7 +150,7 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
           <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
           <button onClick={save} disabled={!canSave} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:opacity-40">
-            <i className={`ph-bold ${scheduled ? 'ph-clock' : 'ph-paper-plane-tilt'}`} /> {editing ? 'Save changes' : scheduled ? 'Schedule' : 'Send message'}
+            <i className={`ph-bold ${scheduled ? 'ph-clock' : 'ph-paper-plane-tilt'}`} aria-hidden /> {editing ? 'Save changes' : scheduled ? 'Schedule' : 'Send message'}
           </button>
         </div>
       </div>

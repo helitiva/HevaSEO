@@ -56,14 +56,14 @@ export function RulesTab({
       {/* Tier editor */}
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-stack text-primary" /> Commission tiers</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-stack text-primary" aria-hidden /> Commission tiers</p>
           <button type="button" onClick={() => setTierRows(defaultTierRows())} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">Rate applies to every referred order once lifetime volume crosses the threshold.</p>
         <div className="mt-3 space-y-2">
           {tierRows.map((t) => (
             <div key={t.id} className="flex items-center gap-3 rounded-xl border border-border/60 px-3 py-2">
-              <span className="flex w-24 items-center gap-1.5 text-sm font-bold capitalize"><i className="ph-fill ph-crown-simple text-amber-500 text-xs" /> {t.label}</span>
+              <span className="flex w-24 items-center gap-1.5 text-sm font-bold capitalize"><i className="ph-fill ph-crown-simple text-amber-500 text-xs" aria-hidden /> {t.label}</span>
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 ≥ $<input type="number" min={0} step={500} value={t.minVolume} onChange={(e) => editTier(t.id, { minVolume: Number(e.target.value) })} className={numInput} />
               </label>
@@ -78,7 +78,7 @@ export function RulesTab({
       {/* Program rules */}
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-sliders text-primary" /> Program rules</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-sliders text-primary" aria-hidden /> Program rules</p>
           <button type="button" onClick={() => setRules(DEFAULT_RULES)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
         </div>
         <div className="mt-2">
@@ -111,7 +111,7 @@ export function RulesTab({
 
       {/* Pending applications */}
       <section className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-list text-primary" /> Pending applications {applications.length > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-600">{applications.length}</span>}</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-list text-primary" aria-hidden /> Pending applications {applications.length > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-600">{applications.length}</span>}</p>
         {applications.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">No applications waiting. {rules.approvalMode === 'instant' && 'Approval is instant — new partners go live automatically.'}</p>
         ) : (

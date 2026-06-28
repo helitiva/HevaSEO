@@ -8,7 +8,7 @@ function ImageAsset({ a }: { a: MarketingAsset }) {
       <div className="grid aspect-[16/9] place-items-center bg-gradient-to-br from-brand-500/15 via-muted to-card">
         <div className="text-center">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-            <i className={`ph-bold ${a.icon} text-lg`} />
+            <i className={`ph-bold ${a.icon} text-lg`} aria-hidden />
           </span>
           <p className="mt-2 text-[11px] font-semibold text-muted-foreground">HevaSEO</p>
         </div>
@@ -20,7 +20,7 @@ function ImageAsset({ a }: { a: MarketingAsset }) {
         </div>
         <button type="button"
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-muted">
-          <i className="ph-bold ph-download-simple" /> Download
+          <i className="ph-bold ph-download-simple" aria-hidden /> Download
         </button>
       </div>
     </div>
@@ -31,7 +31,7 @@ function CopyAsset({ a }: { a: MarketingAsset }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-sm font-semibold"><i className={`ph-bold ${a.icon} text-primary`} /> {a.title}</p>
+        <p className="flex items-center gap-1.5 text-sm font-semibold"><i className={`ph-bold ${a.icon} text-primary`} aria-hidden /> {a.title}</p>
         <span className="text-[11px] text-muted-foreground">{a.meta}</span>
       </div>
       <p className="mt-2 flex-1 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">{a.body}</p>

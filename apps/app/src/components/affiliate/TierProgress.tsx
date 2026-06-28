@@ -11,7 +11,7 @@ export function TierProgress({ lifetimeVolume }: { lifetimeVolume: number }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold">
-            <i className="ph-fill ph-crown-simple text-amber-500" /> {tier.label} partner
+            <i className="ph-fill ph-crown-simple text-amber-500" aria-hidden /> {tier.label} partner
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             You earn <span className="font-semibold text-foreground">{Math.round(tier.rate * 100)}%</span> on every referred order.

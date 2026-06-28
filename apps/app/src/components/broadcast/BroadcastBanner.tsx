@@ -38,7 +38,7 @@ function BannerCard({ b, onDismiss, onAck, onCta }: { b: Broadcast; onDismiss: (
     <div className={`broadcast-pop relative overflow-hidden rounded-2xl border bg-gradient-to-r p-4 ${m.bannerClass}`}>
       {!b.requireAck && (
         <button onClick={onDismiss} aria-label="Dismiss message" className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-background/60 hover:text-foreground">
-          <i className="ph-bold ph-x" />
+          <i className="ph-bold ph-x" aria-hidden />
         </button>
       )}
       <div className={`flex items-start gap-3 ${b.requireAck ? '' : 'pr-8'}`}>

@@ -41,7 +41,7 @@ export function RevenueChart({ data, services }: { data: RevenuePoint[]; service
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" /> Revenue &amp; order volume</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" aria-hidden /> Revenue &amp; order volume</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{period === 'custom' ? `${from} → ${to}` : `Last ${period} days`} · <span className="font-semibold text-foreground">{money(total)}</span> · stacked by service</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

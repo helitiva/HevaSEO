@@ -106,7 +106,7 @@ export function AffiliateAdminClient() {
             className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold transition ${
               tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}>
-            <i className={`ph-bold ${t.icon}`} /> {t.label}
+            <i className={`ph-bold ${t.icon}`} aria-hidden /> {t.label}
             {t.key === 'payouts' && newRequests > 0 && <span className="rounded-full bg-amber-500/15 px-1.5 text-[10px] font-bold text-amber-600">{newRequests}</span>}
           </button>
         ))}
@@ -128,7 +128,7 @@ export function AffiliateAdminClient() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* leaderboard */}
             <section className="rounded-2xl border border-border bg-card p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-trophy text-amber-500" /> Top partners</p>
+              <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-trophy text-amber-500" aria-hidden /> Top partners</p>
               <div className="mt-3 space-y-1.5">
                 {leaders.map((p, i) => (
                   <button key={p.id} type="button" onClick={() => setSelectedId(p.id)}
@@ -150,16 +150,16 @@ export function AffiliateAdminClient() {
             {/* payout queue + applications */}
             <section className="space-y-4">
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-5">
-                <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-hand-coins text-amber-600" /> Payout queue</p>
+                <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-hand-coins text-amber-600" aria-hidden /> Payout queue</p>
                 <p className="mt-2 text-2xl font-bold tabular-nums text-amber-600">{money(owed)}</p>
                 <p className="text-xs text-muted-foreground">{newRequests} request{newRequests === 1 ? '' : 's'} awaiting your review</p>
                 <button type="button" onClick={() => setTab('payouts')} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90">
-                  Review payouts <i className="ph-bold ph-arrow-right" />
+                  Review payouts <i className="ph-bold ph-arrow-right" aria-hidden />
                 </button>
               </div>
               {pending.length > 0 && (
                 <div className="rounded-2xl border border-border bg-card p-5">
-                  <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-list text-primary" /> {pending.length} pending application{pending.length === 1 ? '' : 's'}</p>
+                  <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-list text-primary" aria-hidden /> {pending.length} pending application{pending.length === 1 ? '' : 's'}</p>
                   <p className="mt-1 text-xs text-muted-foreground">New partners waiting for approval.</p>
                   <button type="button" onClick={() => setTab('rules')} className="mt-3 text-xs font-semibold text-primary hover:underline">Review applications →</button>
                 </div>

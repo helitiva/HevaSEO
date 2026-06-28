@@ -81,7 +81,7 @@ export function SpecialistChat({ className, children }: { className?: string; ch
   return (
     <>
       <button onClick={() => setOpen(true)} className={className}>
-        {children ?? <><i className="ph-bold ph-chat-circle-dots" /> Message specialist</>}
+        {children ?? <><i className="ph-bold ph-chat-circle-dots" aria-hidden /> Message specialist</>}
       </button>
 
       {open && (
@@ -98,7 +98,7 @@ export function SpecialistChat({ className, children }: { className?: string; ch
                 <p className="font-semibold leading-tight">{SPECIALIST.name}</p>
                 <p className="text-xs text-muted-foreground">{SPECIALIST.role} · {SPECIALIST.replies}</p>
               </div>
-              <button onClick={close} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" /></button>
+              <button onClick={close} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>
             </div>
 
             {/* thread */}
@@ -129,7 +129,7 @@ export function SpecialistChat({ className, children }: { className?: string; ch
                 className="scrollbar-thin max-h-28 min-h-[2.5rem] flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button type="submit" disabled={!draft.trim()} aria-label="Send" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50">
-                <i className="ph-bold ph-paper-plane-tilt" />
+                <i className="ph-bold ph-paper-plane-tilt" aria-hidden />
               </button>
             </form>
           </aside>

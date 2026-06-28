@@ -17,8 +17,8 @@ export function ThemeToggle() {
       {/* icons are CSS-driven by the .dark class; render after mount to avoid hydration mismatch */}
       {mounted && (
         <>
-          <i className="ph-bold ph-sun-dim hidden text-lg dark:block" />
-          <i className="ph-bold ph-moon-stars block text-lg dark:hidden" />
+          <i className="ph-bold ph-sun-dim hidden text-lg dark:block" aria-hidden />
+          <i className="ph-bold ph-moon-stars block text-lg dark:hidden" aria-hidden />
         </>
       )}
     </button>

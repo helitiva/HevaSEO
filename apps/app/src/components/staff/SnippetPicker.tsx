@@ -17,7 +17,7 @@ export function SnippetPicker({ snippets, current, onPick, onAdd, onRemove }: {
     <div className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:border-primary/50 hover:text-foreground">
-        <i className="ph-bold ph-lightning" /> Saved replies <i className={`ph-bold ph-caret-down transition ${open ? 'rotate-180' : ''}`} />
+        <i className="ph-bold ph-lightning" aria-hidden /> Saved replies <i className={`ph-bold ph-caret-down transition ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {open && (
         <>
@@ -29,14 +29,14 @@ export function SnippetPicker({ snippets, current, onPick, onAdd, onRemove }: {
               {snippets.map((s) => (
                 <li key={s} className="group flex items-start gap-1 rounded-lg px-1 hover:bg-muted">
                   <button type="button" onClick={() => { onPick(s); setOpen(false); }} className="min-w-0 flex-1 px-1 py-1.5 text-left text-xs">{s}</button>
-                  <button type="button" onClick={() => onRemove(s)} aria-label="Remove reply" className="mt-1 shrink-0 px-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><i className="ph-bold ph-x" /></button>
+                  <button type="button" onClick={() => onRemove(s)} aria-label="Remove reply" className="mt-1 shrink-0 px-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><i className="ph-bold ph-x" aria-hidden /></button>
                 </li>
               ))}
             </ul>
             <button type="button" disabled={!canSave} onClick={() => onAdd(current.trim())}
               className="mt-1 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border px-2 py-1.5 text-xs font-semibold text-primary transition enabled:hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40"
               title={canSave ? 'Save the current text as a reusable reply' : 'Type something first'}>
-              <i className="ph-bold ph-plus" /> Save current text as a reply
+              <i className="ph-bold ph-plus" aria-hidden /> Save current text as a reply
             </button>
           </div>
         </>

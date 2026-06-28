@@ -26,7 +26,7 @@ export function ReadTimeline({ hourly, daily, total }: { hourly: Bucket[]; daily
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-line-up text-primary" /> Reads over time</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-line-up text-primary" aria-hidden /> Reads over time</p>
           <p className="mt-0.5 text-xs text-muted-foreground">{total} read{total === 1 ? '' : 's'}{total > 0 && <> · <span className="font-semibold text-foreground">{pct(within3h / Math.max(total, 1))}</span> within first 3h</>}</p>
         </div>
         <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
@@ -69,7 +69,7 @@ export function Funnel({ s }: { s: Summary }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-funnel text-primary" /> Engagement funnel</p>
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-funnel text-primary" aria-hidden /> Engagement funnel</p>
       <div className="space-y-2.5">
         {stages.map((st, i) => {
           const prev = i > 0 ? stages[i - 1].value : st.value;
@@ -77,7 +77,7 @@ export function Funnel({ s }: { s: Summary }) {
           return (
             <div key={st.label}>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-medium"><i className={`ph-bold ${st.icon}`} style={{ color: st.color }} />{st.label}</span>
+                <span className="flex items-center gap-1.5 font-medium"><i className={`ph-bold ${st.icon}`} style={{ color: st.color }} aria-hidden />{st.label}</span>
                 <span className="text-muted-foreground"><span className="font-semibold text-foreground">{st.value}</span> · {pct(st.value / base)}{i > 0 && <span className="ml-1 opacity-70">({pct(stepConv)} of prev)</span>}</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -95,12 +95,12 @@ export function Funnel({ s }: { s: Summary }) {
 export function AudienceBars({ stats }: { stats: AudStat[] }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-users-three text-primary" /> Read rate by audience</p>
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-users-three text-primary" aria-hidden /> Read rate by audience</p>
       <div className="space-y-3">
         {stats.map((a) => { const am = AUDIENCE_META[a.audience]; return (
           <div key={a.audience}>
             <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1.5 font-medium" style={{ color: am.color }}><i className={`ph-fill ${am.icon}`} />{am.label}</span>
+              <span className="flex items-center gap-1.5 font-medium" style={{ color: am.color }}><i className={`ph-fill ${am.icon}`} aria-hidden />{am.label}</span>
               <span className="text-muted-foreground"><span className="font-semibold text-foreground">{a.read}/{a.delivered}</span> · {pct(a.rate)}</span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-muted">
@@ -120,7 +120,7 @@ export function HourHeatmap({ hist }: { hist: number[] }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" /> When they read</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock text-primary" aria-hidden /> When they read</p>
         <p className="text-xs text-muted-foreground">Peak <span className="font-semibold text-foreground">{String(peak).padStart(2, '0')}:00</span></p>
       </div>
       <div className="flex gap-[3px]">

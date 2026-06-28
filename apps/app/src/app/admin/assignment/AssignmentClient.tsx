@@ -188,8 +188,8 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
               <button key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize transition ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><i className={`ph-bold ${v === 'list' ? 'ph-list-bullets' : 'ph-kanban'} mr-1`} />{v}</button>
             ))}
           </div>
-          <button onClick={rebalance} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-scales mr-1" />Rebalance</button>
-          <button onClick={autoAll} disabled={!pending.length} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-magic-wand mr-1" />Auto-assign all</button>
+          <button onClick={rebalance} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-scales mr-1" aria-hidden />Rebalance</button>
+          <button onClick={autoAll} disabled={!pending.length} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"><i className="ph-bold ph-magic-wand mr-1" aria-hidden />Auto-assign all</button>
         </div>
       </div>
 
@@ -213,7 +213,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                 <Sel value={fService} onChange={setFService} all="All services" opts={services} />
                 <Sel value={fPriority} onChange={setFPriority} all="All priority" opts={['high', 'med', 'low']} />
                 <Sel value={fTier} onChange={setFTier} all="All tiers" opts={tiers} />
-                <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code / customer" className="w-44 rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
+                <div className="relative"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code / customer" className="w-44 rounded-lg border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
                 {(fService || fPriority || fTier || search) && <button onClick={() => { setFService(''); setFPriority(''); setFTier(''); setSearch(''); }} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
                 <span className="ml-auto text-xs text-muted-foreground">{visible.length} of {pending.length}</span>
               </div>
@@ -221,13 +221,13 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                 <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
                   <span className="text-sm font-semibold">{selVisible.length} selected</span>
                   <span className="ml-auto" />
-                  <button onClick={bulkAuto} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-magic-wand mr-1" />Auto-assign</button>
+                  <button onClick={bulkAuto} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-magic-wand mr-1" aria-hidden />Auto-assign</button>
                   <select value={bulkTo} onChange={(e) => bulkAssign(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary"><option value="">Assign all to…</option>{staff.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}</select>
                   <button onClick={() => setSel(new Set())} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
                 </div>
               )}
               {pending.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground"><i className="ph-bold ph-check-circle mr-1 text-emerald-500" />All caught up — the queue is clear.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground"><i className="ph-bold ph-check-circle mr-1 text-emerald-500" aria-hidden />All caught up — the queue is clear.</p>
               ) : visible.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No orders match these filters.</p>
               ) : (
@@ -240,30 +240,30 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                         <PriorityBadge priority={q.priority} />
                         <button onClick={() => setPanelId(q.id)} className="font-semibold hover:text-primary hover:underline" title="Open order">{q.code}</button>
                         <span className="text-sm text-muted-foreground">{q.service} · {q.pkg}</span>
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} />{q.customer}</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-fill ${tierMeta[q.tier].icon}`} style={{ color: tierMeta[q.tier].color }} aria-hidden />{q.customer}</span>
                         <Due d={q.daysToDue} />
-                        <span className={`inline-flex items-center gap-1 text-xs ${q.ageDays >= 3 ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`} title="Waiting in queue"><i className="ph-bold ph-hourglass-medium" />{q.ageDays}d wait</span>
+                        <span className={`inline-flex items-center gap-1 text-xs ${q.ageDays >= 3 ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`} title="Waiting in queue"><i className="ph-bold ph-hourglass-medium" aria-hidden />{q.ageDays}d wait</span>
                         <span className="ml-auto" />
                         {best && (
                           <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary" title={q.pinnedTo ? 'Pinned by routing rule' : 'Load-aware best match'}>
-                            <i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} />{best}
+                            <i className={`ph-bold ${q.pinnedTo ? 'ph-push-pin' : 'ph-scales'}`} aria-hidden />{best}
                           </span>
                         )}
                         {best && <button onClick={(e) => { e.stopPropagation(); assignWithGuard(q.id, best, q.code); }} className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90">Assign</button>}
-                        <button onClick={(e) => { e.stopPropagation(); setExpanded((x) => (x === q.id ? null : q.id)); }} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setExpanded((x) => (x === q.id ? null : q.id)); }} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Pick<i className={`ph-bold ph-caret-down ml-0.5 transition ${expanded === q.id ? 'rotate-180' : ''}`} aria-hidden /></button>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
-                        {showMoney && <span className="inline-flex items-center gap-1" title="Order value"><i className="ph-bold ph-currency-dollar text-emerald-500" /><b className="text-foreground">{money(q.value)}</b></span>}
-                        <span className="inline-flex items-center gap-1" title="Order status"><i className="ph-bold ph-circle-dashed" />{statusLabel[q.status]}</span>
-                        <span className="inline-flex items-center gap-1" title="Source"><i className="ph-bold ph-path" />via {q.source}</span>
-                        {q.deadline && <span className="inline-flex items-center gap-1" title="Deadline"><i className="ph-bold ph-calendar-blank" />{q.deadline}</span>}
+                        {showMoney && <span className="inline-flex items-center gap-1" title="Order value"><i className="ph-bold ph-currency-dollar text-emerald-500" aria-hidden /><b className="text-foreground">{money(q.value)}</b></span>}
+                        <span className="inline-flex items-center gap-1" title="Order status"><i className="ph-bold ph-circle-dashed" aria-hidden />{statusLabel[q.status]}</span>
+                        <span className="inline-flex items-center gap-1" title="Source"><i className="ph-bold ph-path" aria-hidden />via {q.source}</span>
+                        {q.deadline && <span className="inline-flex items-center gap-1" title="Deadline"><i className="ph-bold ph-calendar-blank" aria-hidden />{q.deadline}</span>}
                         {q.cust && (
                           <>
                             <span className="text-border">•</span>
-                            <CustomerHoverCard customer={q.customer}><span className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"><i className="ph-fill ph-user-circle text-primary" />{q.cust.name}</span></CustomerHoverCard>
-                            {showMoney && <span className="inline-flex items-center gap-1" title="Lifetime value"><i className="ph-bold ph-coins" />LTV {money(q.cust.spend)}</span>}
-                            <span className="inline-flex items-center gap-1" title="Total orders"><i className="ph-bold ph-package" />{q.cust.orders} orders</span>
-                            {showMoney && <span className="inline-flex items-center gap-1" title="Credit balance"><i className="ph-bold ph-wallet" />{money(q.cust.balance)} credit</span>}
+                            <CustomerHoverCard customer={q.customer}><span className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"><i className="ph-fill ph-user-circle text-primary" aria-hidden />{q.cust.name}</span></CustomerHoverCard>
+                            {showMoney && <span className="inline-flex items-center gap-1" title="Lifetime value"><i className="ph-bold ph-coins" aria-hidden />LTV {money(q.cust.spend)}</span>}
+                            <span className="inline-flex items-center gap-1" title="Total orders"><i className="ph-bold ph-package" aria-hidden />{q.cust.orders} orders</span>
+                            {showMoney && <span className="inline-flex items-center gap-1" title="Credit balance"><i className="ph-bold ph-wallet" aria-hidden />{money(q.cust.balance)} credit</span>}
                           </>
                         )}
                       </div>
@@ -378,7 +378,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       </Card>
 
       {/* routing rules */}
-      <Card icon="ph-git-fork" title="Routing rules" right={<button onClick={() => setRuleModal({ editing: null })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-plus mr-1" />New rule</button>}>
+      <Card icon="ph-git-fork" title="Routing rules" right={<button onClick={() => setRuleModal({ editing: null })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-plus mr-1" aria-hidden />New rule</button>}>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground"><th className="p-2">Service</th><th className="p-2">Mode</th><th className="p-2">Target</th><th className="p-2 text-right">Priority</th><th className="p-2 text-right">Active</th></tr></thead>
@@ -391,8 +391,8 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
                   <td className="p-2 text-right text-muted-foreground">{r.priority}</td>
                   <td className="p-2">
                     <div className="flex items-center justify-end gap-2.5">
-                      <button onClick={() => setRuleModal({ editing: r })} className="text-muted-foreground hover:text-foreground" title="Edit rule"><i className="ph-bold ph-pencil-simple" /></button>
-                      <button onClick={() => deleteRule(r.id)} className="text-muted-foreground hover:text-destructive" title="Remove rule"><i className="ph-bold ph-trash" /></button>
+                      <button onClick={() => setRuleModal({ editing: r })} className="text-muted-foreground hover:text-foreground" title="Edit rule" aria-label="Edit rule"><i className="ph-bold ph-pencil-simple" aria-hidden /></button>
+                      <button onClick={() => deleteRule(r.id)} className="text-muted-foreground hover:text-destructive" title="Remove rule" aria-label="Remove rule"><i className="ph-bold ph-trash" aria-hidden /></button>
                       <button onClick={() => toggleRule(r.id)} role="switch" aria-checked={r.active} className={`relative h-5 w-9 rounded-full transition ${r.active ? 'bg-primary' : 'bg-muted'}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${r.active ? 'left-[18px]' : 'left-0.5'}`} /></button>
                     </div>
                   </td>
@@ -408,7 +408,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setConfirm(null)} />
           <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" />{confirm.msg}</p>
+            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" aria-hidden />{confirm.msg}</p>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setConfirm(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
               <button onClick={confirm.onYes} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Assign anyway</button>
@@ -431,9 +431,9 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
 }
 
 function Due({ d }: { d: number }) {
-  if (!Number.isFinite(d) || d >= 9999) return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><i className="ph-bold ph-clock" />no deadline</span>;
+  if (!Number.isFinite(d) || d >= 9999) return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><i className="ph-bold ph-clock" aria-hidden />no deadline</span>;
   const tone = d < 0 ? 'text-destructive' : d <= 1 ? 'text-amber-600' : 'text-muted-foreground';
-  return <span className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}><i className="ph-bold ph-clock" />{d < 0 ? `${-d}d overdue` : d === 0 ? 'due today' : `${d}d left`}</span>;
+  return <span className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}><i className="ph-bold ph-clock" aria-hidden />{d < 0 ? `${-d}d overdue` : d === 0 ? 'due today' : `${d}d left`}</span>;
 }
 function Kpi({ icon, label, value, tone }: { icon: string; label: string; value: string; tone?: 'good' | 'warn' }) {
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';

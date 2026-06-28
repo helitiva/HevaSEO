@@ -71,7 +71,7 @@ export function DashboardTop() {
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-accent">
-              <i className="ph-bold ph-calendar-blank" /> {rangeLabel} <i className="ph-bold ph-caret-down text-muted-foreground" />
+              <i className="ph-bold ph-calendar-blank" aria-hidden /> {rangeLabel} <i className="ph-bold ph-caret-down text-muted-foreground" aria-hidden />
             </button>
             {open && (
               <>
@@ -79,7 +79,7 @@ export function DashboardTop() {
                 <div className="absolute right-0 z-50 mt-1.5 w-44 rounded-xl border border-border bg-card p-1 shadow-xl">
                   {RANGES.map((r) => (
                     <button key={r.days} onClick={() => { setRange(r.days); setOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm transition hover:bg-muted ${range === r.days ? 'font-semibold text-primary' : ''}`}>
-                      {r.label}{range === r.days && <i className="ph-bold ph-check" />}
+                      {r.label}{range === r.days && <i className="ph-bold ph-check" aria-hidden />}
                     </button>
                   ))}
                 </div>
@@ -95,7 +95,7 @@ export function DashboardTop() {
         <div className="kpi kpi-glass">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-400/30 text-amber-600"><i className="ph-fill ph-crown" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-400/30 text-amber-600"><i className="ph-fill ph-crown" aria-hidden /></span>
             <span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}>VIP</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Membership tier</p>
@@ -113,7 +113,7 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-package" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-package" aria-hidden /></span>
             <span className="pill pill-good">{range ? rangeLabel.replace('Last ', '') : 'All'}</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Services ordered</p>
@@ -139,7 +139,7 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-check-circle" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-check-circle" aria-hidden /></span>
             <span className="pill pill-good">{completed} done</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Order progress</p>
@@ -157,7 +157,7 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-timer" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-timer" aria-hidden /></span>
             <span className="pill pill-good">On time</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">On-time completion rate</p>

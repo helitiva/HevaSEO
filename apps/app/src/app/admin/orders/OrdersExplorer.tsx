@@ -157,7 +157,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs">
-          <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+          <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code or customer…" className="w-full bg-transparent outline-none" />
         </div>
         <select value={service} onChange={(e) => setService(e.target.value)} className={sel}><option value="">All services</option>{services.map((s) => <option key={s} value={s}>{s}</option>)}</select>
@@ -171,7 +171,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         {hasFilter && <button type="button" onClick={clear} className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>}
 
         <div className="relative">
-          <button type="button" onClick={() => setShowCols((v) => !v)} className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold hover:border-primary/50"><i className="ph-bold ph-columns" /> Columns</button>
+          <button type="button" onClick={() => setShowCols((v) => !v)} className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold hover:border-primary/50"><i className="ph-bold ph-columns" aria-hidden /> Columns</button>
           {showCols && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowCols(false)} />
@@ -180,7 +180,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
                 {colOrder.map((id, i) => (!showMoney && MONEY_COLS.has(id)) ? null : (
                   <div key={id} draggable onDragStart={() => { dragIdx.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={() => reorder(i)}
                     className="flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted active:cursor-grabbing">
-                    <i className="ph-bold ph-dots-six-vertical text-muted-foreground" />
+                    <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden />
                     <input type="checkbox" checked={!hidden.has(id)} onChange={() => toggleHidden(id)} className="h-3.5 w-3.5 accent-primary" />
                     <span className="flex-1">{COLDEF[id].label}</span>
                   </div>
@@ -205,7 +205,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
             {filtered.map((o) => (
               <tr key={o.id} onClick={() => setPanelId(o.id)} className={`cursor-pointer border-b border-border/50 transition hover:bg-muted/40 ${panelId === o.id ? 'bg-muted/30' : ''}`}>
                 {columns.map((c) => <td key={c.id} className={`p-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.render(o)}</td>)}
-                <td className="p-2.5 text-muted-foreground"><i className="ph-bold ph-caret-right" /></td>
+                <td className="p-2.5 text-muted-foreground"><i className="ph-bold ph-caret-right" aria-hidden /></td>
               </tr>
             ))}
             {filtered.length === 0 && <tr><td colSpan={columns.length + 1} className="p-6 text-center text-muted-foreground">No orders match these filters.</td></tr>}

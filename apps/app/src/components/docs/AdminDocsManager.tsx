@@ -35,7 +35,7 @@ export function AdminDocsManager() {
           <p className="mt-0.5 text-sm text-muted-foreground">Publish tutorials, guides & policies and distribute them to customers, staff or managers.</p>
         </div>
         <Link href="/admin/docs/new" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
-          <i className="ph-bold ph-plus" /> New doc
+          <i className="ph-bold ph-plus" aria-hidden /> New doc
         </Link>
       </div>
 
@@ -44,7 +44,7 @@ export function AdminDocsManager() {
         <Kpi label="Total docs" value={String(docs.length)} icon="ph-books" sub={`${created.length} by you`} />
         {DISTRIBUTABLE_AUDIENCES.slice(0, 4).map((a) => { const m = audienceMeta(a); return (
           <button key={a} onClick={() => setFilter(filter === a ? 'all' : a)} className={`rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${filter === a ? 'border-primary' : 'border-border'}`}>
-            <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{m.label}</span><i className={`ph-fill ${m.icon}`} style={{ color: m.color }} /></div>
+            <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{m.label}</span><i className={`ph-fill ${m.icon}`} style={{ color: m.color }} aria-hidden /></div>
             <p className="display mt-1 text-xl font-bold tracking-tight">{counts[a]}</p>
           </button>
         ); })}
@@ -55,7 +55,7 @@ export function AdminDocsManager() {
         <button onClick={() => setFilter('all')} className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${filter === 'all' ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/50'}`}>All <span className="opacity-70">{docs.length}</span></button>
         {DISTRIBUTABLE_AUDIENCES.map((a) => { const m = audienceMeta(a); return (
           <button key={a} onClick={() => setFilter(filter === a ? 'all' : a)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${filter === a ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/50'}`}>
-            <i className={`ph-bold ${m.icon}`} /> {m.label} <span className="opacity-70">{counts[a]}</span>
+            <i className={`ph-bold ${m.icon}`} aria-hidden /> {m.label} <span className="opacity-70">{counts[a]}</span>
           </button>
         ); })}
       </div>
@@ -73,24 +73,24 @@ export function AdminDocsManager() {
               <tr key={d.id} className="border-b border-border/50 transition hover:bg-muted/40">
                 <td className="p-3">
                   <Link href={`/admin/docs/${d.id}`} className="font-semibold hover:text-primary hover:underline">{d.title}</Link>
-                  {d.pinned && <i className="ph-fill ph-push-pin ml-1.5 text-amber-500" title="Pinned" />}
+                  {d.pinned && <i className="ph-fill ph-push-pin ml-1.5 text-amber-500" title="Pinned" aria-hidden />}
                   <p className="truncate text-[11px] text-muted-foreground">{d.summary}</p>
                 </td>
                 <td className="p-3">
                   <span className="flex flex-wrap gap-1">
                     {audiencesOf(d).map((a) => { const m = audienceMeta(a); return (
-                      <span key={a} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} />{m.label}</span>
+                      <span key={a} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} aria-hidden />{m.label}</span>
                     ); })}
                   </span>
                 </td>
-                <td className="p-3 text-muted-foreground"><i className={`ph-bold ${FORMAT_META[d.format].icon} mr-1`} />{FORMAT_META[d.format].label}</td>
+                <td className="p-3 text-muted-foreground"><i className={`ph-bold ${FORMAT_META[d.format].icon} mr-1`} aria-hidden />{FORMAT_META[d.format].label}</td>
                 <td className="p-3 text-muted-foreground">{fmtDate(d.updatedAt)}</td>
                 <td className="p-3">{d.system ? <span className="pill">built-in</span> : isSeed(d.id) ? <span className="pill pill-warn">edited</span> : <span className="pill pill-good">yours</span>}</td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-2.5">
-                    <Link href={`/admin/docs/${d.id}`} title="View" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-eye" /></Link>
-                    <Link href={`/admin/docs/${d.id}/edit`} title="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" /></Link>
-                    <button onClick={() => setConfirm({ id: d.id, title: d.title })} title={isSeed(d.id) ? 'Hide' : 'Unpublish'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" /></button>
+                    <Link href={`/admin/docs/${d.id}`} title="View" aria-label="View" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-eye" aria-hidden /></Link>
+                    <Link href={`/admin/docs/${d.id}/edit`} title="Edit" aria-label="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" aria-hidden /></Link>
+                    <button onClick={() => setConfirm({ id: d.id, title: d.title })} title={isSeed(d.id) ? 'Hide' : 'Unpublish'} aria-label={isSeed(d.id) ? 'Hide' : 'Unpublish'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
                   </div>
                 </td>
               </tr>
@@ -104,7 +104,7 @@ export function AdminDocsManager() {
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setConfirm(null)} />
           <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" />Unpublish “{confirm.title}”? Its audiences will no longer see it.</p>
+            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" aria-hidden />Unpublish &ldquo;{confirm.title}&rdquo;? Its audiences will no longer see it.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setConfirm(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
               <button onClick={() => { removeDoc(confirm.id); setConfirm(null); }} className="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90">Unpublish</button>
@@ -119,7 +119,7 @@ export function AdminDocsManager() {
 function Kpi({ label, value, icon, sub }: { label: string; value: string; icon: string; sub?: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3">
-      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} text-primary`} /></div>
+      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} text-primary`} aria-hidden /></div>
       <p className="display mt-1 text-xl font-bold tracking-tight">{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>

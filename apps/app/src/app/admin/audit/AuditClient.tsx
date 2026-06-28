@@ -128,14 +128,14 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         <div>
           <h1 className="display text-2xl font-bold tracking-tight">Audit log</h1>
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">Every state-changing action, who did it and when.
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-lock-key" />append-only</span>
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600" title="Each entry's hash folds in the previous one — any edit breaks the chain"><i className="ph-bold ph-shield-check" />chain intact · {chain.size} entries</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-lock-key" aria-hidden />append-only</span>
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600" title="Each entry's hash folds in the previous one — any edit breaks the chain"><i className="ph-bold ph-shield-check" aria-hidden />chain intact · {chain.size} entries</span>
             <span className="text-[11px]">· times UTC+0</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportCsv} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />CSV</button>
-          <button onClick={exportJson} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-brackets-curly mr-1" />JSON</button>
+          <button onClick={exportCsv} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />CSV</button>
+          <button onClick={exportJson} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-brackets-curly mr-1" aria-hidden />JSON</button>
         </div>
       </div>
 
@@ -155,7 +155,7 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
           ))}
         </div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"><i className="ph-bold ph-magnifying-glass text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search change, entity, actor…" className="w-full bg-transparent outline-none" /></div>
+          <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"><i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search change, entity, actor…" className="w-full bg-transparent outline-none" /></div>
           <select value={fEntity} onChange={(e) => setFEntity(e.target.value)} className={`${sel} capitalize`}><option value="">All entities</option>{entities.map((x) => <option key={x} value={x}>{entityMeta[x].label}</option>)}</select>
           <select value={fActor} onChange={(e) => setFActor(e.target.value)} className={sel}><option value="">All actors</option>{actors.map((x) => <option key={x} value={x}>{x}</option>)}</select>
           <select value={fCat} onChange={(e) => setFCat(e.target.value)} className={`${sel} capitalize`}><option value="">All categories</option>{cats.map((x) => <option key={x} value={x}>{categoryMeta[x].label}</option>)}</select>
@@ -177,9 +177,9 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
                       <button onClick={(ev) => { ev.stopPropagation(); setFActor(e.actor); }} title={`Filter by ${e.actor}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground transition hover:ring-2 hover:ring-primary/40">{initials(e.actor)}</button>
                       <button onClick={(ev) => { ev.stopPropagation(); setFEntity(e.entity); }} title={`Filter to ${entityMeta[e.entity].label}`} className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition hover:ring-2 hover:ring-primary/30" style={{ background: `${cm.color}1f`, color: cm.color }}><i className={`ph-bold ${entityMeta[e.entity].icon}`} />{entityMeta[e.entity].label}</button>
                       <span className="min-w-0 flex-1 truncate text-sm"><b className="font-medium">{e.actor}</b> <span className="text-muted-foreground">{e.change}</span></span>
-                      {flagged(e) && <i className="ph-fill ph-flag shrink-0 text-xs text-amber-500" title="Flagged — unusual action (destructive / off-hours / impersonation)" />}
-                      {e.diff && <i className="ph-bold ph-git-diff shrink-0 text-xs text-muted-foreground" title="Has field changes" />}
-                      {href && <i className="ph-bold ph-arrow-up-right shrink-0 text-xs text-muted-foreground" />}
+                      {flagged(e) && <i className="ph-fill ph-flag shrink-0 text-xs text-amber-500" title="Flagged — unusual action (destructive / off-hours / impersonation)" aria-hidden />}
+                      {e.diff && <i className="ph-bold ph-git-diff shrink-0 text-xs text-muted-foreground" title="Has field changes" aria-hidden />}
+                      {href && <i className="ph-bold ph-arrow-up-right shrink-0 text-xs text-muted-foreground" aria-hidden />}
                     </div>
                   );
                 })}
@@ -190,7 +190,7 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         </div>
 
         <aside className="rounded-2xl border border-border bg-card p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" /> Activity breakdown</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" aria-hidden /> Activity breakdown</p>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">By category</p>
           <div className="space-y-1.5">
             {catCounts.map(({ c, n }) => { const cm = categoryMeta[c]; return (
@@ -237,7 +237,7 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
         {href && <Link href={href} className="ml-auto text-xs font-semibold text-primary hover:underline">Open {em.label.toLowerCase()} →</Link>}
       </div>
 
-      {isFlagged && <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs font-semibold text-amber-700"><i className="ph-fill ph-flag mr-1" />Flagged — unusual action (destructive, off-hours, or impersonation). Worth a second look.</div>}
+      {isFlagged && <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs font-semibold text-amber-700"><i className="ph-fill ph-flag mr-1" aria-hidden />Flagged — unusual action (destructive, off-hours, or impersonation). Worth a second look.</div>}
 
       <p className="text-sm">{e.change}</p>
 
@@ -257,7 +257,7 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
             {e.diff.map((d) => (
               <div key={d.field} className="rounded-lg border border-border p-2 text-sm">
                 <p className="text-[11px] font-semibold text-muted-foreground">{d.field}</p>
-                <div className="flex items-center gap-2"><span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive line-through">{d.from}</span><i className="ph-bold ph-arrow-right text-xs text-muted-foreground" /><span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-600">{d.to}</span></div>
+                <div className="flex items-center gap-2"><span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive line-through">{d.from}</span><i className="ph-bold ph-arrow-right text-xs text-muted-foreground" aria-hidden /><span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-600">{d.to}</span></div>
               </div>
             ))}
           </div>
@@ -275,7 +275,7 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Integrity · hash chain</p>
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
-            <div className="flex items-center justify-between"><span className="font-semibold text-emerald-600"><i className="ph-bold ph-shield-check mr-1" />Chain entry #{integrity.seq}</span><span className="text-muted-foreground">verified</span></div>
+            <div className="flex items-center justify-between"><span className="font-semibold text-emerald-600"><i className="ph-bold ph-shield-check mr-1" aria-hidden />Chain entry #{integrity.seq}</span><span className="text-muted-foreground">verified</span></div>
             <div className="mt-1.5 space-y-0.5 font-mono text-[11px] text-muted-foreground"><div className="flex justify-between gap-3"><span>hash</span><span className="truncate text-foreground">{integrity.hash}</span></div><div className="flex justify-between gap-3"><span>prev</span><span className="truncate">{integrity.prev}</span></div></div>
           </div>
         </div>

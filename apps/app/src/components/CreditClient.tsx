@@ -77,7 +77,7 @@ export function CreditClient() {
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="text-sm font-semibold">Billing information</h3>
             <p className="mt-2 text-sm text-muted-foreground">HevaSEO Inc. · Tax ID 0312345678</p>
-            <a href="/settings" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Update VAT details <i className="ph-bold ph-arrow-up-right" /></a>
+            <a href="/settings" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Update VAT details <i className="ph-bold ph-arrow-up-right" aria-hidden /></a>
           </div>
         </div>
       </section>

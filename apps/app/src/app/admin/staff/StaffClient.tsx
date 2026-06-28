@@ -410,7 +410,7 @@ function Spark({ data, color = 'hsl(var(--primary))', w = 132, h = 36 }: { data:
 
 function Medal({ rank }: { rank: number }) {
   const c = rank === 0 ? '#f59e0b' : rank === 1 ? '#94a3b8' : '#b45309';
-  return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} />;
+  return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} aria-hidden />;
 }
 function StepBtn({ dir, onClick }: { dir: 'down' | 'up'; onClick: () => void }) {
   return <button onClick={(e) => { e.stopPropagation(); onClick(); }} aria-label={dir === 'down' ? 'Decrease capacity' : 'Increase capacity'} className="grid h-5 w-5 place-items-center rounded border border-border text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className={`ph-bold ${dir === 'down' ? 'ph-minus' : 'ph-plus'}`} aria-hidden /></button>;
@@ -553,9 +553,9 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
-        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
-        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
-        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" aria-hidden /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" aria-hidden /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} aria-hidden />{copied ? 'Copied' : 'Copy'}</button>
       </div>
       <div className="flex items-center gap-3">
         <Avatar name={s.name} size={48} />
@@ -652,7 +652,7 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
       {imp.canStaff && <button onClick={() => impersonate(s.id, imp.viewOnly ? 'view' : 'act')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={imp.viewOnly ? `View ${s.name}’s portal (read-only)` : `Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch" aria-hidden />{imp.viewOnly ? 'View as' : 'Impersonate'} {s.name.split(' ')[0]}</button>}
       <div className="flex items-stretch gap-2">
         <Link href={`/admin/staff/${s.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
-        <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+        <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
       </div>
     </div>
   );

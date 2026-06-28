@@ -50,7 +50,7 @@ export function BroadcastDetailClient({ id }: { id: string }) {
       <section className="mx-auto max-w-md py-20 text-center">
         <i className={`ph-bold ${ready ? 'ph-tray' : 'ph-spinner-gap animate-spin'} mb-2 block text-3xl text-muted-foreground`} aria-hidden />
         <p className="text-sm text-muted-foreground">{ready ? 'Message not found.' : 'Loading…'}</p>
-        {ready && <Link href="/admin/broadcasts" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"><i className="ph-bold ph-arrow-left" /> Back to broadcasts</Link>}
+        {ready && <Link href="/admin/broadcasts" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"><i className="ph-bold ph-arrow-left" aria-hidden /> Back to broadcasts</Link>}
       </section>
     );
   }
@@ -108,24 +108,24 @@ export function BroadcastDetailClient({ id }: { id: string }) {
     <section className="space-y-5">
       {/* header */}
       <div>
-        <Link href="/admin/broadcasts" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-foreground"><i className="ph-bold ph-arrow-left" /> Broadcasts</Link>
+        <Link href="/admin/broadcasts" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-foreground"><i className="ph-bold ph-arrow-left" aria-hidden /> Broadcasts</Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: `${m.color}1f`, color: m.color }}><i className={`ph-fill ${m.icon} text-xl`} aria-hidden /></span>
             <div>
               <h1 className="display text-2xl font-bold tracking-tight">{b.title}</h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} />{m.label}</span>
+                <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} aria-hidden />{m.label}</span>
                 <span className={`pill ${status === 'Live' ? 'pill-live' : status === 'Recalled' ? 'pill-warn' : ''}`}>{status}</span>
                 <span>Sent {ago(b.createdAt)}</span>
-                {b.requireAck && <span className="inline-flex items-center gap-1 text-amber-600"><i className="ph-bold ph-seal-check" />Ack required</span>}
+                {b.requireAck && <span className="inline-flex items-center gap-1 text-amber-600"><i className="ph-bold ph-seal-check" aria-hidden />Ack required</span>}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-download-simple" /> Export CSV</button>
+            <button onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-download-simple" aria-hidden /> Export CSV</button>
             <button onClick={nudge} disabled={nudged || unreadCount === 0} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:opacity-40">
-              <i className={`ph-bold ${nudged ? 'ph-check' : 'ph-bell-ringing'}`} /> {nudged ? 'Reminder sent' : `Remind unread (${unreadCount})`}
+              <i className={`ph-bold ${nudged ? 'ph-check' : 'ph-bell-ringing'}`} aria-hidden /> {nudged ? 'Reminder sent' : `Remind unread (${unreadCount})`}
             </button>
           </div>
         </div>
@@ -181,12 +181,12 @@ export function BroadcastDetailClient({ id }: { id: string }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-3"><span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: am.color }}><i className={`ph-fill ${am.icon}`} />{am.label}</span></td>
+                  <td className="p-3"><span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: am.color }}><i className={`ph-fill ${am.icon}`} aria-hidden />{am.label}</span></td>
                   <td className="p-3">{e.readAt != null
-                    ? <span className="inline-flex items-center gap-1 text-emerald-600" title={new Date(e.readAt).toLocaleString()}><i className="ph-fill ph-check-circle" />{ago(new Date(e.readAt).toISOString())}</span>
+                    ? <span className="inline-flex items-center gap-1 text-emerald-600" title={new Date(e.readAt).toLocaleString()}><i className="ph-fill ph-check-circle" aria-hidden />{ago(new Date(e.readAt).toISOString())}</span>
                     : <span className="text-muted-foreground">—</span>}</td>
-                  <td className="p-3">{e.clickedAt != null ? <i className="ph-fill ph-cursor-click text-violet-500" title={`Clicked ${new Date(e.clickedAt).toLocaleString()}`} /> : <span className="text-muted-foreground">—</span>}</td>
-                  {summary.requireAck && <td className="p-3">{e.ackedAt != null ? <i className="ph-fill ph-seal-check text-amber-500" title={`Acked ${new Date(e.ackedAt).toLocaleString()}`} /> : <span className="text-muted-foreground">—</span>}</td>}
+                  <td className="p-3">{e.clickedAt != null ? <i className="ph-fill ph-cursor-click text-violet-500" title={`Clicked ${new Date(e.clickedAt).toLocaleString()}`} aria-hidden /> : <span className="text-muted-foreground">—</span>}</td>
+                  {summary.requireAck && <td className="p-3">{e.ackedAt != null ? <i className="ph-fill ph-seal-check text-amber-500" title={`Acked ${new Date(e.ackedAt).toLocaleString()}`} aria-hidden /> : <span className="text-muted-foreground">—</span>}</td>}
                   <td className="p-3 text-muted-foreground">{e.channel ?? '—'}</td>
                 </tr>
               ); })}
@@ -203,7 +203,7 @@ function Kpi({ icon, label, value, sub, tone }: { icon: string; label: string; v
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
   return (
     <div className="rounded-xl border border-border bg-card p-3">
-      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} /></div>
+      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} aria-hidden /></div>
       <p className="display mt-1 text-xl font-bold tracking-tight">{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>}
     </div>

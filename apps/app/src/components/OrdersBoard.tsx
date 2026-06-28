@@ -113,12 +113,12 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
     case 'code': return (
       <>
         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#{o.id}</span>
-        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" /> {o.date}</span>
+        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" aria-hidden /> {o.date}</span>
       </>
     );
     case 'service': return (
       <div className="flex items-center gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} /></span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} aria-hidden /></span>
         <div className="min-w-0"><p className="truncate font-semibold leading-tight">{o.title}</p><p className="truncate text-[11px] text-muted-foreground">{o.sub}</p></div>
       </div>
     );
@@ -126,19 +126,19 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
     case 'project': {
       const pr = projectForDomain(o.domain);
       return pr
-        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" />{pr.name}</span>
+        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{pr.name}</span>
         : <span className="text-muted-foreground">—</span>;
     }
     case 'folder': {
       const path = folderPathForDomain(o.domain);
       const leaf = path[path.length - 1];
       return leaf
-        ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" />{leaf.name}</span>
+        ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" aria-hidden />{leaf.name}</span>
         : <span className="text-muted-foreground">—</span>;
     }
     case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} />;
     case 'manager': return est === 'planned'
-      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" /> Not assigned</span>
+      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" aria-hidden /> Not assigned</span>
       : <ManagerTag name={managerFor(o.id)} reviewing={est === 'review'} />;
     case 'status': return <span className="pill" style={{ background: `${STATUSES[est].color}1f`, color: STATUSES[est].color }}>● {STATUSES[est].label}</span>;
     case 'progress': return <span className="bar inline-block w-24 align-middle"><i style={{ width: `${pct(o)}%` }} /></span>;
@@ -160,12 +160,12 @@ function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean 
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
       {!hideProject && proj && (
         <p className="flex items-center gap-1.5">
-          <i className="ph-bold ph-stack shrink-0" />
+          <i className="ph-bold ph-stack shrink-0" aria-hidden />
           <span className="min-w-0 truncate">Project: <span className="font-semibold text-foreground">{proj.name}</span></span>
         </p>
       )}
       <p className="flex items-center gap-1.5">
-        <i className="ph-bold ph-globe-simple shrink-0" />
+        <i className="ph-bold ph-globe-simple shrink-0" aria-hidden />
         <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
         {o.urls != null && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
       </p>
@@ -180,7 +180,7 @@ function FolderPath({ o }: { o: Order }) {
   const leaf = path[path.length - 1];
   return (
     <div className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
-      <i className="ph-bold ph-folder-simple shrink-0" style={{ color: leaf.color }} />
+      <i className="ph-bold ph-folder-simple shrink-0" aria-hidden style={{ color: leaf.color }} />
       <span className="min-w-0 truncate">
         {path.map((f, i) => (
           <span key={f.id} className={i === path.length - 1 ? 'font-semibold' : ''} style={i === path.length - 1 ? { color: leaf.color } : undefined}>
@@ -200,7 +200,7 @@ function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order
       <div className="bar mt-2"><i style={{ width: `${p}%` }} /></div>
       {(showDate || showPct) && (
         <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          {showDate ? <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" /> {o.date}</span> : <span />}
+          {showDate ? <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span> : <span />}
           {showPct && <b className={done ? 'text-emerald-600' : 'text-primary'}>{p}%</b>}
         </div>
       )}
@@ -212,7 +212,7 @@ function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order
 function DetailRows({ o }: { o: Order }) {
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      <p className="flex items-center gap-1.5"><i className="ph-bold ph-timer shrink-0" /> ETA: <span className="font-medium text-foreground">{o.eta}</span></p>
+      <p className="flex items-center gap-1.5"><i className="ph-bold ph-timer shrink-0" aria-hidden /> ETA: <span className="font-medium text-foreground">{o.eta}</span></p>
     </div>
   );
 }
@@ -230,7 +230,7 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     <div className="flex items-center gap-2">
       <DoneBadge done={done} />
       <span className="inline-flex min-w-0 items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
-        <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} />
+        <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden />
         <span className="truncate">{SERVICES[o.service].label}</span>
       </span>
       <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#{o.id}</span>
@@ -423,7 +423,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
             >
-              <i className="ph-bold ph-layout text-muted-foreground" /> Card design
+              <i className="ph-bold ph-layout text-muted-foreground" aria-hidden /> Card design
             </button>
           )}
           {view === 'list' && (
@@ -433,7 +433,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 aria-expanded={showPresets}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
               >
-                <i className="ph-bold ph-sliders-horizontal text-muted-foreground" /> Presets
+                <i className="ph-bold ph-sliders-horizontal text-muted-foreground" aria-hidden /> Presets
               </button>
               {showPresets && (
                 <>
@@ -446,7 +446,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                         onClick={() => applyPreset(p.cols)}
                         className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition hover:bg-muted"
                       >
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${p.icon}`} /></span>
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${p.icon}`} aria-hidden /></span>
                         <span className="min-w-0">
                           <span className="block text-sm font-medium">{p.label}</span>
                           <span className="block text-[11px] text-muted-foreground">{p.desc}</span>
@@ -465,7 +465,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 aria-expanded={showCols}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
               >
-                <i className="ph-bold ph-columns text-muted-foreground" /> Columns
+                <i className="ph-bold ph-columns text-muted-foreground" aria-hidden /> Columns
               </button>
               {showCols && (
                 <>
@@ -489,15 +489,15 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                         onDrop={() => reorderCol(i)}
                         className="group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted active:cursor-grabbing"
                       >
-                        <i className="ph-bold ph-dots-six-vertical text-muted-foreground" />
+                        <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden />
                         <input type="checkbox" checked={!hiddenCols.has(id)} disabled={visibleCols.length === 1 && !hiddenCols.has(id)} onChange={() => toggleCol(id)} className="h-3.5 w-3.5 accent-primary disabled:opacity-40" />
                         <span className="flex-1">{COL_LABEL[id]}</span>
                         <span className="flex items-center gap-0.5">
                           <button type="button" aria-label={`Move ${COL_LABEL[id]} up`} disabled={i === 0} onClick={() => moveCol(i, -1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
-                            <i className="ph-bold ph-caret-up text-[11px]" />
+                            <i className="ph-bold ph-caret-up text-[11px]" aria-hidden />
                           </button>
                           <button type="button" aria-label={`Move ${COL_LABEL[id]} down`} disabled={i === colOrder.length - 1} onClick={() => moveCol(i, 1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
-                            <i className="ph-bold ph-caret-down text-[11px]" />
+                            <i className="ph-bold ph-caret-down text-[11px]" aria-hidden />
                           </button>
                         </span>
                       </div>
@@ -509,7 +509,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
           )}
           {!domain && (
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-globe-hemisphere-west text-muted-foreground" />
+              <i className="ph-bold ph-globe-hemisphere-west text-muted-foreground" aria-hidden />
               <select value={proj} onChange={(e) => setProj(e.target.value)} aria-label="Filter by project" className="cursor-pointer bg-transparent pr-1 outline-none">
                 <option value="all">All projects</option>
                 {domains.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -517,8 +517,8 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
             </div>
           )}
           <div className="view-toggle flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
-            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
-            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
+            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" aria-hidden /> Kanban</button>
+            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" aria-hidden /> List</button>
           </div>
         </div>
       </div>
@@ -533,7 +533,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
               }`}
             >
-              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
+              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} aria-hidden />
               {k === 'all' ? 'All' : SERVICES[k].label}
             </button>
           ))}
@@ -541,14 +541,14 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
         {view === 'list' && (
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-funnel text-muted-foreground" />
+              <i className="ph-bold ph-funnel text-muted-foreground" aria-hidden />
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')} aria-label="Filter by status" className="cursor-pointer bg-transparent pr-1 outline-none">
                 <option value="all">All statuses</option>
                 {(Object.keys(STATUSES) as OrderStatus[]).map((s) => <option key={s} value={s}>{STATUSES[s].label}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-calendar-blank text-muted-foreground" />
+              <i className="ph-bold ph-calendar-blank text-muted-foreground" aria-hidden />
               <select value={dateRange} onChange={(e) => setDateRange(Number(e.target.value))} aria-label="Filter by time" className="cursor-pointer bg-transparent pr-1 outline-none">
                 {DATE_RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}
               </select>
@@ -594,7 +594,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               <button key={o.id} onClick={() => openOrder(o.id)} className="kcard onav block w-full text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <DoneBadge done={est === 'completed'} />
-                  {show('service') && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} /> {SERVICES[o.service].label}</span>}
+                  {show('service') && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} aria-hidden /> {SERVICES[o.service].label}</span>}
                   {show('code') && <span className="font-mono text-[11px] text-muted-foreground">#{o.id}</span>}
                   {show('status') && <span className="pill ml-auto" style={{ background: `${sc.color}1f`, color: sc.color }}>● {sc.label}</span>}
                 </div>
@@ -613,11 +613,11 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                   )}
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" /> {proj?.name ?? o.domain}</span>}
-                  {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
-                  {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" /> {folderLeaf.name}</span>}
-                  {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" /> {o.owner}</span>}
-                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" /> {o.date}</span>}
+                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" aria-hidden /> {proj?.name ?? o.domain}</span>}
+                  {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" aria-hidden /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
+                  {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" aria-hidden /> {folderLeaf.name}</span>}
+                  {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" aria-hidden /> {o.owner}</span>}
+                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span>}
                 </div>
                 {show('progress') && (
                   <div className="mt-2 flex items-center gap-2">
@@ -693,7 +693,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 <p className="text-xs text-muted-foreground">Pick how much each card shows (density) and which field it emphasizes (layout).</p>
               </div>
               <button onClick={closeModal} aria-label="Close" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent">
-                <i className="ph-bold ph-x" />
+                <i className="ph-bold ph-x" aria-hidden />
               </button>
             </div>
 
@@ -722,7 +722,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-sm font-semibold">
                         {t.label}
-                        {active && <i className="ph-fill ph-check-circle text-primary" />}
+                        {active && <i className="ph-fill ph-check-circle text-primary" aria-hidden />}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">{t.desc}</p>

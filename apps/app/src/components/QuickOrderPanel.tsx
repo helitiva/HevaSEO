@@ -52,16 +52,16 @@ export function QuickOrderPanel() {
         <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card/95 px-5 py-4 backdrop-blur sm:px-[30px]">
           {catalog ? (
             <button onClick={() => setSvc(null)} className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground">
-              <i className="ph-bold ph-arrow-left" /> Services
+              <i className="ph-bold ph-arrow-left" aria-hidden /> Services
             </button>
           ) : (
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i className="ph-bold ph-plus text-lg" /></span>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i className="ph-bold ph-plus text-lg" aria-hidden /></span>
           )}
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">New order</p>
             <h2 className="display truncate text-lg font-semibold tracking-tight">{catalog ? catalog.name : 'Pick a service'}</h2>
           </div>
-          <button onClick={close} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" /></button>
+          <button onClick={close} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
 
         <div className="p-5 sm:p-[30px]">
@@ -76,11 +76,11 @@ export function QuickOrderPanel() {
                     onClick={() => setSvc(k)}
                     className="group flex flex-col rounded-2xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                   >
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary"><i className={`ph-bold ${s.icon} text-xl`} /></span>
+                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary"><i className={`ph-bold ${s.icon} text-xl`} aria-hidden /></span>
                     <p className="mt-3 font-semibold">{s.label}</p>
                     <p className="mt-1 flex-1 text-[13px] leading-relaxed text-muted-foreground">{SERVICE_BLURBS[k]}</p>
                     <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                      Order now <i className="ph-bold ph-arrow-right transition group-hover:translate-x-0.5" />
+                      Order now <i className="ph-bold ph-arrow-right transition group-hover:translate-x-0.5" aria-hidden />
                     </span>
                   </button>
                 );

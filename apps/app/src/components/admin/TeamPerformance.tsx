@@ -12,7 +12,7 @@ export function TeamPerformance() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-medal text-primary" /> Team performance</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-medal text-primary" aria-hidden /> Team performance</p>
         <Link href="/admin/staff" className="text-xs font-semibold text-primary hover:underline">All staff →</Link>
       </div>
 

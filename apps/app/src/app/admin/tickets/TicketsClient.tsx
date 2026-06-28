@@ -253,7 +253,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
           <h1 className="display text-2xl font-bold tracking-tight">Tickets</h1>
           <p className="text-sm text-muted-foreground">Reply, assign, and resolve support tickets against their SLA.</p>
         </div>
-        {kpis.breaches > 0 && <span className="pill pill-warn"><i className="ph-bold ph-warning" /> {kpis.breaches} breaching SLA</span>}
+        {kpis.breaches > 0 && <span className="pill pill-warn"><i className="ph-bold ph-warning" aria-hidden /> {kpis.breaches} breaching SLA</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -298,8 +298,8 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                 options={projects.map((p) => ({ value: p, label: p }))} />
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search subject, code, customer…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
-              {anyFilter && <button onClick={clearFilters} title="Clear all filters" className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" /></button>}
+              <div className="relative flex-1"><i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search subject, code, customer…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" /></div>
+              {anyFilter && <button onClick={clearFilters} title="Clear all filters" aria-label="Clear all filters" className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>}
             </div>
             <div className="flex items-center gap-2 px-0.5">
               <input ref={masterRef} type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} aria-label="Select all visible tickets" className="accent-primary" disabled={visible.length === 0} />
@@ -308,12 +308,12 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
             {checked.size > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-1.5">
                 <span className="px-1 text-[11px] font-semibold text-primary">{checked.size} selected</span>
-                <button onClick={() => bulkAssign(agent)} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-0.5" />To me</button>
+                <button onClick={() => bulkAssign(agent)} className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-0.5" aria-hidden />To me</button>
                 <SearchSelect value="__none" onChange={bulkAssign} includeAll={false} allLabel="Assign to…" icon="ph-user-switch" className="w-32"
                   options={[{ value: '', label: 'Unassign' }, ...staff.map((s) => ({ value: s, label: s }))]} />
-                <button onClick={() => bulkStatus('resolved', 'ph-check-circle')} className="rounded-md border border-emerald-500/40 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-500/10"><i className="ph-bold ph-check-circle mr-0.5" />Resolve</button>
+                <button onClick={() => bulkStatus('resolved', 'ph-check-circle')} className="rounded-md border border-emerald-500/40 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-500/10"><i className="ph-bold ph-check-circle mr-0.5" aria-hidden />Resolve</button>
                 <button onClick={() => bulkStatus('closed', 'ph-x-circle')} className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent">Close</button>
-                <button onClick={() => setChecked(new Set())} className="ml-auto rounded-md px-1.5 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent" title="Clear selection"><i className="ph-bold ph-x" /></button>
+                <button onClick={() => setChecked(new Set())} className="ml-auto rounded-md px-1.5 py-1 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent" title="Clear selection" aria-label="Clear selection"><i className="ph-bold ph-x" aria-hidden /></button>
               </div>
             )}
           </div>
@@ -321,7 +321,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
           <div ref={listRef} className="scrollbar-thin max-h-[42rem] overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
             {visible.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
-                <i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" />
+                <i className="ph-bold ph-check-circle mb-1 block text-lg text-emerald-500" aria-hidden />
                 {rows.length === 0 ? 'No tickets yet.' : 'No tickets match these filters.'}
               </p>
             ) : (
@@ -342,9 +342,9 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                           </div>
                           <p className="mt-1 truncate text-[13px] font-medium">{t.subject}</p>
                           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                            <span className="inline-flex items-center gap-0.5" style={{ color: ty.color }}><i className={`ph-bold ${ty.icon}`} />{ty.label}</span>
+                            <span className="inline-flex items-center gap-0.5" style={{ color: ty.color }}><i className={`ph-bold ${ty.icon}`} aria-hidden />{ty.label}</span>
                             <span className="truncate">· <CustomerHoverCard customer={t.customerId ?? t.customer}><span className="hover:underline">{t.customer}</span></CustomerHoverCard></span>
-                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <StaffHoverCard staff={asgOf(t) as string}><span className="inline-flex items-center gap-0.5"><i className="ph-bold ph-user-circle text-primary" />{asgOf(t)}</span></StaffHoverCard> : <span className="text-amber-600">Unassigned</span>}</span>
+                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">{asgOf(t) ? <StaffHoverCard staff={asgOf(t) as string}><span className="inline-flex items-center gap-0.5"><i className="ph-bold ph-user-circle text-primary" aria-hidden />{asgOf(t)}</span></StaffHoverCard> : <span className="text-amber-600">Unassigned</span>}</span>
                           </div>
                         </button>
                       </div>
@@ -359,41 +359,41 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
         {/* conversation pane */}
         <div className="min-w-0 rounded-2xl border border-border bg-card p-5 lg:h-[44rem]">
           {!selected ? (
-            <div className="grid h-full min-h-[20rem] place-items-center text-center text-sm text-muted-foreground"><div><i className="ph-bold ph-coffee mb-2 block text-3xl text-emerald-500" />Inbox zero. Nice work.</div></div>
+            <div className="grid h-full min-h-[20rem] place-items-center text-center text-sm text-muted-foreground"><div><i className="ph-bold ph-coffee mb-2 block text-3xl text-emerald-500" aria-hidden />Inbox zero. Nice work.</div></div>
           ) : (
             <div className="grid gap-5 lg:h-full lg:grid-cols-[1fr_17rem]">
               {/* left: header + thread + reply */}
               <div className="flex min-w-0 flex-col gap-4 lg:min-h-0">
                 <div className="shrink-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <button onClick={() => prevTicket && setSelectedId(prevTicket.id)} disabled={!prevTicket} title="Previous (k)" aria-label="Previous ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
-                    <button onClick={() => nextTicket && setSelectedId(nextTicket.id)} disabled={!nextTicket} title="Next (j)" aria-label="Next ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
+                    <button onClick={() => prevTicket && setSelectedId(prevTicket.id)} disabled={!prevTicket} title="Previous (k)" aria-label="Previous ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" aria-hidden /></button>
+                    <button onClick={() => nextTicket && setSelectedId(nextTicket.id)} disabled={!nextTicket} title="Next (j)" aria-label="Next ticket" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" aria-hidden /></button>
                     <span className="display text-lg font-bold">#{selected.code}</span>
                     <span className={`pill ${STATUS_META[stOf(selected)].cls}`}>{STATUS_META[stOf(selected)].label}</span>
                     <PriorityBadge priority={selected.priority} />
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: TICKET_TYPE[selected.type].color }}><i className={`ph-bold ${TICKET_TYPE[selected.type].icon}`} />{TICKET_TYPE[selected.type].label}</span>
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-bold ${TICKET_CHANNEL[selected.channel].icon}`} />{TICKET_CHANNEL[selected.channel].label}</span>
-                    <button onClick={() => copyTicketLink(selected.id)} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: TICKET_TYPE[selected.type].color }}><i className={`ph-bold ${TICKET_TYPE[selected.type].icon}`} aria-hidden />{TICKET_TYPE[selected.type].label}</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className={`ph-bold ${TICKET_CHANNEL[selected.channel].icon}`} aria-hidden />{TICKET_CHANNEL[selected.channel].label}</span>
+                    <button onClick={() => copyTicketLink(selected.id)} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} aria-hidden />{copied ? 'Copied' : 'Copy'}</button>
                   </div>
                   <p className="mt-1 text-[15px] font-semibold">{selected.subject}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                    <button onClick={() => setFCustomer(selected.customer)} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this customer"><i className="ph-bold ph-buildings" />{selected.customer}</button>
-                    <button onClick={() => { onCustomer(selected.customer); setFProject(selected.project); }} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this project"><i className="ph-bold ph-folders" />{selected.project}</button>
-                    {asgOf(selected) && <button onClick={() => setFAssignee(asgOf(selected) as string)} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this agent"><i className="ph-bold ph-user-circle" />{asgOf(selected)}</button>}
+                    <button onClick={() => setFCustomer(selected.customer)} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this customer"><i className="ph-bold ph-buildings" aria-hidden />{selected.customer}</button>
+                    <button onClick={() => { onCustomer(selected.customer); setFProject(selected.project); }} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this project"><i className="ph-bold ph-folders" aria-hidden />{selected.project}</button>
+                    {asgOf(selected) && <button onClick={() => setFAssignee(asgOf(selected) as string)} className="inline-flex items-center gap-1 font-medium transition hover:text-primary" title="Filter by this agent"><i className="ph-bold ph-user-circle" aria-hidden />{asgOf(selected)}</button>}
                   </div>
                 </div>
 
                 {/* action bar */}
                 <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-background/40 p-2">
                   {asgOf(selected) === agent ? (
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary"><i className="ph-bold ph-user-check" />Assigned to you</span>
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary"><i className="ph-bold ph-user-check" aria-hidden />Assigned to you</span>
                   ) : (
-                    <button onClick={() => assignToMe(selected)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" />Assign to me</button>
+                    <button onClick={() => assignToMe(selected)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Assign to me</button>
                   )}
                   <SearchSelect value={asgOf(selected) ?? ''} onChange={(v) => reassign(selected, v)} includeAll={false} allLabel="Unassigned" icon="ph-user-switch" className="w-44"
                     options={[{ value: '', label: 'Unassigned' }, ...staff.map((s) => ({ value: s, label: s }))]} />
                   <div className="ml-auto flex items-center gap-2">
-                    <button onClick={() => setStatus(selected, 'resolved', 'ph-check-circle')} disabled={stOf(selected) === 'resolved' || stOf(selected) === 'closed'} className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/10 disabled:opacity-40"><i className="ph-bold ph-check-circle mr-1" />Resolve</button>
+                    <button onClick={() => setStatus(selected, 'resolved', 'ph-check-circle')} disabled={stOf(selected) === 'resolved' || stOf(selected) === 'closed'} className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-500/10 disabled:opacity-40"><i className="ph-bold ph-check-circle mr-1" aria-hidden />Resolve</button>
                     <button onClick={() => setStatus(selected, 'closed', 'ph-x-circle')} disabled={stOf(selected) === 'closed'} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-accent disabled:opacity-40">Close</button>
                   </div>
                 </div>
@@ -412,7 +412,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                 {isLive(selected) ? (
                   <div className="shrink-0 border-t border-border pt-3">
                     <div ref={macroRef} className="relative mb-2">
-                      <button onClick={() => setMacroOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-lightning" />Canned reply<i className={`ph-bold ph-caret-down transition ${macroOpen ? 'rotate-180' : ''}`} /></button>
+                      <button onClick={() => setMacroOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-accent"><i className="ph-bold ph-lightning" aria-hidden />Canned reply<i className={`ph-bold ph-caret-down transition ${macroOpen ? 'rotate-180' : ''}`} aria-hidden /></button>
                       {macroOpen && (
                         <div className="absolute z-20 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
                           {TICKET_MACROS.map((mc) => (
@@ -432,7 +432,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                         placeholder={`Reply to ${selected.cust?.name ?? selected.customer}…  (⌘/Ctrl+Enter to send)`}
                         className="scrollbar-thin max-h-32 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
-                      <button onClick={() => sendReply(selected)} disabled={!draftOf(selected).trim()} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" /></button>
+                      <button onClick={() => sendReply(selected)} disabled={!draftOf(selected).trim()} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
                     </div>
                   </div>
                 ) : (
@@ -457,11 +457,11 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate font-semibold">{selected.cust.name}</span>
-                          <i className={`ph-fill ${tierMeta[selected.cust.tier].icon} shrink-0`} style={{ color: tierMeta[selected.cust.tier].color }} title={tierMeta[selected.cust.tier].label} />
+                          <i className={`ph-fill ${tierMeta[selected.cust.tier].icon} shrink-0`} style={{ color: tierMeta[selected.cust.tier].color }} title={tierMeta[selected.cust.tier].label} aria-hidden />
                         </div>
                         <p className="truncate text-[11px] text-muted-foreground">{selected.cust.email}</p>
                       </div>
-                      <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                      <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden />
                     </div>
                     <div className={`mt-2.5 grid gap-1.5 ${showMoney ? 'grid-cols-3' : 'grid-cols-1'}`}>
                       {showMoney && <Mini label="LTV" value={money(selected.cust.spend)} />}
@@ -471,14 +471,14 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                     <span className="mt-2 block text-center text-xs font-semibold text-primary group-hover:underline">View full info →</span>
                   </button>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground"><i className="ph-bold ph-user-circle-dashed mb-1 block text-lg" />Guest / unlinked sender</div>
+                  <div className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground"><i className="ph-bold ph-user-circle-dashed mb-1 block text-lg" aria-hidden />Guest / unlinked sender</div>
                 )}
 
                 <div className="rounded-xl border border-border bg-background/40 p-3">
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Linked order</p>
                   {selected.order ? (
                     <Link href={`/admin/orders/${selected.order.id}`} className="block rounded-lg border border-border p-2 transition hover:border-primary/50 hover:bg-accent">
-                      <div className="flex items-center justify-between text-sm font-semibold">{selected.order.code}<i className="ph-bold ph-arrow-up-right text-muted-foreground" /></div>
+                      <div className="flex items-center justify-between text-sm font-semibold">{selected.order.code}<i className="ph-bold ph-arrow-up-right text-muted-foreground" aria-hidden /></div>
                       <p className="text-[11px] text-muted-foreground">{selected.order.service} · {selected.order.pkg}{showMoney ? ` · ${money(selected.order.value)}` : ''}</p>
                     </Link>
                   ) : <p className="text-xs text-muted-foreground">No order linked to this ticket.</p>}
@@ -489,7 +489,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium capitalize">{selected.slaTier}</span>
                     {answered[selected.id] || !isLive(selected) ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-check" />Answered</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-check" aria-hidden />Answered</span>
                     ) : awaitingUs(selected) ? (
                       <span className={`text-xs font-semibold ${isBreaching(selected) ? 'text-destructive' : 'text-amber-600'}`}>{selected.slaLeftLabel}</span>
                     ) : (
@@ -638,12 +638,12 @@ function SearchSelect({ value, options, onChange, allLabel, icon, className, inc
         className={`flex w-full items-center gap-1.5 rounded-lg border bg-background py-1.5 pl-2 pr-2 text-xs outline-none transition focus:border-primary ${active ? 'border-primary font-semibold text-primary' : 'border-border'}`}>
         <i className={`ph-bold ${icon} shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
         <span className="truncate">{current}</span>
-        <i className={`ph-bold ph-caret-down ml-auto shrink-0 text-[10px] text-muted-foreground transition ${open ? 'rotate-180' : ''}`} />
+        <i className={`ph-bold ph-caret-down ml-auto shrink-0 text-[10px] text-muted-foreground transition ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-40 mt-1 w-full min-w-[15rem] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
           <div className="relative border-b border-border p-1.5">
-            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" />
+            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden />
             <input
               autoFocus value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
@@ -665,7 +665,7 @@ function SearchSelect({ value, options, onChange, allLabel, icon, className, inc
                   <button ref={isActive ? activeRef : undefined} type="button" onMouseEnter={() => setActiveIndex(idx)} onClick={() => pick(o.value)}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs ${isActive ? 'bg-accent' : ''} ${isSel ? 'font-semibold text-primary' : o.value === 'all' ? 'text-muted-foreground' : ''}`}>
                     <span className="truncate">{o.label}</span>
-                    {isSel && <i className="ph-bold ph-check ml-auto shrink-0 text-primary" />}
+                    {isSel && <i className="ph-bold ph-check ml-auto shrink-0 text-primary" aria-hidden />}
                   </button>
                 </li>
               );
@@ -681,17 +681,17 @@ function SearchSelect({ value, options, onChange, allLabel, icon, className, inc
 function FilterSelect({ value, active, onChange, icon, className, children }: { value: string; active: boolean; onChange: (v: string) => void; icon: string; className?: string; children: ReactNode }) {
   return (
     <div className={`relative min-w-0 ${className ?? ''}`}>
-      <i className={`ph-bold ${icon} pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+      <i className={`ph-bold ${icon} pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs ${active ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden />
       <select value={value} onChange={(e) => onChange(e.target.value)} className={`w-full cursor-pointer appearance-none truncate rounded-lg border bg-background py-1.5 pl-7 pr-6 text-xs outline-none transition focus:border-primary ${active ? 'border-primary font-semibold text-primary' : 'border-border'}`}>
         {children}
       </select>
-      <i className="ph-bold ph-caret-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground" />
+      <i className="ph-bold ph-caret-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground" aria-hidden />
     </div>
   );
 }
 function Kpi({ icon, label, value, tone }: { icon: string; label: string; value: string; tone?: 'good' | 'warn' }) {
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
-  return <div className="rounded-xl border border-border bg-card p-3 transition hover:border-primary/40"><div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} /></div><p className="display mt-1 text-xl font-bold tracking-tight">{value}</p></div>;
+  return <div className="rounded-xl border border-border bg-card p-3 transition hover:border-primary/40"><div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} aria-hidden /></div><p className="display mt-1 text-xl font-bold tracking-tight">{value}</p></div>;
 }
 function Card({ icon, title, right, children }: { icon: string; title: string; right?: ReactNode; children: ReactNode }) {
   return <div className="rounded-2xl border border-border bg-card p-5"><div className="mb-3 flex items-center justify-between"><p className="flex items-center gap-2 text-sm font-semibold"><i className={`ph-bold ${icon} text-primary`} /> {title}</p>{right}</div>{children}</div>;

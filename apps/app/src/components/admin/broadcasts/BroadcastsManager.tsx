@@ -47,7 +47,7 @@ export function BroadcastsManager() {
             <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search messages…" className="w-48 rounded-lg border border-border bg-background py-2 pl-8 pr-3 text-sm outline-none focus:border-primary sm:w-56" />
           </div>
-          <button onClick={openNew} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" /> New message</button>
+          <button onClick={openNew} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" aria-hidden /> New message</button>
         </div>
       </div>
 
@@ -75,17 +75,17 @@ export function BroadcastsManager() {
                 <tr key={b.id} className="border-b border-border/50 align-top transition hover:bg-muted/40">
                   <td className="p-3">
                     <Link href={`/admin/broadcasts/${b.id}`} className="text-left font-semibold hover:text-primary hover:underline">{b.title}</Link>
-                    {b.pinned && <i className="ph-fill ph-push-pin ml-1.5 text-amber-500" title="Pinned" />}
-                    {b.requireAck && <i className="ph-bold ph-seal-check ml-1.5 text-amber-600" title="Requires acknowledgement" />}
+                    {b.pinned && <i className="ph-fill ph-push-pin ml-1.5 text-amber-500" title="Pinned" aria-hidden />}
+                    {b.requireAck && <i className="ph-bold ph-seal-check ml-1.5 text-amber-600" title="Requires acknowledgement" aria-hidden />}
                     <p className="line-clamp-1 max-w-md text-[11px] text-muted-foreground">{b.body}</p>
                   </td>
-                  <td className="p-3"><span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} />{m.label}</span></td>
-                  <td className="p-3"><span className="flex flex-wrap gap-1">{stats.map((s) => { const am = AUDIENCE_META[s.audience]; return <span key={s.audience} title={s.acked ? 'Acknowledged' : s.read ? 'Read' : 'Not read yet'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${s.read ? '' : 'opacity-50'}`} style={{ background: `${am.color}1a`, color: am.color }}><i className={`ph-fill ${s.acked ? 'ph-seal-check' : s.read ? 'ph-check-circle' : am.icon}`} />{am.label}</span>; })}</span></td>
+                  <td className="p-3"><span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} aria-hidden />{m.label}</span></td>
+                  <td className="p-3"><span className="flex flex-wrap gap-1">{stats.map((s) => { const am = AUDIENCE_META[s.audience]; return <span key={s.audience} title={s.acked ? 'Acknowledged' : s.read ? 'Read' : 'Not read yet'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${s.read ? '' : 'opacity-50'}`} style={{ background: `${am.color}1a`, color: am.color }}><i className={`ph-fill ${s.acked ? 'ph-seal-check' : s.read ? 'ph-check-circle' : am.icon}`} aria-hidden />{am.label}</span>; })}</span></td>
                   <td className="p-3 text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
-                      <i className="ph-bold ph-bell" title="Inbox + bell" />
-                      {b.banner && <i className="ph-bold ph-flag-banner text-primary" title="Overview banner" />}
-                      {b.cta && <i className="ph-bold ph-link-simple" title={`CTA: ${b.cta.label}`} />}
+                      <i className="ph-bold ph-bell" title="Inbox + bell" aria-hidden />
+                      {b.banner && <i className="ph-bold ph-flag-banner text-primary" title="Overview banner" aria-hidden />}
+                      {b.cta && <i className="ph-bold ph-link-simple" title={`CTA: ${b.cta.label}`} aria-hidden />}
                     </span>
                     <Link href={`/admin/broadcasts/${b.id}`} className="mt-1 block text-[10px] hover:text-primary hover:underline">{rc.read}/{rc.total} read{rc.clicks > 0 && ` · ${rc.clicks} clicks`}</Link>
                   </td>
@@ -93,13 +93,13 @@ export function BroadcastsManager() {
                   <td className="p-3 text-muted-foreground">{ago(b.createdAt)}{b.updatedAt && <span className="block text-[10px] opacity-70" title={`Edited ${new Date(b.updatedAt).toLocaleString()}`}>edited {ago(b.updatedAt)}</span>}</td>
                   <td className="p-3">
                     <div className="flex items-center justify-end gap-2.5">
-                      <Link href={`/admin/broadcasts/${b.id}`} title="Analytics" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-chart-bar" /></Link>
-                      <button onClick={() => openEdit(b)} title="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" /></button>
-                      <button onClick={() => duplicate(b)} title="Duplicate" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-copy" /></button>
+                      <Link href={`/admin/broadcasts/${b.id}`} title="Analytics" aria-label="Analytics" className="text-muted-foreground hover:text-primary"><i className="ph-bold ph-chart-bar" aria-hidden /></Link>
+                      <button onClick={() => openEdit(b)} title="Edit" aria-label="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" aria-hidden /></button>
+                      <button onClick={() => duplicate(b)} title="Duplicate" aria-label="Duplicate" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-copy" aria-hidden /></button>
                       {b.active
-                        ? <button onClick={() => setActive(b.id, false)} title="Recall (stop delivering)" className="text-muted-foreground hover:text-amber-600"><i className="ph-bold ph-arrow-u-up-left" /></button>
-                        : <button onClick={() => setActive(b.id, true)} title="Restore" className="text-muted-foreground hover:text-emerald-600"><i className="ph-bold ph-arrow-clockwise" /></button>}
-                      <button onClick={() => setConfirm({ id: b.id, title: b.title })} title={isSeed(b.id) ? 'Hide' : 'Delete'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" /></button>
+                        ? <button onClick={() => setActive(b.id, false)} title="Recall (stop delivering)" aria-label="Recall" className="text-muted-foreground hover:text-amber-600"><i className="ph-bold ph-arrow-u-up-left" aria-hidden /></button>
+                        : <button onClick={() => setActive(b.id, true)} title="Restore" aria-label="Restore" className="text-muted-foreground hover:text-emerald-600"><i className="ph-bold ph-arrow-clockwise" aria-hidden /></button>}
+                      <button onClick={() => setConfirm({ id: b.id, title: b.title })} title={isSeed(b.id) ? 'Hide' : 'Delete'} aria-label={isSeed(b.id) ? 'Hide' : 'Delete'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
                     </div>
                   </td>
                 </tr>
@@ -112,7 +112,7 @@ export function BroadcastsManager() {
 
       {activity.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-muted-foreground" /> Recent activity</p>
+          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-muted-foreground" aria-hidden /> Recent activity</p>
           <ul className="space-y-1.5">
             {activity.slice(0, 8).map((a, i) => (
               <li key={i} className="flex items-center gap-2 text-[13px]">
@@ -132,7 +132,7 @@ export function BroadcastsManager() {
         <div className="fixed inset-0 z-[80] grid place-items-center p-4">
           <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setConfirm(null)} />
           <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" />Delete “{confirm.title}”? This removes it for everyone. To stop delivery without deleting, use Recall.</p>
+            <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" aria-hidden />Delete &ldquo;{confirm.title}&rdquo;? This removes it for everyone. To stop delivery without deleting, use Recall.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setConfirm(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
               <button onClick={() => { removeBroadcast(confirm.id); setConfirm(null); }} className="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90">Delete</button>
@@ -148,7 +148,7 @@ function Kpi({ icon, label, value, tone }: { icon: string; label: string; value:
   const col = tone === 'good' ? 'text-emerald-500' : tone === 'warn' ? 'text-amber-500' : 'text-primary';
   return (
     <div className="rounded-xl border border-border bg-card p-3">
-      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} /></div>
+      <div className="flex items-center justify-between"><span className="text-xs font-semibold text-muted-foreground">{label}</span><i className={`ph-bold ${icon} ${col}`} aria-hidden /></div>
       <p className="display mt-1 text-xl font-bold tracking-tight">{value}</p>
     </div>
   );
