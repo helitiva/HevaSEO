@@ -13,6 +13,7 @@ import { DeadlineCalendar, type CalTask } from '@/components/staff/DeadlineCalen
 import { monthOf } from '@/lib/calendar';
 import { statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
+import { usePayOverride, effectivePay } from '@/lib/payOverrides';
 import { ACTIVITY_TYPE_META, PENALTY_RULES } from '@/data/staffMock';
 import type { StaffInsight } from '@/data/adminStaffInsight';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STATUS_META, WALLET_KIND_META } from '@/lib/staffFinance';
@@ -76,6 +77,10 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
   const toggleSkill = (k: string) => { const has = skills.includes(k); setSkills((x) => (has ? x.filter((y) => y !== k) : [...x, k])); notify(`${has ? 'Removed' : 'Added'} ${skillMeta[k].label} skill`); };
   const toggleActive = () => { setActive((a) => !a); notify(active ? 'Paused — excluded from auto-routing' : 'Reactivated'); };
   const eligible = useMemo(() => Object.entries(serviceSkill).filter(([, sk]) => skills.includes(sk)).map(([svc]) => svc), [skills, serviceSkill]);
+  // Effective monthly pay, with any admin pay-override applied (shared with Finance › Payouts),
+  // so the header KPI and Overview match the editable Compensation card on the Pay tab.
+  const { override: payOverride } = usePayOverride(insight.id);
+  const payDue = effectivePay({ base: s.payroll.base, rate: s.payroll.rate, basis: s.payroll.basis, gig: s.payroll.gig, bonus: s.payroll.bonus }, payOverride).total;
 
   return (
     <section className="space-y-4">
@@ -115,7 +120,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
         <Kpi icon="ph-seal-check" label="Quality" value={`${s.quality}%`} sub={`avg ${teamAvg.quality}%`} tone={s.quality >= teamAvg.quality ? 'good' : undefined} />
         <Kpi icon="ph-clock" label="On-time" value={`${s.onTime}%`} tone={s.onTime < 85 ? 'warn' : undefined} sub={`avg ${teamAvg.onTime}%`} />
         <Kpi icon="ph-gauge" label="Utilization" value={`${util}%`} tone={over ? 'warn' : util < 50 ? undefined : 'good'} sub={`${workload.load}/${capacity} slots`} />
-        {showMoney && <Kpi icon="ph-wallet" label="Pay / month" value={money(s.payroll.due)} sub={`base ${money(s.payroll.base)} + comm`} />}
+        {showMoney && <Kpi icon="ph-wallet" label="Pay / month" value={money(payDue)} sub={payOverride ? 'custom · salary+gig+comm' : 'salary + gig + comm'} />}
         {showMoney && <Kpi icon="ph-hand-coins" label="Wallet" value={money(s.wallet.balance)} sub={`${money(s.wallet.available)} withdrawable`} tone={s.penalties.pendingCount > 0 ? 'warn' : undefined} />}
       </div>
 
@@ -129,7 +134,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
         ))}
       </div>
 
-      {tab === 'overview' && <OverviewTab s={s} workload={workload} capacity={capacity} util={util} over={over} teamAvg={teamAvg} tierMeta={tierMeta} setCap={setCap} skills={skills} skillMeta={skillMeta} allSkills={allSkills} toggleSkill={toggleSkill} eligible={eligible} />}
+      {tab === 'overview' && <OverviewTab s={s} payDue={payDue} workload={workload} capacity={capacity} util={util} over={over} teamAvg={teamAvg} tierMeta={tierMeta} setCap={setCap} skills={skills} skillMeta={skillMeta} allSkills={allSkills} toggleSkill={toggleSkill} eligible={eligible} />}
       {tab === 'performance' && <PerformanceTab s={s} teamAvg={teamAvg} />}
       {tab === 'pay' && showMoney && <PayTab s={s} />}
       {tab === 'conduct' && <ConductTab s={s} />}
@@ -141,8 +146,8 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
 }
 
 /* ───────────────────────── Overview ───────────────────────── */
-function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, setCap, skills, skillMeta, allSkills, toggleSkill, eligible }: {
-  s: StaffInsight; workload: Workload; capacity: number; util: number; over: boolean; teamAvg: TeamAvg;
+function OverviewTab({ s, payDue, workload, capacity, util, over, teamAvg, tierMeta, setCap, skills, skillMeta, allSkills, toggleSkill, eligible }: {
+  s: StaffInsight; payDue: number; workload: Workload; capacity: number; util: number; over: boolean; teamAvg: TeamAvg;
   tierMeta: TierMeta; setCap: (n: number) => void; skills: string[]; skillMeta: SkillMeta; allSkills: string[]; toggleSkill: (k: string) => void; eligible: string[];
 }) {
   const money = useMoney();
@@ -168,7 +173,7 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
 
         {showMoney ? (
         <Card icon="ph-wallet" title="Money snapshot">
-          <Row label="Pay this cycle" value={<b>{money(s.payroll.due)}</b>} />
+          <Row label="Pay this cycle" value={<b>{money(payDue)}</b>} />
           <Row label="Commission wallet" value={money(s.wallet.balance)} />
           <Row label="Withdrawable now" value={money(s.wallet.available)} />
           {s.wallet.clearing > 0 && <Row label="Still clearing" value={<span className="text-amber-600">{money(s.wallet.clearing)}</span>} />}
@@ -412,6 +417,95 @@ function PerformanceTab({ s, teamAvg }: { s: StaffInsight; teamAvg: TeamAvg }) {
   );
 }
 
+/* Set-pay editor — fixed salary + commission rate + bonus, with gig pay shown read-only.
+   Writes the per-staff override shared with Finance › Payouts (lib/payOverrides). */
+function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: StaffInsight['payroll'] }) {
+  const money = useMoney();
+  const { override, save, clear } = usePayOverride(staffId);
+  const [editing, setEditing] = useState(false);
+  const seed = { base: payroll.base, rate: payroll.rate, basis: payroll.basis, gig: payroll.gig, bonus: payroll.bonus };
+  const eff = effectivePay(seed, override);
+  const roleRate = Math.round(payroll.rate * 100);
+  const [dBase, setDBase] = useState(payroll.base);
+  const [dRate, setDRate] = useState(roleRate);
+  const [dBonus, setDBonus] = useState(payroll.bonus);
+
+  const startEdit = () => { setDBase(eff.base); setDRate(eff.ratePct); setDBonus(eff.bonus); setEditing(true); };
+  const saveEdit = () => { save({ base: Math.max(0, dBase), rate: Math.max(0, Math.min(100, dRate)), bonus: Math.max(0, dBonus) }); setEditing(false); };
+  const previewCommission = Math.round(payroll.basis * (dRate / 100));
+  const previewTotal = dBase + payroll.gig + previewCommission + dBonus;
+
+  const inp = 'w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none';
+  const Field = (label: string, node: ReactNode, hint?: string) => (
+    <div>
+      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">{label}</label>
+      {node}
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+
+  return (
+    <Card icon="ph-receipt" title="Compensation"
+      right={editing ? <span className="text-xs text-muted-foreground">editing</span> : (
+        <div className="flex items-center gap-2">
+          {override && <span className="pill pill-warn" title="A custom override is set">custom</span>}
+          <button onClick={startEdit} className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-pencil-simple" />Set pay</button>
+        </div>
+      )}>
+      {!editing ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stack label="Base salary" value={money(eff.base)} sub="fixed monthly" />
+            <Stack label="Gig pay" value={money(eff.gig)} sub={`${payroll.completedOrders} gigs · piece-rate`} />
+            <Stack label="Commission" value={money(eff.commission)} sub={`${eff.ratePct}% × ${money(payroll.basis)}`} />
+            <Stack label="Bonus" value={money(eff.bonus)} sub="this cycle" />
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+            <span className="text-sm font-semibold">Total due this month</span>
+            <span className="display text-2xl font-bold text-primary">{money(eff.total)}</span>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Gig rates are set per service in Finance. Salary, rate &amp; bonus saved here are reflected in Finance › Payouts.</p>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Field('Fixed salary', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
+                <input type="number" min={0} step={50} value={dBase} onChange={(e) => setDBase(Number(e.target.value) || 0)} className={inp} />
+              </div>
+            ), `role default ${money(payroll.base)}`)}
+            {Field('Commission rate', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <input type="number" min={0} max={100} step={1} value={dRate} onChange={(e) => setDRate(Number(e.target.value) || 0)} className={inp} />
+                <span className="shrink-0 border-l border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">%</span>
+              </div>
+            ), `× ${money(payroll.basis)} billable = ${money(previewCommission)}`)}
+            {Field('Bonus', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
+                <input type="number" min={0} step={10} value={dBonus} onChange={(e) => setDBonus(Number(e.target.value) || 0)} className={inp} />
+              </div>
+            ), 'one-off this cycle')}
+            {Field('Gig pay', (
+              <div className="flex items-center rounded-lg border border-dashed border-border bg-muted/40 px-2 py-1.5 text-sm font-semibold tabular-nums text-muted-foreground">{money(payroll.gig)}</div>
+            ), `${payroll.completedOrders} gigs · global rate`)}
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+            <span className="text-sm font-semibold">New total this month</span>
+            <span className="display text-xl font-bold text-primary">{money(previewTotal)}</span>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {override && <button onClick={() => { clear(); setEditing(false); }} className="mr-auto text-xs font-semibold text-muted-foreground hover:text-destructive">Reset to role default</button>}
+            <button onClick={() => setEditing(false)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+            <button onClick={saveEdit} className="rounded-lg bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Save pay</button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /* ───────────────────────── Pay & wallet ───────────────────────── */
 function PayTab({ s }: { s: StaffInsight }) {
   const money = useMoney();
@@ -421,17 +515,7 @@ function PayTab({ s }: { s: StaffInsight }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
-        <Card icon="ph-receipt" title="Payroll this cycle" right={<span className="text-xs text-muted-foreground">{p.lastPaidAt ? `last paid ${p.lastPaidAt}` : 'not yet paid'}</span>}>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Stack label="Base salary" value={money(p.base)} sub="fixed monthly" />
-            <Stack label="Commission" value={money(p.commission)} sub={`${p.completedOrders} billable · ${Math.round(p.rate * 100)}% rate`} />
-            <Stack label="Bonus" value={money(p.bonus)} sub="admin-entered" />
-          </div>
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className="text-sm font-semibold">Total due this month</span>
-            <span className="display text-2xl font-bold text-primary">{money(p.due)}</span>
-          </div>
-        </Card>
+        <CompensationEditor staffId={s.id} payroll={p} />
 
         <Card icon="ph-chart-bar" title="Earnings history" right={<span className="text-xs text-muted-foreground">YTD {money(e.ytd)}</span>}>
           <div className="flex items-end gap-2 sm:gap-3">
