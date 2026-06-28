@@ -822,6 +822,39 @@ export const PAYOUTS: Payout[] = STAFF.map((s) => {
   };
 });
 
+// Manager payroll — fixed salary + commission on the value of orders their POD handles,
+// plus a bonus that is a % of the bonuses the admin awards their pod's staff (so a manager
+// shares in the upside they coach their team to). Total due = base + commission + bonus,
+// where bonus is computed live in the UI from the current staff bonuses.
+export interface ManagerPayout {
+  managerId: string; manager: string; title: string; rank: string;
+  podStaff: number;        // headcount in the pod
+  podOrderValue: number;   // billable order value handled by the pod (commission basis)
+  commissionRate: number;  // y% on pod order value
+  commission: number;      // round(podOrderValue × commissionRate)
+  base: number;            // fixed monthly salary
+  bonusRate: number;       // x% of the bonuses awarded to the pod's staff
+  due: number;             // base + commission (bonus added live from staff bonuses)
+  lastPaidAt: string | null;
+}
+export const MANAGER_BASE_SALARY: Record<string, number> = { 'Senior Manager': 1800, 'Lead Manager': 1600 };
+export const MANAGER_COMMISSION_RATE = 0.05; // 5% of the pod's billable order value
+export const MANAGER_BONUS_RATE = 0.10;      // 10% of the bonuses awarded to the pod's staff
+export const MANAGER_PAYOUTS: ManagerPayout[] = MANAGERS.map((m) => {
+  const podStaff = STAFF.filter((s) => STAFF_MANAGER[s.id] === m.id);
+  const podNames = new Set(podStaff.map((s) => s.name));
+  const podOrderValue = ORDERS
+    .filter((o) => o.staff !== null && podNames.has(o.staff) && PAYABLE_STATES.includes(o.status))
+    .reduce((a, o) => a + o.value, 0);
+  const commission = Math.round(podOrderValue * MANAGER_COMMISSION_RATE);
+  const base = MANAGER_BASE_SALARY[m.rank] ?? 1500;
+  return {
+    managerId: m.id, manager: m.name, title: m.title, rank: m.rank,
+    podStaff: podStaff.length, podOrderValue, commissionRate: MANAGER_COMMISSION_RATE,
+    commission, base, bonusRate: MANAGER_BONUS_RATE, due: base + commission, lastPaidAt: '2026-06-05',
+  };
+});
+
 // Cashflow: money in vs out per day (30d) — drives the Overview area chart.
 export interface CashflowPoint { iso: string; date: string; in: number; out: number; }
 function genCashflow(days: number): CashflowPoint[] {
@@ -841,7 +874,7 @@ export const FINANCE = {
   netMtd: REVENUE_ANALYTICS.netMtd,
   refundsMtd: REVENUE_ANALYTICS.refundsMtd,
   walletLiability: CUSTOMERS.reduce((a, c) => a + c.balance, 0),
-  payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0),
+  payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0) + MANAGER_PAYOUTS.reduce((a, m) => a + m.due, 0),
   outstandingAr: INVOICES.filter((i) => i.status !== 'paid').reduce((a, i) => a + i.amount, 0),
 };
 
