@@ -84,7 +84,9 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | Feature | Description | Routes |
 |---|---|---|
 | Finance overview | Revenue metrics, payroll summary, cashflow indicators | `/admin/finance` (admin-only) |
-| Payroll model | Staff payout = base salary + commission + bonus; penalties deducted; `adminPayroll.ts` | `/admin/finance` |
+| Payroll model | **Cycle comp = base salary + gig pay + commission + bonus, then − penalties = net.** `commission = basis × rate%`; `gig pay = Σ delivered gigs × per-gig rate`. Per-gig rate resolves **package rate → service rate → global `GIG_RATE`** (`gigRateOf`/`gigPay` in `lib/payOverrides.ts`). So a staffer can be salaried, paid per gig, or a blend. ⚠️ `data/adminPayroll.ts`'s period explorer currently nets `base + commission + bonus − penalties` and **omits gig** — inconsistent with `effectivePay`. | `/admin/finance` |
+| Per-staff pay overrides | Admin sets a staffer's `base`/`rate`/`bonus`/`gigRates`/`gigPkgRates`; one localStorage source shared by Finance Payouts tab **and** the admin staff profile (`usePayOverride`, `lib/payOverrides.ts`) | `/admin/finance`, `/admin/staff/[id]` |
+| Pay presets | Reusable pay templates the admin applies to any staffer to fill the comp form quickly (`usePayPresets`) | `/admin/finance`, `/admin/staff/[id]` |
 | Staff wallet (staff self) | Staff see their own commission ledger, pending balance, payout history | `/staff/finance` |
 | Payout request (staff) | Staff request withdrawals to a registered payout method; status: requested → approved → paid | `/staff/finance` |
 | Penalty system | Auto-flagged (revision rounds, late, rating) and manual penalties; staff can dispute | `/staff/finance`, `/staff/performance` |
@@ -230,7 +232,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | **Tickets — all / pod** | ✗ | ✓ | ✓ (pod-scoped) | ✗ | ✗ |
 | **Finance — revenue / payroll / cashflow** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Finance — own earnings (staff)** | ✗ | ✗ | ✗ | ✓ | — |
-| **Finance — payout request (staff)** | ✗ | ✗ | ✗ | ✓ (view-only guard incomplete) | — |
+| **Finance — payout request (staff)** | ✗ | ✗ | ✗ | ✓ (view-only guard enforced) | — |
 | **Credit & invoices (own)** | ✓ | — | — | — | — |
 | **Credit adjustment** | ✗ | ✓ | ✗ | ✗ | ✗ |
 | **Broadcasts — compose/send/recall** | ✗ | ✓ | ✗ | ✗ | ✗ |
@@ -369,8 +371,8 @@ flowchart LR
 | **Review queue** | `admin/review/build.ts` → `buildReviewProps`; `data/adminMock.ts` → `DELIVERABLES` | mock — needs backend |
 | **Ticket management** | `data/adminMock.ts` → `TICKETS[]` | mock — needs backend: SLA timer computed server-side |
 | **Customer support** | `components/SupportClient.tsx`; `data/adminMock.ts` → `SEED_TICKETS` | mock — needs backend: scoped to `customerId`, real thread persistence |
-| **Admin finance** | `data/adminMock.ts` → `REVENUE_*`, `OPS_KPIS`; `data/adminPayroll.ts` | mock — needs backend: all revenue/payroll from real transactions |
-| **Staff finance (own)** | `lib/staffFinance.ts` (types + math); `data/staffMock.ts` (earnings, wallet, penalties, payouts) | mock — needs backend: `StaffEarnings`, `WalletEntry`, `StaffPenalty`, `PayoutRequest` tables |
+| **Admin finance / payroll** | `data/adminMock.ts` → `REVENUE_*`, `OPS_KPIS`, `GIG_RATE`/`gigRateFor`; `data/adminPayroll.ts` (period explorer); `lib/payOverrides.ts` (`effectivePay`, `gigPay`, overrides + presets) | mock — needs backend: revenue/payroll from real transactions; pay overrides/presets are localStorage → must become tables |
+| **Staff finance (own)** | `lib/staffFinance.ts` (types + math); `data/staffMock.ts` (earnings, wallet, penalties, payouts) | mock — needs backend: `StaffEarnings`, `WalletEntry`, `StaffPenalty`, `PayoutRequest`, `PayOverride`, `PayPreset` tables |
 | **Customer credit & invoices** | `components/CreditStore.tsx` (in-memory context); `data/mock.ts` → `INVOICES`, `CREDIT_BALANCE` | mock — needs backend: `CreditAccount`, `Invoice` tables scoped to `customerId` |
 | **Broadcasts — compose/send** | `data/broadcastStore.ts` (localStorage); `data/broadcasts.ts` → `BROADCAST_SEEDS` | mock — needs backend: `Broadcast` table + recipient event log |
 | **Broadcasts — inbox / analytics** | `data/broadcastStore.ts`; `lib/broadcastAnalytics.ts`; `lib/broadcastAudience.ts` | mock — read/click events in localStorage; needs `BroadcastEvent` table |
@@ -381,7 +383,7 @@ flowchart LR
 | **Affiliate tiers & commission math** | `lib/affiliate.ts` → `AFFILIATE_TIERS`, `tierFor`, `commissionFor`, `nextTierProgress` | Pure math lib — correct; needs backend data source |
 | **Affiliate portal data** | `data/affiliatePortal.ts` → `portalDataFor(id)`; `data/affiliateMock.ts` | mock — needs backend: `Affiliate`, `Referral`, `CommissionEvent`, `Payout` tables |
 | **Admin affiliate management** | `data/adminAffiliate.ts` → `adminAffiliates()`, `adminPayouts()`; `data/affiliatePulse.ts` → `programStats()` | mock — needs backend; `programStats()` runs at module load (frozen) |
-| **Staff performance scorecard** | `lib/staff.ts` → `SCORE_MODEL`, `scoreBreakdown`, `improvementLever`, `commissionTierFor`; `data/staffMock.ts` | mock — `TODAY = '2026-06-26'` (frozen); needs request-time clock |
+| **Staff performance scorecard** | `lib/staff.ts` → `SCORE_MODEL`, `scoreBreakdown`, `improvementLever`, `commissionTierFor`; `data/staffMock.ts` | mock — `TODAY` now single-sourced from `lib/today.ts` (`MOCK_TODAY`); swap to a request-time clock there at backend |
 | **Staff rewards** | `lib/staffRewards.ts`; `data/staffMock.ts` | mock — needs backend milestone tracking |
 | **Manager scorecard** | `lib/managerPerf.ts` → `allManagerPerf`, `buildManagerPerf`, `companyBenchmark`, `MGR_SCORE_MODEL` | Pure derivation; correct; needs live ops data |
 | **Manager triage / pod signals** | `lib/managerPulse.ts` → `triageForPod`, `weekDeadlines`, `qaHealth`, `slaHealth`, `serviceMix`, `rosterWithRebalance`, `recentActivity` | Pure derivation; correct; depends on live `ORDERS`, `DELIVERABLES`, `TICKETS` |
