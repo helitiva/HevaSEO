@@ -12,7 +12,8 @@ export interface BroadcastCta { label: string; href: string }
 export interface Broadcast {
   id: string;
   title: string;
-  body: string;                 // plain text (rendered with line breaks)
+  body: string;                 // plain-text summary (collapsed card, bell, banner)
+  article?: string;             // optional long-form rich HTML (sanitized) shown when expanded
   kind: BroadcastKind;
   audiences: BroadcastAudience[];
   banner: boolean;              // also surface as an overview banner popup
@@ -56,6 +57,7 @@ export const BROADCAST_SEEDS: Broadcast[] = [
   {
     id: 'bc-launch', title: 'New: AI visibility reports are live 🎉', kind: 'congrats',
     body: 'Every audit now includes an AI-visibility score — see how your brand shows up in AI answers. Open any completed audit to view it.',
+    article: '<h2>Why AI visibility matters</h2><p>Search is shifting from ten blue links to AI-generated answers. If a model can’t find and trust your content, you’re invisible in the place buyers increasingly start.</p><h2>What you’ll see in the report</h2><ul><li><strong>AI-visibility score</strong> — how often your brand surfaces in AI answers for your tracked topics.</li><li><strong>Citation gaps</strong> — questions where competitors are cited and you aren’t.</li><li><strong>Fix list</strong> — concrete content and structured-data changes to close the gaps.</li></ul><blockquote>Brands that act early on AI visibility are compounding an advantage that’s hard to catch later.</blockquote><p>Open any completed audit to view your score, and reach out if you’d like a specialist to walk you through the fixes.</p>',
     audiences: ['customer', 'affiliate'], banner: true, pinned: true,
     cta: { label: 'See what’s new', href: '/docs' },
     createdAt: '2026-06-27T09:00:00', active: true, system: true,

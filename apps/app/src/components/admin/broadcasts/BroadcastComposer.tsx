@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { RichTextEditor } from '@/app/staff/notes/RichTextEditor';
+import { sanitizeHtml, htmlIsEmpty } from '@/lib/sanitizeHtml';
 import { newBroadcastId, nowIso } from '@/data/broadcastStore';
 import {
   KIND_META, KINDS, AUDIENCE_META, BROADCAST_AUDIENCES,
@@ -22,6 +24,8 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
   const [ctaLabel, setCtaLabel] = useState(editing?.cta?.label ?? '');
   const [ctaHref, setCtaHref] = useState(editing?.cta?.href ?? '');
   const [expiresAt, setExpiresAt] = useState(editing?.expiresAt ?? '');
+  const [useArticle, setUseArticle] = useState(Boolean(editing?.article));
+  const [articleHtml, setArticleHtml] = useState(editing?.article ?? '');
 
   const toggleAud = (a: BroadcastAudience) => setAudiences((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]));
   const everyone = audiences.length === BROADCAST_AUDIENCES.length;
@@ -33,6 +37,7 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
     const b: Broadcast = {
       id: editing?.id ?? newBroadcastId(),
       title: title.trim(), body: body.trim(), kind, audiences, banner, pinned,
+      article: useArticle && !htmlIsEmpty(articleHtml) ? sanitizeHtml(articleHtml) : undefined,
       cta: ctaLabel.trim() && ctaHref.trim() ? { label: ctaLabel.trim(), href: ctaHref.trim() } : null,
       createdAt: editing?.createdAt ?? nowIso(),
       expiresAt: expiresAt || null,
@@ -66,7 +71,19 @@ export function BroadcastComposer({ editing, onSave, onClose }: {
           </div>
 
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title — e.g. Scheduled maintenance this Sunday" className={`${inp} text-base font-semibold`} autoFocus />
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="Message body…" className={`${inp} resize-y`} />
+          <div>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder={useArticle ? 'Short summary — shown collapsed, in the bell & banner' : 'Message body…'} className={`${inp} resize-y`} />
+            <label className="mt-1.5 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={useArticle} onChange={(e) => setUseArticle(e.target.checked)} className="accent-primary" />
+              <span>Add a long-form article <span className="text-muted-foreground">(readers expand the message to read it)</span></span>
+            </label>
+          </div>
+          {useArticle && (
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Article — headings, images &amp; video</label>
+              <RichTextEditor initialHtml={articleHtml} onChange={setArticleHtml} placeholder="Write the full article… add headings, an image, or embed a video." />
+            </div>
+          )}
 
           {/* audiences */}
           <div>
