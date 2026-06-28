@@ -29,7 +29,7 @@ const REWARDS_MONTH = '2026-06';
 export interface StaffPayroll {
   base: number; gig: number; commission: number; bonus: number; due: number;
   rate: number; basis: number; completedOrders: number; lastPaidAt: string | null;
-  gigCounts: { service: string; count: number }[];
+  gigCounts: { service: string; pkg: string; count: number }[];
 }
 export interface StaffWallet { balance: number; available: number; clearing: number }
 export interface StaffPenaltyBlock { summary: PenaltySummary; pendingCount: number; items: StaffPenalty[] }

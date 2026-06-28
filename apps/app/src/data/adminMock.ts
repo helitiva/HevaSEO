@@ -796,7 +796,7 @@ export interface Payout {
   base: number;        // fixed monthly salary
   gigUnits: number;    // count of billable gigs delivered
   gig: number;         // sum of GIG_RATE[service] over those gigs (piece-rate pay)
-  gigCounts: { service: string; count: number }[]; // billable gigs grouped by service
+  gigCounts: { service: string; pkg: string; count: number }[]; // billable gigs grouped by service+package
   commission: number;  // round(basis × rate)
   bonus: number;       // admin-entered, 0 by default
   due: number;         // base + gig + commission + bonus
@@ -820,13 +820,27 @@ export const GIG_RATE: Record<string, number> = {
 };
 export const GIG_RATE_DEFAULT = 3;
 export const gigRateFor = (service: string): number => GIG_RATE[service] ?? GIG_RATE_DEFAULT;
+// Every distinct (service, package) combination that exists in the order data — the catalog of
+// gigs an admin can price individually in the "advanced" per-package pay mode. Derived from the
+// orders so package names match exactly what gigs are tagged with.
+export const GIG_PACKAGES: { service: string; pkg: string }[] = Object.values(
+  ORDERS.reduce<Record<string, { service: string; pkg: string }>>((m, o) => {
+    const k = `${o.service}::${o.pkg}`;
+    if (!m[k]) m[k] = { service: o.service, pkg: o.pkg };
+    return m;
+  }, {}),
+).sort((a, b) => a.service.localeCompare(b.service) || a.pkg.localeCompare(b.pkg));
 export const PAYOUTS: Payout[] = STAFF.map((s) => {
   const work = ORDERS.filter((o) => o.staff === s.name && PAYABLE_STATES.includes(o.status));
   const basis = work.reduce((a, o) => a + o.value, 0);
   const gig = work.reduce((a, o) => a + gigRateFor(o.service), 0);
-  const gigCounts = Object.entries(
-    work.reduce<Record<string, number>>((m, o) => { m[o.service] = (m[o.service] ?? 0) + 1; return m; }, {}),
-  ).map(([service, count]) => ({ service, count })).sort((a, b) => b.count - a.count);
+  const gigCounts = Object.values(
+    work.reduce<Record<string, { service: string; pkg: string; count: number }>>((m, o) => {
+      const k = `${o.service}::${o.pkg}`;
+      if (!m[k]) m[k] = { service: o.service, pkg: o.pkg, count: 0 };
+      m[k].count += 1; return m;
+    }, {}),
+  ).sort((a, b) => b.count - a.count);
   const rate = PAYOUT_RATE[s.role] ?? 0.28;
   const base = BASE_SALARY[s.role] ?? 800;
   const commission = Math.round(basis * rate);

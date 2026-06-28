@@ -589,7 +589,7 @@ function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; bala
 /* ---------------------------------------------------------------- Payouts */
 // Same shape (and localStorage key) the staff-profile pay editor writes — gigRates carries
 // any per-service gig-rate overrides set there.
-type PayoutOverride = { base: number; rate: number; bonus: number; gigRates?: Record<string, number> };
+type PayoutOverride = { base: number; rate: number; bonus: number; gigRates?: Record<string, number>; gigPkgRates?: Record<string, number> };
 
 // Effective comp for a payout, applying any admin override. Gig pay is recomputed from the
 // staffer's per-service gig counts and any per-service rate override (shared with the profile).
@@ -598,7 +598,7 @@ function effComp(p: Payout, ov?: PayoutOverride) {
   const rate = ov ? ov.rate / 100 : p.rate;
   const bonus = ov ? ov.bonus : p.bonus;
   const commission = Math.round(p.basis * rate);
-  const gig = gigPay(p.gigCounts, ov?.gigRates);
+  const gig = gigPay(p.gigCounts, ov?.gigRates, ov?.gigPkgRates);
   return { base, rate, bonus, commission, gig, total: base + gig + commission + bonus };
 }
 

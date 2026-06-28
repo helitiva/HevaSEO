@@ -11,9 +11,9 @@ import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { WorkActivityChart } from '@/components/staff/WorkActivityChart';
 import { DeadlineCalendar, type CalTask } from '@/components/staff/DeadlineCalendar';
 import { monthOf } from '@/lib/calendar';
-import { statusLabel, GIG_RATE, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { statusLabel, GIG_RATE, GIG_PACKAGES, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
-import { usePayOverride, usePayPresets, effectivePay, gigPay, gigRateOf, type PayPreset } from '@/lib/payOverrides';
+import { usePayOverride, usePayPresets, effectivePay, gigPay, gigRateOf, gigKey, type PayPreset } from '@/lib/payOverrides';
 import { ACTIVITY_TYPE_META, PENALTY_RULES } from '@/data/staffMock';
 import type { StaffInsight } from '@/data/adminStaffInsight';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STATUS_META, WALLET_KIND_META } from '@/lib/staffFinance';
@@ -429,27 +429,39 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
   const [editing, setEditing] = useState(false);
   const seed = { base: payroll.base, rate: payroll.rate, basis: payroll.basis, gigCounts: payroll.gigCounts, bonus: payroll.bonus };
   const eff = effectivePay(seed, override);
-  const countOf = (svc: string) => payroll.gigCounts.find((g) => g.service === svc)?.count ?? 0;
+  const countOfService = (svc: string) => payroll.gigCounts.filter((g) => g.service === svc).reduce((a, g) => a + g.count, 0);
+  const countOfPkg = (svc: string, pkg: string) => payroll.gigCounts.find((g) => g.service === svc && g.pkg === pkg)?.count ?? 0;
 
   const [dBase, setDBase] = useState(payroll.base);
   const [dRate, setDRate] = useState(Math.round(payroll.rate * 100));
   const [dBonus, setDBonus] = useState(payroll.bonus);
-  const [dGig, setDGig] = useState<Record<string, number>>({});
+  const [dGig, setDGig] = useState<Record<string, number>>({});                 // service → rate
+  const [dPkg, setDPkg] = useState<Record<string, number>>({});                 // `${service}::${pkg}` → rate
+  const [gigMode, setGigMode] = useState<'service' | 'package'>('service');
 
   const seedGig = (g?: Record<string, number>) => Object.fromEntries(GIG_SERVICES.map((s) => [s, g?.[s] ?? GIG_RATE[s]]));
-  const startEdit = () => { setDBase(eff.base); setDRate(eff.ratePct); setDBonus(eff.bonus); setDGig(seedGig(override?.gigRates)); setEditing(true); };
-  const applyPreset = (p: PayPreset) => { setDBase(p.base); setDRate(p.rate); setDBonus(p.bonus); setDGig(seedGig(p.gigRates)); };
+  const hasPkg = (m?: Record<string, number>) => !!m && Object.keys(m).length > 0;
+  const startEdit = () => {
+    setDBase(eff.base); setDRate(eff.ratePct); setDBonus(eff.bonus);
+    setDGig(seedGig(override?.gigRates)); setDPkg({ ...(override?.gigPkgRates ?? {}) });
+    setGigMode(hasPkg(override?.gigPkgRates) ? 'package' : 'service'); setEditing(true);
+  };
+  const applyPreset = (p: PayPreset) => {
+    setDBase(p.base); setDRate(p.rate); setDBonus(p.bonus);
+    setDGig(seedGig(p.gigRates)); setDPkg({ ...(p.gigPkgRates ?? {}) });
+    if (hasPkg(p.gigPkgRates)) setGigMode('package');
+  };
   const saveEdit = () => {
-    save({ base: Math.max(0, dBase), rate: Math.max(0, Math.min(100, dRate)), bonus: Math.max(0, dBonus), gigRates: dGig });
+    save({ base: Math.max(0, dBase), rate: Math.max(0, Math.min(100, dRate)), bonus: Math.max(0, dBonus), gigRates: dGig, gigPkgRates: hasPkg(dPkg) ? dPkg : undefined });
     setEditing(false);
   };
   const saveAsPreset = () => {
     const name = window.prompt('Name this pay preset (e.g. "Senior writer", "Junior link builder"):');
-    if (name?.trim()) addPreset({ name: name.trim(), base: dBase, rate: dRate, bonus: dBonus, gigRates: dGig });
+    if (name?.trim()) addPreset({ name: name.trim(), base: dBase, rate: dRate, bonus: dBonus, gigRates: dGig, gigPkgRates: hasPkg(dPkg) ? dPkg : undefined });
   };
 
   const previewCommission = Math.round(payroll.basis * (dRate / 100));
-  const previewGig = gigPay(payroll.gigCounts, dGig);
+  const previewGig = gigPay(payroll.gigCounts, dGig, dPkg);
   const previewTotal = dBase + previewGig + previewCommission + dBonus;
 
   const inp = 'w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none';
@@ -480,8 +492,8 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
           {payroll.gigCounts.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {payroll.gigCounts.map((g) => (
-                <span key={g.service} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
-                  {g.service} <span className="font-semibold text-foreground">{g.count} × {money(gigRateOf(g.service, override?.gigRates))}</span>
+                <span key={`${g.service}::${g.pkg}`} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {g.service}{g.pkg && g.pkg !== '—' ? ` · ${g.pkg}` : ''} <span className="font-semibold text-foreground">{g.count} × {money(gigRateOf(g.service, g.pkg, override?.gigRates, override?.gigPkgRates))}</span>
                 </span>
               ))}
             </div>
@@ -529,27 +541,52 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
             ), 'one-off this cycle')}
           </div>
 
-          {/* per-service gig rates */}
+          {/* gig rates — per service, or advanced per package */}
           <div className="rounded-xl border border-border bg-muted/20 p-3">
-            <p className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span className="flex items-center gap-1.5"><i className="ph-bold ph-package text-primary" />Gig pay — rate per service</span>
-              <span className="font-normal normal-case">{payroll.completedOrders} gigs this cycle · gig pay <span className="font-semibold text-foreground">{money(previewGig)}</span></span>
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {GIG_SERVICES.map((svc) => {
-                const c = countOf(svc);
-                return (
-                  <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium" title={svc}>{svc}</span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
-                    <div className="flex w-20 shrink-0 items-center overflow-hidden rounded-md border border-border bg-background focus-within:border-primary">
-                      <span className="shrink-0 border-r border-border bg-muted px-1.5 py-1 text-xs text-muted-foreground">$</span>
-                      <input type="number" min={0} step={1} value={dGig[svc] ?? GIG_RATE[svc]} onChange={(e) => setDGig((g) => ({ ...g, [svc]: Number(e.target.value) || 0 }))} className="w-full bg-transparent px-1.5 py-1 text-right text-xs font-semibold tabular-nums outline-none" />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-package text-primary" />Gig pay — rate per {gigMode}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">{payroll.completedOrders} gigs · gig pay <span className="font-semibold text-foreground">{money(previewGig)}</span></span>
+                <div className="inline-flex rounded-lg border border-border p-0.5 text-[11px] font-semibold">
+                  {(['service', 'package'] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setGigMode(m)} className={`rounded-md px-2 py-0.5 transition ${gigMode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{m === 'package' ? 'Package · advanced' : 'Service'}</button>
+                  ))}
+                </div>
+              </div>
             </div>
+            {gigMode === 'service' ? (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {GIG_SERVICES.map((svc) => {
+                  const c = countOfService(svc);
+                  return (
+                    <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium" title={svc}>{svc}</span>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                      <RateInput value={dGig[svc] ?? GIG_RATE[svc]} onChange={(v) => setDGig((g) => ({ ...g, [svc]: v }))} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {GIG_PACKAGES.map(({ service, pkg }) => {
+                  const key = gigKey(service, pkg);
+                  const c = countOfPkg(service, pkg);
+                  const fallback = dGig[service] ?? GIG_RATE[service];
+                  const custom = dPkg[key] !== undefined;
+                  return (
+                    <div key={key} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                      <span className="min-w-0 flex-1 truncate text-sm" title={`${service} · ${pkg}`}>
+                        <span className="text-muted-foreground">{service}</span> <span className="font-medium">{pkg}</span>
+                      </span>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                      <RateInput value={dPkg[key] ?? fallback} muted={!custom} onChange={(v) => setDPkg((m) => ({ ...m, [key]: v }))} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {gigMode === 'package' && <p className="mt-2 text-[10px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Packages left at the faded service rate inherit it; type to set a package-specific rate.</p>}
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
@@ -564,6 +601,17 @@ function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: St
         </div>
       )}
     </Card>
+  );
+}
+
+// Compact $-prefixed rate input used by the gig-pay grids. `muted` = an inherited (not yet
+// customised) rate, shown faded.
+function RateInput({ value, onChange, muted }: { value: number; onChange: (v: number) => void; muted?: boolean }) {
+  return (
+    <div className={`flex w-20 shrink-0 items-center overflow-hidden rounded-md border bg-background focus-within:border-primary ${muted ? 'border-dashed border-border/60' : 'border-border'}`}>
+      <span className="shrink-0 border-r border-border bg-muted px-1.5 py-1 text-xs text-muted-foreground">$</span>
+      <input type="number" min={0} step={1} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} className={`w-full bg-transparent px-1.5 py-1 text-right text-xs font-semibold tabular-nums outline-none ${muted ? 'text-muted-foreground' : ''}`} />
+    </div>
   );
 }
 
