@@ -1,9 +1,11 @@
 # CONTRACTS.md — Seam hợp đồng frontend ↔ backend
 
-> **Ngày:** 2026-06-28 · **Trạng thái:** Spec không-được-phá
-> **Mục đích:** Ghim **chữ ký + kiểu trả về** mà 93 route đang gọi từ `src/data/*` và `src/lib/*`.
+> **Ngày:** 2026-06-29 · **Trạng thái:** Spec không-được-phá
+> **Mục đích:** Ghim **chữ ký + kiểu trả về** mà các route đang gọi từ `apps/app/src/data|lib/*` **và** `apps/web/src/data/*` (marketing).
 > Backend phải làm các hàm này trả **dữ liệu thật với ĐÚNG kiểu hiện tại**. Agent dựa vào file này để **không drift**.
-> Field/enum chi tiết: [DATA-MODEL.md](DATA-MODEL.md). Trích tự `apps/app/src/data/*.ts` + `apps/app/src/lib/*.ts`.
+> Field/enum chi tiết: [DATA-MODEL.md](DATA-MODEL.md).
+>
+> **Chống-sót feature:** `pnpm contract-coverage` quét MỌI module data/lib ở cả 2 app và **fail nếu module nào vắng** khỏi file này (module cố ý không-phải-contract nằm trong `EXEMPT` của `scripts/contract-coverage.mjs` kèm lý do). Chạy nó trong CI để CONTRACTS không bao giờ bỏ sót một tầng dữ liệu nào.
 
 ---
 
@@ -184,6 +186,65 @@ ordersForPod(scope) · customersForPod(scope) · ticketsForPod(scope) · auditIn
 ```
 
 ---
+
+## A. Auth · accounts · email lifecycle (xuyên suốt — mới ghi 2026-06-29)
+
+```ts
+// [WRITE→AUTH] lib/auth.ts (mock localStorage → Supabase Auth + transactional email)
+signIn · registerUser · registerCustomer · createAccount(input)   // → temp password + push OutboxMail
+genTempPassword · accountByEmail · listAccounts · requestPasswordReset · resetPassword
+homePathForRole(role) · useOutbox()                               // OutboxMail[] — the mock email queue
+// Kiểu chốt: AuthRole, Account, Session, OutboxMail, CreateAccountInput
+// [HOOK] data/staffAccountsStore.ts · data/managerAccountsStore.ts · data/affiliateAdminStore.ts
+addCreatedStaff/useCreatedStaff · addCreatedManager/useCreatedManagers
+createPartner(input): { account, tempPassword, partner } · registerAffiliateSelf · setPartnerTier
+```
+
+**Email lifecycle (FEATURES §2.16 — backend Phase 2):** admin tạo `EmailTemplate {id,name,subject,body,vars}` (đã có trong `AdminSettings.email[]`); hệ thống **tự gửi** theo event đơn:
+
+| Event | Email | Người nhận |
+|---|---|---|
+| Quick checkout (marketing) thành công | "đơn đã nhận" + **link dashboard + mật khẩu tạm** (đổi ở lần đầu) | khách mới (shadow→claimed) |
+| Đơn hoàn thành | "hoàn thành" + **report** (đính kèm/đường dẫn) | khách |
+| Đặt đơn qua dashboard | "đơn được tiếp nhận" | khách hiện có |
+| Đơn hoàn thành (dashboard) | "hoàn thành" + report | khách hiện có |
+
+Backend: `email_templates`, `email_log` (append-only, idempotent theo `order_id`+`event`), order `report` (jsonb/url). DB function `send_order_email(order_id, event)` render template + enqueue (worker gửi SMTP). Khách có thể **chỉ nhận report qua email**, không cần vào dashboard. → đồng bộ ADR §7 (refine: temp-password thay magic-link-only).
+
+## B. Marketing quick-order (`apps/web` — Astro, điểm vào đặt đơn của khách mới)
+
+```ts
+// [READ] apps/web/src/data/orders.ts — single source of the quick-order flow (/order/<slug>)
+orderServices: OrderService[] · getOrderService(slug): OrderService | undefined · DEFAULT_STEPS
+// 7 dịch vụ: keyword-research, audit, website-optimization, seo-web-design, backlink, content, indexer
+// Mỗi service: packages (flat/bulk/usage pricing) + brief fields. Submit HIỆN TẠI = mock, no backend.
+// Kiểu chốt: OrderService, OrderPackage, PackageGroup, FieldDef, BulkConfig, UsageConfig, UsageTier, PricingMode, OrderStep
+// [WRITE→PUBLIC] POST /api/public/checkout (ADR §7, Phase 2):
+//   verify Turnstile → giá server-side theo package_id → Stripe Checkout
+//   → webhook idempotent (stripe_event_id UNIQUE) → materialize_order():
+//     find/create customer by email (chỉ link shadow, claimed_at IS NULL) → ledger topup → create_order(−debit)
+//     → send_order_email(order, 'checkout') (status + login link + temp password)
+```
+
+## C. Coverage map — module data/lib còn lại (mỗi cái 1 dòng, để `contract-coverage` xanh)
+
+```ts
+// [PURE] GIỮ — đổi nguồn dữ liệu đầu vào, không viết lại:
+lib/gigPricing.ts        packagePrice(service,pkg) · servicePriceRange(service)      // sell price tham chiếu
+lib/staffRewards.ts      buildRewards(inputs) · rewardsEarned · rewardsOnOffer        // KPI rewards (staff only)
+lib/staffSettings.ts     leaveSummary · workingHoursSummary · DEFAULT_NOTIF_PREFS
+lib/availability.ts      availabilityMeta · acceptsWork · AVAILABILITY                // work-status (≠ schedule)
+lib/leave.ts             leaveDays · validateLeave · leaveStatusMeta
+lib/calendar.ts          monthGrid · monthOf · monthLabel
+lib/sanitizeHtml.ts      sanitizeHtml · htmlToText · htmlIsEmpty                      // production-ready, GIỮ
+// [READ] đổi sang query:
+data/adminPayroll.ts     buildPayrollPeriods(gran): PayPeriod[] · currentPenalties   // period explorer
+data/adminCustomerInsight.ts  customerSignals(idOrName) · resolveCustomerId
+data/affiliateMock.ts    myAffiliate · myCommissionEvents · myReferrals · myPayouts · marketingAssets
+data/affiliatePulse.ts   programStats() · myRank · monthlyChallenge · joinOffer ⚠(module-scope, xem §12)
+data/broadcasts.ts       BROADCAST_SEEDS · AUDIENCE_META · KIND_META · isLive/isScheduled/isCritical
+data/staffNotes.ts       SEED_NOTES · NOTE_COLORS · mediaEmbedHtml · youtube/vimeo helpers
+```
 
 ## 12. Cảnh báo singleton (ADR W1 + FEATURES gap #6)
 

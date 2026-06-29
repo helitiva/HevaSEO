@@ -54,7 +54,7 @@ Mục tiêu Phase 0–1 không phải "sẵn sàng 100k user" — mà là **mộ
 | # | Rủi ro | Đối sách |
 |---|---|---|
 | W1 | **Tầng đọc mock→thật bị viết lại** | 89 route đọc mock **đồng bộ**; query thật **async + scope role/tenant + phân trang + shape theo vai**. Seam "swap import là xong" là lạc quan quá (v3 §9 tự nhận). Đây là chi phí lớn nhất Phase 1 — đổ công vào đây, không phải replica. |
-| W2 | Quick checkout chống takeover | Match-by-email chỉ link shadow account (`claimed_at IS NULL`); webhook idempotent qua `stripe_event_id UNIQUE`. Giữ 6 chốt của v3 §7 khi tới Phase 2. |
+| W2 | Quick checkout chống takeover + **email lifecycle** | Match-by-email chỉ link shadow account (`claimed_at IS NULL`); webhook idempotent qua `stripe_event_id UNIQUE`. Giữ 6 chốt v3 §7 khi tới Phase 2. **Refine chốt 4 (2026-06-29):** thay "magic-link-only" → **temp-password** (email mật khẩu tạm + bắt buộc đổi lần đầu) để khớp pattern `createAccount` đang có + ý product. **Email giao dịch:** `email_templates`+`email_log` (idempotent theo `order_id`+`event`), DB fn `send_order_email(order,event)` tự gửi ở: checkout / order.accepted / order.completed(+report). Khách có thể chỉ nhận report qua email. Xem FEATURES §2.16, CONTRACTS §A. |
 
 ---
 

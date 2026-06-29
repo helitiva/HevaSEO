@@ -1074,6 +1074,38 @@ CREATE TABLE broadcasts (
 );
 CREATE INDEX ON broadcasts(active, publish_at);
 
+-- Transactional email: admin-editable templates + an append-only send log (order lifecycle).
+-- Source: EmailTemplate in adminMock.ts (AdminSettings.email[]). Added 2026-06-29.
+CREATE TABLE email_templates (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id  uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name       text NOT NULL,                 -- e.g. 'order.checkout', 'order.completed'
+  event      text NOT NULL,                 -- the lifecycle event that auto-sends this
+  subject    text NOT NULL,
+  body       text NOT NULL,                 -- supports {{vars}}
+  vars       text[] NOT NULL DEFAULT '{}',
+  active     boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, event)
+);
+CREATE TABLE email_log (                     -- append-only; idempotent per (order, event)
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  to_email    citext NOT NULL,
+  template_id uuid REFERENCES email_templates(id),
+  event       text NOT NULL,                -- 'checkout' | 'order.accepted' | 'order.completed'
+  order_id    uuid REFERENCES orders(id),
+  status      text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','sent','failed')),
+  sent_at     timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (order_id, event)                  -- never send the same lifecycle mail twice
+);
+-- orders gains a deliverable report surfaced to the customer (dashboard + email attachment/link):
+ALTER TABLE orders ADD COLUMN report jsonb;  -- or a deliverables join; the customer-facing summary
+-- DB fn send_order_email(order_id, event): render template + INSERT email_log (idempotent) → worker SMTP.
+-- A new customer from quick-checkout is provisioned a temp password (must change on first login) and
+-- emailed status + dashboard login link; may opt to receive the report by email only (ADR §7).
+
 -- Affiliates
 CREATE TABLE affiliates (
   id            text PRIMARY KEY,

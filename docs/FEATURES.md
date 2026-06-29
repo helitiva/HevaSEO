@@ -213,6 +213,18 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | Admin/manager → staff impersonation | `act` mode (admin): full access as the staff member. `view` mode (manager): read-only look-in — cannot mutate tasks, notes, or settings | Button in staff list and profile; governed by `useImpersonatePolicy()` |
 | Admin → affiliate impersonation | Admin views the `/affiliate` portal as any specific partner; cookie-based (`heva_as_affiliate`); no mode flag — always `act` | "View as partner" button in `PartnerHoverCard` and `PartnerDrawer`; `lib/impersonation.ts` + `lib/currentAffiliate.ts` |
 
+### 2.16 Marketing quick-order & order-email lifecycle
+
+**Self-serve order entry from the marketing site + transactional email across the order lifecycle.** (Marketing UI lives in `apps/web` (Astro); email auto-send + account provisioning are **backend Phase 2** — ADR §7.)
+
+| Feature | Description | Routes / Source |
+|---|---|---|
+| Marketing quick-order | A new customer (no dashboard account) picks a service package, fills a brief, and orders — 7 services (keyword-research, audit, website-optimization, seo-web-design, backlink, content, indexer), each with flat/bulk/usage pricing. **Submit is a mock (no backend) in Phase 0.** | `apps/web` `/order/[slug]`, `data/orders.ts`, `components/order/*` |
+| Public checkout | New customer pays at checkout → `materialize_order` creates a shadow→claimed customer + the order (ADR §7: server-side pricing, Turnstile, idempotent Stripe webhook, anti-email-collision) | `POST /api/public/checkout` (Phase 2) |
+| Account provisioning on checkout | After ordering, the customer is emailed their **order status + a dashboard login link + a temp password** (must change on first login) — or they can stay email-only | `lib/auth.ts` (`createAccount` → temp password + `useOutbox`), Phase 2 |
+| Transactional order emails | System **auto-sends** on lifecycle events: checkout received, **order accepted** (dashboard orders), **order completed (+report)**. Customer may receive the **report by email** instead of using the dashboard. | `email_log`, DB fn `send_order_email(order, event)` (Phase 2) |
+| Admin email templates | Admin creates/edits the email templates (subject/body/variables); the system fills + auto-sends them per event | `EmailTemplate` in `AdminSettings.email[]`, `/admin/settings` |
+
 ---
 
 ## 3. Feature ↔ Role Matrix

@@ -9,6 +9,7 @@
     "doc-coverage": "node scripts/crawl/manifest.mjs && node scripts/crawl/doc-coverage.mjs",
     "doc-coverage:ci": "node scripts/crawl/manifest.mjs && node scripts/crawl/doc-coverage.mjs --ci",
     "doc-coverage:accept": "node scripts/crawl/manifest.mjs && node scripts/crawl/doc-coverage.mjs --update-baseline",
+    "contract-coverage": "node scripts/contract-coverage.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
