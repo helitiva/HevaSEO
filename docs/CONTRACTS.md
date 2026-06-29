@@ -79,8 +79,17 @@ modelComposite(s) · scoreBreakdown · improvementLever
 
 // [WRITE] → DB function ledger pattern (hệ staff_wallet) + payout flow
 // request_payout, approve_payout, apply_penalty
+
+// [READ] data/managerFinance.ts — manager's OWN pay (reuses StaffEarnings/StaffFinance shapes)
+managerEarnings(mid): StaffEarnings | null · managerFinance(mid): StaffFinance
+managerEarningsHistory(mid): MonthEarning[] · managerEarningsSummary(mid): EarningsSummary
+// Manager comp = base + gigPct%·podGig + commPct%·podCommission (derived from MANAGER_PAYOUTS);
+// NO KPI bonus. Backend: managers share the worker `staff_wallet` (own-row RLS, manager_wallet.sql);
+// override commission posts as a wallet_ledger entry kind='commission'.
+// [WRITE]/[PURE] adminMock.ts: ManagerPayout {podGig,podCommission,gigPct,commPct,commission,base};
+//   admin Payouts tab effMgrComp(m,ov,podGig,podComm). FinanceClient prop payStyle/showRewards.
 ```
-Kiểu chốt: `AdminStaff`, `StaffTask`, `StaffFinance`, `StaffEarnings`, `StaffWallet`, `StaffPayroll`, `TaskPenalty`, `PayPeriod`.
+Kiểu chốt: `AdminStaff`, `StaffTask`, `StaffFinance`, `StaffEarnings`, `StaffWallet`, `StaffPayroll`, `TaskPenalty`, `PayPeriod`, `ManagerPayout`.
 
 ## 4. Assignment & Routing (trong Lane A)
 
