@@ -1,6 +1,6 @@
 -- staff_details RLS: admin sees the whole tenant; a staff member sees only their own row.
 begin;
-select plan(6);
+select plan(9);
 
 select has_table('staff_details', 'staff_details table exists');
 select ok((select relrowsecurity from pg_class where relname = 'staff_details'), 'RLS on staff_details');
@@ -11,15 +11,20 @@ insert into profiles(id, tenant_id, email, name, role) values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 's1@a.com', 'S1', 'staff'),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 's2@a.com', 'S2', 'staff'),
   ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', 's3@a.com', 'S3', 'staff');
-insert into staff_details(id, tenant_id, profile_id, skills, capacity) values
-  ('11110000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '{seo,content}', 5),
-  ('11110000-0000-0000-0000-0000000000b2', '11111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '{backlinks}', 3);
+insert into staff_details(id, tenant_id, profile_id, skills, capacity, composite, quality, on_time, throughput, trend) values
+  ('11110000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '{seo,content}', 5, 91, 88, 90, 20, '{1,2,3}'),
+  ('11110000-0000-0000-0000-0000000000b2', '11111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '{backlinks}',  3,  0,  0,  0,  0, '{}');
 
 set local role authenticated;
 
 -- admin sees both staff_details rows in their tenant
 set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"admin","profile_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}';
 select is((select count(*) from staff_details)::int, 2, 'admin sees both staff_details rows');
+
+-- perf metrics (inc-3g): columns exist and read back
+select has_column('staff_details', 'composite', 'staff_details has composite perf column');
+select has_column('staff_details', 'trend', 'staff_details has trend perf column');
+select is((select composite from staff_details where id = '11110000-0000-0000-0000-0000000000a1')::int, 91, 'perf metric reads back');
 
 -- staff S1 sees only their own row
 set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"staff","profile_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}';

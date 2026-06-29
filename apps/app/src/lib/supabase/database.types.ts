@@ -1322,41 +1322,56 @@ export type Database = {
         Row: {
           active: boolean
           capacity: number
+          composite: number
           created_at: string
           id: string
           manager_id: string | null
+          on_time: number
           profile_id: string
+          quality: number
           role_label: string | null
           since: string | null
           skills: string[]
           tenant_id: string
+          throughput: number
           timezone: string | null
+          trend: number[]
         }
         Insert: {
           active?: boolean
           capacity?: number
+          composite?: number
           created_at?: string
           id?: string
           manager_id?: string | null
+          on_time?: number
           profile_id: string
+          quality?: number
           role_label?: string | null
           since?: string | null
           skills?: string[]
           tenant_id: string
+          throughput?: number
           timezone?: string | null
+          trend?: number[]
         }
         Update: {
           active?: boolean
           capacity?: number
+          composite?: number
           created_at?: string
           id?: string
           manager_id?: string | null
+          on_time?: number
           profile_id?: string
+          quality?: number
           role_label?: string | null
           since?: string | null
           skills?: string[]
           tenant_id?: string
+          throughput?: number
           timezone?: string | null
+          trend?: number[]
         }
         Relationships: [
           {
