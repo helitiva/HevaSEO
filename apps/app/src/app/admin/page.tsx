@@ -3,10 +3,11 @@ import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { NeedsAttention } from './NeedsAttention';
 import {
-  KPIS, ORDERS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
+  KPIS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
   USER_STATS, TICKET_STATS, SLA_ON_TIME, CAPACITY_USED, REVENUE_GOAL, money,
   type OpsKpi,
 } from '@/data/adminMock';
+import { getOrders } from '@/data/orders.server';
 import { mockTodayDate } from '@/lib/today';
 
 export const metadata = { title: 'Command center' };
@@ -15,12 +16,13 @@ const ACTION_ICON: Record<string, string> = {
   transition: 'ph-arrows-left-right', assign: 'ph-user-plus', cancel: 'ph-x-circle', edit: 'ph-pencil-simple',
 };
 
-export default function CommandCenter() {
+export default async function CommandCenter() {
+  const orders = await getOrders(); // RLS-scoped real read (admin → all tenant orders)
   const todayDate = mockTodayDate();
   const today = todayDate.toISOString().slice(0, 10);
-  const overdue = ORDERS.filter((o) => o.deadline && o.deadline < today && o.status !== 'completed');
-  const awaiting = ORDERS.filter((o) => o.status === 'delivered');
-  const unassigned = ORDERS.filter((o) => !o.staff && o.status !== 'completed' && o.status !== 'canceled');
+  const overdue = orders.filter((o) => o.deadline && o.deadline < today && o.status !== 'completed');
+  const awaiting = orders.filter((o) => o.status === 'delivered');
+  const unassigned = orders.filter((o) => !o.staff && o.status !== 'completed' && o.status !== 'canceled');
   const dateLabel = todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const pipeTotal = PIPELINE.reduce((s, p) => s + p.count, 0);
   const activeTotal = PIPELINE.filter((p) => p.status !== 'completed').reduce((s, p) => s + p.count, 0);

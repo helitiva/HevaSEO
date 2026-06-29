@@ -27,7 +27,7 @@ export function NeedsAttention({ overdue, awaiting, unassigned }: {
 }) {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const today = mockTodayDate().toISOString().slice(0, 10);
-  const selectedProps = selected ? buildOrderDetailProps(selected.id) : null;
+  const selectedProps = selected ? buildOrderDetailProps(selected) : null;
 
   const columns: Column[] = [
     { title: 'Overdue',           href: '/admin/orders',     rows: overdue,    tone: 'warn' },

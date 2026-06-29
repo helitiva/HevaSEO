@@ -216,7 +216,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
       {panel && (
         <SlideOver open onClose={() => setPanelId(null)} title={panel.code} widthClass="max-w-5xl">
           {(() => {
-            const detail = buildOrderDetailProps(panel.id);
+            const detail = buildOrderDetailProps(panel);
             return detail ? <OrderDetailClient key={detail.order.id} {...detail} /> : null;
           })()}
         </SlideOver>

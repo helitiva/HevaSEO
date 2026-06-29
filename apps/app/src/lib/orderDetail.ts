@@ -1,5 +1,5 @@
 import {
-  ORDERS, AUDIT, STAFF, ORDER_EXTRA, SERVICE_INCLUDED, customerByCompany,
+  ORDERS, AUDIT, STAFF, ORDER_EXTRA, SERVICE_INCLUDED, customerByCompany, type AdminOrder,
 } from '@/data/adminMock';
 import type { OrderDetailProps } from '@/app/admin/orders/[id]/OrderDetailClient';
 
@@ -9,13 +9,15 @@ const seqMap = new Map(
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize' };
 
 /**
- * Build the full prop set the order-detail surface needs from a single order id.
- * Shared by the /admin/orders/[id] page and any inline preview (e.g. the
- * dashboard slide-over) so both render identical detail. Returns null when the
- * order does not exist.
+ * Build the full prop set the order-detail surface needs.
+ * Accepts either a mock order id (legacy/mock surfaces still pass a string → looked up in ORDERS) or
+ * a real AdminOrder object (Lane A inc-3: the order is fetched RLS-scoped, then passed in). For real
+ * orders the mock-keyed enrichment (ORDER_EXTRA, AUDIT, bundle, prev/next) gracefully falls back to
+ * derived defaults until those companion tables are seeded. Returns null when a string id is unknown.
+ * Shared by /admin/orders/[id] and any inline preview (slide-over) so both render identical detail.
  */
-export function buildOrderDetailProps(id: string): OrderDetailProps | null {
-  const order = ORDERS.find((o) => o.id === id);
+export function buildOrderDetailProps(orderOrId: string | AdminOrder): OrderDetailProps | null {
+  const order = typeof orderOrId === 'string' ? ORDERS.find((o) => o.id === orderOrId) : orderOrId;
   if (!order) return null;
 
   const seq = seqMap.get(order.id) ?? 0;
