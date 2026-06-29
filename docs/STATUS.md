@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | **E0a** | Supabase CLI + migration pipeline + pgTAP loop | ✅ | claude | ② | **DONE 2026-06-29**: `verify:db` xanh (pgTAP 3/3). PG17 (khớp managed, lệch plan cũ "15"). uncommitted. |
 | **E0a+** | PoC: Auth-hook custom claim + RLS-on-view giữ index | ⬜ | — | ②③ | Fail → cân lại C1 (managed→self-host) |
-| **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **inc-1→5 DONE** (56 test xanh): + **tickets, ticket_messages, folders, projects, notes, note_attachments** (do 3 subagent viết, coordinator review+verify; bắt bug plan count ở tickets test). 13 bảng. ⚠️ staff/manager order RLS = gác (K9). Còn ~14 bảng (docs/broadcasts/catalog/audit/notifications/assignment/leave/staff + money cluster gác③). |
+| **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **inc-1→6 DONE** (81 test xanh, 18 bảng): + **docs** (array-RLS audience + skill-gate via `current_skills()`), **broadcasts + broadcast_events** (fan-out + event log), **catalog_services + catalog_packages** (admin/customer; manager/staff=0). Batch-2 subagent: review bắt 2 bug plan-count + 1 UUID lỗi trước khi apply. ⚠️ staff/manager order RLS = gác (K9). Còn ~9 bảng (audit/notifications/assignment/leave/staff + **money cluster gác③**). |
 | **E0c** | RLS role+tenant + money-stripped views + docs array-RLS | ⬜ | — | ③ | Chờ E0b, E0a+. **7 test CRITICAL** |
 | **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | ⬜ | — | ③ | Chờ E0b. Atomic + audit |
 
