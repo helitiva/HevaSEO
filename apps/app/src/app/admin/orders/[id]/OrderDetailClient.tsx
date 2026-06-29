@@ -20,6 +20,9 @@ export interface OrderDetailProps {
   bundle: { id: string; code: string; service: string; pkg: string; customer: string; value: number; status: OrderStatus }[];
   eligibleStaff: StaffLite[]; initialActivity: Activity[];
   prev?: { id: string; code: string }; next?: { id: string; code: string };
+  // When provided (admin real-order surfaces), state transitions persist via the advance_order RPC.
+  // Absent on mock surfaces → local-only behaviour. Cancel stays local (money path, separate slice).
+  advanceAction?: (orderId: string, to: OrderStatus) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 // 6 named stages; each order status maps to one stage.
@@ -83,8 +86,14 @@ export function OrderDetailClient(p: OrderDetailProps) {
   function notify(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
   function log(action: string, change: string) { setActivity((a) => [{ id: `${Date.now()}`, at: nowStamp, action, change }, ...a]); }
 
-  function transition(to: OrderStatus, extra?: string) {
+  async function transition(to: OrderStatus, extra?: string) {
     const from = status;
+    // Real persistence for non-cancel transitions when wired (admin real orders). Cancel is the money
+    // path (refund) — kept local here and handled by its own slice. On RPC failure, surface and bail.
+    if (p.advanceAction && to !== 'canceled') {
+      const res = await p.advanceAction(o.id, to);
+      if (!res.ok) { notify(`Couldn't update: ${res.error}`); return; }
+    }
     setStatus(to);
     log('transition', `${o.code} ${from}→${to}${extra ? ` (${extra})` : ''}`);
     if (to === 'confirmed' && !debited) { setDebited(true); setBalance((b) => b - o.value); notify(`Confirmed · ${money(o.value)} credit debited`); }

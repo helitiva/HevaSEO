@@ -1884,8 +1884,6 @@ export type Database = {
       _todo: { Args: never; Returns: string }
       advance_order: {
         Args: {
-          p_actor: string
-          p_actor_role: Database["public"]["Enums"]["app_role"]
           p_order: string
           p_to: Database["public"]["Enums"]["order_state"]
         }
@@ -1913,7 +1911,7 @@ export type Database = {
       }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
-        Args: { p_actor: string; p_order: string }
+        Args: { p_order: string }
         Returns: {
           assignee_id: string | null
           code: string
