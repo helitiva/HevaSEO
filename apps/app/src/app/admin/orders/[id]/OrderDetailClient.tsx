@@ -21,8 +21,10 @@ export interface OrderDetailProps {
   eligibleStaff: StaffLite[]; initialActivity: Activity[];
   prev?: { id: string; code: string }; next?: { id: string; code: string };
   // When provided (admin real-order surfaces), state transitions persist via the advance_order RPC.
-  // Absent on mock surfaces → local-only behaviour. Cancel stays local (money path, separate slice).
+  // Absent on mock surfaces → local-only behaviour.
   advanceAction?: (orderId: string, to: OrderStatus) => Promise<{ ok: true } | { ok: false; error: string }>;
+  // MONEY: when provided, Cancel persists via cancel_order (refund − 5% fee). Absent → local-only.
+  cancelAction?: (orderId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 // 6 named stages; each order status maps to one stage.
@@ -100,10 +102,27 @@ export function OrderDetailClient(p: OrderDetailProps) {
     else if (to === 'canceled') { if (debited) { setBalance((b) => b + o.value); } notify('Order canceled' + (debited ? ` · ${money(o.value)} refunded` : '')); }
     else notify(`Moved to ${statusLabel[to]}`);
   }
+  const CANCEL_FEE_PCT = 0.05; // mirrors cancel_fee_pct() in the DB (anti-spam)
+  // Cancel = money path. When wired, persist via cancel_order (server does refund − fee + ledger);
+  // reflect the net refund locally for instant feedback. Otherwise fall back to the local mock.
+  async function doCancel() {
+    const from = status;
+    if (p.cancelAction) {
+      const res = await p.cancelAction(o.id);
+      if (!res.ok) { notify(`Couldn't cancel: ${res.error}`); return; }
+      const fee = Math.round(o.value * CANCEL_FEE_PCT * 100) / 100;
+      setStatus('canceled');
+      if (debited) setBalance((b) => b + o.value - fee);
+      log('transition', `${o.code} ${from}→canceled`);
+      notify('Order canceled' + (debited ? ` · ${money(o.value - fee)} refunded (5% fee)` : ''));
+      return;
+    }
+    transition('canceled');
+  }
   function act(a: Act) {
     if (a.assign) { setPicker(true); return; }
     if (a.note) { setNoteOpen(true); return; }
-    if (a.danger) { setConfirm({ title: `${a.label} this order?`, body: a.to === 'canceled' && debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition(a.to); setConfirm(null); } }); return; }
+    if (a.danger) { setConfirm({ title: `${a.label} this order?`, body: a.to === 'canceled' && debited ? `${money(o.value)} will be refunded to credit, minus a 5% fee.` : 'This cannot be undone.', onYes: () => { void doCancel(); setConfirm(null); } }); return; }
     transition(a.to);
   }
   function assignTo(name: string) { setStaff(name); setPicker(false); if (status === 'confirmed') transition('assigned', `→ ${name}`); else { log('assign', `${o.code} → ${name}`); notify(`Assigned to ${name}`); } }
@@ -145,7 +164,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
               {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
               {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
               <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)} canRefund={showMoney}
-                onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
+                onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `${money(o.value)} will be refunded to credit, minus a 5% fee.` : 'This cannot be undone.', onYes: () => { void doCancel(); setConfirm(null); } })}
                 canCancel={!['completed', 'canceled'].includes(status)} />
             </div>
           </div>

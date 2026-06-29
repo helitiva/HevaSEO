@@ -17,3 +17,16 @@ export async function advanceOrderAction(orderId: string, to: OrderStatus): Prom
   revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
 }
+
+// MONEY (gác③): cancel_order refunds the order value − 5% fee to dashboard credit. The hardened RPC
+// allows only an admin or the owning customer, and only while the order is still planned
+// (new|confirmed|assigned); it keeps balance == SUM(ledger). This action just forwards the caller's
+// session — authz + the refund ledger are enforced server-side.
+export async function cancelOrderAction(orderId: string): Promise<AdvanceResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('cancel_order', { p_order: orderId });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/admin/orders');
+  revalidatePath(`/admin/orders/${orderId}`);
+  return { ok: true };
+}

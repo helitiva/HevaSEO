@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
 import { getOrderById } from '@/data/orders.server';
 import { OrderDetailClient } from './OrderDetailClient';
-import { advanceOrderAction } from '../actions';
+import { advanceOrderAction, cancelOrderAction } from '../actions';
 
 export const metadata = { title: 'Order detail' };
 
@@ -12,5 +12,5 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const props = order ? buildOrderDetailProps(order) : null;
   if (!props) notFound();
 
-  return <OrderDetailClient {...props} advanceAction={advanceOrderAction} />;
+  return <OrderDetailClient {...props} advanceAction={advanceOrderAction} cancelAction={cancelOrderAction} />;
 }

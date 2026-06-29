@@ -2,7 +2,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { OrdersExplorer, type ExplorerOrder } from './OrdersExplorer';
 import { customerByCompany } from '@/data/adminMock';
 import { getOrders } from '@/data/orders.server';
-import { advanceOrderAction } from './actions';
+import { advanceOrderAction, cancelOrderAction } from './actions';
 
 export const metadata = { title: 'Orders' };
 
@@ -27,7 +27,7 @@ export default async function OrdersPage() {
   return (
     <section>
       <PageHeader title="Orders" subtitle={`${rows.length} orders · customer tier, LTV & filters`} />
-      <OrdersExplorer rows={rows} advanceAction={advanceOrderAction} />
+      <OrdersExplorer rows={rows} advanceAction={advanceOrderAction} cancelAction={cancelOrderAction} />
     </section>
   );
 }
