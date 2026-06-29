@@ -63,7 +63,7 @@ _(trống — chưa chạy)_
 
 | Slice | Vấn đề | Cần gì từ người | Từ khi |
 |---|---|---|---|
-| — | — | — | — |
+| **E0d writes (SECURITY)** | 🔴 **CRITICAL**: `advance_order`/`cancel_order`/`create_order` tin `p_actor`/`p_actor_role` do CLIENT truyền + execute KHÔNG revoke khỏi `authenticated` → bất kỳ user đăng nhập nào gọi RPC trực tiếp, forge `p_actor_role='admin'` để lái state machine / `cancel_order` (HOÀN TIỀN). Đã chứng minh: customer forge role=admin KHÔNG bị `ILLEGAL_TRANSITION` (chỉ chặn tình cờ bởi FK actor giả). | **DUYỆT hướng vá (gác③)**: (a) hàm tự đọc `current_profile_id()`/`current_app_role()` thay vì tham số + check quyền nội bộ; và/hoặc (b) `revoke execute ... from anon, authenticated` chỉ cho service_role gọi qua server action. Khuyến nghị cả hai. Chặn inc-4 writes tới khi vá. | 2026-06-29 |
 
 ---
 
