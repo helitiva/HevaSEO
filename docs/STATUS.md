@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | **E0a** | Supabase CLI + migration pipeline + pgTAP loop | ✅ | claude | ② | **DONE 2026-06-29**: `verify:db` xanh (pgTAP 3/3). PG17 (khớp managed, lệch plan cũ "15"). uncommitted. |
 | **E0a+** | PoC: Auth-hook custom claim + RLS-on-view giữ index | ⬜ | — | ②③ | Fail → cân lại C1 (managed→self-host) |
-| **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **inc-1+2 DONE** (16 test xanh): tenants, profiles, customers + `app_role`/`current_tenant_id()`/`current_app_role()`/`current_profile_id()` + RLS tenant-isolation & role-aware. Khuôn tenant+role RLS đã chốt. Còn ~22 bảng (non-money tự build; **money cluster gác ③**). |
+| **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **inc-1→3 DONE** (25 test xanh): tenants, profiles, customers, **orders** (order_state enum + allowed_transitions seeded) + helpers + RLS tenant/role. ⚠️ staff/manager order RLS = **gác** (cần money-stripped view K9). Còn ~21 bảng. |
 | **E0c** | RLS role+tenant + money-stripped views + docs array-RLS | ⬜ | — | ③ | Chờ E0b, E0a+. **7 test CRITICAL** |
 | **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | ⬜ | — | ③ | Chờ E0b. Atomic + audit |
 
