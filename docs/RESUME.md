@@ -4,7 +4,10 @@
 > Everything below is committed; this file + `docs/STATUS.md` are the resume anchors.
 
 ## TL;DR
-- **Backend ~55%.** FOUNDATION (E0a · E0a+ · E0b · E0d) is **100% DONE + committed**. 201 pgTAP green.
+- **Backend ~70%.** FOUNDATION done. 201 pgTAP + **364 app unit tests** green.
+- **VERIFIED IN BROWSER (A):** dev server on :4500 (`pnpm --filter @heva/app exec next dev --port 4500`) — all migrated pages render real data authed (admin/manager/customer), anon gated → /login. **Fixed:** unauth 500 crash → added auth gating in middleware (commit `3a8eedf`).
+- **TESTS (B):** pure order mappers extracted to `lib/orderMap.ts` + 23 unit tests (`c04a5cc`).
+- **Open follow-ups (tech debt):** (1) RBAC role-gating in middleware (auth-gated only, not role — a logged-in customer can still hit /admin/* and get empty/own data); (2) Playwright interaction e2e (advance/cancel click flows — only SSR+node verified so far); (3) regen `database.types.ts` (stale: staff_details perf cols); (4) `profiles_same_tenant` lets any authed user read all tenant profiles (over-exposure); (5) inc-3g perf migration has no pgTAP.
 - Now in **Phase 1 / Fleet Lane A** (wire the Next app `apps/app` to the real DB). **inc-1 (Supabase client) + inc-2 (auth session) done.**
 - **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** Done: `getOrders()`/`getOrderById()` (RLS-scoped, `data/orders.server.ts`); `/admin/orders` (list + detail slide-over), `/admin/orders/[id]`, and `/admin` Command Center Needs-Attention all read REAL orders; `buildOrderDetailProps` takes a real `AdminOrder`. Seed: 6 customers + 11 orders.
   - **Remaining inc-3 consumers + their blockers:**
