@@ -9,7 +9,7 @@
 - **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** Done: `getOrders()`/`getOrderById()` (RLS-scoped, `data/orders.server.ts`); `/admin/orders` (list + detail slide-over), `/admin/orders/[id]`, and `/admin` Command Center Needs-Attention all read REAL orders; `buildOrderDetailProps` takes a real `AdminOrder`. Seed: 6 customers + 11 orders.
   - **Remaining inc-3 consumers + their blockers:**
     - **Admin build.ts/rows.ts** (assignment, review, staff, customers) — each joins ORDERS with companion mocks keyed by mock ids (`ORDER_EXTRA`, `DELIVERABLES`, `STAFF`, `TICKETS`). Need those companion tables seeded for real order ids first (a domain-seed expansion) before migrating, else derived views go empty.
-    - **/manager/orders** — money-blind → must read the `orders_mgr` money-stripped view (not `getOrders`, which exposes `value`) + pod scope. Separate read fn `getPodOrders()`.
+    - ~~**/manager/orders**~~ ✅ **inc-3c DONE** — `getPodOrders()`/`getPodOrderById()` read `orders_mgr` (value-stripped); manager+detail money-blind; dropped mock `managerScope`/`MANAGER_PERSONA`. (Pod-scoping still pending `staff_details.manager_id` seed — view returns all tenant orders for now.)
     - **Customer portal** (`OrdersBoard`/`DashboardTop`/`projects/[id]`/`OrdersSummary`) — uses the **other** order model `Order` (`data/mock.ts`) with fields the table lacks (`domain`/`progress`/`invoice`/`pay`/`title`). ⚠ decide **add-columns vs derive** before migrating.
   - Then **inc-4** wire create/advance/cancel + 1 order e2e.
 
