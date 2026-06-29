@@ -293,7 +293,7 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
 
 const SAMPLE: Order = ORDERS.find((o) => o.progress != null) ?? ORDERS[0];
 
-export function OrdersBoard({ initialService = 'all', domain }: { initialService?: ServiceKey | 'all'; domain?: string }) {
+export function OrdersBoard({ initialService = 'all', domain, orders }: { initialService?: ServiceKey | 'all'; domain?: string; orders?: Order[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const { statusOverrides, addedOrders } = useOrdersStore();
@@ -383,8 +383,10 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Session-placed orders (from the Services flow) sit on top of the seed data.
-  const allOrders = useMemo(() => [...addedOrders, ...ORDERS], [addedOrders]);
+  // Session-placed orders (from the Services flow) sit on top of the base orders. `orders` is the
+  // real RLS-scoped read (customer dashboard, inc-3d); falls back to the mock seed where not wired.
+  const baseOrders = orders ?? ORDERS;
+  const allOrders = useMemo(() => [...addedOrders, ...baseOrders], [addedOrders, baseOrders]);
   const domains = useMemo(() => Array.from(new Set(allOrders.map((o) => o.domain))).sort(), [allOrders]);
   // "Now" for the time filter = the most recent order, so "Last 7 days" is relative to real activity.
   const today = useMemo(() => {

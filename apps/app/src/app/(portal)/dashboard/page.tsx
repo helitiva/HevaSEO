@@ -4,17 +4,20 @@ import { DashboardTop } from '@/components/DashboardTop';
 import { SpecialistChat } from '@/components/SpecialistChat';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
 import { ACTIVITY } from '@/data/mock';
+import { getMyOrders } from '@/data/orders.server';
 
 export const metadata = { title: 'Overview' };
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const orders = await getMyOrders(); // RLS-scoped: the signed-in customer's own orders
+
   return (
     <>
       <DashboardTop />
 
       {/* ORDERS */}
       <section className="mt-5">
-        <OrdersBoard />
+        <OrdersBoard orders={orders} />
       </section>
 
       {/* ACTIVITY + SPECIALIST */}
