@@ -1097,6 +1097,58 @@ export type Database = {
           },
         ]
       }
+      order_addons: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          order_id: string
+          price: number
+          tenant_id: string
+          tier: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          order_id: string
+          price?: number
+          tenant_id: string
+          tier?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          order_id?: string
+          price?: number
+          tenant_id?: string
+          tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_addons_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_addons_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_mgr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_details: {
         Row: {
           brief: Json

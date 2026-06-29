@@ -74,22 +74,25 @@ export async function getPodOrderById(id: string): Promise<AdminOrder | null> {
   return data ? toMgrOrder(data) : null;
 }
 
-/** An order's non-money extras (brief/project/folder/included), RLS-scoped (order_details, inc-5b). */
+/** An order's extras: non-money brief (order_details, inc-5b) + paid addons (order_addons, inc-5c).
+ *  Both RLS-scoped; addons come back empty for money-blind viewers (manager/staff) so prices never
+ *  reach them. Returns null only when there's no order_details row. */
 export async function getOrderDetail(orderId: string): Promise<OrderDetailExtra | null> {
   if (!UUID_RE.test(orderId)) return null;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('order_details')
-    .select('project, folder, brief, included')
-    .eq('order_id', orderId)
-    .maybeSingle();
-  if (error) throw new Error(`getOrderDetail: ${error.message}`);
-  if (!data) return null;
+  const [det, add] = await Promise.all([
+    supabase.from('order_details').select('project, folder, brief, included').eq('order_id', orderId).maybeSingle(),
+    supabase.from('order_addons').select('name, tier, price').eq('order_id', orderId),
+  ]);
+  if (det.error) throw new Error(`getOrderDetail: ${det.error.message}`);
+  if (add.error) throw new Error(`getOrderDetail addons: ${add.error.message}`);
+  if (!det.data) return null;
   return {
-    project: data.project,
-    folder: data.folder,
-    brief: Array.isArray(data.brief) ? (data.brief as OrderDetailExtra['brief']) : [],
-    included: data.included ?? [],
+    project: det.data.project,
+    folder: det.data.folder,
+    brief: Array.isArray(det.data.brief) ? (det.data.brief as OrderDetailExtra['brief']) : [],
+    included: det.data.included ?? [],
+    addons: (add.data ?? []).map((a) => ({ name: a.name, tier: a.tier ?? '', price: Number(a.price) })),
   };
 }
 

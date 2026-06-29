@@ -8,10 +8,12 @@ const seqMap = new Map(
 );
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize' };
 
-/** Real order_details (inc-5b) — the non-money extras read RLS-scoped from the DB and passed in. */
+/** Real order_details (inc-5b) + order_addons (inc-5c) read RLS-scoped from the DB and passed in.
+ *  addons are money → empty for money-blind viewers (RLS), so the upsell block won't render for them. */
 export type OrderDetailExtra = {
   project: string | null; folder: string | null;
   brief: { label: string; value: string; full?: boolean }[]; included: string[];
+  addons: { name: string; tier: string; price: number }[];
 };
 
 /**
@@ -38,7 +40,8 @@ export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: O
     { label: 'Goal', value: 'Improve organic visibility' },
     { label: 'Market', value: 'US · English' },
   ];
-  const addons = extra?.addons ?? [];
+  // Real addons when the detail was fetched (admin/customer; empty for money-blind via RLS); else mock.
+  const addons = detail ? detail.addons : (extra?.addons ?? []);
   const addonsTotal = addons.reduce((s, a) => s + a.price, 0);
   const bundle = (extra?.bundle ?? [])
     .map((bid) => ORDERS.find((o) => o.id === bid))

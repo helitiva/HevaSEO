@@ -165,3 +165,13 @@ begin
     on conflict (order_id) do nothing;
   end loop;
 end $$;
+
+-- Step 2 inc-5c — order_addons (paid upsells) on a few orders, keyed by code.
+insert into public.order_addons (tenant_id, order_id, name, tier, price)
+select 'a9e0c0de-0000-4000-8000-000000000001', o.id, x.name, x.tier, x.price
+from (values
+  ('CNT-1004', 'Express delivery', 'pro',      40),
+  ('CNT-1004', 'Extra revisions',  'standard', 20),
+  ('OPT-1010', 'Priority support', 'pro',      30)
+) as x(code, name, tier, price)
+join public.orders o on o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and o.code = x.code;
