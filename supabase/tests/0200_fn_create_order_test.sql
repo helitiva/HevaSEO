@@ -1,10 +1,19 @@
 -- E0d increment 1: topup + create_order atomic money functions.
 -- CRITICAL: the debit is atomic (no negative balance), and balance always equals SUM(ledger).
 begin;
-select plan(10);
+select plan(12);
 
 select has_function('topup', 'topup() exists');
 select has_function('create_order', 'create_order() exists');
+
+-- SECURITY (inc-4 hardening): value/amount are client-untrusted, so only service_role may call these
+-- money-in functions — never the public API roles (anon/authenticated). Server actions call them.
+select ok(
+  not has_function_privilege('authenticated', 'create_order(uuid,uuid,text,text,numeric,uuid)', 'execute'),
+  'authenticated CANNOT execute create_order (server/service-role only)');
+select ok(
+  not has_function_privilege('anon', 'topup(uuid,uuid,numeric,uuid,text)', 'execute'),
+  'anon CANNOT execute topup');
 
 -- seed
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');
