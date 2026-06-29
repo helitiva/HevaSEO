@@ -58,7 +58,11 @@ function TierBadge({ tier }: { tier: Tier }) {
   );
 }
 
-export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
+type AdvanceAction = (orderId: string, to: OrderStatus) => Promise<{ ok: true } | { ok: false; error: string }>;
+
+// advanceAction is passed only by the admin page (real persistence); manager omits it (money-blind,
+// not an allowed-transition role) so its slide-over stays read/local.
+export function OrdersExplorer({ rows, advanceAction }: { rows: ExplorerOrder[]; advanceAction?: AdvanceAction }) {
   const showMoney = useShowMoney();
   const [status, setStatus] = useState('');
   const [service, setService] = useState('');
@@ -217,7 +221,7 @@ export function OrdersExplorer({ rows }: { rows: ExplorerOrder[] }) {
         <SlideOver open onClose={() => setPanelId(null)} title={panel.code} widthClass="max-w-5xl">
           {(() => {
             const detail = buildOrderDetailProps(panel);
-            return detail ? <OrderDetailClient key={detail.order.id} {...detail} /> : null;
+            return detail ? <OrderDetailClient key={detail.order.id} {...detail} advanceAction={advanceAction} /> : null;
           })()}
         </SlideOver>
       )}

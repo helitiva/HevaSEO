@@ -6,6 +6,7 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { advanceOrderAction } from '@/app/admin/orders/actions';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { money, type AdminOrder } from '@/data/adminMock';
@@ -61,7 +62,7 @@ export function NeedsAttention({ overdue, awaiting, unassigned }: {
       </div>
 
       <SlideOver open={selected !== null} onClose={() => setSelected(null)} title={selected?.code ?? 'Order'} widthClass="max-w-5xl">
-        {selectedProps && <OrderDetailClient key={selectedProps.order.id} {...selectedProps} />}
+        {selectedProps && <OrderDetailClient key={selectedProps.order.id} {...selectedProps} advanceAction={advanceOrderAction} />}
       </SlideOver>
     </>
   );
