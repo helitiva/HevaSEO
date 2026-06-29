@@ -18,7 +18,12 @@
 | **E0c** | RLS role+tenant + money-stripped views + docs array-RLS | ⬜ | — | ③ | Chờ E0b, E0a+. **7 test CRITICAL** |
 | **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | ⬜ | — | ③ | Chờ E0b. Atomic + audit |
 
-**Cổng mở fleet:** `pnpm verify:db` xanh + 7 test CRITICAL xanh + human duyệt schema/RLS. ⬜ chưa đạt.
+**Cổng mở fleet:** `pnpm verify:db` xanh + 7 test CRITICAL xanh + human duyệt schema/RLS. 🟡 đang tiến.
+
+**Money cluster (gác③, human duyệt từng increment):**
+- ✅ **inc-1 customer_credit** DONE (human duyệt 2026-06-29): `customer_balances` + `credit_ledger`, money-blind (staff=0, manager=0), Stripe idempotency. 3 test CRITICAL xanh.
+- 🟡 inc-2 staff_wallet (đang build)
+- ⬜ inc-3 affiliate_commission · ⬜ inc-4 money-stripped views (`orders_mgr`…) · ⬜ E0d ledger functions
 
 ---
 
