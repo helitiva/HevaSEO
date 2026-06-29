@@ -1,9 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+// Routes reachable without a session. Everything else is a portal surface whose Server Components
+// read RLS-scoped data (which requires an authenticated JWT) — so an anonymous request must be sent
+// to /login, not allowed to hit the data layer (where the read would error and crash the page).
+const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password'];
+
 // Refreshes the Supabase Auth session on every request so Server Components always read a valid,
-// non-expired token (and its tenant_id/app_role claims). We do NOT gate routes here yet — the demo
-// portals stay openable (see AccountMenu); route protection lands when the read-layer needs it.
+// non-expired token (tenant_id/app_role claims), AND gates protected routes: no session → /login.
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -24,8 +28,17 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Touch the user to trigger a token refresh + cookie rewrite when needed.
-  await supabase.auth.getUser();
+  // getUser() refreshes the token (cookie rewrite) and tells us if there's a session.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (!user && !isPublic) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.search = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(loginUrl);
+  }
 
   return response;
 }
