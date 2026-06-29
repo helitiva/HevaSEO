@@ -1,15 +1,17 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { OrdersExplorer, type ExplorerOrder } from './OrdersExplorer';
-import { ORDERS, customerByCompany } from '@/data/adminMock';
+import { customerByCompany } from '@/data/adminMock';
+import { getOrders } from '@/data/orders.server';
 
 export const metadata = { title: 'Orders' };
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
+  const orders = await getOrders(); // RLS-scoped real read (admin → all tenant orders)
   // System sequence number: oldest order = #1 (stable, independent of table sort).
   const seqMap = new Map(
-    [...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const),
+    [...orders].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const),
   );
-  const rows: ExplorerOrder[] = ORDERS.map((o) => {
+  const rows: ExplorerOrder[] = orders.map((o) => {
     const c = customerByCompany(o.customer);
     return {
       ...o,

@@ -24,7 +24,9 @@ Hôm nay phần lớn hàm READ là **đồng bộ**; backend làm chúng **asyn
 ## 1. Orders (Lane A — slice đầu)
 
 ```ts
-// [READ] data/mock.ts, data/adminMock.ts
+// [READ — REAL, Lane A inc-3a] data/orders.server.ts (server-only, RLS-scoped):
+getOrders(): Promise<AdminOrder[]>               // admin→all · customer→own · staff/manager→0 (use money-stripped view) — replaces ORDERS
+// [READ — mock, migrating consumer-by-consumer] data/mock.ts, data/adminMock.ts
 ORDERS: AdminOrder[]                              // → SELECT scoped RLS (customer own / manager pod / admin all)
 activityFor(o: Order): Activity[]
 commentsFor(id: string): OrderComment[]

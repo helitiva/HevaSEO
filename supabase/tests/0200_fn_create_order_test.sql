@@ -23,7 +23,7 @@ select create_order('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-
 select is(
   (select balance from customer_balances where customer_id = '00000000-0000-0000-0000-000000000001')::numeric,
   70::numeric, 'create_order debits balance to 70');
-select is((select count(*) from orders)::int, 1, 'create_order creates the order');
+select is((select count(*) from orders where tenant_id = '11111111-1111-1111-1111-111111111111')::int, 1, 'create_order creates the order');
 select is(
   (select amount from credit_ledger where kind = 'debit')::numeric,
   -30::numeric, 'create_order writes a -30 debit ledger entry');
