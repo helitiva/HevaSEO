@@ -881,29 +881,31 @@ export const PAYOUTS: Payout[] = STAFF.map((s) => {
 export interface ManagerPayout {
   managerId: string; manager: string; title: string; rank: string;
   podStaff: number;        // headcount in the pod
-  podOrderValue: number;   // billable order value handled by the pod (commission basis)
-  commissionRate: number;  // y% on pod order value
-  commission: number;      // round(podOrderValue × commissionRate)
+  podGig: number;          // total gig pay earned by the pod's staff (override basis)
+  podCommission: number;   // total commission earned by the pod's staff (override basis)
+  gigPct: number;          // fraction of the pod's gig pay paid to the manager
+  commPct: number;         // fraction of the pod's commission paid to the manager
+  commission: number;      // round(podGig × gigPct + podCommission × commPct) — the manager's override
   base: number;            // fixed monthly salary
-  bonusRate: number;       // x% of the bonuses awarded to the pod's staff
-  due: number;             // base + commission (bonus added live from staff bonuses)
+  due: number;             // base + commission
   lastPaidAt: string | null;
 }
 export const MANAGER_BASE_SALARY: Record<string, number> = { 'Senior Manager': 1800, 'Lead Manager': 1600 };
-export const MANAGER_COMMISSION_RATE = 0.05; // 5% of the pod's billable order value
-export const MANAGER_BONUS_RATE = 0.10;      // 10% of the bonuses awarded to the pod's staff
+// A manager earns an OVERRIDE on what their pod's STAFF earn: a % of the pod's gig pay and a % of
+// the pod's commission. Not tied to order value, and managers have NO KPI/delivery bonus.
+export const MANAGER_GIG_PCT = 0.10;  // 10% of the pod's gig pay
+export const MANAGER_COMM_PCT = 0.15; // 15% of the pod's commission
 export const MANAGER_PAYOUTS: ManagerPayout[] = MANAGERS.map((m) => {
-  const podStaff = STAFF.filter((s) => STAFF_MANAGER[s.id] === m.id);
-  const podNames = new Set(podStaff.map((s) => s.name));
-  const podOrderValue = ORDERS
-    .filter((o) => o.staff !== null && podNames.has(o.staff) && PAYABLE_STATES.includes(o.status))
-    .reduce((a, o) => a + o.value, 0);
-  const commission = Math.round(podOrderValue * MANAGER_COMMISSION_RATE);
+  const podPayouts = PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === m.id);
+  const podGig = podPayouts.reduce((a, p) => a + p.gig, 0);
+  const podCommission = podPayouts.reduce((a, p) => a + p.commission, 0);
+  const commission = Math.round(podGig * MANAGER_GIG_PCT + podCommission * MANAGER_COMM_PCT);
   const base = MANAGER_BASE_SALARY[m.rank] ?? 1500;
   return {
     managerId: m.id, manager: m.name, title: m.title, rank: m.rank,
-    podStaff: podStaff.length, podOrderValue, commissionRate: MANAGER_COMMISSION_RATE,
-    commission, base, bonusRate: MANAGER_BONUS_RATE, due: base + commission, lastPaidAt: '2026-06-05',
+    podStaff: podPayouts.length, podGig, podCommission,
+    gigPct: MANAGER_GIG_PCT, commPct: MANAGER_COMM_PCT,
+    commission, base, due: base + commission, lastPaidAt: '2026-06-05',
   };
 });
 

@@ -602,16 +602,18 @@ function effComp(p: Payout, ov?: PayoutOverride) {
   return { base, rate, bonus, commission, gig, total: base + gig + commission + bonus };
 }
 
-// Manager comp: fixed salary + y% commission on the pod's billable order value + x% bonus
-// on the pod's staff bonuses (passed in live, since those are admin-edited in the staff table).
-type MgrOverride = { base: number; commRate: number; bonusRate: number };
-function effMgrComp(m: ManagerPayout, ov: MgrOverride | undefined, podStaffBonus: number) {
+// Manager comp: fixed salary + an OVERRIDE on what the pod's STAFF earn — gigPct% of the pod's gig
+// pay plus commPct% of the pod's commission. Pod gig/commission are passed in live (they change as
+// the admin edits the staff pay rows above). Managers have NO KPI bonus (that is a staff mechanism).
+type MgrOverride = { base: number; gigPct: number; commPct: number };
+function effMgrComp(m: ManagerPayout, ov: MgrOverride | undefined, podGig: number, podComm: number) {
   const base = ov ? ov.base : m.base;
-  const commRate = ov ? ov.commRate / 100 : m.commissionRate;
-  const bonusRate = ov ? ov.bonusRate / 100 : m.bonusRate;
-  const commission = Math.round(m.podOrderValue * commRate);
-  const bonus = Math.round(podStaffBonus * bonusRate);
-  return { base, commRate, bonusRate, commission, bonus, total: base + commission + bonus };
+  const gigPct = ov ? ov.gigPct : Math.round(m.gigPct * 100);
+  const commPct = ov ? ov.commPct : Math.round(m.commPct * 100);
+  const gigShare = Math.round((podGig * gigPct) / 100);
+  const commShare = Math.round((podComm * commPct) / 100);
+  const commission = gigShare + commShare;
+  return { base, gigPct, commPct, gigShare, commShare, commission, total: base + commission };
 }
 
 // A compact inline number editor (prefix/suffix), used for the manager payroll fields.
@@ -630,17 +632,20 @@ function PayoutsTab() {
   const [paid, setPaid] = usePersistedState<Record<string, boolean>>('payoutsPaid', {});
   const [selected, setSelected] = useState<Payout | null>(null);
   const [overrides, setOverrides] = usePersistedState<Record<string, PayoutOverride>>('payoutOverrides', {});
-  const [mgrOv, setMgrOv] = usePersistedState<Record<string, MgrOverride>>('managerPayoutOverrides', {});
+  const [mgrOv, setMgrOv] = usePersistedState<Record<string, MgrOverride>>('managerPayoutOverridesV2', {});
   const [mgrPaid, setMgrPaid] = usePersistedState<Record<string, boolean>>('managerPayoutsPaid', {});
   const [gran, setGran] = useState<'current' | PayGran>('current');
   const rows = useMemo(() => [...PAYOUTS].sort((a, b) => b.due - a.due), []);
-  // A manager's bonus tracks the bonuses the admin awards their pod's staff — read live from
-  // the same `overrides` state edited in the staff table above.
-  const podBonusOf = (managerId: string) =>
+  // A manager earns a % of their pod's gig pay + commission — read LIVE from the same `overrides`
+  // state edited in the staff table above, so editing a staffer's pay updates their manager's comp.
+  const podGigOf = (managerId: string) =>
     PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === managerId)
-      .reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0);
+      .reduce((a, p) => a + effComp(p, overrides[p.staffId]).gig, 0);
+  const podCommOf = (managerId: string) =>
+    PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === managerId)
+      .reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0);
   const setMgrField = (m: ManagerPayout, field: keyof MgrOverride, value: number) => setMgrOv((s) => {
-    const cur = s[m.managerId] ?? { base: m.base, commRate: Math.round(m.commissionRate * 100), bonusRate: Math.round(m.bonusRate * 100) };
+    const cur = s[m.managerId] ?? { base: m.base, gigPct: Math.round(m.gigPct * 100), commPct: Math.round(m.commPct * 100) };
     return { ...s, [m.managerId]: { ...cur, [field]: Math.max(0, value) } };
   });
 
@@ -782,25 +787,26 @@ function PayoutsTab() {
       <div className="space-y-2 pt-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-1">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-user-circle-gear text-primary" aria-hidden />Manager payroll</h3>
-          <span className="text-[11px] text-muted-foreground">Fixed salary + commission on the value of orders their pod handles + a % of the bonuses they award their staff. Rates are editable per manager.</span>
+          <span className="text-[11px] text-muted-foreground">Fixed salary + an override on what their pod's staff earn — a % of the pod's gig pay and a % of the pod's commission. Percentages are editable per manager. No KPI bonus.</span>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                <th className="p-3">Manager</th><th className="p-3">Fixed salary</th><th className="p-3">Pod order value</th>
-                <th className="p-3">Commission</th><th className="p-3">Staff bonus pool</th><th className="p-3">Bonus</th>
+                <th className="p-3">Manager</th><th className="p-3">Fixed salary</th><th className="p-3">Pod gig pay</th>
+                <th className="p-3">Pod commission</th><th className="p-3">Override</th><th className="p-3">Manager comm</th>
                 <th className="p-3">Net pay</th><th className="p-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {MANAGER_PAYOUTS.map((m) => {
                 const ov = mgrOv[m.managerId];
-                const podBonus = podBonusOf(m.managerId);
-                const e = effMgrComp(m, ov, podBonus);
+                const podGig = podGigOf(m.managerId);
+                const podComm = podCommOf(m.managerId);
+                const e = effMgrComp(m, ov, podGig, podComm);
                 const baseVal = ov ? ov.base : m.base;
-                const commPct = ov ? ov.commRate : Math.round(m.commissionRate * 100);
-                const bonusPct = ov ? ov.bonusRate : Math.round(m.bonusRate * 100);
+                const gigPct = ov ? ov.gigPct : Math.round(m.gigPct * 100);
+                const commPct = ov ? ov.commPct : Math.round(m.commPct * 100);
                 const isPaid = mgrPaid[m.managerId];
                 return (
                   <tr key={m.managerId} className="border-b border-border/50 transition hover:bg-muted/40">
@@ -810,19 +816,17 @@ function PayoutsTab() {
                       <div className="text-[11px] text-muted-foreground">{m.podStaff} staff in pod</div>
                     </td>
                     <td className="p-3"><NumCell prefix="$" value={baseVal} onChange={(v) => setMgrField(m, 'base', v)} width="w-24" /></td>
-                    <td className="p-3 tabular-nums text-muted-foreground">{money(m.podOrderValue)}</td>
+                    <td className="p-3 tabular-nums text-muted-foreground">{money(podGig)}</td>
+                    <td className="p-3 tabular-nums text-muted-foreground">{money(podComm)}</td>
                     <td className="p-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold tabular-nums">{money(e.commission)}</span>
-                        <NumCell suffix="%" value={commPct} onChange={(v) => setMgrField(m, 'commRate', v)} width="w-14" />
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><span className="text-foreground">gig</span><NumCell suffix="%" value={gigPct} onChange={(v) => setMgrField(m, 'gigPct', v)} width="w-12" /></span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><span className="text-foreground">comm</span><NumCell suffix="%" value={commPct} onChange={(v) => setMgrField(m, 'commPct', v)} width="w-12" /></span>
                       </div>
                     </td>
-                    <td className="p-3 tabular-nums text-muted-foreground" title="Sum of the bonuses awarded to this pod's staff">{money(podBonus)}</td>
                     <td className="p-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold tabular-nums text-emerald-600">{e.bonus ? `+${money(e.bonus)}` : money(0)}</span>
-                        <NumCell suffix="%" value={bonusPct} onChange={(v) => setMgrField(m, 'bonusRate', v)} width="w-14" />
-                      </div>
+                      <span className="font-semibold tabular-nums">{money(e.commission)}</span>
+                      <div className="text-[10px] text-muted-foreground tabular-nums" title="gig share + commission share">{money(e.gigShare)} gig · {money(e.commShare)} comm</div>
                     </td>
                     <td className="p-3 font-semibold tabular-nums">{money(e.total)}</td>
                     <td className="p-3 text-right">
@@ -837,17 +841,17 @@ function PayoutsTab() {
             <tfoot>
               {(() => {
                 const t = MANAGER_PAYOUTS.reduce((acc, m) => {
-                  const e = effMgrComp(m, mgrOv[m.managerId], podBonusOf(m.managerId));
-                  return { base: acc.base + e.base, comm: acc.comm + e.commission, bonus: acc.bonus + e.bonus, total: acc.total + e.total };
-                }, { base: 0, comm: 0, bonus: 0, total: 0 });
+                  const e = effMgrComp(m, mgrOv[m.managerId], podGigOf(m.managerId), podCommOf(m.managerId));
+                  return { base: acc.base + e.base, comm: acc.comm + e.commission, total: acc.total + e.total };
+                }, { base: 0, comm: 0, total: 0 });
                 return (
                   <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
                     <td className="p-3 text-muted-foreground">{MANAGER_PAYOUTS.length} managers</td>
                     <td className="p-3 tabular-nums">{money(t.base)}</td>
                     <td className="p-3" />
-                    <td className="p-3 tabular-nums">{money(t.comm)}</td>
                     <td className="p-3" />
-                    <td className="p-3 tabular-nums text-emerald-600">{money(t.bonus)}</td>
+                    <td className="p-3" />
+                    <td className="p-3 tabular-nums">{money(t.comm)}</td>
                     <td className="p-3 tabular-nums">{money(t.total)}</td>
                     <td className="p-3" />
                   </tr>

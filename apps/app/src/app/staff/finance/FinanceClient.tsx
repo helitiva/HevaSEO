@@ -26,8 +26,12 @@ type Props = {
   history: MonthEarning[];
   summary: EarningsSummary;
   finance: StaffFinance;
-  rewards: Reward[];
+  rewards?: Reward[];
   firstPassRate: number;
+  /** KPI rewards/bonuses are a delivery-STAFF mechanism; managers hide this section. */
+  showRewards?: boolean;
+  /** 'manager' relabels the payroll card (salary + pod-override commission, no gig/bonus line). */
+  payStyle?: 'staff' | 'manager';
 };
 
 const REWARDS_MONTH = '2026-06';
@@ -39,7 +43,8 @@ const TABS = [
   { key: 'payouts', label: 'Payouts', icon: 'ph-hand-coins' },
 ] as const;
 
-export function FinanceClient({ earnings, history, summary, finance, rewards, firstPassRate }: Props) {
+export function FinanceClient({ earnings, history, summary, finance, rewards = [], firstPassRate, showRewards = true, payStyle = 'staff' }: Props) {
+  const isManager = payStyle === 'manager';
   // Penalties + payouts are session-mutable (dispute a fine, request a payout); everything else is read-only.
   const [penalties, setPenalties] = useState<StaffPenalty[]>(finance.penalties);
   const [payouts, setPayouts] = useState<PayoutRequest[]>(finance.payouts);
@@ -127,7 +132,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
               )}
             </div>
             <p className="mt-3 text-[11px] text-white/70">
-              Balance {money(balance)} · commission accrues here as your work is billed. {MIN_PAYOUT > 0 && `Minimum payout ${money(MIN_PAYOUT)}.`}
+              Balance {money(balance)} · {isManager ? 'your pod-override commission accrues here each cycle (salary is paid automatically).' : 'commission accrues here as your work is billed.'} {MIN_PAYOUT > 0 && `Minimum payout ${money(MIN_PAYOUT)}.`}
             </p>
           </div>
         </div>
@@ -135,7 +140,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
         <div className="kcard flex flex-col justify-between">
           <div>
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <i className="ph-bold ph-calendar-check text-primary" aria-hidden /> Salary + gig · payroll
+              <i className="ph-bold ph-calendar-check text-primary" aria-hidden /> {isManager ? 'Salary + override · payroll' : 'Salary + gig · payroll'}
             </p>
             <p className="display mt-1 text-2xl font-bold">{money(earnings.takeHome)}<span className="text-sm font-medium text-muted-foreground">/mo</span></p>
           </div>
@@ -144,13 +149,15 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
               <span className="text-muted-foreground">Fixed salary</span>
               <span className="font-semibold tabular-nums">{money(earnings.base)}</span>
             </div>
+            {!isManager && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Gig pay <span className="text-xs">· {earnings.gigUnits} gig{earnings.gigUnits === 1 ? '' : 's'} delivered</span></span>
+                <span className="font-semibold tabular-nums">{earnings.gig ? `+${money(earnings.gig)}` : money(0)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Gig pay <span className="text-xs">· {earnings.gigUnits} gig{earnings.gigUnits === 1 ? '' : 's'} delivered</span></span>
-              <span className="font-semibold tabular-nums">{earnings.gig ? `+${money(earnings.gig)}` : money(0)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Commission + bonus</span>
-              <span className="font-semibold tabular-nums">{money(earnings.commission + earnings.bonus)}</span>
+              <span className="text-muted-foreground">{isManager ? 'Pod-override commission' : 'Commission + bonus'}</span>
+              <span className="font-semibold tabular-nums">{money(isManager ? earnings.commission : earnings.commission + earnings.bonus)}</span>
             </div>
             <div className="flex items-center justify-between border-t border-border pt-1.5">
               <span className="text-muted-foreground">Next payday</span>
@@ -187,8 +194,8 @@ export function FinanceClient({ earnings, history, summary, finance, rewards, fi
         <EarningsBars history={history} />
       </div>
 
-      {/* ── Rewards & bonuses ── */}
-      <RewardsPanel rewards={rewards} />
+      {/* ── Rewards & bonuses (delivery-staff KPI mechanism; hidden for managers) ── */}
+      {showRewards && <RewardsPanel rewards={rewards} />}
 
       {/* ── Tabbed detail ── */}
       <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5">

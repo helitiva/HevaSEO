@@ -160,8 +160,11 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
 
   // Manager area (/manager/*) — the pod-scoped ops surface. Same ops capabilities
   // as the admin equivalents (managers ARE ops admins), so admins can preview it
-  // too. There is deliberately no /manager/finance, /manager/analytics or
-  // /manager/managers — those money/org powers don't exist for managers.
+  // too. No /manager/analytics or /manager/managers — those money/org powers don't
+  // exist for managers. /manager/finance is the EXCEPTION: it is the manager's OWN
+  // pay (salary + pod commission + payouts), gated by `manager.access` — NOT
+  // `finance.view`, so pod/customer money stays masked everywhere else.
+  { prefix: '/manager/finance', capability: 'manager.access' }, // the manager's OWN pay only
   { prefix: '/manager/orders', capability: 'orders.manage' },
   { prefix: '/manager/assignment', capability: 'assignment.manage' },
   { prefix: '/manager/review', capability: 'review.manage' },

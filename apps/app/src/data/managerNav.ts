@@ -16,6 +16,7 @@ export const MANAGER_NAV: AdminNavSection[] = [
   ]},
   { title: 'My pod', items: [
     { label: 'My performance', href: '/manager/performance', icon: 'ph-chart-line-up' },
+    { label: 'My finance', href: '/manager/finance', icon: 'ph-wallet' },
     { label: 'Customers', href: '/manager/customers', icon: 'ph-users' },
     { label: 'Staff', href: '/manager/staff', icon: 'ph-user-gear' },
   ]},
