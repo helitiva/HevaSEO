@@ -4,14 +4,15 @@
 > Everything below is committed; this file + `docs/STATUS.md` are the resume anchors.
 
 ## TL;DR
-- **Backend ~50%.** FOUNDATION (E0a · E0a+ · E0b · E0d) is **100% DONE + committed**. 194 pgTAP green.
+- **Backend ~55%.** FOUNDATION (E0a · E0a+ · E0b · E0d) is **100% DONE + committed**. 201 pgTAP green.
 - Now in **Phase 1 / Fleet Lane A** (wire the Next app `apps/app` to the real DB). **inc-1 (Supabase client) + inc-2 (auth session) done.**
 - **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** Done: `getOrders()`/`getOrderById()` (RLS-scoped, `data/orders.server.ts`); `/admin/orders` (list + detail slide-over), `/admin/orders/[id]`, and `/admin` Command Center Needs-Attention all read REAL orders; `buildOrderDetailProps` takes a real `AdminOrder`. Seed: 6 customers + 11 orders.
   - **Remaining inc-3 consumers + their blockers:**
     - **Admin build.ts/rows.ts** (assignment, review, staff, customers) — each joins ORDERS with companion mocks keyed by mock ids (`ORDER_EXTRA`, `DELIVERABLES`, `STAFF`, `TICKETS`). Need those companion tables seeded for real order ids first (a domain-seed expansion) before migrating, else derived views go empty.
     - ~~**/manager/orders**~~ ✅ **inc-3c DONE** — `getPodOrders()`/`getPodOrderById()` read `orders_mgr` (value-stripped); manager+detail money-blind; dropped mock `managerScope`/`MANAGER_PERSONA`. (Pod-scoping still pending `staff_details.manager_id` seed — view returns all tenant orders for now.)
     - **Customer portal** (`OrdersBoard`/`DashboardTop`/`projects/[id]`/`OrdersSummary`) — uses the **other** order model `Order` (`data/mock.ts`) with fields the table lacks (`domain`/`progress`/`invoice`/`pay`/`title`). ⚠ decide **add-columns vs derive** before migrating.
-  - Then **inc-4** wire create/advance/cancel + 1 order e2e.
+  - **SECURITY ✅ (2026-06-29, commit `2fe9bcf`):** E0d write fns hardened — `advance_order(p_order,p_to)` / `cancel_order(p_order)` derive actor/role/tenant from JWT claims + ownership authz (callable by `authenticated`); `create_order`/`topup` execute revoked → `service_role` only. Old role-forgery closed (verified e2e). **inc-4 writes unblocked.**
+  - Then **inc-4** wire writes via server actions: advance/cancel use the user's session client (`createClient()` → rpc, RLS+claims enforce); create_order/topup need a **service-role** server client (price server-side). `cancel_order` is money (gác③). 1 order e2e finale.
 
 ## Get running (in order)
 ```bash
