@@ -72,3 +72,39 @@ export async function getOrderById(id: string): Promise<AdminOrder | null> {
   if (error) throw new Error(`getOrderById: ${error.message}`);
   return data ? toAdminOrder(data) : null;
 }
+
+// ── Money-blind reads for managers/staff: the orders_mgr view OMITS `value` (ADR K9). The view's
+// own WHERE is the access gate (manager → tenant orders, staff → own assigned). We map value→0 since
+// it doesn't exist and these viewers are money-blind anyway (the UI also hides it via ViewerProvider).
+const MGR_ORDER_SELECT =
+  'id, code, service, pkg, state, priority, source, deadline, created_at, customers(name, company), assignee:profiles!orders_assignee_id_fkey(name)';
+type MgrOrderRow = Omit<OrderRow, 'value'>;
+const toMgrOrder = (r: MgrOrderRow): AdminOrder => toAdminOrder({ ...r, value: 0 });
+
+/** Pod/own orders via the money-stripped view (manager → tenant; staff → own assigned). */
+export async function getPodOrders(): Promise<AdminOrder[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders_mgr')
+    .select(MGR_ORDER_SELECT)
+    .order('created_at', { ascending: false })
+    .returns<MgrOrderRow[]>();
+
+  if (error) throw new Error(`getPodOrders: ${error.message}`);
+  return (data ?? []).map(toMgrOrder);
+}
+
+/** Single money-stripped order by id (the view's WHERE is the visibility gate). */
+export async function getPodOrderById(id: string): Promise<AdminOrder | null> {
+  if (!UUID_RE.test(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders_mgr')
+    .select(MGR_ORDER_SELECT)
+    .eq('id', id)
+    .maybeSingle()
+    .returns<MgrOrderRow | null>();
+
+  if (error) throw new Error(`getPodOrderById: ${error.message}`);
+  return data ? toMgrOrder(data) : null;
+}

@@ -27,6 +27,8 @@ Hôm nay phần lớn hàm READ là **đồng bộ**; backend làm chúng **asyn
 // [READ — REAL, Lane A inc-3a/3b] data/orders.server.ts (server-only, RLS-scoped):
 getOrders(): Promise<AdminOrder[]>               // admin→all · customer→own · staff/manager→0 (use money-stripped view) — replaces ORDERS
 getOrderById(id): Promise<AdminOrder | null>     // RLS-scoped single read for the detail route
+getPodOrders(): Promise<AdminOrder[]>            // money-blind: reads orders_mgr view (no value→0); manager→tenant, staff→own
+getPodOrderById(id): Promise<AdminOrder | null>  // money-blind single read via orders_mgr (view WHERE = access gate)
 // buildOrderDetailProps(order|id) now takes a real AdminOrder (mock companions fall back); id form = mock only
 // [READ — mock, migrating consumer-by-consumer] data/mock.ts, data/adminMock.ts
 ORDERS: AdminOrder[]                              // → SELECT scoped RLS (customer own / manager pod / admin all)

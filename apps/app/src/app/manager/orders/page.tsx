@@ -1,19 +1,20 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { OrdersExplorer, type ExplorerOrder } from '@/app/admin/orders/OrdersExplorer';
-import { ORDERS, customerByCompany } from '@/data/adminMock';
-import { managerScope, ordersForPod, MANAGER_PERSONA } from '@/lib/managerScope';
+import { customerByCompany } from '@/data/adminMock';
+import { getPodOrders } from '@/data/orders.server';
+import { getServerSession } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Orders' };
 
-// Manager Orders — the same explorer the admin uses, but scoped to this pod's
-// orders and money-blind (the OrdersExplorer drops the value/LTV columns for the
-// manager viewer). Order numbers stay global so they match the admin's view.
-export default function ManagerOrdersPage() {
-  const scope = managerScope(MANAGER_PERSONA);
+// Manager Orders — the same explorer the admin uses, but read through the money-stripped orders_mgr
+// view (no `value`; OrdersExplorer also drops the value/LTV columns for the manager viewer). The
+// view's WHERE is the access gate. (Pod-scoping refinement lands with staff_details.manager_id seeding.)
+export default async function ManagerOrdersPage() {
+  const [orders, session] = await Promise.all([getPodOrders(), getServerSession()]);
   const seqMap = new Map(
-    [...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const),
+    [...orders].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const),
   );
-  const rows: ExplorerOrder[] = ordersForPod(scope).map((o) => {
+  const rows: ExplorerOrder[] = orders.map((o) => {
     const c = customerByCompany(o.customer);
     return {
       ...o,
@@ -27,7 +28,7 @@ export default function ManagerOrdersPage() {
 
   return (
     <section>
-      <PageHeader title="Orders" subtitle={`${rows.length} orders in ${scope.manager?.name ?? 'your'}’s pod`} />
+      <PageHeader title="Orders" subtitle={`${rows.length} orders in ${session?.name ?? 'your'}’s pod`} />
       <OrdersExplorer rows={rows} />
     </section>
   );

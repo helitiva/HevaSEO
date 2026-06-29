@@ -1,23 +1,18 @@
 import { notFound } from 'next/navigation';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { getPodOrderById } from '@/data/orders.server';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
-import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 
 export const metadata = { title: 'Order detail' };
 
-// Manager order detail — same panel/page as admin (money-blind via the manager
-// ViewerProvider), but only for an order worked by this manager's pod. Lets the
-// order-detail slide-over's prev/next/customer links resolve inside /manager.
+// Manager order detail — same panel as admin (money-blind via the manager ViewerProvider), read via
+// the money-stripped orders_mgr view. The view's WHERE is the visibility gate (manager → tenant
+// orders, money-stripped), so an order the manager can't see resolves to notFound.
 export default async function ManagerOrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const props = buildOrderDetailProps(id);
+  const order = await getPodOrderById(id);
+  const props = order ? buildOrderDetailProps(order) : null;
   if (!props) notFound();
-
-  // A manager may open an order their pod works, OR an unassigned order (which they
-  // can route from the shared queue). Anything else is another pod's — hide it.
-  const scope = managerScope(MANAGER_PERSONA);
-  const inScope = scope.orderCodes.has(props.order.code) || props.order.staff === null;
-  if (!inScope) notFound();
 
   return <OrderDetailClient {...props} />;
 }
