@@ -22,8 +22,9 @@
 
 **Money cluster (gác③, human duyệt từng increment):**
 - ✅ **inc-1 customer_credit** DONE (human duyệt 2026-06-29): `customer_balances` + `credit_ledger`, money-blind (staff=0, manager=0), Stripe idempotency. 3 test CRITICAL xanh.
-- 🟡 inc-2 staff_wallet (đang build)
-- ⬜ inc-3 affiliate_commission · ⬜ inc-4 money-stripped views (`orders_mgr`…) · ⬜ E0d ledger functions
+- ✅ **inc-2 staff_wallet** DONE (human duyệt 2026-06-29): staff_wallet + wallet_ledger + payout_methods + payout_requests, money-blind (manager=0, customer=0). 132 test xanh.
+- 🟡 inc-3 affiliate (đang build)
+- ⬜ inc-4 money-stripped views (`orders_mgr`…) · ⬜ E0d ledger functions
 
 ---
 
