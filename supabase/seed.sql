@@ -175,3 +175,8 @@ from (values
   ('OPT-1010', 'Priority support', 'pro',      30)
 ) as x(code, name, tier, price)
 join public.orders o on o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and o.code = x.code;
+
+-- Step 2 inc-5d — assignment_rules (routing config): pin Backlink → Linh; Content auto-routes.
+insert into public.assignment_rules (tenant_id, service, pkg, mode, target_staff_id) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Backlink', null, 'pin',  'b000bbbb-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Content',  null, 'auto', null);

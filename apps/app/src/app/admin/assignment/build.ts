@@ -1,6 +1,6 @@
-import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, MOCK_TODAY, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff } from '@/data/adminMock';
+import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, MOCK_TODAY, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff, type AdminOrder, type AdminRule } from '@/data/adminMock';
 
-const factsOf = (o: (typeof ORDERS)[number]) => {
+const factsOf = (o: AdminOrder) => {
   const c = customerByCompany(o.customer);
   const site = c?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const ex = ORDER_EXTRA[o.id];
@@ -8,13 +8,12 @@ const factsOf = (o: (typeof ORDERS)[number]) => {
 };
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
-const seqMap = new Map([...ORDERS].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
 const TODAY = new Date(`${MOCK_TODAY}T00:00:00`);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
-function rank(service: string, pkg: string, roster: readonly AdminStaff[]) {
+function rank(service: string, pkg: string, roster: readonly AdminStaff[], rules: readonly AdminRule[]) {
   const skill = SKILL_OF[service];
-  const pinRule = RULES.find((r) => r.active && r.mode === 'pin' && r.service === service && (r.pkg === null || r.pkg === pkg));
+  const pinRule = rules.find((r) => r.active && r.mode === 'pin' && r.service === service && (r.pkg === null || r.pkg === pkg));
   const activeRoster = roster.filter((s) => s.active);
   const pool = skill ? activeRoster.filter((s) => s.skills.includes(skill)) : activeRoster;
   const base = (pool.length ? pool : activeRoster).slice()
@@ -34,11 +33,16 @@ const custOf = (company: string) => {
 // Shared by the admin Assignment board and the manager (pod-scoped) one. The
 // roster is the only candidate pool: managers route from the shared unassigned
 // queue but can only assign to (and see the in-flight work of) their own staff.
-export function buildAssignmentProps(roster: readonly AdminStaff[] = STAFF) {
+export function buildAssignmentProps(
+  roster: readonly AdminStaff[] = STAFF,
+  orders: readonly AdminOrder[] = ORDERS,
+  rules: readonly AdminRule[] = RULES,
+) {
+  const seqMap = new Map([...orders].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
   const rosterNames = new Set(roster.map((s) => s.name));
-  const unassigned = ORDERS.filter((o) => o.staff === null && o.status !== 'canceled');
+  const unassigned = orders.filter((o) => o.staff === null && o.status !== 'canceled');
   const queue = unassigned.map((o) => {
-    const r = rank(o.service, o.pkg, roster);
+    const r = rank(o.service, o.pkg, roster, rules);
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : Number.POSITIVE_INFINITY;
@@ -51,7 +55,7 @@ export function buildAssignmentProps(roster: readonly AdminStaff[] = STAFF) {
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
   // Current in-flight work per staff (their real workload, for the board + rebalance).
-  const assigned = ORDERS.filter((o) => o.staff && rosterNames.has(o.staff) && ACTIVE_ORDER_STATUS.has(o.status)).map((o) => {
+  const assigned = orders.filter((o) => o.staff && rosterNames.has(o.staff) && ACTIVE_ORDER_STATUS.has(o.status)).map((o) => {
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
@@ -59,7 +63,7 @@ export function buildAssignmentProps(roster: readonly AdminStaff[] = STAFF) {
   });
 
   const staff = roster.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: assigned.filter((a) => a.home === s.name).length, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));
-  const rules = RULES.map((r) => ({ id: r.id, service: r.service, pkg: r.pkg, mode: r.mode, target: r.target, priority: r.priority, active: r.active }));
+  const ruleVMs = rules.map((r) => ({ id: r.id, service: r.service, pkg: r.pkg, mode: r.mode, target: r.target, priority: r.priority, active: r.active }));
 
   const totalCap = staff.reduce((s, x) => s + x.capacity, 0);
   const totalLoad = staff.reduce((s, x) => s + x.openLoad, 0);
@@ -71,5 +75,5 @@ export function buildAssignmentProps(roster: readonly AdminStaff[] = STAFF) {
     throughput: staff.reduce((s, x) => s + x.throughput, 0),
   };
 
-  return { queue, assigned, staff, rules, kpis };
+  return { queue, assigned, staff, rules: ruleVMs, kpis };
 }

@@ -112,6 +112,7 @@ Kiểu chốt: `AdminStaff`, `StaffTask`, `StaffFinance`, `StaffEarnings`, `Staf
 ```ts
 // [READ]
 RULES: AdminRule[] · DEFAULT_RULES: ProgramRules  // → assignment-rule table
+// [READ — REAL, inc-5d] data/assignmentRules.server.ts → getRules(): Promise<AdminRule[]>  // assignment_rules (admin RLS); priority/active defaulted (not modeled)
 SKILL_META · SERVICE_SKILL · STAFF_MANAGER: Record<string,string>
 // [PURE] admin/assignment/build.ts — seqMap PHẢI per-request (không module-scope)
 // [WRITE] assign_order(order, staff), bulk_assign, rule CRUD (admin only)
