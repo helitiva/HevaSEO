@@ -13,7 +13,9 @@
     - **Customer portal** (`OrdersBoard`/`DashboardTop`/`projects/[id]`/`OrdersSummary`) — uses the **other** order model `Order` (`data/mock.ts`) with fields the table lacks (`domain`/`progress`/`invoice`/`pay`/`title`). ⚠ decide **add-columns vs derive** before migrating.
   - **SECURITY ✅ (2026-06-29, commit `2fe9bcf`):** E0d write fns hardened — `advance_order(p_order,p_to)` / `cancel_order(p_order)` derive actor/role/tenant from JWT claims + ownership authz (callable by `authenticated`); `create_order`/`topup` execute revoked → `service_role` only. Old role-forgery closed (verified e2e). **inc-4 writes unblocked.**
   - **inc-4 (writes) — IN PROGRESS.** ✅ **inc-4a DONE** (commit `95edb7a`): `advanceOrderAction` (`app/admin/orders/actions.ts`) → `advance_order` RPC via session client; `OrderDetailClient` gained optional `advanceAction` prop (non-cancel transitions persist; cancel stays local). Wired on `/admin/orders/[id]`. Verified e2e: admin new→confirmed→assigned persists + illegal blocked + audit rows. database.types regenerated.
-    - **Next inc-4:** wire advance on the admin slide-overs (OrdersExplorer/NeedsAttention — shared with manager, gate by admin context) + staff transitions (in_progress etc.); then `cancel_order` (money, **gác③**) via a cancel action; `create_order`/`topup` need a **service-role** server client + catalog pricing (Lane B). 1 full order e2e = finale.
+    - ✅ **inc-4b** advance persists from admin slide-overs (OrdersExplorer/NeedsAttention; manager omits).
+    - ✅ **inc-4c** (money, gác③, commits `7cd438d`+`9c39e41`): `cancel_order` wired on all admin order surfaces (refund −5% fee); **seed now runs money through topup+create_order** so demo balances reconcile and cancelling a seeded order is cancel-safe. Verified: 6 customers balance==SUM(ledger), seeded-order cancel reconciles, 201 pgTAP.
+    - **Next inc-4:** staff transitions (in_progress etc., needs staff order surface = inc-3 staff); `create_order`/`topup` from UI need a **service-role** server client + catalog pricing (Lane B). 1 full customer order e2e = finale.
 
 ## Get running (in order)
 ```bash
