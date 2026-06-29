@@ -40,6 +40,8 @@ daysToDue(deadline: string | null, today): number
 
 // [WRITE] → DB function (ADR K2)
 // create_order, advance_order(to_state), cancel_order  — KHÔNG UPDATE status thẳng
+//   cancel_order: chỉ khi "planned" (new|confirmed|assigned, staff chưa nhận) else NOT_CANCELABLE;
+//   hoàn 95% về dashboard credit (gồm quick-buy) + giữ phí 5% (cancel_fee). Refund+fee giữ invariant.
 ```
 Kiểu chốt: `AdminOrder`, `Order`, `OrderStatus` (`new|confirmed|assigned|in_progress|internal_review|delivered|changes_requested|approved|completed|canceled`), `Priority`, `Deliverable`.
 

@@ -316,6 +316,8 @@ Source: `Transaction` in `adminMock.ts`.
 | `id` | text PK | |
 | `at` | timestamptz | |
 | `kind` | enum `TxKind` | `top_up \| charge \| refund \| payout \| adjustment` |
+
+> **Implemented `credit_ledger.kind`** (E0d, `supabase/migrations/*customer_credit.sql` + `*fn_advance_cancel.sql`): `topup \| debit \| refund \| cancel_fee`. **Cancellation policy:** an order is cancelable only while "planned" (`new\|confirmed\|assigned`, before staff accepts → `in_progress`); `cancel_order` refunds the value to dashboard credit (never a card refund — covers quick-buy too) and withholds a flat **5% `cancel_fee`** (anti-spam, `cancel_fee_pct()`). Refund + fee keep `balance == SUM(credit_ledger)`. See FEATURES §2.1, ADR D1/W2.
 | `amount` | numeric | positive = inflow, negative = outflow |
 | `party` | text | display name (customer or staff) |
 | `party_id` | text nullable | FK → Customer or Staff depending on `kind` |
@@ -1161,7 +1163,7 @@ All endpoints require a valid session JWT. Role required shown per endpoint. Wri
 | PATCH | `/orders/:id/status` | admin, manager | status transition |
 | PATCH | `/orders/:id/assign` | admin, manager | set `staff_id`, record `assigned_at` |
 | PATCH | `/orders/:id/priority` | admin | |
-| DELETE | `/orders/:id` | admin | sets `status=canceled` |
+| DELETE | `/orders/:id` | admin/customer | → `cancel_order` DB fn: only if "planned" (new/confirmed/assigned) else `NOT_CANCELABLE`; refunds 95% to credit, withholds 5% `cancel_fee` |
 | GET | `/orders/:id/brief` | admin, manager, staff (own) | order brief fields |
 | GET | `/orders/:id/deliverables` | admin, manager, staff (own), customer (own) | |
 

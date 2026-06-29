@@ -16,7 +16,7 @@
 | **E0a+** | PoC: Auth-hook custom claim + RLS-on-view giữ index | ⬜ | — | ②③ | Fail → cân lại C1 (managed→self-host) |
 | **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **NON-MONEY DONE** (inc-1→7, 107 test xanh, **23 bảng**): + audit_log, notifications, assignment_rules, leave_requests, staff_details. Batch-3 subagent: review sạch, 0 bug. ⚠️ staff/manager order RLS vẫn = gác (K9). **Còn lại = MONEY CLUSTER (gác③ — dừng xin human liếc):** balances+ledger ×3, payroll, affiliate payout, money-stripped views, 7 test CRITICAL. |
 | **E0c** | RLS role+tenant + money-stripped views + docs array-RLS | ⬜ | — | ③ | Chờ E0b, E0a+. **7 test CRITICAL** |
-| **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | 🟡 | claude | ③ | **inc-1 DONE** (human duyệt 2026-06-29): `topup` + `create_order` atomic (`UPDATE…WHERE balance>=price`), SECURITY DEFINER, balance==SUM(ledger) invariant + insufficient-credit chặn. 166 test xanh. Còn: advance_order/cancel_order + post-commission 3 ví. |
+| **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | 🟡 | claude | ③ | **inc-1+2 DONE** (human duyệt 2026-06-29): `topup`+`create_order` atomic; `advance_order` (allowed_transitions) + `cancel_order` (**policy: chỉ huỷ khi planned new\|confirmed\|assigned; phí 5% cancel_fee; refund 95% về dashboard credit gồm quick-buy**). SECURITY DEFINER, invariant balance==SUM(ledger). 175 test xanh. Còn: post-commission 3 ví. |
 
 **Cổng mở fleet:** `pnpm verify:db` xanh + 7 test CRITICAL xanh + human duyệt schema/RLS. 🟡 đang tiến.
 

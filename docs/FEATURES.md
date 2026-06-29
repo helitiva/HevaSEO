@@ -31,7 +31,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 
 ### 2.1 Orders
 
-**Order lifecycle management** — the central entity. An order tracks one service package purchased by a customer through statuses: `new → confirmed → assigned → in_progress → internal_review → delivered → approved/changes_requested → completed`. Cancellation is possible at any point.
+**Order lifecycle management** — the central entity. An order tracks one service package purchased by a customer through statuses: `new → confirmed → assigned → in_progress → internal_review → delivered → approved/changes_requested → completed`. Cancellation is allowed **only while the order is still "planned"** (see the cancellation policy below).
 
 | Feature | Description | Routes |
 |---|---|---|
@@ -40,6 +40,7 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | Customer order view | Customer-facing Kanban/List/Table board scoped to their own orders; drag-to-reorder columns, view toggles persisted to `localStorage` | `/orders` |
 | Order creation | New orders placed from the service catalog; quick-create available from the admin command center | `/services/[svc]` (customer), admin command center |
 | SLA / deadline tracking | Deadline field on each order; overdue detection and priority signals in triage queues | All order-listing routes |
+| **Order cancellation policy** | Cancel is allowed **only while "planned"** — i.e. `new \| confirmed \| assigned`, *before the staff accepts the work*. Once the staff accepts and it moves to `in_progress` ("processing") or beyond, it can no longer be canceled. **Every cancellation withholds a flat 5% fee** of the order value (anti-spam). The refund (95%) is always returned as **dashboard credit** — never a card refund — which also covers **quick-buy customers** (who ordered on the marketing pages): their refund lands as credit in their dashboard, minus the 5%. This is the general policy. *(Backend: `cancel_order` DB fn — `NOT_CANCELABLE` guard + `cancel_fee` ledger entry, ADR D1.)* | `cancel_order` (Phase 1 DB fn) |
 
 ### 2.2 Assignment & Routing
 

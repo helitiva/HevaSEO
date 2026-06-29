@@ -27,7 +27,7 @@ Mục tiêu Phase 0–1 không phải "sẵn sàng 100k user" — mà là **mộ
 | # | Quyết định | Lý do |
 |---|---|---|
 | K1 | **Postgres** (quan hệ + JSONB lai) | ~50 FK + nghiệp vụ tiền + RLS → SQL bắt buộc. JSONB lo phần document (`audit.meta`, `docs.body`, `tags`). |
-| K2 | **DB function `SECURITY DEFINER`** cho tiền & đổi trạng thái | `create_order`, `advance_order`, `cancel_order`, `topup`. Atomic + audit trong DB, app không UPDATE thẳng `balance`/`status`. |
+| K2 | **DB function `SECURITY DEFINER`** cho tiền & đổi trạng thái | `create_order` (atomic debit `UPDATE…WHERE balance>=price`), `advance_order` (validate qua `allowed_transitions`), `cancel_order`, `topup`. Atomic + audit trong DB, app không UPDATE thẳng `balance`/`status`. **Cancel policy (D1, refine 2026-06-29):** chỉ huỷ khi đơn còn "planned" (`new\|confirmed\|assigned`, staff chưa nhận); vào `in_progress` trở đi → `NOT_CANCELABLE`. Huỷ **hoàn 95% về dashboard credit** (không refund thẻ — gồm khách quick-buy) và **giữ phí 5%** (`cancel_fee`, chống spam). Refund+fee giữ `balance==SUM(ledger)`. |
 | K3 | **Balance authoritative O(1)** + `credit_ledger` append-only | `UPDATE … WHERE balance >= price` = khoá hàng + kiểm tra trong một câu. Ledger = sổ audit. Job đối soát định kỳ. |
 | K4 | **RLS là mô hình bảo mật** | Query qua JWT user (`@supabase/ssr`) → RLS enforce. Không filter thủ công ở app. |
 | K5 | **`tenant_id` trên mọi bảng từ ngày 1** | Rẻ giờ, đau kinh khủng nếu retrofit. 1 brand = 1 tenant hằng; vẫn lợi cho tách demo/staging. **Canh bạc "tương lai" duy nhất được giữ.** |
