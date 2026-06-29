@@ -6,7 +6,12 @@
 ## TL;DR
 - **Backend ~50%.** FOUNDATION (E0a · E0a+ · E0b · E0d) is **100% DONE + committed**. 194 pgTAP green.
 - Now in **Phase 1 / Fleet Lane A** (wire the Next app `apps/app` to the real DB). **inc-1 (Supabase client) + inc-2 (auth session) done.**
-- **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** `data/orders.server.ts → getOrders()` (RLS-scoped) done; `/admin/orders` migrated; seed has 6 customers + 11 orders. **Next: migrate the remaining ORDERS consumers** (admin/page KPIs, OrdersBoard, OrdersSummary, manager/orders, customer dashboard, OrderDetailPanel, etc.). ⚠ **Two order models** — admin `AdminOrder` maps 1:1 to the `orders` table (clean); the customer `Order` in `data/mock.ts` has fields the table lacks (`domain`, `progress`, `invoice`, `pay`, `title`) → decide add-columns vs derive before migrating customer/staff order views. Then **inc-4** wire create/advance/cancel + 1 order e2e.
+- **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** Done: `getOrders()`/`getOrderById()` (RLS-scoped, `data/orders.server.ts`); `/admin/orders` (list + detail slide-over), `/admin/orders/[id]`, and `/admin` Command Center Needs-Attention all read REAL orders; `buildOrderDetailProps` takes a real `AdminOrder`. Seed: 6 customers + 11 orders.
+  - **Remaining inc-3 consumers + their blockers:**
+    - **Admin build.ts/rows.ts** (assignment, review, staff, customers) — each joins ORDERS with companion mocks keyed by mock ids (`ORDER_EXTRA`, `DELIVERABLES`, `STAFF`, `TICKETS`). Need those companion tables seeded for real order ids first (a domain-seed expansion) before migrating, else derived views go empty.
+    - **/manager/orders** — money-blind → must read the `orders_mgr` money-stripped view (not `getOrders`, which exposes `value`) + pod scope. Separate read fn `getPodOrders()`.
+    - **Customer portal** (`OrdersBoard`/`DashboardTop`/`projects/[id]`/`OrdersSummary`) — uses the **other** order model `Order` (`data/mock.ts`) with fields the table lacks (`domain`/`progress`/`invoice`/`pay`/`title`). ⚠ decide **add-columns vs derive** before migrating.
+  - Then **inc-4** wire create/advance/cancel + 1 order e2e.
 
 ## Get running (in order)
 ```bash
