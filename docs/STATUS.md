@@ -36,7 +36,7 @@
 
 | Lane | Slice | Worktree | Trạng thái | Owner | Gác | Phụ thuộc |
 |---|---|---|---|---|---|---|
-| **A** | Orders: auth magic link + **viết lại tầng đọc (orders)** + 1 vòng đơn e2e + wire money-stripped view | `wt-orders` | ⬜ | — | ② | E0d, E0c |
+| **A** | Orders: auth magic link + **viết lại tầng đọc (orders)** + 1 vòng đơn e2e + wire money-stripped view | `wt-orders` | 🟡 inc-1 | claude | ② | E0d, E0c — **inc-1 DONE**: Supabase client (`lib/supabase/server.ts`+`client.ts` RLS-scoped) + `database.types.ts` (gen). Còn: auth session + read-layer swap (W1). |
 | **B** | customer_credit ledger UI + quick checkout (6 chốt) + Stripe | `wt-credit` | ⬜ | — | ②③ | E0d, A (1 phần) |
 | **C** | Docs array-RLS + Broadcasts event log + analytics aggregation | `wt-content` | ⬜ | — | ② | E0c |
 | **D** | staff_wallet + payroll (base/gig/commission/bonus−penalty, overrides, presets) | `wt-payroll` | ⬜ | — | ②③ | E0d |
