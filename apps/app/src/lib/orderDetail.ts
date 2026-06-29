@@ -8,15 +8,21 @@ const seqMap = new Map(
 );
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize' };
 
+/** Real order_details (inc-5b) — the non-money extras read RLS-scoped from the DB and passed in. */
+export type OrderDetailExtra = {
+  project: string | null; folder: string | null;
+  brief: { label: string; value: string; full?: boolean }[]; included: string[];
+};
+
 /**
  * Build the full prop set the order-detail surface needs.
  * Accepts either a mock order id (legacy/mock surfaces still pass a string → looked up in ORDERS) or
- * a real AdminOrder object (Lane A inc-3: the order is fetched RLS-scoped, then passed in). For real
- * orders the mock-keyed enrichment (ORDER_EXTRA, AUDIT, bundle, prev/next) gracefully falls back to
- * derived defaults until those companion tables are seeded. Returns null when a string id is unknown.
- * Shared by /admin/orders/[id] and any inline preview (slide-over) so both render identical detail.
+ * a real AdminOrder object (Lane A inc-3). `detail` is the real order_details row (inc-5b) when the
+ * caller fetched it (server pages); when absent (mock surfaces, slide-overs) the brief/project/folder/
+ * included fall back to mock ORDER_EXTRA then derived defaults. addons/bundle stay mock (deferred —
+ * addons carry money). Returns null when a string id is unknown.
  */
-export function buildOrderDetailProps(orderOrId: string | AdminOrder): OrderDetailProps | null {
+export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: OrderDetailExtra | null): OrderDetailProps | null {
   const order = typeof orderOrId === 'string' ? ORDERS.find((o) => o.id === orderOrId) : orderOrId;
   if (!order) return null;
 
@@ -24,10 +30,10 @@ export function buildOrderDetailProps(orderOrId: string | AdminOrder): OrderDeta
   const c = customerByCompany(order.customer);
   const site = c?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const extra = ORDER_EXTRA[order.id];
-  const project = extra?.project ?? `${order.customer} — SEO program`;
-  const folder = extra?.folder ?? 'General';
-  const included = extra?.included ?? SERVICE_INCLUDED[order.service] ?? [];
-  const brief = extra?.brief ?? [
+  const project = detail?.project ?? extra?.project ?? `${order.customer} — SEO program`;
+  const folder = detail?.folder ?? extra?.folder ?? 'General';
+  const included = (detail?.included?.length ? detail.included : undefined) ?? extra?.included ?? SERVICE_INCLUDED[order.service] ?? [];
+  const brief = (detail?.brief?.length ? detail.brief : undefined) ?? extra?.brief ?? [
     { label: 'Website', value: `https://${site}` },
     { label: 'Goal', value: 'Improve organic visibility' },
     { label: 'Market', value: 'US · English' },

@@ -1097,6 +1097,61 @@ export type Database = {
           },
         ]
       }
+      order_details: {
+        Row: {
+          brief: Json
+          created_at: string
+          folder: string | null
+          id: string
+          included: string[]
+          order_id: string
+          project: string | null
+          tenant_id: string
+        }
+        Insert: {
+          brief?: Json
+          created_at?: string
+          folder?: string | null
+          id?: string
+          included?: string[]
+          order_id: string
+          project?: string | null
+          tenant_id: string
+        }
+        Update: {
+          brief?: Json
+          created_at?: string
+          folder?: string | null
+          id?: string
+          included?: string[]
+          order_id?: string
+          project?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_mgr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_details_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           assignee_id: string | null
@@ -2053,6 +2108,7 @@ export type Database = {
       manager_gig_pct: { Args: never; Returns: number }
       no_plan: { Args: never; Returns: boolean[] }
       num_failed: { Args: never; Returns: number }
+      order_assignee_id: { Args: { p_order: string }; Returns: string }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }

@@ -2,6 +2,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { AdminOrder } from '@/data/adminMock';
 import type { Order } from '@/data/mock';
+import type { OrderDetailExtra } from '@/lib/orderDetail';
 import {
   UUID_RE, toAdminOrder, toMgrOrder, toCustomerOrder,
   type OrderRow, type MgrOrderRow, type MyOrderRow,
@@ -71,6 +72,25 @@ export async function getPodOrderById(id: string): Promise<AdminOrder | null> {
 
   if (error) throw new Error(`getPodOrderById: ${error.message}`);
   return data ? toMgrOrder(data) : null;
+}
+
+/** An order's non-money extras (brief/project/folder/included), RLS-scoped (order_details, inc-5b). */
+export async function getOrderDetail(orderId: string): Promise<OrderDetailExtra | null> {
+  if (!UUID_RE.test(orderId)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('order_details')
+    .select('project, folder, brief, included')
+    .eq('order_id', orderId)
+    .maybeSingle();
+  if (error) throw new Error(`getOrderDetail: ${error.message}`);
+  if (!data) return null;
+  return {
+    project: data.project,
+    folder: data.folder,
+    brief: Array.isArray(data.brief) ? (data.brief as OrderDetailExtra['brief']) : [],
+    included: data.included ?? [],
+  };
 }
 
 /** The signed-in customer's own orders, shaped for the dashboard board (excludes canceled). */
