@@ -16,9 +16,9 @@
 | **E0a+** | PoC: Auth-hook custom claim + RLS-on-view giữ index | ⬜ | — | ②③ | Fail → cân lại C1 (managed→self-host) |
 | **E0b** | Schema lõi (≈25-30 bảng + tenant_id + enum + 3 ledger + docs + broadcasts) | 🟡 | claude | ①③ | **NON-MONEY DONE** (inc-1→7, 107 test xanh, **23 bảng**): + audit_log, notifications, assignment_rules, leave_requests, staff_details. Batch-3 subagent: review sạch, 0 bug. ⚠️ staff/manager order RLS vẫn = gác (K9). **Còn lại = MONEY CLUSTER (gác③ — dừng xin human liếc):** balances+ledger ×3, payroll, affiliate payout, money-stripped views, 7 test CRITICAL. |
 | **E0c** | RLS role+tenant + money-stripped views + docs array-RLS | ⬜ | — | ③ | Chờ E0b, E0a+. **7 test CRITICAL** |
-| **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | 🟡 | claude | ③ | **inc-1+2 DONE** (human duyệt 2026-06-29): `topup`+`create_order` atomic; `advance_order` (allowed_transitions) + `cancel_order` (**policy: chỉ huỷ khi planned new\|confirmed\|assigned; phí 5% cancel_fee; refund 95% về dashboard credit gồm quick-buy**). SECURITY DEFINER, invariant balance==SUM(ledger). 175 test xanh. Còn: post-commission 3 ví. |
+| **E0d** | DB functions (create/advance/cancel/topup) + ledger pattern ×3 | ✅ | claude | ③ | **DONE 2026-06-29** (182 test xanh): inc-1 `topup`+`create_order` atomic · inc-2 `advance_order`+`cancel_order` (planned-only, 5% cancel_fee, refund-to-credit) · inc-3 `post_staff_pay` (+manager override cascade via `staff_details.manager_id`) + `post_affiliate_commission`. Mọi hàm SECURITY DEFINER, invariant balance==SUM(ledger). |
 
-**Cổng mở fleet:** `pnpm verify:db` xanh + 7 test CRITICAL xanh + human duyệt schema/RLS. 🟡 đang tiến.
+**Cổng mở fleet:** `pnpm verify:db` xanh + 7 test CRITICAL xanh + human duyệt schema/RLS. ✅ **ĐẠT** — **FOUNDATION (E0a→E0d) HOÀN TẤT** (182 pgTAP xanh, gồm các test CRITICAL: cross-tenant=0, money-blind staff/manager=0, atomic balance, balance==SUM(ledger), impersonation pending E0a+ PoC). → **Fleet Lane A có thể mở.**
 
 **Money cluster (gác③, human duyệt từng increment):**
 - ✅ **inc-1 customer_credit** DONE (human duyệt 2026-06-29): `customer_balances` + `credit_ledger`, money-blind (staff=0, manager=0), Stripe idempotency. 3 test CRITICAL xanh.
