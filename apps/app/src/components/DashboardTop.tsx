@@ -25,7 +25,9 @@ const parseUS = (d: string): Date | null => {
   return m ? new Date(+m[3], +m[1] - 1, +m[2]) : null;
 };
 
-export function DashboardTop() {
+// `orders` is the real RLS-scoped read (customer's own, inc-3e); falls back to the mock seed where
+// not wired. PROJECTS (activeProjects) + tier stay mock until those entities migrate.
+export function DashboardTop({ realOrders }: { realOrders?: Order[] }) {
   const { addedOrders, statusOverrides } = useOrdersStore();
   const [range, setRange] = useState(90);
   const [open, setOpen] = useState(false);
@@ -35,10 +37,10 @@ export function DashboardTop() {
   const today = useMemo(() => mockTodayDate(), []);
 
   const orders = useMemo(() => {
-    const all = [...addedOrders, ...ORDERS];
+    const all = [...addedOrders, ...(realOrders ?? ORDERS)];
     if (!range) return all;
     return all.filter((o) => { const d = parseUS(o.date); return d ? (today.getTime() - d.getTime()) / 86400000 <= range : true; });
-  }, [addedOrders, range, today]);
+  }, [addedOrders, realOrders, range, today]);
 
   const total = orders.length;
   const completed = orders.filter((o) => statusOf(o) === 'completed').length;

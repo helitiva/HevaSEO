@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <DashboardTop />
+      <DashboardTop realOrders={orders} />
 
       {/* ORDERS */}
       <section className="mt-5">
