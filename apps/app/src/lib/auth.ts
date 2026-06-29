@@ -1,10 +1,12 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { createClient } from './supabase/client';
 
-// Phase-0 mock auth. NOT real security — passwords are stored in plaintext in localStorage and
-// there is no server verification. It mirrors the future Supabase-Auth model (see
-// docs/backend/PLAN.md): five roles, each account links to its domain entity id, and the role
-// decides which portal you land in. The real backend will replace this wholesale.
+// Lane A inc-2: the SESSION + login/signup path is now real Supabase Auth (see signInWithPassword /
+// signUpCustomer / useSession / signOut below). The ADMIN-PROVISIONING half (createAccount,
+// listAccounts, registerUser, outbox, password-reset) is still the Phase-0 localStorage mock — it
+// belongs to Lane E and is swapped there. Keep the Session/AuthRole shapes stable so the ~9
+// consumers don't churn during the cutover.
 
 export type AuthRole = 'customer' | 'staff' | 'manager' | 'admin' | 'affiliate';
 
@@ -155,10 +157,65 @@ export function setSession(acc: Account): void {
   writeJson(SESSION_KEY, { accountId: acc.id, role: acc.role, name: acc.name, email: acc.email, entityId: acc.entityId } satisfies Session);
 }
 export function signOut(): void {
-  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+  void createClient().auth.signOut();           // real: clears the Supabase session cookie
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }  // also clear stale mock
   window.dispatchEvent(new Event(EVT));
 }
+/** @deprecated reads the legacy mock session; the real session comes from useSession()/getServerSession(). */
 export function currentSession(): Session | null { return readJson<Session | null>(SESSION_KEY, null); }
+
+// ── Real Supabase Auth: login / signup / JWT-claim decode ───────────────────────
+// The portal role is the `app_role` claim the access-token hook injects (authoritative, server-side).
+const APP_ROLES: readonly AuthRole[] = ['customer', 'staff', 'manager', 'admin', 'affiliate'];
+function isAuthRole(v: unknown): v is AuthRole {
+  return typeof v === 'string' && (APP_ROLES as readonly string[]).includes(v);
+}
+function decodeClaims(accessToken?: string | null): Record<string, unknown> | null {
+  if (!accessToken) return null;
+  try {
+    const b64 = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = typeof atob !== 'undefined' ? atob(b64) : Buffer.from(b64, 'base64').toString('utf8');
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch { return null; }
+}
+function roleFromJwt(accessToken?: string | null): AuthRole | null {
+  const r = decodeClaims(accessToken)?.['app_role'];
+  return isAuthRole(r) ? r : null;
+}
+function claimString(accessToken: string | null | undefined, key: string): string | undefined {
+  const v = decodeClaims(accessToken)?.[key];
+  return typeof v === 'string' ? v : undefined;
+}
+
+/** Map a Supabase session → our Session shape. Returns null if unauthenticated OR authenticated but
+ *  unprovisioned (no profile → no app_role claim → no portal to land in). */
+function sessionFromSupabase(s: { access_token: string; user: { id: string; email?: string; user_metadata?: Record<string, unknown> } } | null): Session | null {
+  if (!s?.user) return null;
+  const role = roleFromJwt(s.access_token);
+  if (!role) return null;
+  const name = typeof s.user.user_metadata?.['name'] === 'string' ? (s.user.user_metadata['name'] as string) : (s.user.email ?? '');
+  return { accountId: s.user.id, role, name, email: s.user.email ?? '', entityId: claimString(s.access_token, 'profile_id') };
+}
+
+export async function signInWithPassword(email: string, password: string): Promise<{ ok: true; role: AuthRole } | { ok: false; error: string }> {
+  const { data, error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+  if (error) return { ok: false, error: error.message || 'Sign in failed.' };
+  const role = roleFromJwt(data.session?.access_token);
+  if (!role) return { ok: false, error: 'Your account is not provisioned yet. Contact support.' };
+  return { ok: true, role };
+}
+
+/** Self-signup (customer). role/tenant are forced server-side by the handle_new_user trigger — the
+ *  metadata here carries only the display name (never a role, which would be ignored anyway). */
+export async function signUpCustomer(input: { name: string; email: string; password: string }): Promise<{ ok: true; signedIn: boolean } | { ok: false; error: string }> {
+  const { data, error } = await createClient().auth.signUp({
+    email: input.email.trim(),
+    password: input.password,
+    options: { data: { name: input.name.trim() } },
+  });
+  if (error) return { ok: false, error: error.message || 'Sign up failed.' };
+  return { ok: true, signedIn: Boolean(data.session) };  // signedIn=false → email confirmation required
+}
 
 // ── Password reset (mock) ──────────────────────────────────────────────────────
 export function requestPasswordReset(email: string): { ok: boolean } {
@@ -186,6 +243,17 @@ function useStoreSync<T>(read: () => T, deps: unknown[] = []): [T, () => void] {
   return [val, refresh];
 }
 
-export function useSession(): Session | null { const [s] = useStoreSync<Session | null>(() => currentSession()); return s; }
+/** Live session from Supabase Auth (cookie-backed). Updates on sign-in/out across tabs. */
+export function useSession(): Session | null {
+  const [session, setSessionState] = useState<Session | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => { if (active) setSessionState(sessionFromSupabase(data.session)); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSessionState(sessionFromSupabase(s)));
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, []);
+  return session;
+}
 export function useAccounts(): Account[] { const [a] = useStoreSync<Account[]>(() => listAccounts()); return a; }
 export function useOutbox(): OutboxMail[] { const [o] = useStoreSync<OutboxMail[]>(() => readJson<OutboxMail[]>(OUTBOX_KEY, [])); return o; }

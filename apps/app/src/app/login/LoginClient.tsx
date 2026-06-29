@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn, homePathForRole } from '@/lib/auth';
+import { signInWithPassword, homePathForRole } from '@/lib/auth';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
 
@@ -24,7 +24,7 @@ export function LoginClient() {
 
   const canSubmit = email.trim() && password.length > 0 && !busy;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!token) {
@@ -32,9 +32,10 @@ export function LoginClient() {
       return;
     }
     setBusy(true);
-    const res = signIn(email, password);
+    const res = await signInWithPassword(email, password);
     if (res.ok) {
-      router.push(homePathForRole(res.account.role));
+      router.replace(homePathForRole(res.role));
+      router.refresh();
       return;
     }
     setError(res.error);
