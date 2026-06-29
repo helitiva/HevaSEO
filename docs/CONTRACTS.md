@@ -76,6 +76,8 @@ Kiểu chốt: `AdminCustomer`, `CreditTx`, `Invoice`, `LedgerEntry`, `Tier`, `T
 ## 3. Staff: tasks · finance · performance (Lane D)
 
 ```ts
+// [READ — REAL, Lane A inc-3g] data/staff.server.ts (server-only, RLS-scoped):
+getStaff(): Promise<AdminStaff[]>                 // admin roster: profiles(role=staff)+staff_details (skills/capacity/role/tz/perf); openLoad from orders in buildStaffVMs. Finance signals still Lane D.
 // [READ] data/staffMock.ts, data/adminStaffInsight.ts
 STAFF: AdminStaff[]                               // RLS: admin all; staff self; manager pod (money-stripped)
 myTasks(staffId): StaffTask[] · myCustomers(staffId): CaredCustomer[]

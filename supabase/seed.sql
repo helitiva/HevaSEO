@@ -115,3 +115,24 @@ begin
      where tenant_id = v_agency and code = r.code;
   end loop;
 end $$;
+
+-- Lane A inc-3g — staff roster: profiles for the team (Mai already seeded as a demo account) + a
+-- staff_details row each (skills/capacity/role/tz/tenure + perf metrics). Names match the order
+-- assignee strings so per-staff workload resolves. Pay/wallet stays in the gated Lane D domain.
+insert into public.profiles (id, tenant_id, user_id, email, name, role, status) values
+  ('b000bbbb-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', null, 'linh@hevaseo.com',  'Linh P.',  'staff', 'invited'),
+  ('b000bbbb-0000-4000-8000-000000000002', 'a9e0c0de-0000-4000-8000-000000000001', null, 'huy@hevaseo.com',   'Huy N.',   'staff', 'invited'),
+  ('b000bbbb-0000-4000-8000-000000000003', 'a9e0c0de-0000-4000-8000-000000000001', null, 'diego@hevaseo.com', 'Diego R.', 'staff', 'invited'),
+  ('b000bbbb-0000-4000-8000-000000000004', 'a9e0c0de-0000-4000-8000-000000000001', null, 'aria@hevaseo.com',  'Aria K.',  'staff', 'invited'),
+  ('b000bbbb-0000-4000-8000-000000000005', 'a9e0c0de-0000-4000-8000-000000000001', null, 'tom@hevaseo.com',   'Tom B.',   'staff', 'invited')
+on conflict (tenant_id, email) do nothing;
+
+-- profile_id, skills, capacity, role_label, timezone, since, active, composite, quality, on_time, throughput, trend
+insert into public.staff_details (tenant_id, profile_id, skills, capacity, role_label, timezone, since, active, composite, quality, on_time, throughput, trend) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', '{keyword,optimize,content}', 6, 'Senior SEO Specialist', 'GMT+7', '2023-02-14', true,  92, 95, 90, 22, '{2,3,4,3,5,4,6,5}'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000001', '{backlink,keyword}',        5, 'Backlink Specialist',   'GMT+7', '2023-06-01', true,  88, 86, 92, 31, '{3,4,5,4,6,5,7,6}'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000002', '{content,optimize}',        8, 'Content Lead',          'GMT+7', '2022-11-20', true,  84, 88, 79, 40, '{4,5,6,5,7,6,8,7}'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000003', '{content,optimize}',        7, 'Content Specialist',    'GMT-3', '2024-01-10', true,  86, 90, 85, 28, '{3,3,4,4,5,4,6,5}'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000004', '{keyword,backlink}',        6, 'SEO Analyst',           'GMT+2', '2024-03-22', true,  90, 92, 88, 26, '{2,3,3,4,4,5,5,6}'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000005', '{backlink,content}',        5, 'Link Builder',          'GMT+0', '2023-09-05', false, 82, 84, 80, 34, '{4,4,5,5,6,5,7,6}')
+on conflict (profile_id) do nothing;

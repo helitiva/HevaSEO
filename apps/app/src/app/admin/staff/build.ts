@@ -1,4 +1,4 @@
-import { ORDERS, STAFF, SERVICE_SKILL, customerByCompany, STAFF_MANAGER, managerOf, type AdminStaff } from '@/data/adminMock';
+import { ORDERS, STAFF, SERVICE_SKILL, customerByCompany, STAFF_MANAGER, managerOf, type AdminStaff, type AdminOrder } from '@/data/adminMock';
 import { rosterSignals } from '@/data/adminStaffInsight';
 import type { StaffVM, ActiveOrder, ManagerVM } from './StaffClient';
 import { mockTodayDate } from '@/lib/today';
@@ -11,10 +11,11 @@ function daysToDue(deadline: string | null): number {
   return deadline ? Math.round((new Date(deadline).getTime() - TODAY.getTime()) / 86400000) : Number.POSITIVE_INFINITY;
 }
 
-// Shared by the admin Staff page and the manager (pod-scoped) one.
-export function buildStaffVMs(staffList: readonly AdminStaff[]): StaffVM[] {
+// Shared by the admin Staff page and the manager (pod-scoped) one. `allOrders` defaults to the mock
+// ORDERS (manager surface, still mock); the admin page passes real orders so workload is real.
+export function buildStaffVMs(staffList: readonly AdminStaff[], allOrders: readonly AdminOrder[] = ORDERS): StaffVM[] {
   return staffList.map((s) => {
-    const mine = ORDERS.filter((o) => o.staff === s.name);
+    const mine = allOrders.filter((o) => o.staff === s.name);
     const active = mine.filter((o) => ACTIVE.has(o.status));
     const activeOrders: ActiveOrder[] = active.map((o) => {
       const cust = customerByCompany(o.customer);
