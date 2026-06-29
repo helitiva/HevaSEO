@@ -36,7 +36,7 @@
 
 | Lane | Slice | Worktree | Trạng thái | Owner | Gác | Phụ thuộc |
 |---|---|---|---|---|---|---|
-| **A** | Orders: auth magic link + **viết lại tầng đọc (orders)** + 1 vòng đơn e2e + wire money-stripped view | `wt-orders` | 🟡 inc-1 | claude | ② | E0d, E0c — **inc-1 DONE**: Supabase client (`lib/supabase/server.ts`+`client.ts` RLS-scoped) + `database.types.ts` (gen). Còn: auth session + read-layer swap (W1). |
+| **A** | Orders: auth session + **viết lại tầng đọc (orders)** + 1 vòng đơn e2e + wire money-stripped view | `wt-orders` | 🟡 inc-2 | claude | ②③ | E0d, E0c — **inc-1 DONE** (Supabase client + types). **inc-2 DONE (auth session)**: 2a `handle_new_user` trigger (shadow-claim + forced-customer self-signup, gác③ duyệt) · 2b seed 5 demo accounts (demo1234) · 2c/2d login/signup→Supabase Auth + session swap (`useSession` real, `getServerSession` cho RSC) + middleware. **Verified e2e: 5/5 persona login + claim inject + route đúng.** 194 pgTAP. Còn: **inc-3 read-layer swap (W1)** + inc-4 wire create/advance/cancel + 1 vòng đơn. |
 | **B** | customer_credit ledger UI + quick checkout (6 chốt) + Stripe | `wt-credit` | ⬜ | — | ②③ | E0d, A (1 phần) |
 | **C** | Docs array-RLS + Broadcasts event log + analytics aggregation | `wt-content` | ⬜ | — | ② | E0c |
 | **D** | staff_wallet + payroll (base/gig/commission/bonus−penalty, overrides, presets) | `wt-payroll` | ⬜ | — | ②③ | E0d |
@@ -72,6 +72,7 @@ _(trống — chưa chạy)_
 | Ngày | Slice | Kiểu gác | Quyết định |
 |---|---|---|---|
 | 2026-06-28 | (plan) | — | ADR + ORCHESTRATION + CONTRACTS + STATUS dựng xong; chưa khởi động build |
+| 2026-06-29 | A inc-2a | ③ (RLS) | Duyệt `handle_new_user` trigger: self-signup KHÔNG tin metadata role/tenant (forced customer/agency, chống leo thang); shadow-claim giữ role admin-set. Commit `e4d642b`. |
 
 ---
 

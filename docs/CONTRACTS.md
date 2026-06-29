@@ -192,8 +192,13 @@ ordersForPod(scope) · customersForPod(scope) · ticketsForPod(scope) · auditIn
 ## A. Auth · accounts · email lifecycle (xuyên suốt — mới ghi 2026-06-29)
 
 ```ts
-// [WRITE→AUTH] lib/auth.ts (mock localStorage → Supabase Auth + transactional email)
-signIn · registerUser · registerCustomer · createAccount(input)   // → temp password + push OutboxMail
+// [REAL — Lane A inc-2] lib/auth.ts — Supabase Auth wired:
+signInWithPassword(email,pw) · signUpCustomer({name,email,password})  // role/tenant forced server-side
+useSession() · signOut()                                             // cookie-backed live session
+// lib/supabase/server.ts → getServerSession(): Session | null        // RLS-scoped profile role (RSC)
+// DB: handle_new_user trigger (shadow-claim | forced-customer) provisions the profile.
+// [MOCK — still localStorage, swapped in Lane E] admin provisioning + email lifecycle:
+registerUser · registerCustomer · signIn · createAccount(input)    // → temp password + push OutboxMail
 genTempPassword · accountByEmail · listAccounts · requestPasswordReset · resetPassword
 homePathForRole(role) · useOutbox()                               // OutboxMail[] — the mock email queue
 // Kiểu chốt: AuthRole, Account, Session, OutboxMail, CreateAccountInput
