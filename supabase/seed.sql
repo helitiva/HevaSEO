@@ -71,17 +71,47 @@ insert into public.customers (id, tenant_id, user_id, name, company, email, stat
   ('c0000000-0000-4000-8000-000000000006', 'a9e0c0de-0000-4000-8000-000000000001', null,                                   'Lumen',     'Lumen',        'contact@lumen.co','shadow',  'new',    '2025-06-15')
 on conflict (id) do nothing;
 
--- code, customer, service, pkg, state, priority, source, value, assignee(Mai|null), deadline, created
-insert into public.orders (tenant_id, code, customer_id, service, pkg, state, priority, source, value, assignee_id, deadline, created_at) values
-  ('a9e0c0de-0000-4000-8000-000000000001', 'AUD-1001', 'c0000000-0000-4000-8000-000000000001', 'Audit',        'Standard',    'new',               'high', 'quick',     39,  null,                                   '2026-06-26', '2026-06-24'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'CNT-1004', 'c0000000-0000-4000-8000-000000000001', 'Content',      '10 articles', 'delivered',         'med',  'quick',     120, null,                                   '2026-06-27', '2026-06-20'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'KW-1013',  'c0000000-0000-4000-8000-000000000001', 'Keyword',      'Standard',    'completed',         'med',  'dashboard', 39,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-19', '2026-06-13'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'KW-1002',  'c0000000-0000-4000-8000-000000000002', 'Keyword',      'Standard',    'in_progress',       'med',  'dashboard', 39,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-25', '2026-06-23'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'BL-1014',  'c0000000-0000-4000-8000-000000000002', 'Backlink',     'Starter',     'changes_requested', 'high', 'quick',     36,  null,                                   '2026-06-24', '2026-06-12'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'BL-1003',  'c0000000-0000-4000-8000-000000000003', 'Backlink',     'Growth',      'internal_review',   'high', 'dashboard', 64,  null,                                   '2026-06-24', '2026-06-21'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'BL-1006',  'c0000000-0000-4000-8000-000000000003', 'Backlink',     'Power',       'assigned',          'high', 'dashboard', 104, null,                                   '2026-06-28', '2026-06-22'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'OPT-1005', 'c0000000-0000-4000-8000-000000000004', 'Optimization', 'Standard',    'completed',         'low',  'dashboard', 79,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-22', '2026-06-18'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'OPT-1010', 'c0000000-0000-4000-8000-000000000004', 'Optimization', 'Ultra',       'approved',          'med',  'dashboard', 140, 'b000aaaa-0000-4000-8000-000000000003', '2026-06-23', '2026-06-17'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'KW-1007',  'c0000000-0000-4000-8000-000000000005', 'Keyword',      'Pro',         'confirmed',         'med',  'quick',     79,  null,                                   '2026-06-26', '2026-06-22'),
-  ('a9e0c0de-0000-4000-8000-000000000001', 'AUD-1009', 'c0000000-0000-4000-8000-000000000006', 'Audit',        'Basic',       'new',               'low',  'quick',     19,  null,                                   '2026-06-27', '2026-06-24')
-on conflict (tenant_id, code) do nothing;
+-- Orders are seeded THROUGH the money functions (inc-4c) so each one has a customer_balances row + a
+-- debit ledger entry → balance == SUM(ledger) holds, and cancelling a planned seeded order reconciles
+-- correctly. topup gives each customer demo credit; create_order debits + creates the order in 'new';
+-- then we backfill the demo specifics create_order doesn't set (state/pkg/priority/source/deadline/
+-- assignee/created_at). Direct INSERT (the old way) left the money side empty → broken refunds.
+do $$
+declare
+  v_agency constant uuid := 'a9e0c0de-0000-4000-8000-000000000001';
+  c record;
+  r record;
+begin
+  -- demo credit per customer: covers their orders and leaves a spendable balance.
+  for c in select id from public.customers where tenant_id = v_agency loop
+    perform topup(v_agency, c.id, 1000, null);
+  end loop;
+
+  for r in
+    select * from (values
+      -- code, customer, service, pkg, state, priority, source, value, assignee('' = none), deadline, created
+      ('AUD-1001', 'c0000000-0000-4000-8000-000000000001', 'Audit',        'Standard',    'new',               'high', 'quick',     39,  '',                                     '2026-06-26', '2026-06-24'),
+      ('CNT-1004', 'c0000000-0000-4000-8000-000000000001', 'Content',      '10 articles', 'delivered',         'med',  'quick',     120, '',                                     '2026-06-27', '2026-06-20'),
+      ('KW-1013',  'c0000000-0000-4000-8000-000000000001', 'Keyword',      'Standard',    'completed',         'med',  'dashboard', 39,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-19', '2026-06-13'),
+      ('KW-1002',  'c0000000-0000-4000-8000-000000000002', 'Keyword',      'Standard',    'in_progress',       'med',  'dashboard', 39,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-25', '2026-06-23'),
+      ('BL-1014',  'c0000000-0000-4000-8000-000000000002', 'Backlink',     'Starter',     'changes_requested', 'high', 'quick',     36,  '',                                     '2026-06-24', '2026-06-12'),
+      ('BL-1003',  'c0000000-0000-4000-8000-000000000003', 'Backlink',     'Growth',      'internal_review',   'high', 'dashboard', 64,  '',                                     '2026-06-24', '2026-06-21'),
+      ('BL-1006',  'c0000000-0000-4000-8000-000000000003', 'Backlink',     'Power',       'assigned',          'high', 'dashboard', 104, '',                                     '2026-06-28', '2026-06-22'),
+      ('OPT-1005', 'c0000000-0000-4000-8000-000000000004', 'Optimization', 'Standard',    'completed',         'low',  'dashboard', 79,  'b000aaaa-0000-4000-8000-000000000003', '2026-06-22', '2026-06-18'),
+      ('OPT-1010', 'c0000000-0000-4000-8000-000000000004', 'Optimization', 'Ultra',       'approved',          'med',  'dashboard', 140, 'b000aaaa-0000-4000-8000-000000000003', '2026-06-23', '2026-06-17'),
+      ('KW-1007',  'c0000000-0000-4000-8000-000000000005', 'Keyword',      'Pro',         'confirmed',         'med',  'quick',     79,  '',                                     '2026-06-26', '2026-06-22'),
+      ('AUD-1009', 'c0000000-0000-4000-8000-000000000006', 'Audit',        'Basic',       'new',               'low',  'quick',     19,  '',                                     '2026-06-27', '2026-06-24')
+    ) as t(code, cust, service, pkg, state, priority, source, value, assignee, deadline, created)
+  loop
+    perform create_order(v_agency, r.cust::uuid, r.code, r.service, r.value, null);
+    update public.orders
+       set pkg         = r.pkg,
+           priority    = r.priority::order_priority,
+           source      = r.source::order_source,
+           deadline    = r.deadline::timestamptz,
+           assignee_id = nullif(r.assignee, '')::uuid,
+           created_at  = r.created::timestamptz,
+           state       = r.state::order_state
+     where tenant_id = v_agency and code = r.code;
+  end loop;
+end $$;
