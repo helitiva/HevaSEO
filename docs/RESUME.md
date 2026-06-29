@@ -6,7 +6,7 @@
 ## TL;DR
 - **Backend ~50%.** FOUNDATION (E0a · E0a+ · E0b · E0d) is **100% DONE + committed**. 194 pgTAP green.
 - Now in **Phase 1 / Fleet Lane A** (wire the Next app `apps/app` to the real DB). **inc-1 (Supabase client) + inc-2 (auth session) done.**
-- **NEXT ACTION:** Lane A **inc-3 = orders mock→real read swap (W1)** — replace `data/adminMock.ts → ORDERS` reads in the order pages with RLS-scoped `createClient()`/`getServerSession()` queries; seed real order rows; keep CONTRACTS §1 shape. Then **inc-4** wire create/advance/cancel + 1 order e2e.
+- **NEXT ACTION:** Lane A **inc-3 (read swap) — IN PROGRESS.** `data/orders.server.ts → getOrders()` (RLS-scoped) done; `/admin/orders` migrated; seed has 6 customers + 11 orders. **Next: migrate the remaining ORDERS consumers** (admin/page KPIs, OrdersBoard, OrdersSummary, manager/orders, customer dashboard, OrderDetailPanel, etc.). ⚠ **Two order models** — admin `AdminOrder` maps 1:1 to the `orders` table (clean); the customer `Order` in `data/mock.ts` has fields the table lacks (`domain`, `progress`, `invoice`, `pay`, `title`) → decide add-columns vs derive before migrating customer/staff order views. Then **inc-4** wire create/advance/cancel + 1 order e2e.
 
 ## Get running (in order)
 ```bash
