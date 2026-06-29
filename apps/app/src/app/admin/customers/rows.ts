@@ -1,14 +1,15 @@
-import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer } from '@/data/adminMock';
+import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer, type AdminOrder } from '@/data/adminMock';
 import type { CustomerRow, Health } from './CustomersClient';
 import { mockTodayDate } from '@/lib/today';
 
 const TODAY = mockTodayDate();
 const CLOSED = ['completed', 'canceled'];
 
-// Derivation shared by the admin Customers page and the manager (pod-scoped) one.
-export function buildCustomerRows(customers: readonly AdminCustomer[]): CustomerRow[] {
+// Derivation shared by the admin Customers page and the manager (pod-scoped) one. `allOrders`
+// defaults to the mock ORDERS (manager surface, still mock); the admin page passes real orders.
+export function buildCustomerRows(customers: readonly AdminCustomer[], allOrders: readonly AdminOrder[] = ORDERS): CustomerRow[] {
   return customers.map((c) => {
-    const orders = ORDERS.filter((o) => o.customer === c.company);
+    const orders = allOrders.filter((o) => o.customer === c.company);
     const activeOrders = orders.filter((o) => !CLOSED.includes(o.status)).length;
     const ticketRows = TICKETS.filter((t) => t.customer === c.company);
     const openTickets = ticketRows.filter((t) => t.status === 'open' || t.status === 'pending').length;

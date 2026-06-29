@@ -55,7 +55,9 @@ Kiểu chốt: `AdminOrder`, `Order`, `OrderStatus` (`new|confirmed|assigned|in_
 ## 2. Customers & Credit (Lane B — tiền)
 
 ```ts
-// [READ]
+// [READ — REAL, Lane A inc-3f] data/customers.server.ts (server-only, RLS-scoped):
+getCustomers(): Promise<AdminCustomer[]>          // admin all · customer own; order count/spend aggregated, balance from customer_balances — replaces CUSTOMERS for /admin/customers
+// [READ — mock, manager + customer detail still pending]
 CUSTOMERS: AdminCustomer[]                        // RLS: admin all, manager pod (money-stripped view!)
 CUSTOMER_EXTRA: Record<string, CustomerExtra>
 TRANSACTIONS: CreditTx[]                          // RLS: customer own
