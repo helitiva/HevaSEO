@@ -24,8 +24,11 @@
 - ✅ **inc-1 customer_credit** DONE (human duyệt 2026-06-29): `customer_balances` + `credit_ledger`, money-blind (staff=0, manager=0), Stripe idempotency. 3 test CRITICAL xanh.
 - ✅ **inc-2 staff_wallet** DONE (human duyệt 2026-06-29): staff_wallet + wallet_ledger + payout_methods + payout_requests, money-blind (manager=0, customer=0). 132 test xanh.
 - ✅ **inc-3 affiliate** DONE (human duyệt 2026-06-29): affiliates + referrals + commission + ledger + payouts, money-blind (manager/staff=0) + per-affiliate isolation. **3 hệ tiền XONG.** 146 test xanh.
-- 🟡 inc-4 money-stripped views (`orders_mgr` — Finding 1) đang build
+- 🔵 inc-4 money-stripped view `orders_mgr` (Finding 1) — verified xanh, **chờ human duyệt**
+- ✅ **inc-5 manager wallet** (correction): managers CÓ ví riêng (salary+pod commission+payout), thấy mình, money-blind với ví người khác. 156 test xanh.
 - ⬜ E0d ledger functions (create_order/topup/advance atomic)
+
+**Frontend bổ sung (ngoài backend):** `/manager/finance` — trang finance riêng cho manager (lương + hoa hồng pod + rút tiền), reuse `FinanceClient`, gate `manager.access` (không phải `finance.view` → tiền pod vẫn ẩn). Verified HTTP 200 + render số thật. Files: `data/managerFinance.ts`, `app/manager/finance/page.tsx`, `managerNav.ts`, `rbac.ts`.
 
 ---
 

@@ -381,20 +381,23 @@ Source: `Payout` in `adminMock.ts`; computed monthly.
 
 ### 1.14 ManagerPayrollRecord
 
-Source: `ManagerPayout` in `adminMock.ts`.
+Source: `ManagerPayout` in `adminMock.ts`. A manager is paid a salary + an **override on what their pod's staff earn** (a % of pod gig pay + a % of pod commission). No KPI bonus. (Updated 2026-06-29 — replaced the old order-value commission model.)
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
 | `manager_id` | text FK → Manager | |
 | `period_month` | text | `'YYYY-MM'` |
-| `pod_order_value` | numeric | commission basis |
-| `commission_rate` | numeric | e.g. 0.05 |
-| `commission` | numeric | |
+| `pod_gig` | numeric | total gig pay earned by the pod's staff (override basis) |
+| `pod_commission` | numeric | total commission earned by the pod's staff (override basis) |
+| `gig_pct` | numeric | fraction of pod gig pay paid to the manager (default 0.10) |
+| `comm_pct` | numeric | fraction of pod commission paid to the manager (default 0.15) |
+| `commission` | numeric | `round(pod_gig × gig_pct + pod_commission × comm_pct)` — the manager's override |
 | `base` | numeric | fixed monthly salary |
-| `bonus_rate` | numeric | fraction of pod's staff bonuses |
-| `due` | numeric | `base + commission` (bonus added live) |
+| `due` | numeric | `base + commission` |
 | `last_paid_at` | date nullable | |
+
+> Managers also have their **own wallet/payouts** (same shape as staff wallet — see §money) keyed to their profile, money-blind to other workers. RLS: `supabase/migrations/*manager_wallet.sql`.
 
 ---
 

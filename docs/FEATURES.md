@@ -17,11 +17,11 @@ The platform is a **Next.js 15 App Router** application in Phase-0 (full fronten
 |---|---|---|
 | **Customer** | `/` (root routes) | The paying client — orders services, tracks projects, manages credit, files support tickets, reads docs |
 | **Admin** | `/admin/*` | Full ops + business control — orders, assignments, deliverables review, finance, payroll, affiliate program, broadcasts, org settings |
-| **Manager** | `/manager/*` | Pod-scoped ops without money — same ops actions as admin but money-blind and **no service-catalog access**; can only see/act on their own pod's staff, customers, and orders |
+| **Manager** | `/manager/*` | Pod-scoped ops — same ops actions as admin but **money-blind to OTHERS' money** (pod/customer/staff figures) and **no service-catalog access**; can only see/act on their own pod. Exception: their OWN pay (`/manager/finance`) — salary + a % override on the pod's gig/commission. |
 | **Staff** | `/staff/*` | Delivery workers — task execution, deliverable submission, personal finance/performance, knowledge base |
 | **Affiliate** | `/affiliate/*` | KOL referral partners — refer customers, earn tiered commissions, request payouts |
 
-Total routes: **89** (customer 17, admin 28, manager 20, staff 17, affiliate 7).
+Total routes: **90** (customer 17, admin 28, manager 21, staff 17, affiliate 7). *(+`/manager/finance` — the manager's own pay.)*
 
 ---
 
@@ -79,12 +79,14 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 
 ### 2.5 Finance & Payroll
 
-**Business intelligence — admin-only; the manager surface is explicitly excluded.**
+**Business-finance is admin-only** (revenue, pod/customer money). Managers are money-blind to OTHERS' money, but **do have their own pay** — see "Manager payroll" + `/manager/finance` below.
 
 | Feature | Description | Routes |
 |---|---|---|
 | Finance overview | Revenue metrics, payroll summary, cashflow indicators | `/admin/finance` (admin-only) |
-| Payroll model | **Cycle comp = base salary + gig pay + commission + bonus, then − penalties = net.** `commission = basis × rate%`; `gig pay = Σ delivered gigs × per-gig rate`. Per-gig rate resolves **package rate → service rate → global `GIG_RATE`** (`gigRateOf`/`gigPay` in `lib/payOverrides.ts`). So a staffer can be salaried, paid per gig, or a blend. `data/adminPayroll.ts`'s period explorer nets `base + gig + commission + bonus − penalties`, consistent with `effectivePay` (historical months carry gig = 0 — the mock models gig only for the current cycle). | `/admin/finance` |
+| Staff payroll model | **Cycle comp = base salary + gig pay + commission + bonus, then − penalties = net.** `commission = basis × rate%`; `gig pay = Σ delivered gigs × per-gig rate`. Per-gig rate resolves **package rate → service rate → global `GIG_RATE`** (`gigRateOf`/`gigPay` in `lib/payOverrides.ts`). So a staffer can be salaried, paid per gig, or a blend. `data/adminPayroll.ts`'s period explorer nets `base + gig + commission + bonus − penalties`, consistent with `effectivePay` (historical months carry gig = 0 — the mock models gig only for the current cycle). | `/admin/finance` |
+| **Manager payroll model** | **Manager comp = base salary + an OVERRIDE on what their pod's staff earn** — `gigPct%` of the pod's gig pay + `commPct%` of the pod's commission (defaults 10% / 15%, editable per manager; live from the staff pay rows). NOT tied to order value; managers have **no KPI/delivery bonus**. `ManagerPayout` (`adminMock.ts`): `podGig`/`podCommission`/`gigPct`/`commPct`/`commission`; `effMgrComp` in the admin Payouts tab. | `/admin/finance?tab=payouts` |
+| Manager wallet (manager self) | A manager has their OWN wallet + payouts (salary + pod-override commission), seeing **only their own** — money-blind to others. Reuses the staff finance UI with the KPI rewards section hidden (`showRewards={false}`). | `/manager/finance` |
 | Per-staff pay overrides | Admin sets a staffer's `base`/`rate`/`bonus`/`gigRates`/`gigPkgRates`; one localStorage source shared by Finance Payouts tab **and** the admin staff profile (`usePayOverride`, `lib/payOverrides.ts`) | `/admin/finance`, `/admin/staff/[id]` |
 | Pay presets | Reusable pay templates the admin applies to any staffer to fill the comp form quickly (`usePayPresets`) | `/admin/finance`, `/admin/staff/[id]` |
 | Gig price reference | In the staff-profile pay editor, each gig rate shows the customer-facing **sell price** beside it — `servicePriceRange()` per service, `packagePrice()` per package (`lib/gigPricing.ts`, derived from order values) — so admin sees what a gig sells for vs what they pay. Rates support decimals (cent-accurate commission) | `/admin/staff/[id]` |
