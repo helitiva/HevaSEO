@@ -136,3 +136,32 @@ insert into public.staff_details (tenant_id, profile_id, skills, capacity, role_
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000004', '{keyword,backlink}',        6, 'SEO Analyst',           'GMT+2', '2024-03-22', true,  90, 92, 88, 26, '{2,3,3,4,4,5,5,6}'),
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000005', '{backlink,content}',        5, 'Link Builder',          'GMT+0', '2023-09-05', false, 82, 84, 80, 34, '{4,4,5,5,6,5,7,6}')
 on conflict (profile_id) do nothing;
+
+-- Step 2 inc-5a — order_details (brief/project/folder/included) for each seeded order, keyed by code.
+do $$
+declare
+  v_agency constant uuid := 'a9e0c0de-0000-4000-8000-000000000001';
+  r record;
+begin
+  for r in
+    select * from (values
+      ('AUD-1001', 'Acme — SEO program',   'Audits',   '[{"label":"Website","value":"https://acme.co"},{"label":"Goal","value":"Improve organic visibility"}]', '{"Technical audit","Action report"}'),
+      ('CNT-1004', 'Acme — SEO program',   'Content',  '[{"label":"Website","value":"https://acme.co"},{"label":"Topics","value":"10 articles, money pages"}]', '{"Article drafts","On-page SEO"}'),
+      ('KW-1013',  'Acme — SEO program',   'Research', '[{"label":"Website","value":"https://acme.co"},{"label":"Market","value":"US · English"}]',           '{"Keyword map","Search intent"}'),
+      ('KW-1002',  'Bright — SEO program', 'Research', '[{"label":"Website","value":"https://bright.co"},{"label":"Market","value":"UK"}]',                    '{"Keyword map","Search intent"}'),
+      ('BL-1014',  'Bright — SEO program', 'Backlinks','[{"label":"Website","value":"https://bright.co"},{"label":"Anchors","value":"Branded + partial"}]',    '{"Link prospects","Outreach"}'),
+      ('BL-1003',  'Nova — SEO program',   'Backlinks','[{"label":"Website","value":"https://nova.io"},{"label":"Anchors","value":"Mixed"}]',                  '{"Link prospects","Outreach"}'),
+      ('BL-1006',  'Nova — SEO program',   'Backlinks','[{"label":"Website","value":"https://nova.io"},{"label":"Volume","value":"High"}]',                    '{"Link prospects","Outreach"}'),
+      ('OPT-1005', 'Vértice — SEO program','Optimize', '[{"label":"Website","value":"https://vertice.es"},{"label":"Focus","value":"Core Web Vitals"}]',        '{"On-page fixes","Speed"}'),
+      ('OPT-1010', 'Vértice — SEO program','Optimize', '[{"label":"Website","value":"https://vertice.es"},{"label":"Focus","value":"Conversion pages"}]',       '{"On-page fixes","Speed"}'),
+      ('KW-1007',  'Peak — SEO program',   'Research', '[{"label":"Website","value":"https://peak.dig"},{"label":"Market","value":"US"}]',                      '{"Keyword map","Search intent"}'),
+      ('AUD-1009', 'Lumen — SEO program',  'Audits',   '[{"label":"Website","value":"https://lumen.co"},{"label":"Goal","value":"Baseline health"}]',           '{"Technical audit","Action report"}')
+    ) as t(code, project, folder, brief, included)
+  loop
+    insert into public.order_details (tenant_id, order_id, project, folder, brief, included)
+    select v_agency, o.id, r.project, r.folder, r.brief::jsonb, r.included::text[]
+    from public.orders o
+    where o.tenant_id = v_agency and o.code = r.code
+    on conflict (order_id) do nothing;
+  end loop;
+end $$;
