@@ -15,3 +15,12 @@ dist/
 
 # Brainstorm visual-companion scratch
 .superpowers/
+
+# Supabase local stack
+supabase/.branches/
+supabase/.temp/
+
+# Code-graph tool outputs (regenerated locally)
+graphify-out/
+.gitnexus/
+.claude/skills/gitnexus/

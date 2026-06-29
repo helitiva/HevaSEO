@@ -1,0 +1,4 @@
+-- supabase/seed.sql
+-- Seed data applied after migrations on `supabase db reset`.
+-- HevaSEO product config (workflow_states/allowed_transitions or enum seeds,
+-- role labels, the default tenant) lands here in sub-plan 0b. Empty for 0a.
