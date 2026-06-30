@@ -377,40 +377,64 @@ export type Database = {
       }
       broadcasts: {
         Row: {
+          article: string | null
           audiences: string[]
+          banner: boolean
           body: string | null
           created_at: string
           created_by_id: string | null
+          cta: Json | null
+          display_kind: string
+          expires_at: string | null
           id: string
           kind: Database["public"]["Enums"]["broadcast_kind"]
+          pinned: boolean
+          require_ack: boolean
           scheduled_at: string | null
           status: Database["public"]["Enums"]["broadcast_status"]
           tenant_id: string
           title: string
+          updated_at: string | null
         }
         Insert: {
+          article?: string | null
           audiences?: string[]
+          banner?: boolean
           body?: string | null
           created_at?: string
           created_by_id?: string | null
+          cta?: Json | null
+          display_kind?: string
+          expires_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["broadcast_kind"]
+          pinned?: boolean
+          require_ack?: boolean
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["broadcast_status"]
           tenant_id: string
           title: string
+          updated_at?: string | null
         }
         Update: {
+          article?: string | null
           audiences?: string[]
+          banner?: boolean
           body?: string | null
           created_at?: string
           created_by_id?: string | null
+          cta?: Json | null
+          display_kind?: string
+          expires_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["broadcast_kind"]
+          pinned?: boolean
+          require_ack?: boolean
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["broadcast_status"]
           tenant_id?: string
           title?: string
+          updated_at?: string | null
         }
         Relationships: [
           {

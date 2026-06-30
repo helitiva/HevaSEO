@@ -1,6 +1,20 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BROADCAST_SEEDS, isLive, isCritical, type Broadcast, type BroadcastAudience } from './broadcasts';
+import { useBroadcastSource } from '@/components/broadcast/BroadcastProvider';
+
+// Lane C inc-C4 — the live, audience-scoped source for the recipient hooks. When a BroadcastProvider
+// supplies REAL broadcasts (getMyBroadcasts), use those; otherwise fall back to the localStorage mock.
+// Read/dismiss/ack state stays client-side either way.
+function useLiveForAudience(aud: BroadcastAudience): { live: Broadcast[]; ready: boolean } {
+  const real = useBroadcastSource();
+  const { created, hidden, ready } = useStoreState();
+  const live = useMemo(() => {
+    if (real) { const now = new Date(); return real.filter((b) => isLive(b, now) && b.audiences.includes(aud)); }
+    return liveForAudience(created, hidden, aud);
+  }, [real, created, hidden, aud]);
+  return { live, ready: real ? true : ready };
+}
 
 // Editable broadcast store (Phase-0 mock). Built-in seeds + admin-created/edited messages in
 // localStorage, merged: a created message with a seed's id overrides it; a tombstone hides a
@@ -134,7 +148,7 @@ function useStoreState() {
 
 // ── Recipient: inbox (read state) ─────────────────────────────────────────────
 export function useInbox(aud: BroadcastAudience) {
-  const { created, hidden, ready } = useStoreState();
+  const { live: items, ready } = useLiveForAudience(aud);
   const [read, setRead] = useState<string[]>([]);
   useEffect(() => {
     const load = () => setRead(readJson<string[]>(readKey(aud), []));
@@ -143,7 +157,6 @@ export function useInbox(aud: BroadcastAudience) {
     return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
   }, [aud]);
 
-  const items = useMemo(() => liveForAudience(created, hidden, aud), [created, hidden, aud]);
   const readSet = useMemo(() => new Set(read), [read]);
   const unread = items.filter((b) => !readSet.has(b.id)).length;
 
@@ -152,9 +165,9 @@ export function useInbox(aud: BroadcastAudience) {
     if (!cur.includes(id)) { const next = [...cur, id]; writeJson(readKey(aud), next); setRead(next); }
   }, [aud]);
   const markAllRead = useCallback(() => {
-    const ids = liveForAudience(readJson<Broadcast[]>(KEY, []), readJson<string[]>(HIDDEN_KEY, []), aud).map((b) => b.id);
+    const ids = items.map((b) => b.id); // works for both real (provider) + mock sources
     writeJson(readKey(aud), ids); setRead(ids);
-  }, [aud]);
+  }, [items, aud]);
   const markUnread = useCallback((id: string) => {
     const next = readJson<string[]>(readKey(aud), []).filter((x) => x !== id);
     writeJson(readKey(aud), next); setRead(next);
@@ -187,22 +200,22 @@ function useDismissAck(aud: BroadcastAudience) {
 
 // ── Recipient: overview banners (non-critical, banner-flagged) ─────────────────
 export function useBanners(aud: BroadcastAudience) {
-  const { created, hidden } = useStoreState();
+  const { live } = useLiveForAudience(aud);
   const { dismissed, dismiss, acknowledge } = useDismissAck(aud);
   const banners = useMemo(
-    () => liveForAudience(created, hidden, aud).filter((b) => b.banner && !isCritical(b) && !dismissed.includes(b.id)),
-    [created, hidden, aud, dismissed],
+    () => live.filter((b) => b.banner && !isCritical(b) && !dismissed.includes(b.id)),
+    [live, dismissed],
   );
   return { banners, dismiss, acknowledge };
 }
 
 // ── Recipient: site-wide alert bar (critical kinds, every page) ────────────────
 export function useSiteAlerts(aud: BroadcastAudience) {
-  const { created, hidden } = useStoreState();
+  const { live } = useLiveForAudience(aud);
   const { dismissed, dismiss, acknowledge } = useDismissAck(aud);
   const alerts = useMemo(
-    () => liveForAudience(created, hidden, aud).filter((b) => isCritical(b) && !dismissed.includes(b.id)),
-    [created, hidden, aud, dismissed],
+    () => live.filter((b) => isCritical(b) && !dismissed.includes(b.id)),
+    [live, dismissed],
   );
   return { alerts, dismiss, acknowledge };
 }

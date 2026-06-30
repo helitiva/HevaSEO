@@ -157,7 +157,8 @@ Kiểu chốt: `StaffDoc`, `DocAudience`, `DocBlock` (jsonb), `SelfNote`, `NoteA
 ## 7. Broadcasts (Lane C — event log)
 
 ```ts
-// [HOOK] data/broadcastStore.ts (localStorage → Broadcast + broadcast_events table)
+// [READ — REAL, Lane C inc-C4] data/broadcasts.server.ts → getMyBroadcasts(): Broadcast[]  // the `broadcasts` table, array-RLS-scoped to the viewer's role audience (recalled/draft filtered). Fetched in each portal layout → BroadcastProvider → store hooks (useInbox/useBanners/useSiteAlerts use it when present, else mock). Read/dismiss/ack state still client-side (real broadcast_events receipts = later).
+// [HOOK] data/broadcastStore.ts — recipient hooks now source from BroadcastProvider real data (inc-C4) OR localStorage mock
 useBroadcasts() · useInbox(aud) · useBanners(aud) · useSiteAlerts(aud)
 markBroadcastClicked(aud, id): void              // → INSERT broadcast_events
 // [PURE/READ] lib/broadcastAnalytics.ts — GIỮ (đổi nguồn → aggregation query)

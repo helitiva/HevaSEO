@@ -243,6 +243,16 @@ insert into public.docs (tenant_id, title, body, audiences, required_skills, pin
    '{"summary":"How we cluster + prioritise keywords.","format":"guide","tags":["keyword"],"author":"Ops","readMins":5,"blocks":[{"type":"p","text":"Only shown to staff whose skills include keyword."}],"resources":[]}',
    '{staff}', '{keyword}', false, 'b000aaaa-0000-4000-8000-000000000001');
 
+-- Lane C inc-C4 — real broadcasts across audiences/kinds (recipients read these via getMyBroadcasts).
+-- display_kind = the UI tone; banner = also pop an overview banner; status 'live' = delivered now.
+insert into public.broadcasts (tenant_id, title, body, display_kind, audiences, banner, pinned, status, cta, created_by_id) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Welcome to the new dashboard', 'We refreshed your dashboard — orders, credit and reports in one place.', 'notice', '{customer}', false, true, 'live', null, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Summer credit bonus', 'Top up $500+ this month and get 5% extra credit.', 'congrats', '{customer}', true, false, 'live', '{"label":"Top up now","href":"/credit"}', 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'New QA checklist live', 'All deliverables now run through the updated QA checklist before sign-off.', 'info', '{staff,manager}', false, false, 'live', null, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Scheduled maintenance Sat 02:00 UTC', 'The platform will be briefly unavailable during a maintenance window.', 'maintenance', '{customer,staff,manager,affiliate}', true, false, 'live', null, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Q2 commission tiers updated', 'Affiliate commission tiers were revised for Q2 — see your dashboard.', 'info', '{affiliate}', false, false, 'live', null, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Old promo (recalled)', 'This message was recalled and should not appear.', 'notice', '{customer}', false, false, 'recalled', null, 'b000aaaa-0000-4000-8000-000000000001');
+
 -- Lane D polish — a couple of posted payroll runs for Mai so her Payslips tab shows real fixed pay
 -- (salary + gig + bonus per period). Commission stays in the wallet (Activity/Payouts), not here.
 insert into public.payroll_runs (tenant_id, staff_id, period, salary, gig, bonus, total) values
