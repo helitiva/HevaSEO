@@ -2305,6 +2305,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_payout: {
+        Args: { p_action: string; p_request: string }
+        Returns: {
+          amount: number
+          id: string
+          method_id: string | null
+          requested_at: string
+          resolved_at: string | null
+          staff_id: string
+          status: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }

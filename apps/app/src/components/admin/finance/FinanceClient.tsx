@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { CashflowChart } from '@/components/admin/finance/CashflowChart';
+import { WithdrawalRequests } from '@/components/admin/finance/WithdrawalRequests';
+import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
 import {
   FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CASHFLOW, CUSTOMERS, ORDERS,
   TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
@@ -51,7 +53,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient() {
+export function FinanceClient({ payoutRequests = [] }: { payoutRequests?: AdminPayoutRequest[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -95,7 +97,7 @@ export function FinanceClient() {
         {tab === 'overview' && <OverviewTab />}
         {tab === 'transactions' && <TransactionsTab />}
         {tab === 'wallets' && <WalletsTab />}
-        {tab === 'payouts' && <PayoutsTab />}
+        {tab === 'payouts' && <div className="space-y-4"><WithdrawalRequests requests={payoutRequests} /><PayoutsTab /></div>}
         {tab === 'invoices' && <InvoicesTab />}
       </div>
     </section>
