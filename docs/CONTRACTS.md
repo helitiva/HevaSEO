@@ -255,6 +255,7 @@ orderServices: OrderService[] · getOrderService(slug): OrderService | undefined
 ```ts
 // [PURE] GIỮ — đổi nguồn dữ liệu đầu vào, không viết lại:
 lib/gigPricing.ts        packagePrice(service,pkg) · servicePriceRange(service)      // sell price tham chiếu
+lib/orderPricing.ts      computeOrderPrice(catalog, selection): PriceBreakdown        // [REAL, Lane B inc-B2] server-trusted order price (base/usage/bulk−discount+addons−VIP); unit-tested
 lib/staffRewards.ts      buildRewards(inputs) · rewardsEarned · rewardsOnOffer        // KPI rewards (staff only)
 lib/staffSettings.ts     leaveSummary · workingHoursSummary · DEFAULT_NOTIF_PREFS
 lib/availability.ts      availabilityMeta · acceptsWork · AVAILABILITY                // work-status (≠ schedule)
