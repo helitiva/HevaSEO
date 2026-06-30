@@ -382,11 +382,11 @@ const steps = [
               </ul>
             </li>
             <!-- step 2 — Pay (current) -->
-            <li class="rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10">
+            <li id="step-pay" class="rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10">
               <div class="flex items-center gap-2.5">
-                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card"></i></span>
-                <p class="text-sm font-semibold text-primary">Pay</p>
-                <span class="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">You're here</span>
+                <span id="step-pay-icon" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card"></i></span>
+                <p id="step-pay-title" class="text-sm font-semibold text-primary">Pay</p>
+                <span id="step-pay-badge" class="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">You're here</span>
               </div>
               <p class="mt-2 text-xs leading-relaxed text-muted-foreground">Secure payment to confirm your order.</p>
               <ul class="mt-2.5 space-y-1.5 border-t border-primary/20 pt-2.5 text-xs leading-relaxed text-muted-foreground">
@@ -395,10 +395,11 @@ const steps = [
               </ul>
             </li>
             <!-- step 3 — upcoming -->
-            <li class="rounded-2xl border border-border bg-card/60 p-4 opacity-70">
+            <li id="step-delivered" class="rounded-2xl border border-border bg-card/60 p-4 opacity-70">
               <div class="flex items-center gap-2.5">
-                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package"></i></span>
+                <span id="step-delivered-icon" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package"></i></span>
                 <p class="text-sm font-semibold text-foreground">Delivered — two ways</p>
+                <span id="step-delivered-badge" class="ml-auto"></span>
               </div>
               <ul class="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5 text-xs leading-relaxed text-muted-foreground">
                 <li class="flex items-start gap-2"><i class="ph-bold ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track live in your dashboard</span></li>
@@ -408,8 +409,9 @@ const steps = [
           </ol>
         </aside>
 
-        <!-- center: payment + billing -->
-        <div class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 lg:p-7">
+        <!-- center: payment form (swaps to the Order received card on success) -->
+        <div>
+        <div id="pay-form-card" class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 lg:p-7">
           <h2 class="font-display text-lg font-bold tracking-tight md:text-xl">Payment details</h2>
 
           <!-- payment method -->
@@ -480,6 +482,30 @@ const steps = [
           </div>
         </div>
 
+        <!-- order received — replaces the payment form in this column on success -->
+        <div id="order-success" class="mx-auto hidden max-w-xl scroll-mt-28 rounded-3xl border border-border bg-card p-8 text-center shadow-xl shadow-foreground/5 lg:p-10">
+          <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-fill ph-check-circle text-3xl"></i></span>
+          <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
+          <p class="mt-3 text-muted-foreground">Thanks! Your order <strong id="success-code" class="text-foreground">—</strong> (<span id="success-plan">request</span>) is confirmed and paid.</p>
+          <div id="success-creds" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left text-sm">
+            <p class="font-semibold text-foreground">Your new dashboard login</p>
+            <p class="mt-1 text-muted-foreground">Email: <b id="cred-email" class="text-foreground">—</b></p>
+            <p class="text-muted-foreground">Temporary password: <code id="cred-pass" class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">—</code></p>
+            <p class="mt-2 text-xs text-muted-foreground">Please change it after your first sign-in.</p>
+          </div>
+          <div id="success-existing" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">This order was added to your <b class="text-foreground">existing account</b> — sign in with your usual password to track it.</div>
+          <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> with your <b class="font-semibold text-foreground">order details</b> and <b class="font-semibold text-foreground">dashboard login</b> is on its way.</span></li>
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
+          </ul>
+          <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a id="success-login" href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
+            <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
+          </div>
+        </div>
+        </div>
+
         <!-- right: order details (service · plan · upsell add-ons · total) -->
         <aside class="lg:sticky lg:top-24 lg:self-start">
           <div class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5">
@@ -506,40 +532,6 @@ const steps = [
             <p class="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-arrow-counter-clockwise mt-0.5 shrink-0 text-primary"></i> One-time charge — cancel before a specialist accepts for a full refund.</p>
           </div>
         </aside>
-      </div>
-    </div>
-
-    <!-- ============ SUCCESS ============ -->
-    <div id="order-success" class="hidden scroll-mt-28">
-      <div class="mx-auto max-w-xl rounded-3xl border border-border bg-card p-8 text-center shadow-xl shadow-foreground/5 lg:p-12">
-        <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-          <i class="ph-fill ph-check-circle text-3xl"></i>
-        </span>
-        <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
-        <p class="mt-3 text-muted-foreground">
-          Thanks! Your order <strong id="success-code" class="text-foreground">—</strong>
-          (<span id="success-plan">request</span>) is confirmed and paid.
-        </p>
-        <!-- new account: show the dashboard login + temp password (chốt 4) -->
-        <div id="success-creds" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left text-sm">
-          <p class="font-semibold text-foreground">Your new dashboard login</p>
-          <p class="mt-1 text-muted-foreground">Email: <b id="cred-email" class="text-foreground">—</b></p>
-          <p class="text-muted-foreground">Temporary password: <code id="cred-pass" class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">—</code></p>
-          <p class="mt-2 text-xs text-muted-foreground">Please change it after your first sign-in.</p>
-        </div>
-        <!-- existing account (chốt 5): no temp password, sign in as usual -->
-        <div id="success-existing" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
-          This order was added to your <b class="text-foreground">existing account</b> — sign in with your usual password to track it.
-        </div>
-        <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> with your <b class="font-semibold text-foreground">order details</b> and <b class="font-semibold text-foreground">dashboard login</b> is on its way.</span></li>
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
-        </ul>
-        <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a id="success-login" href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
-          <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
-        </div>
       </div>
     </div>
 
@@ -902,11 +894,30 @@ const steps = [
       el.classList.remove('hidden');
       el.scrollIntoView({ behavior: 'smooth', block: 'start' }); // scroll-mt-28 keeps it clear of the sticky header
     }
+    // On success the center column swaps form → Order received; the left rail keeps showing (Pay → done,
+    // Delivered → up next), so the whole 3-col stays in place.
+    function advanceStepperToDelivered() {
+      const sp = document.getElementById('step-pay');
+      if (sp) sp.className = 'rounded-2xl border border-border bg-card/60 p-4';
+      const spi = document.getElementById('step-pay-icon');
+      if (spi) { spi.className = 'grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'; spi.innerHTML = '<i class="ph-bold ph-check"></i>'; }
+      const spt = document.getElementById('step-pay-title'); if (spt) spt.className = 'text-sm font-semibold text-foreground';
+      const spb = document.getElementById('step-pay-badge'); if (spb) { spb.textContent = 'Done'; spb.className = 'ml-auto text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400'; }
+      const sd = document.getElementById('step-delivered');
+      if (sd) sd.className = 'rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10';
+      const sdi = document.getElementById('step-delivered-icon');
+      if (sdi) sdi.className = 'grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground';
+      const sdb = document.getElementById('step-delivered-badge');
+      if (sdb) sdb.innerHTML = '<span class="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Coming soon</span>';
+    }
     function showSuccess() {
       form.classList.add('hidden');
-      payPanel?.classList.add('hidden');
       document.getElementById('order-hero-steps')?.classList.add('hidden');
-      reveal(document.getElementById('order-success'));
+      document.getElementById('pay-form-card')?.classList.add('hidden'); // swap center: form → Order received
+      document.getElementById('pay-back')?.classList.add('hidden');
+      advanceStepperToDelivered();
+      document.getElementById('order-success')?.classList.remove('hidden');
+      payPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // celebratory confetti burst on a confirmed order (self-contained canvas, no deps).
