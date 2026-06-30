@@ -93,8 +93,8 @@ const steps = [
         </div>
       </div>
 
-      <!-- how it works -->
-      <ol class="mt-5 grid gap-3 sm:grid-cols-3">
+      <!-- how it works (hidden on the payment/success step, where the left rail shows the steps) -->
+      <ol id="order-hero-steps" class="mt-5 grid gap-3 sm:grid-cols-3">
         {howItWorks.map((s, i) => (
           <li class="relative flex flex-col rounded-2xl border border-border bg-card/70 p-4">
             <span class="absolute right-3 top-3 font-display text-xs font-bold text-muted-foreground/40">{`0${i + 1}`}</span>
@@ -363,22 +363,47 @@ const steps = [
 
     <!-- ============ PAYMENT (step 2) ============ -->
     <div id="order-payment" class="hidden scroll-mt-28">
-      <div class="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)_360px]">
-        <!-- left: 3-step progress (step 2 active) -->
+      <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)_360px]">
+        <!-- left: detailed 3-step progress (step 2 = Pay, highlighted) -->
         <aside class="lg:sticky lg:top-24 lg:self-start">
           <button type="button" id="pay-back" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"><i class="ph-bold ph-arrow-left"></i> Back to order</button>
-          <ol class="space-y-1">
-            <li class="flex gap-3 rounded-xl px-3 py-2.5">
-              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-check text-sm"></i></span>
-              <div><p class="text-sm font-semibold text-foreground">Submit order info</p><p class="text-xs text-muted-foreground">Project brief &amp; package — done.</p></div>
+          <p class="mb-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">How it works</p>
+          <ol class="space-y-3">
+            <!-- step 1 — done -->
+            <li class="rounded-2xl border border-border bg-card/60 p-4">
+              <div class="flex items-center gap-2.5">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-check"></i></span>
+                <p class="text-sm font-semibold text-foreground">Submit order info</p>
+                <span class="ml-auto text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Done</span>
+              </div>
+              <ul class="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-check-circle mt-0.5 shrink-0 text-primary"></i><span>Plan &amp; project brief captured</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-user mt-0.5 shrink-0 text-primary"></i><span>Account created with just your email</span></li>
+              </ul>
             </li>
-            <li class="flex gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] px-3 py-2.5">
-              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card text-sm"></i></span>
-              <div><p class="text-sm font-semibold text-primary">Pay</p><p class="text-xs text-muted-foreground">Secure payment to confirm your order.</p></div>
+            <!-- step 2 — Pay (current) -->
+            <li class="rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10">
+              <div class="flex items-center gap-2.5">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card"></i></span>
+                <p class="text-sm font-semibold text-primary">Pay</p>
+                <span class="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">You're here</span>
+              </div>
+              <p class="mt-2 text-xs leading-relaxed text-muted-foreground">Secure payment to confirm your order.</p>
+              <ul class="mt-2.5 space-y-1.5 border-t border-primary/20 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-credit-card mt-0.5 shrink-0 text-primary"></i><span>Card, PayPal, or Apple / Google Pay</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-arrow-counter-clockwise mt-0.5 shrink-0 text-primary"></i><span>One-time charge — refundable before a specialist accepts</span></li>
+              </ul>
             </li>
-            <li class="flex gap-3 rounded-xl px-3 py-2.5 opacity-70">
-              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package text-sm"></i></span>
-              <div><p class="text-sm font-semibold text-foreground">Delivered — two ways</p><p class="text-xs text-muted-foreground">Track live in your dashboard + report URL/file.</p></div>
+            <!-- step 3 — upcoming -->
+            <li class="rounded-2xl border border-border bg-card/60 p-4 opacity-70">
+              <div class="flex items-center gap-2.5">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package"></i></span>
+                <p class="text-sm font-semibold text-foreground">Delivered — two ways</p>
+              </div>
+              <ul class="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track live in your dashboard</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-link mt-0.5 shrink-0 text-primary"></i><span>Report URL + downloadable file</span></li>
+              </ul>
             </li>
           </ol>
         </aside>
@@ -467,6 +492,8 @@ const steps = [
                 <div><p id="pay-plan" class="font-medium text-foreground">—</p><p id="pay-plan-sub" class="text-xs text-muted-foreground"></p></div>
                 <span id="pay-plan-price" class="shrink-0 font-medium text-foreground"></span>
               </div>
+              <!-- what the chosen plan includes -->
+              <ul id="pay-detail-features" class="space-y-1.5 text-xs leading-relaxed text-muted-foreground"></ul>
               <div id="pay-detail-addons-wrap" class="hidden border-t border-border pt-3">
                 <p class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"><i class="ph-fill ph-plus-circle"></i> Add-ons</p>
                 <ul id="pay-detail-addons" class="space-y-1.5"></ul>
@@ -878,6 +905,7 @@ const steps = [
     function showSuccess() {
       form.classList.add('hidden');
       payPanel?.classList.add('hidden');
+      document.getElementById('order-hero-steps')?.classList.add('hidden');
       reveal(document.getElementById('order-success'));
     }
 
@@ -965,6 +993,15 @@ const steps = [
         ).join('');
       }
       document.getElementById('pay-detail-addons-wrap')?.classList.toggle('hidden', chosen.length === 0);
+      // what the chosen plan includes (features from the selected package)
+      const featUl = document.getElementById('pay-detail-features');
+      if (featUl) {
+        let feats: string[] = [];
+        try { feats = JSON.parse(selected?.dataset.features || '[]'); } catch { feats = []; }
+        featUl.innerHTML = feats.map((f) =>
+          `<li class="flex items-start gap-2"><i class="ph-bold ph-check-circle mt-0.5 shrink-0 text-emerald-500"></i><span>${f}</span></li>`,
+        ).join('');
+      }
       // prefill billing + cardholder from the details they already gave
       const nm = String(fd.get('name') || '');
       (document.getElementById('bill-name') as HTMLInputElement | null)?.setAttribute('value', nm);
@@ -974,11 +1011,13 @@ const steps = [
       if (billCo && !billCo.value) billCo.value = String(fd.get('company') || '');
 
       form.classList.add('hidden');
+      document.getElementById('order-hero-steps')?.classList.add('hidden'); // the left rail shows the steps now
       reveal(payPanel);
     });
 
     document.getElementById('pay-back')?.addEventListener('click', () => {
       payPanel?.classList.add('hidden');
+      document.getElementById('order-hero-steps')?.classList.remove('hidden');
       form.classList.remove('hidden');
       form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
