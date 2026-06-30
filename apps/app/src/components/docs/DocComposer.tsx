@@ -1,22 +1,22 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDocs, newDocId, todayIso } from '@/data/docsStore';
 import { blocksToHtml, estimateReadMins } from '@/lib/docBody';
 import { sanitizeHtml, htmlToText, htmlIsEmpty } from '@/lib/sanitizeHtml';
 import { RichTextEditor } from '@/app/staff/notes/RichTextEditor';
+import { saveDocAction } from '@/app/admin/docs/doc.actions';
 import {
   FORMAT_META, audienceMeta, audiencesOf, DISTRIBUTABLE_AUDIENCES,
   type DocAudience, type DocFormat, type StaffDoc,
 } from '@/data/staffDocs';
 
-// Admin doc author + distributor. Compose a doc (markdown-lite body) and pick WHICH audiences
-// receive it — customers, all staff, managers, or a specific skill pool. Multi-select, so one
-// doc can go to several audiences at once. Saving publishes it to the shared docs store.
-export function DocComposer({ editId }: { editId?: string }) {
+// Admin doc author + distributor (Lane C inc-C3 — real). Compose a doc (markdown-lite body) and pick
+// WHICH audiences receive it — customers, all staff, managers, or a specific skill pool. Multi-select.
+// Saving calls upsert_doc (admin-gated); HTML is allowlist-sanitized here at the boundary before storage.
+export function DocComposer({ existing = null }: { existing?: StaffDoc | null }) {
   const router = useRouter();
-  const { docs, saveDoc } = useDocs();
-  const existing = useMemo(() => (editId ? docs.find((d) => d.id === editId) ?? null : null), [docs, editId]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
 
   const [title, setTitle] = useState(existing?.title ?? '');
   const [summary, setSummary] = useState(existing?.summary ?? '');
@@ -33,28 +33,24 @@ export function DocComposer({ editId }: { editId?: string }) {
 
   const canSave = title.trim().length > 0 && audiences.length > 0 && !htmlIsEmpty(bodyHtml);
 
-  const save = () => {
-    if (!canSave) return;
-    const id = existing?.id ?? newDocId();
-    const html = sanitizeHtml(bodyHtml); // allowlist sanitize before it's ever stored/rendered
-    const doc: StaffDoc = {
-      id,
+  const save = async () => {
+    if (!canSave || busy) return;
+    setBusy(true); setErr('');
+    const html = sanitizeHtml(bodyHtml); // allowlist sanitize at the boundary before it's stored/rendered
+    const res = await saveDocAction({
+      id: existing?.id ?? null,
       title: title.trim(),
-      audience: audiences[0],
-      audiences,
-      format,
       summary: summary.trim() || title.trim(),
+      format,
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
-      author: existing?.author ?? 'Admin',
-      updatedAt: todayIso(),
-      readMins: estimateReadMins(htmlToText(html)),
-      body: [],
-      html,
-      resources: existing?.resources ?? [],
       pinned,
-    };
-    saveDoc(doc); // add new, or override a seed/created doc by id
+      html,
+      readMins: estimateReadMins(htmlToText(html)),
+      audiences,
+    });
+    if (!res.ok) { setBusy(false); setErr(res.error); return; }
     router.push('/admin/docs');
+    router.refresh();
   };
 
   const fmtSel = 'rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary';
@@ -120,10 +116,12 @@ export function DocComposer({ editId }: { editId?: string }) {
         Pin to the top of the audience’s docs list
       </label>
 
+      {err && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{err}</p>}
+
       <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
         <button onClick={() => router.push('/admin/docs')} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent">Cancel</button>
-        <button onClick={save} disabled={!canSave} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40">
-          <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> {existing ? 'Save changes' : 'Publish doc'}
+        <button onClick={save} disabled={!canSave || busy} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40">
+          <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> {busy ? 'Saving…' : existing ? 'Save changes' : 'Publish doc'}
         </button>
       </div>
     </div>

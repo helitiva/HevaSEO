@@ -2346,6 +2346,7 @@ export type Database = {
       current_skills: { Args: never; Returns: string[] }
       current_tenant_id: { Args: never; Returns: string }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      delete_doc: { Args: { p_id: string }; Returns: undefined }
       diag:
         | {
             Args: { msg: unknown }
@@ -2551,6 +2552,34 @@ export type Database = {
           p_tenant: string
         }
         Returns: undefined
+      }
+      upsert_doc: {
+        Args: {
+          p_audiences: string[]
+          p_body: Json
+          p_id?: string
+          p_pinned: boolean
+          p_required_skills: string[]
+          p_title: string
+        }
+        Returns: {
+          audiences: string[]
+          author_id: string | null
+          body: Json
+          created_at: string
+          id: string
+          pinned: boolean
+          required_skills: string[]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "docs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       waive_penalty: {
         Args: { p_id: string }

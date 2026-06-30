@@ -1,21 +1,32 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useDocs } from '@/data/docsStore';
+import { useRouter } from 'next/navigation';
 import {
   FORMAT_META, audienceMeta, audiencesOf, DISTRIBUTABLE_AUDIENCES,
-  type DocAudience,
+  type DocAudience, type StaffDoc,
 } from '@/data/staffDocs';
+import { deleteDocAction } from '@/app/admin/docs/doc.actions';
 
 const fmtDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-// Admin docs control room: every doc in the library, who it's distributed to, and the
-// controls to publish a new one, edit, or unpublish the ones admin created. Seeds are
-// system docs (read-only); admin-created docs are fully editable.
-export function AdminDocsManager() {
-  const { docs, created, removeDoc, isSeed } = useDocs();
+// Admin docs control room (Lane C inc-C3): every real doc in the tenant library, who it's distributed
+// to, and the controls to publish a new one, edit, or unpublish. All docs are admin-authored → editable.
+export function AdminDocsManager({ docs }: { docs: StaffDoc[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<DocAudience | 'all'>('all');
   const [confirm, setConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const created = docs;
+
+  const removeDoc = async (id: string) => {
+    setBusy(true); setErr('');
+    const res = await deleteDocAction(id);
+    setBusy(false); setConfirm(null);
+    if (!res.ok) { setErr(res.error); return; }
+    router.refresh();
+  };
 
   const shown = useMemo(
     () => (filter === 'all' ? docs : docs.filter((d) => audiencesOf(d).includes(filter))),
@@ -38,6 +49,8 @@ export function AdminDocsManager() {
           <i className="ph-bold ph-plus" aria-hidden /> New doc
         </Link>
       </div>
+
+      {err && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{err}</p>}
 
       {/* distribution KPI strip */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -85,12 +98,12 @@ export function AdminDocsManager() {
                 </td>
                 <td className="p-3 text-muted-foreground"><i className={`ph-bold ${FORMAT_META[d.format].icon} mr-1`} aria-hidden />{FORMAT_META[d.format].label}</td>
                 <td className="p-3 text-muted-foreground">{fmtDate(d.updatedAt)}</td>
-                <td className="p-3">{d.system ? <span className="pill">built-in</span> : isSeed(d.id) ? <span className="pill pill-warn">edited</span> : <span className="pill pill-good">yours</span>}</td>
+                <td className="p-3"><span className="pill pill-good">published</span></td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-2.5">
                     <Link href={`/admin/docs/${d.id}`} title="View" aria-label="View" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-eye" aria-hidden /></Link>
                     <Link href={`/admin/docs/${d.id}/edit`} title="Edit" aria-label="Edit" className="text-muted-foreground hover:text-foreground"><i className="ph-bold ph-pencil-simple" aria-hidden /></Link>
-                    <button onClick={() => setConfirm({ id: d.id, title: d.title })} title={isSeed(d.id) ? 'Hide' : 'Unpublish'} aria-label={isSeed(d.id) ? 'Hide' : 'Unpublish'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
+                    <button onClick={() => setConfirm({ id: d.id, title: d.title })} title="Unpublish" aria-label="Unpublish" className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
                   </div>
                 </td>
               </tr>
@@ -107,7 +120,7 @@ export function AdminDocsManager() {
             <p className="flex items-start gap-2 text-sm"><i className="ph-bold ph-warning-circle mt-0.5 text-amber-500" aria-hidden />Unpublish &ldquo;{confirm.title}&rdquo;? Its audiences will no longer see it.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setConfirm(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
-              <button onClick={() => { removeDoc(confirm.id); setConfirm(null); }} className="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90">Unpublish</button>
+              <button disabled={busy} onClick={() => removeDoc(confirm.id)} className="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">Unpublish</button>
             </div>
           </div>
         </div>

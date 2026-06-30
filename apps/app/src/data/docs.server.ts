@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { dbToComposer } from '@/lib/docAudienceMap';
 import type { StaffDoc, DocAudience, DocBlock, DocFormat, DocResource } from '@/data/staffDocs';
 
 // Lane C inc-C1 — the signed-in user's real docs, array-RLS-scoped: the `docs` table policies return
@@ -12,6 +13,7 @@ type DocRow = {
   title: string;
   body: { summary?: string; format?: DocFormat; tags?: string[]; author?: string; readMins?: number; blocks?: DocBlock[]; resources?: DocResource[]; html?: string } | null;
   audiences: string[];
+  required_skills: string[];
   pinned: boolean;
   updated_at: string;
 };
@@ -20,7 +22,8 @@ const ymd = (ts: string): string => new Date(ts).toISOString().slice(0, 10);
 
 function toDoc(r: DocRow): StaffDoc {
   const b = r.body ?? {};
-  const audiences = (r.audiences ?? []) as DocAudience[];
+  // expand DB role-audiences + skill-gate back into the composer/UI audience model (skill tags / 'general')
+  const audiences = dbToComposer(r.audiences ?? [], r.required_skills ?? []);
   return {
     id: r.id,
     title: r.title,
@@ -44,7 +47,7 @@ export async function getDocs(): Promise<StaffDoc[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('docs')
-    .select('id, title, body, audiences, pinned, updated_at')
+    .select('id, title, body, audiences, required_skills, pinned, updated_at')
     .order('pinned', { ascending: false })
     .order('updated_at', { ascending: false })
     .returns<DocRow[]>();

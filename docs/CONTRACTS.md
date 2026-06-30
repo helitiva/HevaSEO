@@ -140,7 +140,9 @@ Kiểu chốt: `AdminTicket`, `TicketMessage`, `TicketStatus`, `TicketType`, `Ti
 ## 6. Docs & Notes (Lane C — array-RLS)
 
 ```ts
-// [READ — REAL, Lane C inc-C1] data/docs.server.ts → getDocs(): StaffDoc[]  // the `docs` table, array-RLS-scoped to the viewer's role (admin all; customer/manager by audience; staff by audience+skill-gate) so it does NO client filtering. body jsonb carries rich metadata; top-level audiences[]/required_skills[] drive RLS. Wired into customer /docs (DocsLibrary `docs` prop); other surfaces inc-C2.
+// [READ — REAL, Lane C inc-C1/C2/C3] data/docs.server.ts → getDocs(): StaffDoc[]  // the `docs` table, array-RLS-scoped to the viewer's role (admin all; customer/manager by audience; staff by audience+skill-gate) so it does NO client filtering. body jsonb carries rich metadata; top-level audiences[]/required_skills[] drive RLS. Wired into ALL doc surfaces (customer/staff/manager/admin lists + detail pages). C2: JWT skills claim. C3: admin authoring.
+// [WRITE — REAL, Lane C inc-C3] app/admin/docs/doc.actions.ts → saveDocAction(SaveDocInput) · deleteDocAction(id)  // admin authoring via upsert_doc/delete_doc DB fns (admin-gated, claims-derived tenant+author; docs table SELECT-only via RLS). HTML sanitized client-side at the composer boundary.
+// [PURE] lib/docAudienceMap.ts: composerToDb(composer) → {audiences, requiredSkills} · dbToComposer(audiences, skills) → DocAudience[]  // bridges the composer's role+skill audience model and the DB's audiences[]/required_skills[] split (single source for the round-trip)
 // [READ] data/staffDocs.ts — array-containment RLS (mock fallback for un-wired surfaces)
 docsForCustomer(docs): StaffDoc[]
 docsForStaff(docs, skills): StaffDoc[]            // audiences @> 'staff' AND requiredSkills && skills
