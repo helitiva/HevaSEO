@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useInbox, markBroadcastClicked } from '@/data/broadcastStore';
+import { useInbox } from '@/data/broadcastStore';
 import { useBroadcastAudience } from '@/lib/broadcastAudience';
 import { KIND_META, type BroadcastKind } from '@/data/broadcasts';
 import { ago } from '@/lib/relativeTime';
@@ -12,7 +12,7 @@ import { ago } from '@/lib/relativeTime';
 // (synced with the bell). Pinned + newest first.
 export function InboxClient() {
   const aud = useBroadcastAudience();
-  const { items, unread, markRead, markAllRead, markUnread, isRead } = useInbox(aud);
+  const { items, unread, markRead, markAllRead, markUnread, markClicked, isRead } = useInbox(aud);
   const [filter, setFilter] = useState<'all' | BroadcastKind>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -83,7 +83,7 @@ export function InboxClient() {
                       )}
                       <div className="mt-2 flex items-center gap-3">
                         {b.cta && (
-                          <Link href={b.cta.href} onClick={(e) => { e.stopPropagation(); markBroadcastClicked(aud, b.id); }} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90" style={{ background: m.color }}>
+                          <Link href={b.cta.href} onClick={(e) => { e.stopPropagation(); markClicked(b.id); }} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90" style={{ background: m.color }}>
                             {b.cta.label} <i className="ph-bold ph-arrow-right" aria-hidden />
                           </Link>
                         )}

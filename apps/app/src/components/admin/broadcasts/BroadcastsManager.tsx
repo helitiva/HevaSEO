@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { broadcastStats, useBroadcastActivity, newBroadcastId, nowIso } from '@/data/broadcastStore';
 import { messageReadCount } from '@/lib/broadcastAnalytics';
 import { saveBroadcastAction, setBroadcastActiveAction, deleteBroadcastAction } from '@/app/admin/broadcasts/broadcast.actions';
+import type { BroadcastCounts } from '@/data/broadcastAnalytics.server';
 import { BroadcastComposer } from './BroadcastComposer';
 import { KIND_META, AUDIENCE_META, isLive, isScheduled, type Broadcast } from '@/data/broadcasts';
 import { ago } from '@/lib/relativeTime';
@@ -20,7 +21,7 @@ function statusOf(b: Broadcast): { label: string; cls: string } {
 // read it, edit, duplicate, recall/restore, or delete. Recall stops delivery without deleting.
 // Lane C inc-C5 — `broadcasts` is the real admin list (getBroadcasts). Compose/edit/recall/delete go
 // through the admin-gated DB fns; analytics columns (read counts) are still mock until inc-C6.
-export function BroadcastsManager({ broadcasts }: { broadcasts: Broadcast[] }) {
+export function BroadcastsManager({ broadcasts, counts }: { broadcasts: Broadcast[]; counts?: Record<string, BroadcastCounts> }) {
   const router = useRouter();
   const all = broadcasts;
   const activity = useBroadcastActivity();
@@ -95,8 +96,10 @@ export function BroadcastsManager({ broadcasts }: { broadcasts: Broadcast[] }) {
             {rows.map((b) => {
               const m = KIND_META[b.kind];
               const st = statusOf(b);
-              const stats = broadcastStats(b);
-              const rc = messageReadCount(b);
+              const rc = counts?.[b.id] ?? messageReadCount(b); // real read/click/total (inc-C6) else mock
+              // real: show targeted audiences as neutral badges (who-read detail lives on the analytics page);
+              // mock: show per-audience read state.
+              const stats = counts ? b.audiences.map((a) => ({ audience: a, read: true, acked: false, neutral: true })) : broadcastStats(b).map((s) => ({ ...s, neutral: false }));
               return (
                 <tr key={b.id} className="border-b border-border/50 align-top transition hover:bg-muted/40">
                   <td className="p-3">
@@ -106,7 +109,7 @@ export function BroadcastsManager({ broadcasts }: { broadcasts: Broadcast[] }) {
                     <p className="line-clamp-1 max-w-md text-[11px] text-muted-foreground">{b.body}</p>
                   </td>
                   <td className="p-3"><span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-fill ${m.icon}`} aria-hidden />{m.label}</span></td>
-                  <td className="p-3"><span className="flex flex-wrap gap-1">{stats.map((s) => { const am = AUDIENCE_META[s.audience]; return <span key={s.audience} title={s.acked ? 'Acknowledged' : s.read ? 'Read' : 'Not read yet'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${s.read ? '' : 'opacity-50'}`} style={{ background: `${am.color}1a`, color: am.color }}><i className={`ph-fill ${s.acked ? 'ph-seal-check' : s.read ? 'ph-check-circle' : am.icon}`} aria-hidden />{am.label}</span>; })}</span></td>
+                  <td className="p-3"><span className="flex flex-wrap gap-1">{stats.map((s) => { const am = AUDIENCE_META[s.audience]; return <span key={s.audience} title={s.neutral ? am.label : s.acked ? 'Acknowledged' : s.read ? 'Read' : 'Not read yet'} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${s.read || s.neutral ? '' : 'opacity-50'}`} style={{ background: `${am.color}1a`, color: am.color }}><i className={`ph-fill ${s.neutral ? am.icon : s.acked ? 'ph-seal-check' : s.read ? 'ph-check-circle' : am.icon}`} aria-hidden />{am.label}</span>; })}</span></td>
                   <td className="p-3 text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <i className="ph-bold ph-bell" title="Inbox + bell" aria-hidden />

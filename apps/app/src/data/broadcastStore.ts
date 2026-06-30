@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BROADCAST_SEEDS, isLive, isCritical, type Broadcast, type BroadcastAudience } from './broadcasts';
-import { useBroadcastSource } from '@/components/broadcast/BroadcastProvider';
+import { useBroadcastSource, useBroadcastReceipts } from '@/components/broadcast/BroadcastProvider';
 
 // Lane C inc-C4 — the live, audience-scoped source for the recipient hooks. When a BroadcastProvider
 // supplies REAL broadcasts (getMyBroadcasts), use those; otherwise fall back to the localStorage mock.
@@ -147,33 +147,45 @@ function useStoreState() {
 }
 
 // ── Recipient: inbox (read state) ─────────────────────────────────────────────
+// inc-C6: when a BroadcastProvider supplies real read-receipts, the read state comes from broadcast_events
+// (via the provider's readIds + mark* mutators → DB, optimistic). Otherwise it's the localStorage mock.
 export function useInbox(aud: BroadcastAudience) {
+  const receipts = useBroadcastReceipts();
   const { live: items, ready } = useLiveForAudience(aud);
-  const [read, setRead] = useState<string[]>([]);
+  const [localRead, setLocalRead] = useState<string[]>([]);
   useEffect(() => {
-    const load = () => setRead(readJson<string[]>(readKey(aud), []));
+    if (receipts) return; // real receipts → no localStorage subscription
+    const load = () => setLocalRead(readJson<string[]>(readKey(aud), []));
     load();
     window.addEventListener(EVT, load); window.addEventListener('storage', load);
     return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
-  }, [aud]);
+  }, [aud, receipts]);
 
-  const readSet = useMemo(() => new Set(read), [read]);
+  const readSet = useMemo(() => new Set(receipts ? receipts.readIds : localRead), [receipts, localRead]);
   const unread = items.filter((b) => !readSet.has(b.id)).length;
 
   const markRead = useCallback((id: string) => {
+    if (receipts) { receipts.markRead(id); return; }
     const cur = readJson<string[]>(readKey(aud), []);
-    if (!cur.includes(id)) { const next = [...cur, id]; writeJson(readKey(aud), next); setRead(next); }
-  }, [aud]);
+    if (!cur.includes(id)) { const next = [...cur, id]; writeJson(readKey(aud), next); setLocalRead(next); }
+  }, [receipts, aud]);
   const markAllRead = useCallback(() => {
-    const ids = items.map((b) => b.id); // works for both real (provider) + mock sources
-    writeJson(readKey(aud), ids); setRead(ids);
-  }, [items, aud]);
+    const ids = items.map((b) => b.id);
+    if (receipts) { receipts.markAllRead(ids); return; }
+    writeJson(readKey(aud), ids); setLocalRead(ids);
+  }, [receipts, items, aud]);
   const markUnread = useCallback((id: string) => {
+    if (receipts) { receipts.markUnread(id); return; }
     const next = readJson<string[]>(readKey(aud), []).filter((x) => x !== id);
-    writeJson(readKey(aud), next); setRead(next);
-  }, [aud]);
+    writeJson(readKey(aud), next); setLocalRead(next);
+  }, [receipts, aud]);
+  // a CTA click → real broadcast_events click (+ implicit read) when receipts present, else the mock log
+  const markClicked = useCallback((id: string) => {
+    if (receipts) { receipts.markClicked(id); return; }
+    markBroadcastClicked(aud, id);
+  }, [receipts, aud]);
 
-  return { items, unread, ready, isRead: (id: string) => readSet.has(id), markRead, markAllRead, markUnread };
+  return { items, unread, ready, isRead: (id: string) => readSet.has(id), markRead, markAllRead, markUnread, markClicked };
 }
 
 // Shared dismiss/ack state hook for the banner + site-alert surfaces.

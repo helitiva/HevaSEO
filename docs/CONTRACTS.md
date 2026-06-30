@@ -158,9 +158,12 @@ Kiểu chốt: `StaffDoc`, `DocAudience`, `DocBlock` (jsonb), `SelfNote`, `NoteA
 
 ```ts
 // [READ — REAL, Lane C inc-C4] data/broadcasts.server.ts → getMyBroadcasts(): Broadcast[]  // the `broadcasts` table, array-RLS-scoped to the viewer's role audience (recalled/draft filtered). Fetched in each portal layout → BroadcastProvider → store hooks (useInbox/useBanners/useSiteAlerts use it when present, else mock). Read/dismiss/ack state still client-side (real broadcast_events receipts = later).
-// [HOOK] data/broadcastStore.ts — recipient hooks now source from BroadcastProvider real data (inc-C4) OR localStorage mock
+// [WRITE — REAL, Lane C inc-C5] app/admin/broadcasts/broadcast.actions.ts → saveBroadcastAction · setBroadcastActiveAction · deleteBroadcastAction  // admin compose/recall/delete via upsert_broadcast/set_broadcast_status/delete_broadcast (admin-gated, claims-derived)
+// [READ — REAL, Lane C inc-C6] data/broadcastAnalytics.server.ts → getBroadcastAnalytics(id): RecEvent[] (real roster + broadcast_events) · getBroadcastReadCounts(): {read,clicks,total}/broadcast  // feeds the existing pure aggregators (summarize/readTimeline/audienceBreakdown/hourOfDayHistogram) + admin list counts
+// [WRITE — REAL, Lane C inc-C6] components/broadcast/receipts.actions.ts → markBroadcastReadAction · markBroadcastClickAction  // recipient read/click → broadcast_events (idempotent); BroadcastProvider holds optimistic readIds
+// [HOOK] data/broadcastStore.ts — recipient hooks source from BroadcastProvider real broadcasts + real read-receipts (inc-C4/C6) OR localStorage mock
 useBroadcasts() · useInbox(aud) · useBanners(aud) · useSiteAlerts(aud)
-markBroadcastClicked(aud, id): void              // → INSERT broadcast_events
+markBroadcastClicked(aud, id): void              // mock-log fallback (real click = useInbox().markClicked → broadcast_events)
 // [PURE/READ] lib/broadcastAnalytics.ts — GIỮ (đổi nguồn → aggregation query)
 messageReadCount(b, now) · hourOfDayHistogram(events) · audienceBreakdown(events)
 // [PURE] lib/broadcastAudience.ts, lib/broadcastRoster.ts

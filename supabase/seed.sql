@@ -253,6 +253,21 @@ insert into public.broadcasts (tenant_id, title, body, display_kind, audiences, 
   ('a9e0c0de-0000-4000-8000-000000000001', 'Q2 commission tiers updated', 'Affiliate commission tiers were revised for Q2 — see your dashboard.', 'info', '{affiliate}', false, false, 'live', null, 'b000aaaa-0000-4000-8000-000000000001'),
   ('a9e0c0de-0000-4000-8000-000000000001', 'Old promo (recalled)', 'This message was recalled and should not appear.', 'notice', '{customer}', false, false, 'recalled', null, 'b000aaaa-0000-4000-8000-000000000001');
 
+-- Lane C inc-C6 — a few real read/click events so broadcast analytics aren't empty in the demo.
+-- Jane (customer) read Welcome + read & clicked Summer credit bonus; Mai (staff) read the QA checklist.
+insert into public.broadcast_events (tenant_id, broadcast_id, user_id, kind)
+  select b.tenant_id, b.id, 'b000aaaa-0000-4000-8000-000000000004'::uuid, 'read'
+    from public.broadcasts b where b.title = 'Welcome to the new dashboard'
+  union all
+  select b.tenant_id, b.id, 'b000aaaa-0000-4000-8000-000000000004'::uuid, 'read'
+    from public.broadcasts b where b.title = 'Summer credit bonus'
+  union all
+  select b.tenant_id, b.id, 'b000aaaa-0000-4000-8000-000000000004'::uuid, 'click'
+    from public.broadcasts b where b.title = 'Summer credit bonus'
+  union all
+  select b.tenant_id, b.id, 'b000aaaa-0000-4000-8000-000000000003'::uuid, 'read'
+    from public.broadcasts b where b.title = 'New QA checklist live';
+
 -- Lane D polish — a couple of posted payroll runs for Mai so her Payslips tab shows real fixed pay
 -- (salary + gig + bonus per period). Commission stays in the wallet (Activity/Payouts), not here.
 insert into public.payroll_runs (tenant_id, staff_id, period, salary, gig, bonus, total) values

@@ -8,16 +8,17 @@ import { QuickOrderPanel } from '@/components/QuickOrderPanel';
 import { ToastProvider } from '@/components/Toast';
 import { BroadcastProvider } from '@/components/broadcast/BroadcastProvider';
 import { getMyCredit } from '@/data/credit.server';
-import { getMyBroadcasts } from '@/data/broadcasts.server';
+import { getMyBroadcasts, getMyBroadcastReadIds } from '@/data/broadcasts.server';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const [{ balance, transactions, invoices }, broadcasts] = await Promise.all([
+  const [{ balance, transactions, invoices }, broadcasts, readIds] = await Promise.all([
     getMyCredit(), // RLS-scoped: signed-in customer's own credit
     getMyBroadcasts(), // RLS-scoped: real broadcasts for the customer audience (Lane C inc-C4)
+    getMyBroadcastReadIds(), // real read-receipts (Lane C inc-C6)
   ]);
   return (
     <ToastProvider>
-      <BroadcastProvider broadcasts={broadcasts}>
+      <BroadcastProvider broadcasts={broadcasts} readIds={readIds}>
       <CreditProvider initialBalance={balance} initialTransactions={transactions} initialInvoices={invoices}>
         <ProjectsProvider>
         <OrdersProvider>

@@ -22,10 +22,10 @@ function fmtDur(ms: number | null): string {
   return `${(h / 24).toFixed(1)}d`;
 }
 
-export function BroadcastDetailClient({ id, broadcast }: { id: string; broadcast?: Broadcast }) {
-  // Lane C inc-C5: `broadcast` is the real DB record (admin reader). The analytics below are still
-  // mock-derived (real broadcast_events receipts = inc-C6). saveBroadcast (the "remind unread" nudge)
-  // stays on the mock store for now.
+export function BroadcastDetailClient({ id, broadcast, realEvents }: { id: string; broadcast?: Broadcast; realEvents?: RecEvent[] }) {
+  // Lane C inc-C5/C6: `broadcast` is the real DB record; `realEvents` is the real engagement built from
+  // broadcast_events + the tenant roster (getBroadcastAnalytics). When present, analytics are fully real;
+  // otherwise it falls back to the synthetic mock. saveBroadcast (the "remind unread" nudge) is mock.
   const { all, saveBroadcast, ready } = useBroadcasts();
   const b = broadcast ?? all.find((x) => x.id === id);
 
@@ -37,7 +37,7 @@ export function BroadcastDetailClient({ id, broadcast }: { id: string; broadcast
     return () => { window.removeEventListener('heva:broadcasts-changed', bump); window.removeEventListener('storage', bump); };
   }, []);
 
-  const events = useMemo(() => (b ? recipientEvents(b) : []), [b, tick]);
+  const events = useMemo(() => realEvents ?? (b ? recipientEvents(b) : []), [realEvents, b, tick]);
   const summary = useMemo(() => (b ? summarize(events, b) : null), [events, b]);
   const timeline = useMemo(() => (b ? readTimeline(events, b) : null), [events, b]);
   const audiences = useMemo(() => audienceBreakdown(events), [events]);

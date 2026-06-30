@@ -63,6 +63,19 @@ export async function getMyBroadcasts(): Promise<Broadcast[]> {
   return (data ?? []).map(toBroadcast);
 }
 
+// Lane C inc-C6 — the broadcast ids the signed-in user has already read (their own broadcast_events,
+// RLS user-own). Drives the real unread state in the bell + inbox (replaces the localStorage read set).
+export async function getMyBroadcastReadIds(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('broadcast_events')
+    .select('broadcast_id')
+    .eq('kind', 'read')
+    .returns<{ broadcast_id: string }[]>();
+  if (error) throw new Error(`getMyBroadcastReadIds: ${error.message}`);
+  return [...new Set((data ?? []).map((r) => r.broadcast_id))];
+}
+
 // Lane C inc-C5 — admin sees ALL tenant broadcasts (broadcasts_admin RLS), incl recalled + draft, for
 // the management console. active=false marks recalled (the manager surfaces that as the "Recalled" state).
 export async function getBroadcasts(): Promise<Broadcast[]> {

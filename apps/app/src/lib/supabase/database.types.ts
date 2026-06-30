@@ -2423,6 +2423,11 @@ export type Database = {
       lives_ok: { Args: { "": string }; Returns: string }
       manager_comm_pct: { Args: never; Returns: number }
       manager_gig_pct: { Args: never; Returns: number }
+      mark_broadcast_click: {
+        Args: { p_broadcast: string }
+        Returns: undefined
+      }
+      mark_broadcast_read: { Args: { p_broadcast: string }; Returns: undefined }
       materialize_order: {
         Args: {
           p_actor: string
