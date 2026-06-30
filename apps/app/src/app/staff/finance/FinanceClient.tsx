@@ -13,7 +13,7 @@ import {
   type StaffPenalty, type PayoutRequest, type WalletEntry, type PenaltyRule, type PayoutMethod, type PayoutMethodKind,
 } from '@/lib/staffFinance';
 import { rewardsEarned, rewardsOnOffer, REWARD_KIND_META, type Reward } from '@/lib/staffRewards';
-import { requestPayoutAction } from './payout.actions';
+import { requestPayoutAction, disputePenaltyAction } from './payout.actions';
 import { MOCK_TODAY } from '@/lib/today';
 
 const MIN_PAYOUT = 50;
@@ -35,7 +35,7 @@ type Props = {
   payStyle?: 'staff' | 'manager';
   /** Lane D inc-D2: a real provisioned staffer's DB wallet (balance + ledger) overrides the mock-derived
    *  balance + activity feed. null → fall back to mock (demo / admin-impersonation / never-paid). */
-  realWallet?: { balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[] } | null;
+  realWallet?: { balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[]; penalties: StaffPenalty[] } | null;
 };
 
 const REWARDS_MONTH = '2026-06';
@@ -50,7 +50,7 @@ const TABS = [
 export function FinanceClient({ earnings, history, summary, finance, rewards = [], firstPassRate, showRewards = true, payStyle = 'staff', realWallet = null }: Props) {
   const isManager = payStyle === 'manager';
   // Penalties + payouts are session-mutable (dispute a fine, request a payout); everything else is read-only.
-  const [penalties, setPenalties] = useState<StaffPenalty[]>(finance.penalties);
+  const [penalties, setPenalties] = useState<StaffPenalty[]>(realWallet ? realWallet.penalties : finance.penalties);
   const [payouts, setPayouts] = useState<PayoutRequest[]>(realWallet ? realWallet.payouts : finance.payouts);
   const [methods, setMethods] = useState<PayoutMethod[]>(realWallet && realWallet.methods.length ? realWallet.methods : finance.methods);
   // real wallet balance held in state so a payout request reflects optimistically (debit) before reload
@@ -97,10 +97,14 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
     showToast(`Payout of ${money(amount)} requested — admin will review it.`);
   };
 
-  const submitDispute = (id: string, note: string) => {
+  const submitDispute = async (id: string, note: string) => {
+    if (realWallet) {
+      const res = await disputePenaltyAction(id, note);
+      if (!res.ok) { showToast(res.error); return; }
+    }
     setPenalties((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'disputed', disputeNote: note } : p)));
     setDisputeTarget(null);
-    showToast('Dispute sent — your manager will take a look.');
+    showToast('Dispute sent — an admin will review it.');
   };
 
   const addMethod = (m: Omit<PayoutMethod, 'id' | 'isDefault'>, makeDefault: boolean) => {

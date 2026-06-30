@@ -6,7 +6,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { CashflowChart } from '@/components/admin/finance/CashflowChart';
 import { WithdrawalRequests } from '@/components/admin/finance/WithdrawalRequests';
+import { AdminPenalties } from '@/components/admin/finance/AdminPenalties';
 import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
+import type { AdminPenalty, WalletStaff } from '@/data/adminPenalties.server';
 import {
   FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CASHFLOW, CUSTOMERS, ORDERS,
   TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
@@ -53,7 +55,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [] }: { payoutRequests?: AdminPayoutRequest[] }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -97,7 +99,7 @@ export function FinanceClient({ payoutRequests = [] }: { payoutRequests?: AdminP
         {tab === 'overview' && <OverviewTab />}
         {tab === 'transactions' && <TransactionsTab />}
         {tab === 'wallets' && <WalletsTab />}
-        {tab === 'payouts' && <div className="space-y-4"><WithdrawalRequests requests={payoutRequests} /><PayoutsTab /></div>}
+        {tab === 'payouts' && <div className="space-y-4"><WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><PayoutsTab /></div>}
         {tab === 'invoices' && <InvoicesTab />}
       </div>
     </section>

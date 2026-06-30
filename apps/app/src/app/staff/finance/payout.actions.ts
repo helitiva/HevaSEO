@@ -26,3 +26,16 @@ export async function requestPayoutAction(amount: number, methodId: string | nul
   revalidatePath('/staff/finance');
   return { ok: true };
 }
+
+// Lane D inc-D5 — the worker disputes one of their own applied penalties (no money change; admin reviews).
+export async function disputePenaltyAction(penaltyId: string, note: string): Promise<PayoutResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('dispute_penalty', { p_id: penaltyId, p_note: note });
+  if (error) {
+    if (error.message.includes('NOT_DISPUTABLE')) return { ok: false, error: 'This penalty can no longer be disputed.' };
+    if (error.message.includes('PENALTY_NOT_FOUND')) return { ok: false, error: 'Penalty not found.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/staff/finance');
+  return { ok: true };
+}

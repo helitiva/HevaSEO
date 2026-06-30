@@ -70,6 +70,7 @@ TRANSACTIONS: CreditTx[]                          // RLS: customer own
 // [WRITE — REAL, Lane B inc-B3] app/(portal)/order.actions.ts → placeOrderAction(input)  // server-priced (computeOrderPrice, real tier) → create_order via service-role client (lib/supabase/service.ts) + order_details/order_addons
 // [READ — REAL, Lane D inc-D1..D3] data/staffWallet.server.ts → getMyStaffWallet(): { balance, ledger, methods, payouts } | null  // staffer's own wallet + ledger + payout methods + requests (RLS, money-blind); credited by post_staff_pay, debited by request_payout. null → fall back to mock (demo/impersonation)
 // [READ — REAL, Lane D inc-D4] data/adminPayouts.server.ts → getPayoutRequests(): AdminPayoutRequest[]  // admin view of staff withdrawal requests (payout_requests, RLS admin=tenant) for the /admin/finance Payouts tab; resolved via resolvePayoutAction (resolve_payout: approve/pay/reject+refund)
+// [READ — REAL, Lane D inc-D5] data/adminPenalties.server.ts → getPenalties(): AdminPenalty[] · getWalletStaff(): WalletStaff[]  // admin penalties list + workers-with-wallets for the apply form; applyPenaltyAction/waivePenaltyAction (apply_penalty debits, waive_penalty refunds); staff dispute via dispute_penalty
 INVOICES: Invoice[] · CUSTOMER_LEDGER: Record<string, LedgerEntry[]>
 customerSignals(idOrName): CustomerSignals | null
 resolveCustomerId(idOrName): string | null

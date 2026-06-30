@@ -1612,6 +1612,60 @@ export type Database = {
           },
         ]
       }
+      staff_penalties: {
+        Row: {
+          amount: number
+          created_at: string
+          detail: string | null
+          dispute_note: string | null
+          id: string
+          resolved_at: string | null
+          staff_id: string
+          status: string
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          detail?: string | null
+          dispute_note?: string | null
+          id?: string
+          resolved_at?: string | null
+          staff_id: string
+          status?: string
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          detail?: string | null
+          dispute_note?: string | null
+          id?: string
+          resolved_at?: string | null
+          staff_id?: string
+          status?: string
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_penalties_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_penalties_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_wallet: {
         Row: {
           balance: number
@@ -2095,6 +2149,32 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      apply_penalty: {
+        Args: {
+          p_amount: number
+          p_detail?: string
+          p_staff: string
+          p_type: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          detail: string | null
+          dispute_note: string | null
+          id: string
+          resolved_at: string | null
+          staff_id: string
+          status: string
+          tenant_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_penalties"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
         Args: { p_order: string }
@@ -2208,6 +2288,27 @@ export type Database = {
             } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
       diag_test_name: { Args: { "": string }; Returns: string }
+      dispute_penalty: {
+        Args: { p_id: string; p_note: string }
+        Returns: {
+          amount: number
+          created_at: string
+          detail: string | null
+          dispute_note: string | null
+          id: string
+          resolved_at: string | null
+          staff_id: string
+          status: string
+          tenant_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_penalties"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       do_tap:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
@@ -2349,6 +2450,27 @@ export type Database = {
           p_tenant: string
         }
         Returns: undefined
+      }
+      waive_penalty: {
+        Args: { p_id: string }
+        Returns: {
+          amount: number
+          created_at: string
+          detail: string | null
+          dispute_note: string | null
+          id: string
+          resolved_at: string | null
+          staff_id: string
+          status: string
+          tenant_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_penalties"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
