@@ -6,6 +6,7 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { useOrderDetail } from '@/lib/useOrderDetail';
 import { advanceOrderAction, cancelOrderAction } from '@/app/admin/orders/actions';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
@@ -28,7 +29,8 @@ export function NeedsAttention({ overdue, awaiting, unassigned }: {
 }) {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const today = mockTodayDate().toISOString().slice(0, 10);
-  const selectedProps = selected ? buildOrderDetailProps(selected) : null;
+  const selectedDetail = useOrderDetail(selected?.id ?? null); // real brief/addons (RLS-scoped)
+  const selectedProps = selected ? buildOrderDetailProps(selected, selectedDetail) : null;
 
   const columns: Column[] = [
     { title: 'Overdue',           href: '/admin/orders',     rows: overdue,    tone: 'warn' },

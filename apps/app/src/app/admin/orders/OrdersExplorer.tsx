@@ -5,6 +5,7 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { useOrderDetail } from '@/lib/useOrderDetail';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, money, TIER, type AdminOrder, type OrderStatus, type Tier } from '@/data/adminMock';
@@ -114,6 +115,7 @@ export function OrdersExplorer({ rows, advanceAction, cancelAction }: { rows: Ex
   // ---- side-panel: prev/next within the filtered list + URL deep-link ----
   const panelIdx = panelId ? filtered.findIndex((o) => o.id === panelId) : -1;
   const panel = panelIdx >= 0 ? filtered[panelIdx] : panelId ? rows.find((o) => o.id === panelId) ?? null : null;
+  const panelDetail = useOrderDetail(panel?.id ?? null); // real brief/addons for the slide-over (RLS-scoped)
   const prevOrder = panelIdx > 0 ? filtered[panelIdx - 1] : null;
   const nextOrder = panelIdx >= 0 && panelIdx < filtered.length - 1 ? filtered[panelIdx + 1] : null;
 
@@ -221,7 +223,7 @@ export function OrdersExplorer({ rows, advanceAction, cancelAction }: { rows: Ex
       {panel && (
         <SlideOver open onClose={() => setPanelId(null)} title={panel.code} widthClass="max-w-5xl">
           {(() => {
-            const detail = buildOrderDetailProps(panel);
+            const detail = buildOrderDetailProps(panel, panelDetail);
             return detail ? <OrderDetailClient key={detail.order.id} {...detail} advanceAction={advanceAction} cancelAction={cancelAction} /> : null;
           })()}
         </SlideOver>
