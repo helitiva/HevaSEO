@@ -194,3 +194,21 @@ from (values
   ('BL-1014',  'b000bbbb-0000-4000-8000-000000000001', 1, 'changes_requested', 'Starter links — first batch',       '[{"kind":"file","fileName":"bright-links.xlsx","url":null}]',         '2026-06-23', '2026-06-24', 'Anchor profile too exact-match.')
 ) as x(code, submitter, version, status, summary, files, submitted, reviewed, review_note)
 join public.orders o on o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and o.code = x.code;
+
+-- Lane D inc-D1 — seed staff commission wallets via the real post_staff_pay fn (same path the app
+-- will use), so the demo staffer (Mai) has a wallet balance + ledger. Commission = 30% of order value
+-- (money-leak-safe: a derived figure, not the order price), gig = 0. Runs on Mai's done/approved orders.
+-- (No manager override cascade: staff_details.manager_id is unset in this seed.)
+do $$
+declare r record;
+begin
+  for r in
+    select o.id, round(o.value * 0.30, 2) as commission
+    from public.orders o
+    where o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001'
+      and o.assignee_id = 'b000aaaa-0000-4000-8000-000000000003'   -- Mai
+      and o.state in ('completed', 'approved')
+  loop
+    perform post_staff_pay(r.id, 'b000aaaa-0000-4000-8000-000000000003', r.commission, 0, 'b000aaaa-0000-4000-8000-000000000001');
+  end loop;
+end $$;

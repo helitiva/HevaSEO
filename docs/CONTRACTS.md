@@ -68,6 +68,7 @@ TRANSACTIONS: CreditTx[]                          // RLS: customer own
 // [READ — REAL, Lane B inc-B1 + Phase 2 inc-P2] data/credit.server.ts → getMyCredit(): { balance, transactions: CreditTx[], invoices: Invoice[] }  // customer's own balance + credit_ledger + invoices (RLS, money-blind to staff/manager); wired via portal layout → CreditProvider
 // [WRITE — REAL, Phase 2 inc-P2] app/(portal)/credit.actions.ts → topUpAction(amount, label)  // charge via payment provider seam (lib/payments/provider.ts; mock now / Stripe later) → topup fn (service role) + invoice row; client never self-credits
 // [WRITE — REAL, Lane B inc-B3] app/(portal)/order.actions.ts → placeOrderAction(input)  // server-priced (computeOrderPrice, real tier) → create_order via service-role client (lib/supabase/service.ts) + order_details/order_addons
+// [READ — REAL, Lane D inc-D1] data/staffWallet.server.ts → getMyStaffWallet(): { balance, ledger: WalletEntry[] }  // staffer's own staff_wallet + wallet_ledger (RLS, money-blind to manager/customer); credited by post_staff_pay. UI wiring = inc-D2
 INVOICES: Invoice[] · CUSTOMER_LEDGER: Record<string, LedgerEntry[]>
 customerSignals(idOrName): CustomerSignals | null
 resolveCustomerId(idOrName): string | null
