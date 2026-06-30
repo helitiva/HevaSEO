@@ -140,7 +140,8 @@ Kiểu chốt: `AdminTicket`, `TicketMessage`, `TicketStatus`, `TicketType`, `Ti
 ## 6. Docs & Notes (Lane C — array-RLS)
 
 ```ts
-// [READ] data/staffDocs.ts — array-containment RLS
+// [READ — REAL, Lane C inc-C1] data/docs.server.ts → getDocs(): StaffDoc[]  // the `docs` table, array-RLS-scoped to the viewer's role (admin all; customer/manager by audience; staff by audience+skill-gate) so it does NO client filtering. body jsonb carries rich metadata; top-level audiences[]/required_skills[] drive RLS. Wired into customer /docs (DocsLibrary `docs` prop); other surfaces inc-C2.
+// [READ] data/staffDocs.ts — array-containment RLS (mock fallback for un-wired surfaces)
 docsForCustomer(docs): StaffDoc[]
 docsForStaff(docs, skills): StaffDoc[]            // audiences @> 'staff' AND requiredSkills && skills
 docsForManager(docs): StaffDoc[]

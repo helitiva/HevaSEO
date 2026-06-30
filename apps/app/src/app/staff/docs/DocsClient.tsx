@@ -10,7 +10,7 @@ interface SkillChip { key: string; label: string; icon: string; color: string }
 const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-export function DocsClient({ docs, skillChips }: { docs: StaffDoc[]; skillChips: SkillChip[] }) {
+export function DocsClient({ docs, skillChips, showScopeBanner = true }: { docs: StaffDoc[]; skillChips: SkillChip[]; showScopeBanner?: boolean }) {
   const [query, setQuery] = useState('');
   const [format, setFormat] = useState<DocFormat | 'all'>('all');
 
@@ -38,20 +38,22 @@ export function DocsClient({ docs, skillChips }: { docs: StaffDoc[]; skillChips:
 
   return (
     <>
-      {/* Scope banner — makes the access rule visible, not silent */}
-      <div className="kcard mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-dashed bg-muted/40 text-xs">
-        <i className="ph-bold ph-lock-key text-primary" aria-hidden />
-        <span className="text-muted-foreground">You can read docs for</span>
-        <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
-          <i className="ph-fill ph-users-three text-muted-foreground" aria-hidden /> All staff
-        </span>
-        {skillChips.map((k) => (
-          <span key={k.key} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
-            <i className={`ph-fill ${k.icon}`} style={{ color: k.color }} aria-hidden /> {k.label}
+      {/* Scope banner — makes the staff skill-gate visible, not silent. Hidden for customer/manager. */}
+      {showScopeBanner && (
+        <div className="kcard mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-dashed bg-muted/40 text-xs">
+          <i className="ph-bold ph-lock-key text-primary" aria-hidden />
+          <span className="text-muted-foreground">You can read docs for</span>
+          <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
+            <i className="ph-fill ph-users-three text-muted-foreground" aria-hidden /> All staff
           </span>
-        ))}
-        <span className="text-muted-foreground">— docs for other specialties stay hidden.</span>
-      </div>
+          {skillChips.map((k) => (
+            <span key={k.key} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
+              <i className={`ph-fill ${k.icon}`} style={{ color: k.color }} aria-hidden /> {k.label}
+            </span>
+          ))}
+          <span className="text-muted-foreground">— docs for other specialties stay hidden.</span>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="mb-4 flex flex-wrap items-center gap-2">

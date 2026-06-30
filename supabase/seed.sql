@@ -223,3 +223,19 @@ end $$;
 insert into public.staff_payout_methods (tenant_id, staff_id, kind, detail, is_default) values
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', 'paypal', 'mai@paypal.me', true)
 on conflict do nothing;
+
+-- Lane C inc-C1 — docs distributed to audiences (array-RLS). body jsonb carries the rich metadata
+-- (summary/format/tags/author/readMins/blocks); top-level audiences[]/required_skills[] drive RLS.
+insert into public.docs (tenant_id, title, body, audiences, required_skills, pinned, author_id) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Getting started with your dashboard',
+   '{"summary":"A quick tour of orders, credit and reports.","format":"guide","tags":["start-here","dashboard"],"author":"HevaSEO","readMins":4,"blocks":[{"type":"p","text":"Welcome! Track every order live, top up credit, and download reports from your dashboard."},{"type":"ul","items":["Place an order from Browse services","Top up credit anytime","Get reports two ways"]}],"resources":[]}',
+   '{customer}', '{}', true, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'How we report results',
+   '{"summary":"What your monthly SEO report covers.","format":"guide","tags":["reports"],"author":"HevaSEO","readMins":3,"blocks":[{"type":"p","text":"Each report covers rankings, traffic, and the work delivered."}],"resources":[]}',
+   '{customer}', '{}', false, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Staff handbook & onboarding',
+   '{"summary":"Start-here guide for the delivery team.","format":"policy","tags":["onboarding"],"author":"Ops","readMins":6,"blocks":[{"type":"p","text":"Admin confirms an order and routes it to your board based on your skills."}],"resources":[]}',
+   '{staff,manager}', '{}', true, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Backlink outreach SOP',
+   '{"summary":"Step-by-step backlink prospecting + outreach.","format":"sop","tags":["backlink"],"author":"Ops","readMins":8,"blocks":[{"type":"p","text":"Only shown to staff whose skills include backlink."}],"resources":[]}',
+   '{staff}', '{backlink}', false, 'b000aaaa-0000-4000-8000-000000000001');
