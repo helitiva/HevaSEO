@@ -65,6 +65,7 @@ getCustomers(): Promise<AdminCustomer[]>          // admin all · customer own; 
 CUSTOMERS: AdminCustomer[]                        // RLS: admin all, manager pod (money-stripped view!)
 CUSTOMER_EXTRA: Record<string, CustomerExtra>
 TRANSACTIONS: CreditTx[]                          // RLS: customer own
+// [READ — REAL, Lane B inc-B1] data/credit.server.ts → getMyCredit(): { balance, transactions: CreditTx[] }  // customer's own balance + credit_ledger (RLS); invoices stay mock (no table); wired via portal layout → CreditProvider
 INVOICES: Invoice[] · CUSTOMER_LEDGER: Record<string, LedgerEntry[]>
 customerSignals(idOrName): CustomerSignals | null
 resolveCustomerId(idOrName): string | null

@@ -6,11 +6,13 @@ import { ProjectsProvider } from '@/components/ProjectsStore';
 import { OrderDetailPanel } from '@/components/OrderDetailPanel';
 import { QuickOrderPanel } from '@/components/QuickOrderPanel';
 import { ToastProvider } from '@/components/Toast';
+import { getMyCredit } from '@/data/credit.server';
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const { balance, transactions } = await getMyCredit(); // RLS-scoped: signed-in customer's own credit
   return (
     <ToastProvider>
-      <CreditProvider>
+      <CreditProvider initialBalance={balance} initialTransactions={transactions}>
         <ProjectsProvider>
         <OrdersProvider>
           <PortalShell>{children}</PortalShell>

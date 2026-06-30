@@ -21,9 +21,15 @@ const todayUS = () => {
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}/${d.getFullYear()}`;
 };
 
-export function CreditProvider({ children }: { children: ReactNode }) {
-  const [balance, setBalance] = useState(CREDIT_BALANCE);
-  const [transactions, setTransactions] = useState<CreditTx[]>(TRANSACTIONS);
+// `initialBalance`/`initialTransactions` come from the real RLS-scoped read (Lane B inc-B1, via the
+// portal layout); they default to the mock seed when not provided. Invoices stay mock (no DB table).
+export function CreditProvider({ children, initialBalance, initialTransactions }: {
+  children: ReactNode;
+  initialBalance?: number;
+  initialTransactions?: CreditTx[];
+}) {
+  const [balance, setBalance] = useState(initialBalance ?? CREDIT_BALANCE);
+  const [transactions, setTransactions] = useState<CreditTx[]>(initialTransactions ?? TRANSACTIONS);
   const [invoices, setInvoices] = useState<Invoice[]>(INVOICES);
 
   const value = useMemo<CreditCtx>(() => ({
