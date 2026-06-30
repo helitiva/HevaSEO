@@ -238,4 +238,7 @@ insert into public.docs (tenant_id, title, body, audiences, required_skills, pin
    '{staff,manager}', '{}', true, 'b000aaaa-0000-4000-8000-000000000001'),
   ('a9e0c0de-0000-4000-8000-000000000001', 'Backlink outreach SOP',
    '{"summary":"Step-by-step backlink prospecting + outreach.","format":"sop","tags":["backlink"],"author":"Ops","readMins":8,"blocks":[{"type":"p","text":"Only shown to staff whose skills include backlink."}],"resources":[]}',
-   '{staff}', '{backlink}', false, 'b000aaaa-0000-4000-8000-000000000001');
+   '{staff}', '{backlink}', false, 'b000aaaa-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'Keyword research playbook',
+   '{"summary":"How we cluster + prioritise keywords.","format":"guide","tags":["keyword"],"author":"Ops","readMins":5,"blocks":[{"type":"p","text":"Only shown to staff whose skills include keyword."}],"resources":[]}',
+   '{staff}', '{keyword}', false, 'b000aaaa-0000-4000-8000-000000000001');
