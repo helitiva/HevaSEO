@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { resolveAddOns, type AddOn, type AddOnTier } from '@heva/catalog';
 import { BulkKeywordList } from './BulkKeywordList';
 import { UsageLinkList } from './UsageLinkList';
-import { useOrdersStore } from './OrdersStore';
 import { useProjects } from './ProjectsStore';
 import { useToast } from './Toast';
-import { FOLDERS, PROJECTS, MEMBERSHIP_DISCOUNT, type IntakeField, type Order } from '@/data/mock';
+import { FOLDERS, PROJECTS, MEMBERSHIP_DISCOUNT, type IntakeField } from '@/data/mock';
 import type { SvcCatalog, SvcField, SvcPackage } from '@/data/services';
+import { placeOrderAction } from '@/app/(portal)/order.actions';
 
 type ProjectOption = { name: string; domain: string };
 
@@ -103,9 +103,8 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
   return out;
 }
 
-export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string }) {
+export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain, isVip = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string; isVip?: boolean }) {
   const router = useRouter();
-  const { addOrder } = useOrdersStore();
   const { projects: storeProjects } = useProjects();
   const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
@@ -161,7 +160,8 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
   const total = subtotal - bulkDiscount + bumpsSum;
   // VIP membership perk — 15% off, applied only to numeric totals (not "Consult"/"Custom quote" plans).
   const hasNumericTotal = isUsage || !plan?.priceLabel;
-  const vipOff = hasNumericTotal ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT)) : 0;
+  // VIP perk applies only to real VIP-tier customers (server reprices the same way — inc-B3).
+  const vipOff = isVip && hasNumericTotal ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT)) : 0;
   const finalTotal = total - vipOff;
   const subtotalText = isUsage ? `$${total.toFixed(2)}` : `$${total}`;
   const totalText = isUsage ? `$${finalTotal.toFixed(2)}` : (plan?.priceLabel ?? `$${finalTotal}`);
@@ -189,13 +189,13 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
     return { domain, projectName, folderName: FOLDERS.find((f) => f.id === fid)?.name ?? 'Uncategorized', auto };
   }
 
-  function place(e: FormEvent<HTMLFormElement>) {
+  const [placing, setPlacing] = useState(false);
+  async function place(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     if (!form.reportValidity()) return;
     const fd = new FormData(form);
     const asg = resolveAssignment();
-    const id = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
     // Capture the brief the customer just filled in — assignment, plan, service fields, add-on fields.
     const intake: IntakeField[] = [
       { label: 'Project', value: asg.projectName === asg.domain ? asg.domain : `${asg.projectName} · ${asg.domain}`, full: true },
@@ -204,32 +204,19 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
       ...captureFields(catalog.fields, fd),
       ...chosen.flatMap(({ addon, tier }) => captureFields(tier.fields ?? [], fd, addon.name)),
     ];
-    const order: Order = {
-      id,
-      date: todayUS(),
-      title: catalog.orderTitle,
-      service: catalog.key,
-      domain: asg.domain,
-      sub: isUsage
-        ? `${qty.toLocaleString('en-US')} ${catalog.usage!.unitPlural} · $${usageRate.toFixed(3)}/${catalog.usage!.unit}`
-        : `${catalog.bulk ? `${qty} × ` : ''}${plan?.name} · ${plan?.summary}${chosen.length ? ` · +${chosen.length} add-on${chosen.length > 1 ? 's' : ''}` : ''}`,
-      status: 'planned',
-      priority: 'med',
-      progress: null,
-      detail: 'Awaiting kickoff',
-      eta: isUsage ? 'By volume' : (plan?.sla ?? ''),
-      owner: 'Unassigned',
-      cost: finalTotal,
-      pay: 'pending',
-      invoice: null,
-      intake,
-    };
-    addOrder(order);
-    toast(`Order #${id} placed — it's on your board`, 'success');
-    // Inside the quick-order slide-over we just close it (already on the board);
-    // on the standalone /services/[svc] page we navigate to the board.
+    // Real placement: the server reprices + debits credit via create_order (the client price is only
+    // an estimate). The order then shows up on the board via the real RLS-scoped read.
+    setPlacing(true);
+    const res = await placeOrderAction({
+      serviceKey: catalog.key, packageId: planId, qty, addonPicks: picks,
+      project: asg.projectName, folder: asg.folderName, brief: intake,
+    });
+    setPlacing(false);
+    if (!res.ok) { toast(res.error, 'error'); return; }
+    toast(`Order ${res.code} placed — credit charged`, 'success');
     if (onPlaced) onPlaced();
     else router.push('/orders');
+    router.refresh();
   }
 
   const renderCard = (p: SvcPackage) => {
