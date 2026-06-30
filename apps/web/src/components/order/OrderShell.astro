@@ -361,6 +361,7 @@ const steps = [
         <!-- summary -->
         <OrderSummary service={service} />
       </div>
+      <p id="order-error" class="mt-4 hidden rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm font-medium text-destructive"></p>
     </form>
 
     <!-- ============ SUCCESS ============ -->
@@ -371,16 +372,27 @@ const steps = [
         </span>
         <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
         <p class="mt-3 text-muted-foreground">
-          Thanks! We've logged your <strong id="success-plan" class="text-foreground">request</strong>.
-          A specialist will confirm the scope and final price within 24h — no charge until you approve.
+          Thanks! Your order <strong id="success-code" class="text-foreground">—</strong>
+          (<span id="success-plan">request</span>) is confirmed and paid.
         </p>
+        <!-- new account: show the dashboard login + temp password (chốt 4) -->
+        <div id="success-creds" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left text-sm">
+          <p class="font-semibold text-foreground">Your new dashboard login</p>
+          <p class="mt-1 text-muted-foreground">Email: <b id="cred-email" class="text-foreground">—</b></p>
+          <p class="text-muted-foreground">Temporary password: <code id="cred-pass" class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">—</code></p>
+          <p class="mt-2 text-xs text-muted-foreground">Please change it after your first sign-in.</p>
+        </div>
+        <!-- existing account (chốt 5): no temp password, sign in as usual -->
+        <div id="success-existing" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
+          This order was added to your <b class="text-foreground">existing account</b> — sign in with your usual password to track it.
+        </div>
         <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
           <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> is on its way, with your <b class="font-semibold text-foreground">dashboard login</b> to follow progress.</span></li>
           <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
           <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
         </ul>
         <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
+          <a id="success-login" href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
           <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
         </div>
       </div>
@@ -729,22 +741,68 @@ const steps = [
       setUsageMode('paste');
     }
 
-    form.addEventListener('submit', (e) => {
+    // The public quick-checkout endpoint (apps/app). Override per-env with PUBLIC_CHECKOUT_URL.
+    const CHECKOUT_URL = import.meta.env.PUBLIC_CHECKOUT_URL || 'http://127.0.0.1:4500/api/public/checkout';
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const errBox = document.getElementById('order-error');
+
+    function showSuccess() {
+      form.classList.add('hidden');
+      const success = document.getElementById('order-success');
+      if (success) { success.classList.remove('hidden'); success.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+    function fail(msg: string) {
+      if (errBox) { errBox.textContent = msg; errBox.classList.remove('hidden'); }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = submitBtn.dataset.label || 'Place order'; }
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       // honeypot — silently treat as success to not tip off bots
       const hp = form.querySelector<HTMLInputElement>('input[name="company_url"]');
-      if (!hp?.value && !form.reportValidity()) return;
+      if (hp?.value) { showSuccess(); return; }
+      if (!form.reportValidity()) return;
 
+      const fd = new FormData(form);
       const selected = radios.find((r) => r.checked);
-      const successPlan = document.getElementById('success-plan');
-      if (successPlan && selected) {
-        successPlan.textContent = (selected.dataset.name || '') + ' · ' + (selected.dataset.priceLabel || '');
-      }
-      form.classList.add('hidden');
-      const success = document.getElementById('order-success');
-      if (success) {
-        success.classList.remove('hidden');
-        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const qtyEl = (document.getElementById('bulk-count') || document.getElementById('usage-count')) as HTMLInputElement | null;
+      const addonPicks: Record<string, string> = {};
+      bumpBoxes.filter((b) => b.checked).forEach((b) => { addonPicks[b.value] = b.dataset.tier || 'default'; });
+
+      const payload = {
+        serviceSlug: String(fd.get('service') || ''),
+        packageId: selected?.value,
+        qty: qtyEl ? Number(qtyEl.value) : undefined,
+        addonPicks,
+        email: String(fd.get('email') || ''),
+        name: String(fd.get('name') || ''),
+      };
+
+      if (submitBtn) { submitBtn.dataset.label = submitBtn.innerHTML; submitBtn.disabled = true; submitBtn.innerHTML = 'Processing…'; }
+      if (errBox) errBox.classList.add('hidden');
+      try {
+        const res = await fetch(CHECKOUT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!data.ok) { fail(data.error || 'Something went wrong — please try again.'); return; }
+
+        const codeEl = document.getElementById('success-code');
+        if (codeEl) codeEl.textContent = data.orderCode;
+        const planEl = document.getElementById('success-plan');
+        if (planEl && selected) planEl.textContent = (selected.dataset.name || '') + ' · $' + data.amount;
+        const loginA = document.getElementById('success-login') as HTMLAnchorElement | null;
+        if (loginA && data.account?.loginUrl) loginA.href = data.account.loginUrl;
+        if (data.account?.tempPassword) {
+          const ce = document.getElementById('cred-email');
+          const cp = document.getElementById('cred-pass');
+          if (ce) ce.textContent = data.account.email;
+          if (cp) cp.textContent = data.account.tempPassword;
+          document.getElementById('success-creds')?.classList.remove('hidden');
+        } else {
+          document.getElementById('success-existing')?.classList.remove('hidden');
+        }
+        showSuccess();
+      } catch {
+        fail('Network error — please try again.');
       }
     });
   }
