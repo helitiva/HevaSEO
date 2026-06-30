@@ -143,6 +143,8 @@ export function createServiceClient() {
 must be preceded by Zod validation of all client-supplied input. An injection in a service-role
 query has unrestricted write access to every table.
 
+> **Implemented** (`apps/app/src/lib/supabase/service.ts`, `import 'server-only'`): live callers are the **top-up server action** (`topUpAction` → `topup` fn + invoice), the **create-order action** (`placeOrderAction` → `create_order`), and the **public marketing checkout** (`POST /api/public/checkout` → provision account + `materialize_order`). All compute the money value server-side (never trusting the client) before calling the service-role-only DB fns. Reads the key from `SUPABASE_SERVICE_ROLE_KEY` (server-only env). See FEATURES §2.16 / §4.6.
+
 ---
 
 ## 3. Environment Variables and Secrets

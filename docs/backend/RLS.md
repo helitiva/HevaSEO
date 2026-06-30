@@ -140,6 +140,8 @@ Concretely:
   SELECT policy. Queries from manager clients must never touch these tables directly. The
   service-role routes that serve admin finance pages are the only callers.
 
+> **Implemented:** `invoices` + `order_addons` follow this money-blind rule (admin tenant + owning customer only; manager/staff → 0 rows; pgTAP `0260`/`0270`). The money-in DB fns `create_order` / `topup` / `materialize_order` are **service-role-only** (execute revoked from `anon`/`authenticated`); their only callers are the dashboard server actions and the public checkout route (`POST /api/public/checkout`). `service_role` also got explicit `grant`s where it writes directly (order_details/order_addons INSERT, invoices SELECT+INSERT, profiles SELECT, customers SELECT/INSERT/UPDATE) — see migrations `20260630130000`–`170000`.
+
 - **Ops tables that carry a money column** (`orders.value`, `customers.spend`, `customers.balance`,
   `catalog_packages.price`, `catalog_packages.gig_rate`) — the manager's Supabase client queries a
   money-redacted VIEW instead of the base table:

@@ -312,6 +312,8 @@ CREATE INDEX orders_service_idx          ON orders(service_id);
 CREATE INDEX orders_created_at_idx       ON orders(created_at DESC);
 ```
 
+> **Implemented — quick-checkout** (migration `20260630150000`): orders gained **`checkout_ref text`** with `unique(tenant_id, checkout_ref)` for idempotent marketing checkout. The atomic DB fn **`materialize_order(tenant, customer, code, service, value, actor, ref)`** (topup + order `source='quick'` + debit, one transaction, service-role-only) writes it; a repeated `ref` returns the same order. See DATA-MODEL §1.5, FEATURES §2.16.
+
 ### 5.2 order_brief_fields
 
 Intake brief from checkout — variable schema per service, so stored as individual rows (not
@@ -589,6 +591,8 @@ CREATE TABLE invoices (
 CREATE INDEX invoices_customer_idx ON invoices(customer_id);
 CREATE INDEX invoices_status_idx   ON invoices(status);
 ```
+
+> **Implemented (Phase 2, migration `20260630140000`):** the live `invoices` table is a simpler **one-receipt-per-credit-top-up** shape — `number` (`HD-YYYY-NNN`, `unique(tenant_id, number)`), `amount`, `status` (`issued|processing|void`), `provider` (`mock|stripe`), `provider_ref`. **Money-blind RLS** (admin tenant + owning customer only; manager/staff 0 rows), pgTAP `0270`; written by `topUpAction` after the provider confirms. The richer model above (invoice↔order M:M) remains the intended full design.
 
 ### 10.3 invoice_orders
 

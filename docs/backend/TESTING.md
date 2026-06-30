@@ -65,6 +65,8 @@ supabase test db                    # runs all SQL test files in supabase/tests/
 psql "$DATABASE_URL" -f supabase/tests/schema/test_money.sql
 ```
 
+> **Implemented pgTAP** (run via `pnpm verify:db`, 240 tests green): money-blind reads `0260_order_addons` + `0270_invoices` (admin/customer see, manager/staff 0 rows); `0280_fn_materialize_order` (quick-checkout atomicity — balance nets to 0, `balance == SUM(ledger)`, idempotent replay returns the same order, distinct ref → new order, service-role-only). **Quick-checkout was also browser-verified e2e** (marketing form → pay → account + order; new account login works; billing persisted) — see FEATURES §4.6.
+
 **Minimum assertions per domain:**
 - All money columns are `numeric`, not `float8` / `double precision`
 - All `CHECK` constraints from `SCHEMA.md` (non-negative amounts, positive counts, period

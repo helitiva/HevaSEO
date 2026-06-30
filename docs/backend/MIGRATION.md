@@ -581,3 +581,15 @@ heva.set.<id>                   → user_settings.preferences (Post-B9)
 
 See `DATA-ACCESS.md §5` for the canonical per-builder/action status table (all `Pending`
 at the time of writing). Update `Done` to `✓` as each domain's phase gate passes.
+
+### Phase-2 migrations added (money + quick-checkout)
+
+| Migration | What |
+|---|---|
+| `20260630130000_grant_order_extras_service` | service_role INSERT on order_details/order_addons (create-order-from-UI) |
+| `20260630140000_invoices` | `invoices` table (one per top-up) + money-blind RLS + pgTAP 0270 |
+| `20260630150000_materialize_order` | `orders.checkout_ref` + atomic `materialize_order` (quick-checkout) + pgTAP 0280 |
+| `20260630160000_grant_checkout_service` | service_role SELECT on profiles + SELECT/INSERT/UPDATE on customers (checkout account provisioning) |
+| `20260630170000_customer_billing` | `customers.billing` jsonb (saved billing from quick-checkout) |
+
+All additive (non-destructive). Runtime needs `SUPABASE_SERVICE_ROLE_KEY` for the top-up + checkout server paths.
