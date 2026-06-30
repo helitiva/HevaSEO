@@ -1264,6 +1264,7 @@ export type Database = {
       orders: {
         Row: {
           assignee_id: string | null
+          checkout_ref: string | null
           code: string
           created_at: string
           customer_id: string
@@ -1279,6 +1280,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          checkout_ref?: string | null
           code: string
           created_at?: string
           customer_id: string
@@ -1294,6 +1296,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          checkout_ref?: string | null
           code?: string
           created_at?: string
           customer_id?: string
@@ -2068,6 +2071,7 @@ export type Database = {
         }
         Returns: {
           assignee_id: string | null
+          checkout_ref: string | null
           code: string
           created_at: string
           customer_id: string
@@ -2093,6 +2097,7 @@ export type Database = {
         Args: { p_order: string }
         Returns: {
           assignee_id: string | null
+          checkout_ref: string | null
           code: string
           created_at: string
           customer_id: string
@@ -2160,6 +2165,7 @@ export type Database = {
         }
         Returns: {
           assignee_id: string | null
+          checkout_ref: string | null
           code: string
           created_at: string
           customer_id: string
@@ -2215,6 +2221,39 @@ export type Database = {
       lives_ok: { Args: { "": string }; Returns: string }
       manager_comm_pct: { Args: never; Returns: number }
       manager_gig_pct: { Args: never; Returns: number }
+      materialize_order: {
+        Args: {
+          p_actor: string
+          p_code: string
+          p_customer: string
+          p_ref: string
+          p_service: string
+          p_tenant: string
+          p_value: number
+        }
+        Returns: {
+          assignee_id: string | null
+          checkout_ref: string | null
+          code: string
+          created_at: string
+          customer_id: string
+          deadline: string | null
+          id: string
+          pkg: string | null
+          priority: Database["public"]["Enums"]["order_priority"]
+          service: string
+          source: Database["public"]["Enums"]["order_source"]
+          state: Database["public"]["Enums"]["order_state"]
+          tenant_id: string
+          value: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       no_plan: { Args: never; Returns: boolean[] }
       num_failed: { Args: never; Returns: number }
       order_assignee_id: { Args: { p_order: string }; Returns: string }
