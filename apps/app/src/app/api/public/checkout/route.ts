@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOrderService, priceQuickOrder } from '@heva/catalog/orders';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import type { Json } from '@/lib/supabase/database.types';
 
 // Phase 2 / inc-Q2 — public marketing quick-checkout (ADR §7, the 6 chốt). An anonymous visitor on the
 // Astro marketing site buys a package; this trusted server endpoint prices it, "charges" via the payment
@@ -48,6 +49,7 @@ function rateLimited(ip: string): boolean {
 type Body = {
   serviceSlug?: unknown; packageId?: unknown; qty?: unknown;
   addonPicks?: unknown; email?: unknown; name?: unknown;
+  billing?: unknown; saveBilling?: unknown;
 };
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,6 +70,9 @@ export async function POST(req: Request) {
   const qty = typeof body.qty === 'number' && body.qty > 0 ? Math.floor(body.qty) : undefined;
   const addonPicks = (body.addonPicks && typeof body.addonPicks === 'object')
     ? (body.addonPicks as Record<string, string>) : {};
+  // billing is saved only when the buyer opts in (chốt 4 convenience — prefill their dashboard later)
+  const billing: Json | null = body.saveBilling && body.billing && typeof body.billing === 'object'
+    ? (body.billing as Json) : null;
 
   const service = getOrderService(body.serviceSlug);
   if (!service) return json({ ok: false, error: 'Unknown service.' }, 404);
@@ -110,12 +115,15 @@ export async function POST(req: Request) {
   let customerId = existingCust?.id ?? null;
   if (!customerId) {
     const { data: created, error: insErr } = await svc.from('customers')
-      .insert({ tenant_id: AGENCY_TENANT, user_id: profileId, name: body.name, email, status: 'claimed', tier: 'new' })
+      .insert({ tenant_id: AGENCY_TENANT, user_id: profileId, name: body.name, email, status: 'claimed', tier: 'new', billing })
       .select('id').single();
     if (insErr) return json({ ok: false, error: insErr.message }, 500);
     customerId = created.id;
   } else if (existingCust && existingCust.user_id !== profileId) {
-    await svc.from('customers').update({ user_id: profileId, status: 'claimed' }).eq('id', customerId);
+    // link/claim the shadow customer (and refresh billing if opted in this time)
+    await svc.from('customers').update({ user_id: profileId, status: 'claimed', ...(billing ? { billing } : {}) }).eq('id', customerId);
+  } else if (billing) {
+    await svc.from('customers').update({ billing }).eq('id', customerId);
   }
 
   // ── "charge" via the provider seam (mock now / Stripe later) ──

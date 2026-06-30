@@ -363,35 +363,117 @@ const steps = [
       </div>
     </form>
 
-    <!-- ============ PAYMENT ============ -->
+    <!-- ============ PAYMENT (step 2) ============ -->
     <div id="order-payment" class="hidden scroll-mt-28">
-      <div class="mx-auto max-w-xl rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 lg:p-8">
-        <button type="button" id="pay-back" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"><i class="ph-bold ph-arrow-left"></i> Back to order</button>
-        <h2 class="font-display text-xl font-bold tracking-tight md:text-2xl">Pay to confirm your order</h2>
-        <div class="mt-4 flex items-center justify-between rounded-2xl border border-border bg-muted/40 px-4 py-3">
-          <span id="pay-plan" class="text-sm font-medium text-foreground">—</span>
-          <span id="pay-total" class="font-display text-2xl font-bold text-primary">—</span>
-        </div>
-
-        <!-- card form (mock gateway — real Stripe drops in behind the same endpoint) -->
-        <div class="mt-5 space-y-3">
-          <div>
-            <label class="mb-1 block text-xs font-medium text-muted-foreground">Card number</label>
-            <input id="pay-card" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
+      <!-- top: order summary recap -->
+      <div class="mb-6 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm shadow-foreground/5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class={`ph-bold ${service.icon}`}></i></span>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Order summary</p>
+              <p class="text-sm font-semibold text-foreground">{service.name} · <span id="pay-plan">—</span></p>
+              <p id="pay-addons" class="hidden text-xs text-muted-foreground"></p>
+            </div>
           </div>
+          <div class="text-right">
+            <p class="text-[11px] font-medium text-muted-foreground">Total due today</p>
+            <p id="pay-total" class="font-display text-2xl font-bold tracking-tight text-primary">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[240px_1fr]">
+        <!-- left: 3-step progress (step 2 active) -->
+        <aside class="lg:sticky lg:top-24 lg:self-start">
+          <button type="button" id="pay-back" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"><i class="ph-bold ph-arrow-left"></i> Back to order</button>
+          <ol class="space-y-1">
+            <li class="flex gap-3 rounded-xl px-3 py-2.5">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-check text-sm"></i></span>
+              <div><p class="text-sm font-semibold text-foreground">Submit order info</p><p class="text-xs text-muted-foreground">Project brief &amp; package — done.</p></div>
+            </li>
+            <li class="flex gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] px-3 py-2.5">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card text-sm"></i></span>
+              <div><p class="text-sm font-semibold text-primary">Pay</p><p class="text-xs text-muted-foreground">Secure payment to confirm your order.</p></div>
+            </li>
+            <li class="flex gap-3 rounded-xl px-3 py-2.5 opacity-70">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package text-sm"></i></span>
+              <div><p class="text-sm font-semibold text-foreground">Delivered — two ways</p><p class="text-xs text-muted-foreground">Track live in your dashboard + report URL/file.</p></div>
+            </li>
+          </ol>
+        </aside>
+
+        <!-- center: payment + billing -->
+        <div class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 lg:p-7">
+          <h2 class="font-display text-lg font-bold tracking-tight md:text-xl">Payment details</h2>
+
+          <!-- payment method -->
+          <p class="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-method="card" class="pay-method flex items-center justify-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition"><i class="ph-bold ph-credit-card text-base"></i> Card</button>
+            <button type="button" data-method="paypal" class="pay-method flex items-center justify-center gap-1.5 rounded-lg border-2 border-border bg-background px-3 py-2.5 text-sm font-bold text-muted-foreground transition hover:border-primary/40"><span class="text-[#003087]">Pay</span><span class="text-[#0070e0]">Pal</span></button>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" id="pay-applepay" class="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"><i class="ph-fill ph-apple-logo text-base"></i> Pay</button>
+            <button type="button" id="pay-gpay" class="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent"><span class="font-bold"><span class="text-[#4285f4]">G</span> Pay</span></button>
+          </div>
+
+          <div class="my-4 flex items-center gap-3 text-[11px] text-muted-foreground"><span class="h-px flex-1 bg-border"></span> or pay with card <span class="h-px flex-1 bg-border"></span></div>
+
+          <!-- card fields -->
+          <div id="pay-card-fields" class="space-y-3">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">Card number</label>
+              <input id="pay-card" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Expiry</label><input id="pay-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+              <div><label class="mb-1 block text-xs font-medium text-muted-foreground">CVC</label><input id="pay-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            </div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Name on card</label><input id="pay-name" autocomplete="cc-name" placeholder="Full name" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+          </div>
+
+          <!-- paypal panel -->
+          <div id="pay-paypal-panel" class="hidden rounded-xl border border-border bg-background p-5 text-center">
+            <p class="text-2xl font-bold"><span class="text-[#003087]">Pay</span><span class="text-[#0070e0]">Pal</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">You'll be redirected to PayPal to complete payment, then sent right back here.</p>
+          </div>
+
+          <!-- billing info -->
+          <p class="mt-6 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Billing information</p>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Expiry</label><input id="pay-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
-            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">CVC</label><input id="pay-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Billing name</label><input id="bill-name" autocomplete="name" placeholder="Jane Doe" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Company (optional)</label><input id="bill-company" autocomplete="organization" placeholder="Your brand" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Address</label><input id="bill-address" autocomplete="street-address" placeholder="123 Market St" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">City</label><input id="bill-city" autocomplete="address-level2" placeholder="San Francisco" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Postal code</label><input id="bill-postal" autocomplete="postal-code" placeholder="94105" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Country</label>
+              <select id="bill-country" autocomplete="country-name" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20">
+                <option value="">Select country…</option>
+                <option>United States</option><option>United Kingdom</option><option>Canada</option><option>Australia</option><option>Vietnam</option><option>Singapore</option><option>Germany</option><option>France</option><option>India</option><option>Other</option>
+              </select>
+            </div>
           </div>
-          <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Name on card</label><input id="pay-name" autocomplete="cc-name" placeholder="Full name" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+
+          <label class="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
+            <input type="checkbox" id="pay-save" checked class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary" />
+            <span class="text-muted-foreground">Save my billing details to my dashboard so I don't have to re-enter them next time.</span>
+          </label>
+
+          <p id="pay-error" class="mt-4 hidden rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive"></p>
+
+          <button type="button" id="pay-submit" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.99]">
+            <i class="ph-bold ph-lock-simple"></i> Pay <span id="pay-amount">—</span>
+          </button>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-lock-simple text-emerald-500"></i> Payments secured by <b class="text-foreground">Stripe</b> · we never store your card details</p>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex h-5 items-center rounded bg-[#1434cb] px-1.5 text-[9px] font-bold tracking-wide text-white">VISA</span>
+              <span class="inline-flex h-5 items-center rounded bg-[#eb001b] px-1.5 text-[9px] font-bold tracking-wide text-white">MC</span>
+              <span class="inline-flex h-5 items-center rounded bg-[#1f72cd] px-1.5 text-[9px] font-bold tracking-wide text-white">AMEX</span>
+            </div>
+          </div>
         </div>
-
-        <p id="pay-error" class="mt-3 hidden rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive"></p>
-
-        <button type="button" id="pay-submit" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.99]">
-          <i class="ph-bold ph-lock-simple"></i> Pay <span id="pay-amount">—</span>
-        </button>
-        <p class="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-lock-simple text-emerald-500"></i> Payments secured by <b class="text-foreground">Stripe</b> · test mode</p>
       </div>
     </div>
 
@@ -418,7 +500,7 @@ const steps = [
           This order was added to your <b class="text-foreground">existing account</b> — sign in with your usual password to track it.
         </div>
         <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> is on its way, with your <b class="font-semibold text-foreground">dashboard login</b> to follow progress.</span></li>
+          <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> with your <b class="font-semibold text-foreground">order details</b> and <b class="font-semibold text-foreground">dashboard login</b> is on its way.</span></li>
           <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
           <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
         </ul>
@@ -777,6 +859,7 @@ const steps = [
     const payPanel = document.getElementById('order-payment');
     const paySubmit = document.getElementById('pay-submit') as HTMLButtonElement | null;
     const payErr = document.getElementById('pay-error');
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value || '';
     let pending: {
       serviceSlug: string; packageId?: string; qty?: number;
       addonPicks: Record<string, string>; email: string; name: string; planName: string;
@@ -792,6 +875,47 @@ const steps = [
       payPanel?.classList.add('hidden');
       reveal(document.getElementById('order-success'));
     }
+
+    // celebratory confetti burst on a confirmed order (self-contained canvas, no deps).
+    function burstConfetti() {
+      const c = document.createElement('canvas');
+      c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999';
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      document.body.appendChild(c);
+      const ctx = c.getContext('2d'); if (!ctx) { c.remove(); return; }
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+      const parts = Array.from({ length: 160 }, () => ({
+        x: c.width / 2, y: c.height * 0.28,
+        vx: (Math.random() - 0.5) * 14, vy: Math.random() * -15 - 4,
+        r: Math.random() * 6 + 3, col: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.35,
+      }));
+      let t = 0;
+      (function frame() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        parts.forEach((p) => {
+          p.vy += 0.3; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.col; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6); ctx.restore();
+        });
+        if (++t < 170) requestAnimationFrame(frame); else c.remove();
+      })();
+    }
+
+    // payment-method tabs (Card / PayPal); Apple/G Pay are express buttons.
+    let payMethod = 'card';
+    const methodBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.pay-method'));
+    function setMethod(m: string) {
+      payMethod = m;
+      methodBtns.forEach((b) => {
+        const on = b.dataset.method === m;
+        b.classList.remove('border-primary', 'bg-primary/5', 'border-border', 'bg-background');
+        b.classList.add(on ? 'border-primary' : 'border-border', on ? 'bg-primary/5' : 'bg-background');
+      });
+      document.getElementById('pay-card-fields')?.classList.toggle('hidden', m !== 'card');
+      document.getElementById('pay-paypal-panel')?.classList.toggle('hidden', m !== 'paypal');
+    }
+    methodBtns.forEach((b) => b.addEventListener('click', () => setMethod(b.dataset.method || 'card')));
 
     // Step 1 — validate the order, then move to the PAYMENT step. Nothing is charged here.
     form.addEventListener('submit', (e) => {
@@ -815,12 +939,21 @@ const steps = [
         planName: selected?.dataset.name || '',
       };
       const total = (document.getElementById('os-total')?.textContent || '').trim();
-      const planEl = document.getElementById('pay-plan');
-      if (planEl) planEl.textContent = pending.planName || 'Your order';
-      const totalEl = document.getElementById('pay-total');
-      if (totalEl) totalEl.textContent = total || '—';
-      const amtEl = document.getElementById('pay-amount');
-      if (amtEl) amtEl.textContent = total || '';
+      const planEl = document.getElementById('pay-plan'); if (planEl) planEl.textContent = pending.planName || 'Your order';
+      const totalEl = document.getElementById('pay-total'); if (totalEl) totalEl.textContent = total || '—';
+      const amtEl = document.getElementById('pay-amount'); if (amtEl) amtEl.textContent = total || '';
+      // recap chosen add-ons
+      const addonNames = bumpBoxes.filter((b) => b.checked).map((b) => b.dataset.name).filter(Boolean);
+      const addonEl = document.getElementById('pay-addons');
+      if (addonEl) { addonEl.textContent = addonNames.length ? '+ ' + addonNames.join(', ') : ''; addonEl.classList.toggle('hidden', !addonNames.length); }
+      // prefill billing + cardholder from the details they already gave
+      const nm = String(fd.get('name') || '');
+      (document.getElementById('bill-name') as HTMLInputElement | null)?.setAttribute('value', nm);
+      const billName = document.getElementById('bill-name') as HTMLInputElement | null; if (billName && !billName.value) billName.value = nm;
+      const payName = document.getElementById('pay-name') as HTMLInputElement | null; if (payName && !payName.value) payName.value = nm;
+      const billCo = document.getElementById('bill-company') as HTMLInputElement | null;
+      if (billCo && !billCo.value) billCo.value = String(fd.get('company') || '');
+
       form.classList.add('hidden');
       reveal(payPanel);
     });
@@ -831,34 +964,42 @@ const steps = [
       form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    // Step 2 — "pay" via the (mock) gateway → the server prices + charges + materializes the order.
-    paySubmit?.addEventListener('click', async () => {
+    // Step 2 — pay via the (mock) gateway → the server prices + charges + materializes the order.
+    const showErr = (m: string) => { if (payErr) { payErr.textContent = m; payErr.classList.remove('hidden'); } };
+    async function doPay(viaWallet = false) {
       if (!pending) return;
-      const card = ((document.getElementById('pay-card') as HTMLInputElement | null)?.value || '').replace(/\s/g, '');
-      const exp = (document.getElementById('pay-exp') as HTMLInputElement | null)?.value || '';
-      const cvc = (document.getElementById('pay-cvc') as HTMLInputElement | null)?.value || '';
-      const nameOnCard = (document.getElementById('pay-name') as HTMLInputElement | null)?.value || '';
-      const showErr = (m: string) => { if (payErr) { payErr.textContent = m; payErr.classList.remove('hidden'); } };
-      if (card.length < 12 || !/^\d{2}\/?\d{2}$/.test(exp) || cvc.length < 3 || !nameOnCard.trim()) {
-        showErr('Please enter your card details to pay.'); return;
+      const billing = {
+        name: val('bill-name'), company: val('bill-company'), address: val('bill-address'),
+        city: val('bill-city'), postal: val('bill-postal'),
+        country: (document.getElementById('bill-country') as HTMLSelectElement | null)?.value || '',
+      };
+      if (!billing.name.trim() || !billing.address.trim() || !billing.city.trim() || !billing.postal.trim() || !billing.country) {
+        showErr('Please complete your billing information.'); return;
+      }
+      if (!viaWallet && payMethod === 'card') {
+        const card = val('pay-card').replace(/\s/g, '');
+        if (card.length < 12 || !/^\d{2}\/?\d{2}$/.test(val('pay-exp')) || val('pay-cvc').length < 3 || !val('pay-name').trim()) {
+          showErr('Please enter your card details to pay.'); return;
+        }
       }
       payErr?.classList.add('hidden');
-      const label = paySubmit.innerHTML;
-      paySubmit.disabled = true; paySubmit.innerHTML = 'Processing…';
+      const label = paySubmit ? paySubmit.innerHTML : '';
+      if (paySubmit) { paySubmit.disabled = true; paySubmit.innerHTML = 'Processing…'; }
       try {
-        const res = await fetch(CHECKOUT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending) });
+        const saveBilling = (document.getElementById('pay-save') as HTMLInputElement | null)?.checked ?? false;
+        const res = await fetch(CHECKOUT_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...pending, billing, saveBilling }),
+        });
         const data = await res.json();
-        if (!data.ok) { showErr(data.error || 'Payment failed — please try again.'); paySubmit.disabled = false; paySubmit.innerHTML = label; return; }
+        if (!data.ok) { showErr(data.error || 'Payment failed — please try again.'); if (paySubmit) { paySubmit.disabled = false; paySubmit.innerHTML = label; } return; }
 
-        const codeEl = document.getElementById('success-code');
-        if (codeEl) codeEl.textContent = data.orderCode;
-        const planEl = document.getElementById('success-plan');
-        if (planEl) planEl.textContent = pending.planName + ' · $' + data.amount;
+        const codeEl = document.getElementById('success-code'); if (codeEl) codeEl.textContent = data.orderCode;
+        const planEl = document.getElementById('success-plan'); if (planEl) planEl.textContent = pending.planName + ' · $' + data.amount;
         const loginA = document.getElementById('success-login') as HTMLAnchorElement | null;
         if (loginA && data.account?.loginUrl) loginA.href = data.account.loginUrl;
         if (data.account?.tempPassword) {
-          const ce = document.getElementById('cred-email');
-          const cp = document.getElementById('cred-pass');
+          const ce = document.getElementById('cred-email'); const cp = document.getElementById('cred-pass');
           if (ce) ce.textContent = data.account.email;
           if (cp) cp.textContent = data.account.tempPassword;
           document.getElementById('success-creds')?.classList.remove('hidden');
@@ -866,10 +1007,15 @@ const steps = [
           document.getElementById('success-existing')?.classList.remove('hidden');
         }
         showSuccess();
+        burstConfetti();
       } catch {
         showErr('Network error — please try again.');
-        paySubmit.disabled = false; paySubmit.innerHTML = label;
+        if (paySubmit) { paySubmit.disabled = false; paySubmit.innerHTML = label; }
       }
-    });
+    }
+
+    paySubmit?.addEventListener('click', () => doPay(false));
+    document.getElementById('pay-applepay')?.addEventListener('click', () => doPay(true));
+    document.getElementById('pay-gpay')?.addEventListener('click', () => doPay(true));
   }
 </script>
