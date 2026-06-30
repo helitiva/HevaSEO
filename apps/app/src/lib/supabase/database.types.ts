@@ -742,6 +742,8 @@ export type Database = {
           files: Json
           id: string
           order_id: string
+          review_note: string | null
+          reviewed_at: string | null
           status: Database["public"]["Enums"]["deliverable_status"]
           submitted_at: string
           submitter_id: string
@@ -754,6 +756,8 @@ export type Database = {
           files?: Json
           id?: string
           order_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
           status?: Database["public"]["Enums"]["deliverable_status"]
           submitted_at?: string
           submitter_id: string
@@ -766,6 +770,8 @@ export type Database = {
           files?: Json
           id?: string
           order_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
           status?: Database["public"]["Enums"]["deliverable_status"]
           submitted_at?: string
           submitter_id?: string

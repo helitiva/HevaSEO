@@ -180,3 +180,17 @@ join public.orders o on o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and
 insert into public.assignment_rules (tenant_id, service, pkg, mode, target_staff_id) values
   ('a9e0c0de-0000-4000-8000-000000000001', 'Backlink', null, 'pin',  'b000bbbb-0000-4000-8000-000000000001'),
   ('a9e0c0de-0000-4000-8000-000000000001', 'Content',  null, 'auto', null);
+
+-- Step 2 inc-5e — deliverables for the review board: a queue item (latest 'submitted'), a resubmission
+-- (v1 changes_requested + v2 submitted), an approved one (stats), and a sent-back one.
+insert into public.deliverables (tenant_id, order_id, submitter_id, version, status, summary, files, submitted_at, reviewed_at, review_note)
+select 'a9e0c0de-0000-4000-8000-000000000001', o.id, x.submitter::uuid, x.version, x.status::deliverable_status,
+       x.summary, x.files::jsonb, x.submitted::timestamptz, nullif(x.reviewed, '')::timestamptz, nullif(x.review_note, '')
+from (values
+  ('BL-1003',  'b000bbbb-0000-4000-8000-000000000001', 1, 'submitted',         'Nova — link prospects batch 1',     '[{"kind":"file","fileName":"nova-links-v1.xlsx","url":null}]',        '2026-06-23', '',           ''),
+  ('CNT-1004', 'b000bbbb-0000-4000-8000-000000000002', 1, 'changes_requested', 'First draft — 5 posts',             '[{"kind":"file","fileName":"acme-blog-v1.docx","url":null}]',         '2026-06-22', '2026-06-23', 'Add internal links and meta titles/descriptions.'),
+  ('CNT-1004', 'b000bbbb-0000-4000-8000-000000000002', 2, 'submitted',         'Added internal links + meta',       '[{"kind":"file","fileName":"acme-blog-v2.docx","url":null}]',         '2026-06-24', '',           ''),
+  ('KW-1013',  'b000aaaa-0000-4000-8000-000000000003', 1, 'approved',          'Keyword map + search intent',       '[{"kind":"link","fileName":null,"url":"https://docs.example/kw-1013"}]', '2026-06-18', '2026-06-19', ''),
+  ('BL-1014',  'b000bbbb-0000-4000-8000-000000000001', 1, 'changes_requested', 'Starter links — first batch',       '[{"kind":"file","fileName":"bright-links.xlsx","url":null}]',         '2026-06-23', '2026-06-24', 'Anchor profile too exact-match.')
+) as x(code, submitter, version, status, summary, files, submitted, reviewed, review_note)
+join public.orders o on o.tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and o.code = x.code;

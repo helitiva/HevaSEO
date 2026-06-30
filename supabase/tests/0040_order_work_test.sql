@@ -1,12 +1,15 @@
 -- E0b increment 4: tasks + deliverables RLS (the delivery loop).
 -- Staff see only their own work; customers see only APPROVED deliverables for their orders.
 begin;
-select plan(8);
+select plan(10);
 
 select has_table('tasks', 'tasks table exists');
 select has_table('deliverables', 'deliverables table exists');
 select ok((select relrowsecurity from pg_class where relname = 'tasks'), 'RLS on tasks');
 select ok((select relrowsecurity from pg_class where relname = 'deliverables'), 'RLS on deliverables');
+-- inc-5e: reviewer verdict columns for the review board
+select has_column('deliverables', 'reviewed_at', 'deliverables has reviewed_at');
+select has_column('deliverables', 'review_note', 'deliverables has review_note');
 
 -- seed as superuser
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');

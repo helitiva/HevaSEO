@@ -32,6 +32,8 @@ getPodOrderById(id): Promise<AdminOrder | null>  // money-blind single read via 
 getMyOrders(): Promise<Order[]>                   // customer dashboard: own orders DERIVED to data/mock.ts Order (domain/progress/invoice/pay defaulted; canceled excluded)
 // buildOrderDetailProps(order|id) now takes a real AdminOrder (mock companions fall back); id form = mock only
 // [PURE] lib/orderMap.ts — DB-row→model mappers (toAdminOrder/toMgrOrder/toCustomerOrder + CUST_STATUS/SERVICE_KEY/UUID_RE); unit-tested (orderMap.test.ts). Used by orders.server.ts.
+// [READ — REAL, inc-5b/c] data/orders.server.ts → getOrderDetail(id): order_details brief/project/folder/included + order_addons (money-blind) — for /orders/[id]
+// [READ — REAL, inc-5e] data/deliverables.server.ts → getDeliverables(): Promise<AdminDeliverable[]>  // review board (admin RLS); staff name via submitter join
 // [READ — mock, migrating consumer-by-consumer] data/mock.ts, data/adminMock.ts
 ORDERS: AdminOrder[]                              // → SELECT scoped RLS (customer own / manager pod / admin all)
 activityFor(o: Order): Activity[]
