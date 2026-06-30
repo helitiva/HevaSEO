@@ -2370,6 +2370,7 @@ export type Database = {
       current_skills: { Args: never; Returns: string[] }
       current_tenant_id: { Args: never; Returns: string }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      delete_broadcast: { Args: { p_id: string }; Returns: undefined }
       delete_doc: { Args: { p_id: string }; Returns: undefined }
       diag:
         | {
@@ -2553,6 +2554,10 @@ export type Database = {
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
+      set_broadcast_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
       set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
       skip:
         | { Args: { "": string }; Returns: string }
@@ -2576,6 +2581,49 @@ export type Database = {
           p_tenant: string
         }
         Returns: undefined
+      }
+      upsert_broadcast: {
+        Args: {
+          p_article?: string
+          p_audiences: string[]
+          p_banner: boolean
+          p_body: string
+          p_cta?: Json
+          p_display_kind: string
+          p_expires_at?: string
+          p_id?: string
+          p_pinned: boolean
+          p_require_ack: boolean
+          p_scheduled_at?: string
+          p_status: string
+          p_title: string
+        }
+        Returns: {
+          article: string | null
+          audiences: string[]
+          banner: boolean
+          body: string | null
+          created_at: string
+          created_by_id: string | null
+          cta: Json | null
+          display_kind: string
+          expires_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["broadcast_kind"]
+          pinned: boolean
+          require_ack: boolean
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["broadcast_status"]
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "broadcasts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       upsert_doc: {
         Args: {

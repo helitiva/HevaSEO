@@ -22,9 +22,12 @@ function fmtDur(ms: number | null): string {
   return `${(h / 24).toFixed(1)}d`;
 }
 
-export function BroadcastDetailClient({ id }: { id: string }) {
+export function BroadcastDetailClient({ id, broadcast }: { id: string; broadcast?: Broadcast }) {
+  // Lane C inc-C5: `broadcast` is the real DB record (admin reader). The analytics below are still
+  // mock-derived (real broadcast_events receipts = inc-C6). saveBroadcast (the "remind unread" nudge)
+  // stays on the mock store for now.
   const { all, saveBroadcast, ready } = useBroadcasts();
-  const b = all.find((x) => x.id === id);
+  const b = broadcast ?? all.find((x) => x.id === id);
 
   // Recompute analytics when the store changes (e.g. a persona reads in another tab).
   const [tick, setTick] = useState(0);

@@ -1,8 +1,10 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useBroadcasts, broadcastStats, useBroadcastActivity, newBroadcastId, nowIso } from '@/data/broadcastStore';
+import { useRouter } from 'next/navigation';
+import { broadcastStats, useBroadcastActivity, newBroadcastId, nowIso } from '@/data/broadcastStore';
 import { messageReadCount } from '@/lib/broadcastAnalytics';
+import { saveBroadcastAction, setBroadcastActiveAction, deleteBroadcastAction } from '@/app/admin/broadcasts/broadcast.actions';
 import { BroadcastComposer } from './BroadcastComposer';
 import { KIND_META, AUDIENCE_META, isLive, isScheduled, type Broadcast } from '@/data/broadcasts';
 import { ago } from '@/lib/relativeTime';
@@ -16,12 +18,16 @@ function statusOf(b: Broadcast): { label: string; cls: string } {
 
 // Admin control room for broadcasts: compose, see who each message went to / how it's shown / who
 // read it, edit, duplicate, recall/restore, or delete. Recall stops delivery without deleting.
-export function BroadcastsManager() {
-  const { all, saveBroadcast, setActive, removeBroadcast, isSeed } = useBroadcasts();
+// Lane C inc-C5 — `broadcasts` is the real admin list (getBroadcasts). Compose/edit/recall/delete go
+// through the admin-gated DB fns; analytics columns (read counts) are still mock until inc-C6.
+export function BroadcastsManager({ broadcasts }: { broadcasts: Broadcast[] }) {
+  const router = useRouter();
+  const all = broadcasts;
   const activity = useBroadcastActivity();
   const [composer, setComposer] = useState<{ open: boolean; editing: Broadcast | null }>({ open: false, editing: null });
   const [confirm, setConfirm] = useState<{ id: string; title: string } | null>(null);
   const [query, setQuery] = useState('');
+  const [err, setErr] = useState('');
 
   const live = useMemo(() => all.filter((b) => isLive(b)).length, [all]);
   const banners = useMemo(() => all.filter((b) => isLive(b) && b.banner).length, [all]);
@@ -32,8 +38,26 @@ export function BroadcastsManager() {
 
   const openNew = () => setComposer({ open: true, editing: null });
   const openEdit = (b: Broadcast) => setComposer({ open: true, editing: b });
-  const onSave = (b: Broadcast) => { saveBroadcast(b); setComposer({ open: false, editing: null }); };
-  const duplicate = (b: Broadcast) => saveBroadcast({ ...b, id: newBroadcastId(), title: `${b.title} (copy)`, createdAt: nowIso(), updatedAt: undefined, publishAt: null, active: true });
+  const onSave = async (b: Broadcast) => {
+    const res = await saveBroadcastAction(b);
+    if (!res.ok) { setErr(res.error); return; }
+    setComposer({ open: false, editing: null }); setErr(''); router.refresh();
+  };
+  const duplicate = async (b: Broadcast) => {
+    const res = await saveBroadcastAction({ ...b, id: newBroadcastId(), title: `${b.title} (copy)`, createdAt: nowIso(), updatedAt: undefined, publishAt: null, active: true });
+    if (!res.ok) { setErr(res.error); return; }
+    router.refresh();
+  };
+  const setActive = async (id: string, active: boolean) => {
+    const res = await setBroadcastActiveAction(id, active);
+    if (!res.ok) { setErr(res.error); return; }
+    router.refresh();
+  };
+  const removeBroadcast = async (id: string) => {
+    const res = await deleteBroadcastAction(id);
+    if (!res.ok) { setErr(res.error); return; }
+    router.refresh();
+  };
 
   return (
     <section className="space-y-5">
@@ -50,6 +74,8 @@ export function BroadcastsManager() {
           <button onClick={openNew} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-plus" aria-hidden /> New message</button>
         </div>
       </div>
+
+      {err && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{err}</p>}
 
       <div className="grid gap-3 sm:grid-cols-4">
         <Kpi icon="ph-megaphone" label="Total" value={String(all.length)} />
@@ -99,7 +125,7 @@ export function BroadcastsManager() {
                       {b.active
                         ? <button onClick={() => setActive(b.id, false)} title="Recall (stop delivering)" aria-label="Recall" className="text-muted-foreground hover:text-amber-600"><i className="ph-bold ph-arrow-u-up-left" aria-hidden /></button>
                         : <button onClick={() => setActive(b.id, true)} title="Restore" aria-label="Restore" className="text-muted-foreground hover:text-emerald-600"><i className="ph-bold ph-arrow-clockwise" aria-hidden /></button>}
-                      <button onClick={() => setConfirm({ id: b.id, title: b.title })} title={isSeed(b.id) ? 'Hide' : 'Delete'} aria-label={isSeed(b.id) ? 'Hide' : 'Delete'} className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
+                      <button onClick={() => setConfirm({ id: b.id, title: b.title })} title="Delete" aria-label="Delete" className="text-muted-foreground hover:text-destructive"><i className="ph-bold ph-trash" aria-hidden /></button>
                     </div>
                   </td>
                 </tr>

@@ -44,19 +44,35 @@ function toBroadcast(r: Row): Broadcast {
     expiresAt: r.expires_at ?? null,
     requireAck: r.require_ack,
     active: r.status !== 'recalled',
-    system: true, // DB-sourced; recipient surfaces are read-only
+    system: false, // real DB broadcast → admin-editable (recipient surfaces are read-only by UI anyway)
   };
 }
+
+const COLS = 'id, title, body, article, display_kind, audiences, banner, pinned, cta, status, scheduled_at, expires_at, require_ack, created_at, updated_at';
 
 export async function getMyBroadcasts(): Promise<Broadcast[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('broadcasts')
-    .select('id, title, body, article, display_kind, audiences, banner, pinned, cta, status, scheduled_at, expires_at, require_ack, created_at, updated_at')
+    .select(COLS)
     .in('status', ['live', 'scheduled'])
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(`getMyBroadcasts: ${error.message}`);
+  return (data ?? []).map(toBroadcast);
+}
+
+// Lane C inc-C5 — admin sees ALL tenant broadcasts (broadcasts_admin RLS), incl recalled + draft, for
+// the management console. active=false marks recalled (the manager surfaces that as the "Recalled" state).
+export async function getBroadcasts(): Promise<Broadcast[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('broadcasts')
+    .select(COLS)
+    .order('pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+    .returns<Row[]>();
+  if (error) throw new Error(`getBroadcasts: ${error.message}`);
   return (data ?? []).map(toBroadcast);
 }
