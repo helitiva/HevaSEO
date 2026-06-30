@@ -47,6 +47,7 @@ Source: `AdminCustomer` + `CustomerExtra` in `adminMock.ts`.
 | `member_since` | date | from `CustomerExtra` |
 | `tags` | text[] | e.g. `['Retainer','E-commerce']` |
 | `referrer_id` | text FK → Affiliate | null if organic; from `CUSTOMER_REFERRER` |
+| `billing` | jsonb | **Implemented** (Phase 2, migration `20260630170000`): saved billing details (name/company/address/city/postal/country) when a quick-checkout buyer opts in, so the dashboard prefills them next time. |
 
 **Relationships:** Customer → Orders (1:many), Customer → Tickets (1:many), Customer → Invoices (1:many), Customer → Projects (1:many).
 
@@ -168,6 +169,8 @@ Source: `AdminOrder` in `adminMock.ts`; `Order` in `mock.ts` (customer-facing vi
 |---|---|---|
 | `parent_order_id` | text FK → Order | |
 | `child_order_id` | text FK → Order | |
+
+> **Implemented — marketing quick-checkout** (Phase 2, migration `20260630150000`): orders has an added **`checkout_ref`** column (`unique(tenant_id, checkout_ref)`) — the payment reference that makes checkout idempotent. DB fn **`materialize_order(tenant, customer, code, service, value, actor, ref)`** = ONE transaction: topup the exact value + insert the order (`source = 'quick'`) + debit + audit; returns the existing order on a repeated `ref` (never double-charges). **service-role-only** (client value untrusted). Called by `POST /api/public/checkout` after the payment provider (mock now / Stripe later) confirms. See FEATURES §2.16 / §4.6, ADR §7.
 
 ---
 
@@ -348,6 +351,8 @@ Source: `Invoice` in `adminMock.ts`.
 |---|---|
 | `invoice_id` | text FK → invoices |
 | `order_id` | text FK → orders |
+
+> **Implemented — invoices** (Phase 2, migration `20260630140000`): a real `invoices` table holds **one receipt per credit top-up** — `number` (`HD-YYYY-NNN`, `unique(tenant_id, number)`), `amount`, `status` (`issued|processing|void`), `provider` (`mock|stripe`), `provider_ref`. **MONEY → money-blind RLS** (admin tenant + owning customer only; manager/staff get 0 rows), pgTAP `0270`. Written by the top-up server action (`topUpAction`) after the provider confirms; read into `/credit` via `getMyCredit`. (The richer design above — invoice↔order M:M, statuses — is the intended full model.)
 
 ---
 

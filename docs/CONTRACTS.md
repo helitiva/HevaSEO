@@ -240,16 +240,19 @@ Backend: `email_templates`, `email_log` (append-only, idempotent theo `order_id`
 ## B. Marketing quick-order (`apps/web` — Astro, điểm vào đặt đơn của khách mới)
 
 ```ts
-// [READ] apps/web/src/data/orders.ts — single source of the quick-order flow (/order/<slug>)
+// [READ — REAL, SINGLE SOURCE] @heva/catalog/orders (was apps/web/src/data/orders.ts → now a re-export shim)
 orderServices: OrderService[] · getOrderService(slug): OrderService | undefined · DEFAULT_STEPS
+priceQuickOrder(service, {packageId, qty, addonPicks}): QuickOrderPrice   // [PURE] server-trusted marketing price (chốt 1); shared by apps/web + the checkout route
 // 7 dịch vụ: keyword-research, audit, website-optimization, seo-web-design, backlink, content, indexer
-// Mỗi service: packages (flat/bulk/usage pricing) + brief fields. Submit HIỆN TẠI = mock, no backend.
+// Mỗi service: packages (flat/bulk/usage pricing) + brief fields + addons. Submit = PAY-FIRST (OrderShell.astro 2 bước).
 // Kiểu chốt: OrderService, OrderPackage, PackageGroup, FieldDef, BulkConfig, UsageConfig, UsageTier, PricingMode, OrderStep
-// [WRITE→PUBLIC] POST /api/public/checkout (ADR §7, Phase 2):
-//   verify Turnstile → giá server-side theo package_id → Stripe Checkout
-//   → webhook idempotent (stripe_event_id UNIQUE) → materialize_order():
-//     find/create customer by email (chỉ link shadow, claimed_at IS NULL) → ledger topup → create_order(−debit)
-//     → send_order_email(order, 'checkout') (status + login link + temp password)
+// [WRITE→PUBLIC — REAL, Phase 2 inc-Q2] POST /api/public/checkout (apps/app; ADR §7, 6 chốt; mock gateway):
+//   validate → priceQuickOrder (server, client total never trusted) → getPaymentProvider().charge (mock/Stripe)
+//   → provision/link account (auth.admin.createUser temp-password | existing claimed → attach) 
+//   → materialize_order(tenant, customer, code, service, value, actor, ref): ATOMIC topup + order(source=quick) + debit,
+//     idempotent by orders.checkout_ref (migration 20260630150000) — service-role-only
+//   → optional billing save (customers.billing jsonb). Email send (send_order_email) = Phase 2.
+//   chốt status: ①server-price ✅ ②rate-limit in-mem✅ / Turnstile stub ③idempotent✅ ④temp-pass✅ ⑤email-collision✅ ⑥reconcile=Stripe-only
 ```
 
 ## C. Coverage map — module data/lib còn lại (mỗi cái 1 dòng, để `contract-coverage` xanh)

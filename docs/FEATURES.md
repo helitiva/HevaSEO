@@ -216,14 +216,19 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 
 ### 2.16 Marketing quick-order & order-email lifecycle
 
-**Self-serve order entry from the marketing site + transactional email across the order lifecycle.** (Marketing UI lives in `apps/web` (Astro); email auto-send + account provisioning are **backend Phase 2** — ADR §7.)
+**Self-serve, PAY-FIRST order entry from the marketing site (`apps/web`, Astro) backed by a trusted checkout endpoint in `apps/app`.** A visitor with no dashboard account can buy a service end-to-end; the order only reaches the backend **after a successful charge**. **Implemented Phase 2** (mock payment gateway — real Stripe drops in behind the same seam). Email auto-send is the remaining Phase-2 piece; today the dashboard login + temp password are shown on the confirmation card instead.
 
 | Feature | Description | Routes / Source |
 |---|---|---|
-| Marketing quick-order | A new customer (no dashboard account) picks a service package, fills a brief, and orders — 7 services (keyword-research, audit, website-optimization, seo-web-design, backlink, content, indexer), each with flat/bulk/usage pricing. **Submit is a mock (no backend) in Phase 0.** | `apps/web` `/order/[slug]`, `data/orders.ts`, `components/order/*` |
-| Public checkout | New customer pays at checkout → `materialize_order` creates a shadow→claimed customer + the order (ADR §7: server-side pricing, Turnstile, idempotent Stripe webhook, anti-email-collision) | `POST /api/public/checkout` (Phase 2) |
-| Account provisioning on checkout | After ordering, the customer is emailed their **order status + a dashboard login link + a temp password** (must change on first login) — or they can stay email-only | `lib/auth.ts` (`createAccount` → temp password + `useOutbox`), Phase 2 |
-| Transactional order emails | System **auto-sends** on lifecycle events: checkout received, **order accepted** (dashboard orders), **order completed (+report)**. Customer may receive the **report by email** instead of using the dashboard. | `email_log`, DB fn `send_order_email(order, event)` (Phase 2) |
+| Marketing quick-order | Pick a service package (7 services: keyword-research, audit, website-optimization, seo-web-design, backlink, content, indexer; flat/bulk/usage pricing), fill the brief + contact, choose upsell add-ons. Catalog is the **single source** shared with the dashboard. **DONE.** | `apps/web` `/order/[slug]`, **`@heva/catalog/orders`**, `components/order/*` |
+| Pay-first 2-step flow | "Continue to payment" → dedicated payment screen (3-col: **step rail · payment form · order-details panel**); nothing is charged until the user pays. On success the centre swaps to an inline **"Order received"** card (confetti) and the rail advances (Pay ✓ → Delivered "Coming soon"). **DONE.** | `OrderShell.astro` |
+| Public checkout — the 6 chốt | Trusted server endpoint: ① **server-side price** (`priceQuickOrder`, client total never trusted) · ② rate-limit (in-mem) + Turnstile (*stub — needs key*) · ③ **idempotent** by `orders.checkout_ref` · ④ **temp-password** account · ⑤ **email-collision guard** (claimed account → attach order, no re-create / no auto-login) · ⑥ reconcile (*Stripe-only, deferred*). **DONE (mock).** | `POST /api/public/checkout` (apps/app) |
+| Payment provider seam | Card charge behind a `PaymentProvider` interface — **MockProvider** now (any card passes; an amount ending `.99` = simulated decline); a real **StripeProvider** drops in later behind the same endpoint, no UI change. | `lib/payments/provider.ts` |
+| `materialize_order` (atomic) | One transaction: topup the exact value **+** create the order (`source = quick`) **+** debit — never sells credit without an order; idempotent by `checkout_ref`. service-role-only. | `materialize_order` DB fn (migration `20260630150000`) |
+| Account provisioning on checkout | New/shadow email → service-role `auth.admin.createUser` (temp password) → `handle_new_user` trigger makes the profile; the route find/creates + links the `customers` row. The new login + **temp password** appear on the confirmation card *(email send = Phase 2)*. | route handler + `handle_new_user` |
+| Billing save | Buyer can opt-in to save billing (name/company/address/city/postal/country) to **`customers.billing`** so the dashboard prefills it next time. | `customers.billing` jsonb (migration `20260630170000`) |
+| Order details panel | The payment + confirmation screens show the chosen plan + **what it includes** (features), each **upsell add-on + price**, and the total due. | `OrderShell.astro` |
+| Transactional order emails | *(Phase 2, not built)* auto-send on checkout / **order accepted** / **completed (+report)**; customer may receive the report by email instead of the dashboard. | `email_log`, DB fn `send_order_email(order, event)` |
 | Admin email templates | Admin creates/edits the email templates (subject/body/variables); the system fills + auto-sends them per event | `EmailTemplate` in `AdminSettings.email[]`, `/admin/settings` |
 
 ---
@@ -371,6 +376,32 @@ flowchart LR
     D -->|audiences: manager| G[/manager/docs\nmanager library]
     D -->|all| H[/admin/docs\nadmin sees all]
 ```
+
+### 4.6 Marketing quick-order checkout (pay-first)
+
+How a marketing visitor becomes a paying customer with a dashboard account, end-to-end:
+
+```mermaid
+flowchart TD
+    A([Visitor on apps/web /order/slug]) --> B[Pick package + add-ons + brief + email]
+    B --> C[Continue to payment]
+    C --> D[Payment screen: 3-col\nstep rail · card/billing · order details]
+    D --> E[Pay $X — mock gateway]
+    E --> F{POST /api/public/checkout\napps/app, the 6 chốt}
+    F --> G[priceQuickOrder server-side\nclient total ignored]
+    G --> H[getPaymentProvider.charge\nmock now / Stripe later]
+    H -->|declined| D
+    H -->|ok| I{account by email}
+    I -->|new / shadow| J[auth.admin.createUser\ntemp password → trigger makes profile]
+    I -->|already claimed| K[attach order, no re-create]
+    J --> L[materialize_order ATOMIC\ntopup + order(quick) + debit\nidempotent by checkout_ref]
+    K --> L
+    L --> M[save customers.billing if opted-in]
+    M --> N([Order received card + confetti\nrail → Pay done, Delivered 'coming soon'])
+    N --> O[New acct: login + temp password shown\nemail send = Phase 2]
+```
+
+**Operational notes:** the order is created **only after a successful charge** (no honeypot/lead-gate — payment is the gate). Price is always recomputed server-side from the shared `@heva/catalog/orders` (the marketing site and the endpoint share one source). `materialize_order` is one transaction so credit is never sold without an order; a retried payment (same `checkout_ref`) returns the same order. Swapping in real Stripe = a `StripeProvider` behind the same endpoint + a webhook calling the same `materialize_order` (+ the reconcile job, chốt ⑥). Refunds on cancel follow the general 5% policy (§2.1) → credit.
 
 ---
 
