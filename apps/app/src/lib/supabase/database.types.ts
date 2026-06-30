@@ -1392,6 +1392,60 @@ export type Database = {
           },
         ]
       }
+      payroll_runs: {
+        Row: {
+          bonus: number
+          created_at: string
+          gig: number
+          id: string
+          period: string
+          salary: number
+          staff_id: string
+          status: string
+          tenant_id: string
+          total: number
+        }
+        Insert: {
+          bonus?: number
+          created_at?: string
+          gig?: number
+          id?: string
+          period: string
+          salary?: number
+          staff_id: string
+          status?: string
+          tenant_id: string
+          total: number
+        }
+        Update: {
+          bonus?: number
+          created_at?: string
+          gig?: number
+          id?: string
+          period?: string
+          salary?: number
+          staff_id?: string
+          status?: string
+          tenant_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_runs_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2421,6 +2475,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      run_payroll: {
+        Args: {
+          p_bonus: number
+          p_gig: number
+          p_period: string
+          p_salary: number
+          p_staff: string
+        }
+        Returns: {
+          bonus: number
+          created_at: string
+          gig: number
+          id: string
+          period: string
+          salary: number
+          staff_id: string
+          status: string
+          tenant_id: string
+          total: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payroll_runs"
           isOneToOne: true
           isSetofReturn: false
         }

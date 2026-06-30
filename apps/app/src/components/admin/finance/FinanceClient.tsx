@@ -7,8 +7,10 @@ import { SlideOver } from '@/components/shared/SlideOver';
 import { CashflowChart } from '@/components/admin/finance/CashflowChart';
 import { WithdrawalRequests } from '@/components/admin/finance/WithdrawalRequests';
 import { AdminPenalties } from '@/components/admin/finance/AdminPenalties';
+import { AdminPayroll } from '@/components/admin/finance/AdminPayroll';
 import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
 import type { AdminPenalty, WalletStaff } from '@/data/adminPenalties.server';
+import type { PayrollRun } from '@/data/adminPayroll.server';
 import {
   FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CASHFLOW, CUSTOMERS, ORDERS,
   TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
@@ -55,7 +57,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[] }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -99,7 +101,7 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
         {tab === 'overview' && <OverviewTab />}
         {tab === 'transactions' && <TransactionsTab />}
         {tab === 'wallets' && <WalletsTab />}
-        {tab === 'payouts' && <div className="space-y-4"><WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><PayoutsTab /></div>}
+        {tab === 'payouts' && <div className="space-y-4"><WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
         {tab === 'invoices' && <InvoicesTab />}
       </div>
     </section>

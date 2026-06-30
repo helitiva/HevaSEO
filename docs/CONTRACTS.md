@@ -71,6 +71,7 @@ TRANSACTIONS: CreditTx[]                          // RLS: customer own
 // [READ — REAL, Lane D inc-D1..D3] data/staffWallet.server.ts → getMyStaffWallet(): { balance, ledger, methods, payouts } | null  // staffer's own wallet + ledger + payout methods + requests (RLS, money-blind); credited by post_staff_pay, debited by request_payout. null → fall back to mock (demo/impersonation)
 // [READ — REAL, Lane D inc-D4] data/adminPayouts.server.ts → getPayoutRequests(): AdminPayoutRequest[]  // admin view of staff withdrawal requests (payout_requests, RLS admin=tenant) for the /admin/finance Payouts tab; resolved via resolvePayoutAction (resolve_payout: approve/pay/reject+refund)
 // [READ — REAL, Lane D inc-D5] data/adminPenalties.server.ts → getPenalties(): AdminPenalty[] · getWalletStaff(): WalletStaff[]  // admin penalties list + workers-with-wallets for the apply form; applyPenaltyAction/waivePenaltyAction (apply_penalty debits, waive_penalty refunds); staff dispute via dispute_penalty
+// [READ — REAL, Lane D inc-D7] data/adminPayroll.server.ts → getPayrollRuns(): PayrollRun[]  // admin payroll runs (payroll_runs, RLS admin=tenant; worker sees own) for /admin/finance Payouts tab; runPayrollAction (run_payroll: idempotent fixed-pay salary+gig+bonus per worker+period; commission stays in the wallet)
 INVOICES: Invoice[] · CUSTOMER_LEDGER: Record<string, LedgerEntry[]>
 customerSignals(idOrName): CustomerSignals | null
 resolveCustomerId(idOrName): string | null
