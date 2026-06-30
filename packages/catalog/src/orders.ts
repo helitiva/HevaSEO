@@ -8,6 +8,7 @@
  */
 
 import type { Hue } from './index';
+import { resolveAddOns } from './index';
 
 // Upsells live alongside in this same shared catalog so marketing + dashboard stay in sync.
 export type { AddOn, AddOnTier } from './index';
@@ -598,3 +599,38 @@ export const orderServices: Record<string, OrderService> = {
 };
 
 export const getOrderService = (slug: string): OrderService | undefined => orderServices[slug];
+
+// ─── Server-trusted pricing (quick-checkout chốt 1) ──────────────────────────────────────────────
+// Mirrors the OrderShell pricing math so the public checkout route handler can re-derive the price from
+// the package/qty/add-on selection WITHOUT trusting any client-sent total. Pure + shared, so the price
+// the visitor saw on the marketing site and the price the server charges come from one source.
+export type QuickOrderSelection = { packageId?: string; qty?: number; addonPicks?: Record<string, string> };
+export type QuickOrderPrice = {
+  value: number; subtotal: number; bulkDiscount: number; addonsTotal: number;
+  hasNumericTotal: boolean; plan?: OrderPackage;
+};
+
+export function priceQuickOrder(service: OrderService, sel: QuickOrderSelection): QuickOrderPrice {
+  const all = service.packageGroups ? service.packageGroups.flatMap((g) => g.packages) : (service.packages ?? []);
+  const plan = all.find((p) => p.id === sel.packageId) ?? all[0];
+  const isUsage = service.pricingMode === 'usage' || !!service.usage;
+  const qty = sel.qty ?? service.usage?.defaultQty ?? service.bulk?.defaultQty ?? 1;
+
+  let usageRate = 0;
+  if (service.usage) {
+    usageRate = service.usage.tiers[0]?.rate ?? 0;
+    for (const t of service.usage.tiers) if (qty >= t.min) usageRate = t.rate;
+  }
+  const subtotal = isUsage ? usageRate * qty : service.bulk ? (plan?.price ?? 0) * qty : (plan?.price ?? 0);
+  const bulkDiscount = service.bulk && qty >= service.bulk.minDiscountQty
+    ? Math.round(subtotal * service.bulk.discountPct) / 100 : 0;
+
+  const picks = sel.addonPicks ?? {};
+  const addonsTotal = resolveAddOns(service.addons ?? [])
+    .filter((a) => a.id in picks)
+    .reduce((s, a) => s + (a.tiers.find((t) => t.id === picks[a.id]) ?? a.tiers[0]).price, 0);
+
+  // a 'consult'/'from' plan (priceLabel, no numeric price) can't be auto-charged at checkout.
+  const hasNumericTotal = isUsage || !plan?.priceLabel;
+  return { value: subtotal - bulkDiscount + addonsTotal, subtotal, bulkDiscount, addonsTotal, hasNumericTotal, plan };
+}
