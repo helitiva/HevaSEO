@@ -363,25 +363,7 @@ const steps = [
 
     <!-- ============ PAYMENT (step 2) ============ -->
     <div id="order-payment" class="hidden scroll-mt-28">
-      <!-- top: order summary recap -->
-      <div class="mb-6 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm shadow-foreground/5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class={`ph-bold ${service.icon}`}></i></span>
-            <div>
-              <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Order summary</p>
-              <p class="text-sm font-semibold text-foreground">{service.name} · <span id="pay-plan">—</span></p>
-              <p id="pay-addons" class="hidden text-xs text-muted-foreground"></p>
-            </div>
-          </div>
-          <div class="text-right">
-            <p class="text-[11px] font-medium text-muted-foreground">Total due today</p>
-            <p id="pay-total" class="font-display text-2xl font-bold tracking-tight text-primary">—</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid gap-6 lg:grid-cols-[240px_1fr]">
+      <div class="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)_360px]">
         <!-- left: 3-step progress (step 2 active) -->
         <aside class="lg:sticky lg:top-24 lg:self-start">
           <button type="button" id="pay-back" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"><i class="ph-bold ph-arrow-left"></i> Back to order</button>
@@ -472,6 +454,31 @@ const steps = [
             </div>
           </div>
         </div>
+
+        <!-- right: order details (service · plan · upsell add-ons · total) -->
+        <aside class="lg:sticky lg:top-24 lg:self-start">
+          <div class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5">
+            <div class="flex items-center gap-2.5 border-b border-border pb-4">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class={`ph-bold ${service.icon}`}></i></span>
+              <div><p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Order details</p><p class="text-sm font-semibold text-foreground">{service.name}</p></div>
+            </div>
+            <div class="mt-4 space-y-3 text-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div><p id="pay-plan" class="font-medium text-foreground">—</p><p id="pay-plan-sub" class="text-xs text-muted-foreground"></p></div>
+                <span id="pay-plan-price" class="shrink-0 font-medium text-foreground"></span>
+              </div>
+              <div id="pay-detail-addons-wrap" class="hidden border-t border-border pt-3">
+                <p class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"><i class="ph-fill ph-plus-circle"></i> Add-ons</p>
+                <ul id="pay-detail-addons" class="space-y-1.5"></ul>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-border pt-4">
+              <span class="text-sm font-semibold text-foreground">Total due today</span>
+              <span id="pay-total" class="font-display text-2xl font-bold tracking-tight text-primary">—</span>
+            </div>
+            <p class="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-arrow-counter-clockwise mt-0.5 shrink-0 text-primary"></i> One-time charge — cancel before a specialist accepts for a full refund.</p>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -938,10 +945,26 @@ const steps = [
       const planEl = document.getElementById('pay-plan'); if (planEl) planEl.textContent = pending.planName || 'Your order';
       const totalEl = document.getElementById('pay-total'); if (totalEl) totalEl.textContent = total || '—';
       const amtEl = document.getElementById('pay-amount'); if (amtEl) amtEl.textContent = total || '';
-      // recap chosen add-ons
-      const addonNames = bumpBoxes.filter((b) => b.checked).map((b) => b.dataset.name).filter(Boolean);
-      const addonEl = document.getElementById('pay-addons');
-      if (addonEl) { addonEl.textContent = addonNames.length ? '+ ' + addonNames.join(', ') : ''; addonEl.classList.toggle('hidden', !addonNames.length); }
+      // plan price + a sub-line (qty for bulk/usage services)
+      const planPriceEl = document.getElementById('pay-plan-price');
+      if (planPriceEl) planPriceEl.textContent = selected?.dataset.price ? '$' + selected.dataset.price : (selected?.dataset.priceLabel || '');
+      const planSubEl = document.getElementById('pay-plan-sub');
+      const qtyOut = (document.getElementById('bulk-qty-out') || document.getElementById('usage-qty-out'))?.textContent?.trim();
+      if (planSubEl) planSubEl.textContent = qtyEl && qtyOut ? `${qtyOut} ${qtyEl.id === 'bulk-count' ? 'units' : 'links'}` : '';
+      // chosen upsell add-ons → detailed list with prices
+      const addonPrice = (b: HTMLInputElement) => {
+        const sel = form.querySelector<HTMLSelectElement>(`[data-addon-select="${b.value}"]`);
+        if (sel && sel.options[sel.selectedIndex]) return Number(sel.options[sel.selectedIndex].dataset.price || 0);
+        return Number(b.dataset.price || 0);
+      };
+      const chosen = bumpBoxes.filter((b) => b.checked);
+      const ul = document.getElementById('pay-detail-addons');
+      if (ul) {
+        ul.innerHTML = chosen.map((b) =>
+          `<li class="flex items-center justify-between gap-3"><span class="text-muted-foreground">${b.dataset.name || 'Add-on'}</span><span class="font-medium text-foreground">+$${addonPrice(b)}</span></li>`,
+        ).join('');
+      }
+      document.getElementById('pay-detail-addons-wrap')?.classList.toggle('hidden', chosen.length === 0);
       // prefill billing + cardholder from the details they already gave
       const nm = String(fd.get('name') || '');
       (document.getElementById('bill-name') as HTMLInputElement | null)?.setAttribute('value', nm);
