@@ -8,7 +8,7 @@ export type PayoutResult = { ok: true } | { ok: false; error: string };
 const ERR: Record<string, string> = {
   INSUFFICIENT_BALANCE: 'Not enough available balance for that amount.',
   BELOW_MIN: 'Minimum payout is $50.',
-  NOT_STAFF: 'Only staff can request a payout.',
+  NOT_WORKER: 'Only staff or managers can request a payout.',
   BAD_METHOD: 'Choose a valid payout method.',
 };
 

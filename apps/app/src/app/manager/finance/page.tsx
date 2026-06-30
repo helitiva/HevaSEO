@@ -4,15 +4,19 @@ import {
   managerEarnings, managerEarningsHistory, managerEarningsSummary, managerFinance,
 } from '@/data/managerFinance';
 import { MANAGER_PERSONA } from '@/lib/managerScope';
+import { getMyStaffWallet } from '@/data/staffWallet.server';
 
 export const metadata = { title: 'Finance' };
 
 // The manager's OWN pay: salary + an override on the pod's gig pay + commission, with a wallet and
 // payout flow — mirrors /staff/finance and reuses its client. Managers have NO KPI bonus section
 // (showRewards={false}) and stay money-blind to OTHERS' money (pod/customer/staff figures never show).
-export default function ManagerFinancePage() {
+export default async function ManagerFinancePage() {
   const mid = MANAGER_PERSONA;
   const earnings = managerEarnings(mid);
+  // Real wallet for the signed-in manager (manager_wallet RLS lets them read their own override-funded
+  // wallet); null → mock fallback (demo/impersonation/no wallet yet). Same seam as /staff/finance.
+  const realWallet = await getMyStaffWallet();
 
   if (!earnings) {
     return (
@@ -36,6 +40,7 @@ export default function ManagerFinancePage() {
         firstPassRate={88}
         showRewards={false}
         payStyle="manager"
+        realWallet={realWallet}
       />
     </section>
   );

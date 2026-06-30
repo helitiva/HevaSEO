@@ -1,7 +1,7 @@
 -- Lane D inc-D3: request_payout — a staffer withdraws from their own wallet. Claims-derived, atomic
 -- debit, guards (min, sufficiency, role, method ownership). CRITICAL: no over-withdraw; balance==SUM(ledger).
 begin;
-select plan(10);
+select plan(11);
 
 select has_function('request_payout', 'request_payout() exists');
 -- claims-derived + own-wallet only → granted to authenticated (the staffer calls it directly)
@@ -39,9 +39,17 @@ select is((select balance from staff_wallet where staff_id = 'aaaaaaaa-aaaa-aaaa
 -- below the minimum
 select throws_ok($$ select request_payout(10, null) $$, 'BELOW_MIN', 'rejects below the $50 minimum');
 
--- a non-staff caller is refused
+-- a non-worker (customer) is refused; a MANAGER with a wallet CAN request (inc-D6)
 set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"customer","profile_id":"aaaaaaaa-aaaa-aaaa-aaaa-00000000a0a2"}';
-select throws_ok($$ select request_payout(60, null) $$, 'NOT_STAFF', 'non-staff caller refused');
+select throws_ok($$ select request_payout(60, null) $$, 'NOT_WORKER', 'non-worker (customer) refused');
+
+set local role postgres;  -- seed a manager + wallet outside RLS
+insert into profiles(id, tenant_id, email, name, role) values ('aaaaaaaa-aaaa-aaaa-aaaa-00000000a0a3', '11111111-1111-1111-1111-111111111111', 'mgr@a', 'Mgr', 'manager');
+insert into staff_wallet(staff_id, tenant_id, balance) values ('aaaaaaaa-aaaa-aaaa-aaaa-00000000a0a3', '11111111-1111-1111-1111-111111111111', 90);
+set local role authenticated;
+set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"manager","profile_id":"aaaaaaaa-aaaa-aaaa-aaaa-00000000a0a3"}';
+select request_payout(50, null);
+select is((select balance from staff_wallet where staff_id = 'aaaaaaaa-aaaa-aaaa-aaaa-00000000a0a3')::numeric, 40::numeric, 'a manager can request a payout from their own wallet');
 
 reset role;
 select * from finish();

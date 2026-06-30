@@ -137,6 +137,12 @@ insert into public.staff_details (tenant_id, profile_id, skills, capacity, role_
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000bbbb-0000-4000-8000-000000000005', '{backlink,content}',        5, 'Link Builder',          'GMT+0', '2023-09-05', false, 82, 84, 80, 34, '{4,4,5,5,6,5,7,6}')
 on conflict (profile_id) do nothing;
 
+-- Lane D inc-D6 — pod link: Mai reports to Sofia (manager), so post_staff_pay cascades a pod-override
+-- commission into Sofia's wallet (managers earn on their pod's gig + commission). Set before the
+-- commission seeding below so the cascade fires.
+update public.staff_details set manager_id = 'b000aaaa-0000-4000-8000-000000000002'
+ where profile_id = 'b000aaaa-0000-4000-8000-000000000003';
+
 -- Step 2 inc-5a — order_details (brief/project/folder/included) for each seeded order, keyed by code.
 do $$
 declare
