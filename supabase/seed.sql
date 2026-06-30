@@ -212,3 +212,8 @@ begin
     perform post_staff_pay(r.id, 'b000aaaa-0000-4000-8000-000000000003', r.commission, 0, 'b000aaaa-0000-4000-8000-000000000001');
   end loop;
 end $$;
+
+-- Lane D inc-D3 — a default payout method for Mai so she can request a real payout from her wallet.
+insert into public.staff_payout_methods (tenant_id, staff_id, kind, detail, is_default) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', 'paypal', 'mai@paypal.me', true)
+on conflict do nothing;

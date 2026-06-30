@@ -13,6 +13,7 @@ import {
   type StaffPenalty, type PayoutRequest, type WalletEntry, type PenaltyRule, type PayoutMethod, type PayoutMethodKind,
 } from '@/lib/staffFinance';
 import { rewardsEarned, rewardsOnOffer, REWARD_KIND_META, type Reward } from '@/lib/staffRewards';
+import { requestPayoutAction } from './payout.actions';
 import { MOCK_TODAY } from '@/lib/today';
 
 const MIN_PAYOUT = 50;
@@ -34,7 +35,7 @@ type Props = {
   payStyle?: 'staff' | 'manager';
   /** Lane D inc-D2: a real provisioned staffer's DB wallet (balance + ledger) overrides the mock-derived
    *  balance + activity feed. null → fall back to mock (demo / admin-impersonation / never-paid). */
-  realWallet?: { balance: number; ledger: WalletEntry[] } | null;
+  realWallet?: { balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[] } | null;
 };
 
 const REWARDS_MONTH = '2026-06';
@@ -50,8 +51,10 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
   const isManager = payStyle === 'manager';
   // Penalties + payouts are session-mutable (dispute a fine, request a payout); everything else is read-only.
   const [penalties, setPenalties] = useState<StaffPenalty[]>(finance.penalties);
-  const [payouts, setPayouts] = useState<PayoutRequest[]>(finance.payouts);
-  const [methods, setMethods] = useState<PayoutMethod[]>(finance.methods);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>(realWallet ? realWallet.payouts : finance.payouts);
+  const [methods, setMethods] = useState<PayoutMethod[]>(realWallet && realWallet.methods.length ? realWallet.methods : finance.methods);
+  // real wallet balance held in state so a payout request reflects optimistically (debit) before reload
+  const [realBalance, setRealBalance] = useState(realWallet?.balance ?? 0);
   const [tab, setTab] = useState<string>('activity');
   const [requestOpen, setRequestOpen] = useState(false);
   const [addMethodOpen, setAddMethodOpen] = useState(false);
@@ -68,8 +71,8 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
 
   // Real DB wallet overrides the mock-derived balance + activity feed when the signed-in user is a
   // provisioned staffer (Lane D inc-D2). Clearing windows aren't modelled in the DB yet → all cleared.
-  const balance = realWallet ? realWallet.balance : mockBalance;
-  const available = realWallet ? realWallet.balance : mockAvailable;
+  const balance = realWallet ? realBalance : mockBalance;
+  const available = realWallet ? realBalance : mockAvailable;
   const clearing = realWallet ? 0 : mockClearing;
   const ledger = realWallet ? realWallet.ledger : mockLedger;
 
@@ -77,7 +80,14 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400); };
 
-  const submitPayout = (amount: number, methodId: string, note: string) => {
+  const submitPayout = async (amount: number, methodId: string, note: string) => {
+    // Real wallet: the staffer's session calls request_payout (atomic debit + request). Optimistically
+    // reflect it (debit balance + add the row) so the UI updates without a reload.
+    if (realWallet) {
+      const res = await requestPayoutAction(amount, methodId || null);
+      if (!res.ok) { showToast(res.error); return; }
+      setRealBalance((b) => b - amount);
+    }
     setPayouts((prev) => [
       { id: `po-${Date.now()}`, amount, methodId, status: 'requested', requestedAt: TODAY, note: note || undefined },
       ...prev,
