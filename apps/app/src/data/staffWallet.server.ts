@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase/server';
+import { getServerSession, createClient } from '@/lib/supabase/server';
 import type { WalletEntry, WalletEntryKind } from '@/lib/staffFinance';
 
 // Lane D inc-D1 — the signed-in staffer's real commission wallet (balance + ledger). RLS-scoped: a
@@ -36,19 +36,25 @@ function toEntry(r: LedgerRow): WalletEntry {
   };
 }
 
-export async function getMyStaffWallet(): Promise<{ balance: number; ledger: WalletEntry[] }> {
+// Returns the signed-in staffer's own wallet, or `null` when there's no own wallet row — i.e. the
+// session isn't a provisioned staffer (admin/impersonation/demo, or a staffer never paid yet) — so the
+// page can fall back to the mock. Filtered by the session profile id (own row), which keeps an admin
+// session from matching every staffer's row under the admin RLS policy.
+export async function getMyStaffWallet(): Promise<{ balance: number; ledger: WalletEntry[] } | null> {
+  const session = await getServerSession();
+  if (!session?.entityId) return null;
   const supabase = await createClient();
-  const [wallet, led] = await Promise.all([
-    supabase.from('staff_wallet').select('balance').maybeSingle(),
-    supabase.from('wallet_ledger')
-      .select('id, amount, kind, note, created_at, orders(code)')
-      .order('created_at', { ascending: false })
-      .returns<LedgerRow[]>(),
-  ]);
-  if (wallet.error) throw new Error(`getMyStaffWallet balance: ${wallet.error.message}`);
-  if (led.error) throw new Error(`getMyStaffWallet ledger: ${led.error.message}`);
-  return {
-    balance: wallet.data ? Number(wallet.data.balance) : 0,
-    ledger: (led.data ?? []).map(toEntry),
-  };
+  const { data: wallet, error: wErr } = await supabase
+    .from('staff_wallet').select('balance').eq('staff_id', session.entityId).maybeSingle();
+  if (wErr) throw new Error(`getMyStaffWallet balance: ${wErr.message}`);
+  if (!wallet) return null;
+
+  const { data: led, error } = await supabase
+    .from('wallet_ledger')
+    .select('id, amount, kind, note, created_at, orders(code)')
+    .eq('staff_id', session.entityId)
+    .order('created_at', { ascending: false })
+    .returns<LedgerRow[]>();
+  if (error) throw new Error(`getMyStaffWallet ledger: ${error.message}`);
+  return { balance: Number(wallet.balance), ledger: (led ?? []).map(toEntry) };
 }

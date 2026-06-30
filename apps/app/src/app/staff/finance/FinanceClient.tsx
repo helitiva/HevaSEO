@@ -32,6 +32,9 @@ type Props = {
   showRewards?: boolean;
   /** 'manager' relabels the payroll card (salary + pod-override commission, no gig/bonus line). */
   payStyle?: 'staff' | 'manager';
+  /** Lane D inc-D2: a real provisioned staffer's DB wallet (balance + ledger) overrides the mock-derived
+   *  balance + activity feed. null → fall back to mock (demo / admin-impersonation / never-paid). */
+  realWallet?: { balance: number; ledger: WalletEntry[] } | null;
 };
 
 const REWARDS_MONTH = '2026-06';
@@ -43,7 +46,7 @@ const TABS = [
   { key: 'payouts', label: 'Payouts', icon: 'ph-hand-coins' },
 ] as const;
 
-export function FinanceClient({ earnings, history, summary, finance, rewards = [], firstPassRate, showRewards = true, payStyle = 'staff' }: Props) {
+export function FinanceClient({ earnings, history, summary, finance, rewards = [], firstPassRate, showRewards = true, payStyle = 'staff', realWallet = null }: Props) {
   const isManager = payStyle === 'manager';
   // Penalties + payouts are session-mutable (dispute a fine, request a payout); everything else is read-only.
   const [penalties, setPenalties] = useState<StaffPenalty[]>(finance.penalties);
@@ -57,11 +60,18 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
 
   const { credits, rules } = finance;
 
-  const balance = useMemo(() => walletBalance(credits, penalties, payouts), [credits, penalties, payouts]);
-  const available = useMemo(() => availableToWithdraw(credits, penalties, payouts), [credits, penalties, payouts]);
-  const clearing = useMemo(() => clearingTotal(credits), [credits]);
+  const mockBalance = useMemo(() => walletBalance(credits, penalties, payouts), [credits, penalties, payouts]);
+  const mockAvailable = useMemo(() => availableToWithdraw(credits, penalties, payouts), [credits, penalties, payouts]);
+  const mockClearing = useMemo(() => clearingTotal(credits), [credits]);
   const pendingFines = useMemo(() => pendingPenaltyCount(penalties), [penalties]);
-  const ledger = useMemo(() => buildLedger(credits, penalties, payouts), [credits, penalties, payouts]);
+  const mockLedger = useMemo(() => buildLedger(credits, penalties, payouts), [credits, penalties, payouts]);
+
+  // Real DB wallet overrides the mock-derived balance + activity feed when the signed-in user is a
+  // provisioned staffer (Lane D inc-D2). Clearing windows aren't modelled in the DB yet → all cleared.
+  const balance = realWallet ? realWallet.balance : mockBalance;
+  const available = realWallet ? realWallet.balance : mockAvailable;
+  const clearing = realWallet ? 0 : mockClearing;
+  const ledger = realWallet ? realWallet.ledger : mockLedger;
 
   const payday = nextPayday(TODAY);
 
@@ -111,7 +121,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
     <div className="space-y-4">
       {/* ── Hero: commission wallet (left) + base-salary payroll (right) ── */}
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-        <div className="kcard relative overflow-hidden bg-gradient-to-br from-violet-600 to-primary text-white">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 p-4 shadow-sm transition hover:-translate-y-0.5 bg-gradient-to-br from-violet-600 to-primary text-white">
           <div className="relative">
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-white/80">
               <i className="ph-bold ph-wallet" aria-hidden /> Commission wallet · available

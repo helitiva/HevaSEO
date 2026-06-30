@@ -5,6 +5,7 @@ import { FinanceClient } from './FinanceClient';
 import { myEarnings, earningsHistory, myEarningsSummary, myFinance, myRewards } from '@/data/staffMock';
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
+import { getMyStaffWallet } from '@/data/staffWallet.server';
 
 export const metadata = { title: 'Finance' };
 
@@ -15,6 +16,8 @@ export default async function FinancePage() {
   const sid = await currentStaffId();
   const earnings = myEarnings(sid);
   const me = STAFF.find((s) => s.id === sid);
+  // Real DB wallet for the signed-in staffer (null → mock fallback for demo/impersonation/never-paid).
+  const realWallet = await getMyStaffWallet();
 
   if (!earnings || !me) {
     return (
@@ -36,6 +39,7 @@ export default async function FinancePage() {
           finance={myFinance(sid)}
           rewards={myRewards(sid)}
           firstPassRate={me.quality}
+          realWallet={realWallet}
         />
       </ViewOnlyGuard>
     </section>
