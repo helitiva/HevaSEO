@@ -9,10 +9,10 @@ import { ToastProvider } from '@/components/Toast';
 import { getMyCredit } from '@/data/credit.server';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { balance, transactions } = await getMyCredit(); // RLS-scoped: signed-in customer's own credit
+  const { balance, transactions, invoices } = await getMyCredit(); // RLS-scoped: signed-in customer's own credit
   return (
     <ToastProvider>
-      <CreditProvider initialBalance={balance} initialTransactions={transactions}>
+      <CreditProvider initialBalance={balance} initialTransactions={transactions} initialInvoices={invoices}>
         <ProjectsProvider>
         <OrdersProvider>
           <PortalShell>{children}</PortalShell>

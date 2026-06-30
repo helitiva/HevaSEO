@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
-import { useCredit } from './CreditStore';
+import { topUpAction } from '@/app/(portal)/credit.actions';
 
 const PRESETS = [20, 80, 200, 400, 800];
 type Method = 'card' | 'paypal';
@@ -37,7 +38,8 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
   const [cvc, setCvc] = useState('');
   const [name, setName] = useState('');
   const toast = useToast();
-  const { topUp } = useCredit();
+  const router = useRouter();
+  const [paying, setPaying] = useState(false);
 
   const pick = (n: number) => { setAmount(n); setCustom(''); };
   const onCustom = (v: string) => {
@@ -54,11 +56,17 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
     return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
   };
 
-  const pay = (label: string) => {
-    if (tooLow || !(amount > 0)) return;
-    topUp(amount, label);
-    toast(`Topped up $${amount} — added to your balance`);
+  // Real top-up: the server charges via the payment provider (mock/Stripe) then credits via the
+  // topup fn + writes an invoice. The balance/history refresh from the real read on router.refresh().
+  const pay = async (label: string) => {
+    if (tooLow || !(amount > 0) || paying) return;
+    setPaying(true);
+    const res = await topUpAction(amount, label);
+    setPaying(false);
+    if (!res.ok) { toast(res.error, 'error'); return; }
+    toast(`Topped up $${res.amount} — added to your balance`, 'success');
     onDone?.();
+    router.refresh();
   };
   const cardLabel = () => {
     const last4 = card.replace(/\D/g, '').slice(-4);
@@ -131,8 +139,8 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
             <div><label className="lbl">Name on card</label><input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder="Full name" /></div>
           </div>
 
-          <button type="button" onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-            <i className="ph-bold ph-lock-simple" aria-hidden /> Pay ${amount}
+          <button type="button" disabled={paying} onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60">
+            <i className={`ph-bold ${paying ? 'ph-circle-notch animate-spin' : 'ph-lock-simple'}`} aria-hidden /> {paying ? 'Processing…' : `Pay $${amount}`}
           </button>
         </>
       ) : (

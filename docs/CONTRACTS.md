@@ -65,7 +65,9 @@ getCustomers(): Promise<AdminCustomer[]>          // admin all · customer own; 
 CUSTOMERS: AdminCustomer[]                        // RLS: admin all, manager pod (money-stripped view!)
 CUSTOMER_EXTRA: Record<string, CustomerExtra>
 TRANSACTIONS: CreditTx[]                          // RLS: customer own
-// [READ — REAL, Lane B inc-B1] data/credit.server.ts → getMyCredit(): { balance, transactions: CreditTx[] }  // customer's own balance + credit_ledger (RLS); invoices stay mock (no table); wired via portal layout → CreditProvider
+// [READ — REAL, Lane B inc-B1 + Phase 2 inc-P2] data/credit.server.ts → getMyCredit(): { balance, transactions: CreditTx[], invoices: Invoice[] }  // customer's own balance + credit_ledger + invoices (RLS, money-blind to staff/manager); wired via portal layout → CreditProvider
+// [WRITE — REAL, Phase 2 inc-P2] app/(portal)/credit.actions.ts → topUpAction(amount, label)  // charge via payment provider seam (lib/payments/provider.ts; mock now / Stripe later) → topup fn (service role) + invoice row; client never self-credits
+// [WRITE — REAL, Lane B inc-B3] app/(portal)/order.actions.ts → placeOrderAction(input)  // server-priced (computeOrderPrice, real tier) → create_order via service-role client (lib/supabase/service.ts) + order_details/order_addons
 INVOICES: Invoice[] · CUSTOMER_LEDGER: Record<string, LedgerEntry[]>
 customerSignals(idOrName): CustomerSignals | null
 resolveCustomerId(idOrName): string | null
