@@ -126,7 +126,7 @@ const steps = [
     <form id="order-form" novalidate>
       <input type="hidden" name="service" value={service.slug} />
       <!-- honeypot: real users never fill this -->
-      <input type="text" name="company_url" tabindex="-1" autocomplete="off" aria-hidden="true" class="pointer-events-none absolute -left-[9999px] h-0 w-0 opacity-0" />
+      <input type="text" name="bot-field" tabindex="-1" autocomplete="off" aria-hidden="true" data-1p-ignore data-lpignore="true" class="pointer-events-none absolute -left-[9999px] h-0 w-0 opacity-0" />
 
       <!-- Step 1: choose package — full width so the cards breathe -->
       <div class="rounded-3xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 lg:p-7">
@@ -920,7 +920,7 @@ const steps = [
     // Step 1 — validate the order, then move to the PAYMENT step. Nothing is charged here.
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const hp = form.querySelector<HTMLInputElement>('input[name="company_url"]'); // honeypot
+      const hp = form.querySelector<HTMLInputElement>('input[name="bot-field"]'); // honeypot (autofill-resistant name + data-*-ignore)
       if (hp?.value) { showSuccess(); return; }
       if (!form.reportValidity()) return;
 
