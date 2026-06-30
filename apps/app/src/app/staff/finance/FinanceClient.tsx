@@ -10,10 +10,10 @@ import {
   walletBalance, availableToWithdraw, clearingTotal, pendingPenaltyCount, buildLedger, withdrawalFee,
   summarisePenalties, maskTail, maskEmail, METHOD_DEFAULTS,
   PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_STATUS_META, PAYOUT_METHOD_META, WALLET_KIND_META,
-  type StaffPenalty, type PayoutRequest, type WalletEntry, type PenaltyRule, type PayoutMethod, type PayoutMethodKind,
+  type StaffPenalty, type PayoutRequest, type WalletEntry, type PenaltyRule, type PayoutMethod, type PayoutMethodKind, type Payslip,
 } from '@/lib/staffFinance';
 import { rewardsEarned, rewardsOnOffer, REWARD_KIND_META, type Reward } from '@/lib/staffRewards';
-import { requestPayoutAction, disputePenaltyAction } from './payout.actions';
+import { requestPayoutAction, disputePenaltyAction, addPayoutMethodAction, setDefaultMethodAction, removeMethodAction } from './payout.actions';
 import { MOCK_TODAY } from '@/lib/today';
 
 const MIN_PAYOUT = 50;
@@ -35,7 +35,7 @@ type Props = {
   payStyle?: 'staff' | 'manager';
   /** Lane D inc-D2: a real provisioned staffer's DB wallet (balance + ledger) overrides the mock-derived
    *  balance + activity feed. null → fall back to mock (demo / admin-impersonation / never-paid). */
-  realWallet?: { balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[]; penalties: StaffPenalty[] } | null;
+  realWallet?: { balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[]; penalties: StaffPenalty[]; payslips: Payslip[] } | null;
 };
 
 const REWARDS_MONTH = '2026-06';
@@ -107,7 +107,13 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
     showToast('Dispute sent — an admin will review it.');
   };
 
-  const addMethod = (m: Omit<PayoutMethod, 'id' | 'isDefault'>, makeDefault: boolean) => {
+  const addMethod = async (m: Omit<PayoutMethod, 'id' | 'isDefault'>, makeDefault: boolean) => {
+    if (realWallet) {
+      // real: add_payout_method writes the row (claims-derived); the action revalidates the page. Update
+      // local state optimistically so it shows immediately (the first method always becomes default).
+      const res = await addPayoutMethodAction(m.kind, m.label, makeDefault);
+      if (!res.ok) { showToast(res.error); return; }
+    }
     setMethods((prev) => {
       const first = prev.length === 0;
       const isDefault = makeDefault || first;
@@ -117,11 +123,19 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
     setAddMethodOpen(false);
     showToast('Payment method added.');
   };
-  const setDefaultMethod = (id: string) => {
+  const setDefaultMethod = async (id: string) => {
+    if (realWallet) {
+      const res = await setDefaultMethodAction(id);
+      if (!res.ok) { showToast(res.error); return; }
+    }
     setMethods((prev) => prev.map((m) => ({ ...m, isDefault: m.id === id })));
     showToast('Default payout method updated.');
   };
-  const removeMethod = (id: string) => {
+  const removeMethod = async (id: string) => {
+    if (realWallet) {
+      const res = await removeMethodAction(id);
+      if (!res.ok) { showToast(res.error); return; }
+    }
     setMethods((prev) => {
       const next = prev.filter((m) => m.id !== id);
       // If we removed the default, promote the first remaining method.
@@ -240,7 +254,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
 
       {tab === 'activity' && <ActivityTab ledger={ledger} />}
       {tab === 'penalties' && <PenaltiesTab penalties={penalties} rules={rules} onDispute={setDisputeTarget} />}
-      {tab === 'payslips' && <PayslipsTab history={history} base={earnings.base} />}
+      {tab === 'payslips' && <PayslipsTab history={history} base={earnings.base} payslips={realWallet?.payslips ?? null} />}
       {tab === 'payouts' && (
         <PayoutsTab
           payouts={payouts}
@@ -484,7 +498,44 @@ function PenaltyRow({ p, onDispute }: { p: StaffPenalty; onDispute: (p: StaffPen
 }
 
 // ── Payslips (monthly pay archive) ────────────────────────────────────────────
-function PayslipsTab({ history, base }: { history: MonthEarning[]; base: number }) {
+// When real payslips (posted payroll runs) exist, show them — fixed pay (salary + gig + bonus) per
+// period; the variable commission lives in the wallet (Activity / Payouts), not here. Otherwise the
+// mock monthly archive is shown (demo / never-run-payroll).
+function PayslipsTab({ history, base, payslips }: { history: MonthEarning[]; base: number; payslips: Payslip[] | null }) {
+  if (payslips && payslips.length > 0) {
+    return (
+      <div className="kcard">
+        <div className="mb-2 flex items-end justify-between gap-2">
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-receipt text-primary" aria-hidden /> Payroll runs</p>
+          <span className="text-[11px] text-muted-foreground">Fixed pay per period · commission is in your wallet</span>
+        </div>
+        <div className="scrollbar-thin overflow-x-auto">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                <th className="py-1.5 pr-2">Period</th>
+                <th className="px-2 text-right">Salary</th>
+                <th className="px-2 text-right">Gig</th>
+                <th className="px-2 text-right">Bonus</th>
+                <th className="py-1.5 pl-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payslips.map((p, i) => (
+                <tr key={p.id} className={`border-b border-border/50 last:border-0 ${i === 0 ? 'bg-emerald-500/[0.06]' : ''}`}>
+                  <td className="py-1.5 pr-2 font-medium">{p.period}{i === 0 && <span className="ml-1.5 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600">latest</span>}</td>
+                  <td className="px-2 text-right text-muted-foreground">{money(p.salary)}</td>
+                  <td className="px-2 text-right text-muted-foreground">{p.gig ? money(p.gig) : '—'}</td>
+                  <td className="px-2 text-right text-muted-foreground">{p.bonus ? money(p.bonus) : '—'}</td>
+                  <td className="py-1.5 pl-2 text-right font-semibold">{money(p.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="kcard">
       <div className="mb-2 flex items-end justify-between gap-2">

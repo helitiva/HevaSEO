@@ -2175,6 +2175,24 @@ export type Database = {
       _table_privs: { Args: never; Returns: unknown[] }
       _temptypes: { Args: { "": string }; Returns: string }
       _todo: { Args: never; Returns: string }
+      add_payout_method: {
+        Args: { p_detail: string; p_kind: string; p_make_default: boolean }
+        Returns: {
+          created_at: string
+          detail: string
+          id: string
+          is_default: boolean
+          kind: string
+          staff_id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_payout_methods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       advance_order: {
         Args: {
           p_order: string
@@ -2441,6 +2459,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      remove_payout_method: { Args: { p_id: string }; Returns: undefined }
       request_payout: {
         Args: { p_amount: number; p_method?: string }
         Returns: {
@@ -2509,6 +2528,7 @@ export type Database = {
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
+      set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }

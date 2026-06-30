@@ -55,6 +55,16 @@ export interface PayoutRequest {
   note?: string;
 }
 
+// ---- Payslip (a posted payroll run: fixed pay for one period) ----
+export interface Payslip {
+  id: string;
+  period: string;        // YYYY-MM
+  salary: number;
+  gig: number;
+  bonus: number;
+  total: number;
+}
+
 // ---- Wallet ledger (unified activity feed) ----
 export type WalletEntryKind = 'commission' | 'bonus' | 'penalty' | 'payout';
 export interface WalletEntry {

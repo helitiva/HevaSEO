@@ -242,3 +242,10 @@ insert into public.docs (tenant_id, title, body, audiences, required_skills, pin
   ('a9e0c0de-0000-4000-8000-000000000001', 'Keyword research playbook',
    '{"summary":"How we cluster + prioritise keywords.","format":"guide","tags":["keyword"],"author":"Ops","readMins":5,"blocks":[{"type":"p","text":"Only shown to staff whose skills include keyword."}],"resources":[]}',
    '{staff}', '{keyword}', false, 'b000aaaa-0000-4000-8000-000000000001');
+
+-- Lane D polish — a couple of posted payroll runs for Mai so her Payslips tab shows real fixed pay
+-- (salary + gig + bonus per period). Commission stays in the wallet (Activity/Payouts), not here.
+insert into public.payroll_runs (tenant_id, staff_id, period, salary, gig, bonus, total) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', '2026-05', 1300, 48, 0, 1348),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', '2026-06', 1300, 66, 50, 1416)
+on conflict (tenant_id, staff_id, period) do nothing;

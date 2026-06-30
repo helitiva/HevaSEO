@@ -3,7 +3,7 @@ import { getServerSession, createClient } from '@/lib/supabase/server';
 import { METHOD_DEFAULTS } from '@/lib/staffFinance';
 import type {
   WalletEntry, WalletEntryKind, PayoutMethod, PayoutMethodKind, PayoutRequest, PayoutStatus,
-  StaffPenalty, PenaltyType, PenaltyStatus,
+  StaffPenalty, PenaltyType, PenaltyStatus, Payslip,
 } from '@/lib/staffFinance';
 
 // Lane D inc-D1 — the signed-in staffer's real commission wallet (balance + ledger). RLS-scoped: a
@@ -72,8 +72,13 @@ function toPenalty(r: PenaltyRow): StaffPenalty {
   };
 }
 
+type PayslipRow = { id: string; period: string; salary: number | string; gig: number | string; bonus: number | string; total: number | string };
+function toPayslip(r: PayslipRow): Payslip {
+  return { id: r.id, period: r.period, salary: Number(r.salary), gig: Number(r.gig), bonus: Number(r.bonus), total: Number(r.total) };
+}
+
 export type StaffWallet = {
-  balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[]; penalties: StaffPenalty[];
+  balance: number; ledger: WalletEntry[]; methods: PayoutMethod[]; payouts: PayoutRequest[]; penalties: StaffPenalty[]; payslips: Payslip[];
 };
 
 // Returns the signed-in staffer's own wallet, or `null` when there's no own wallet row — i.e. the
@@ -89,7 +94,7 @@ export async function getMyStaffWallet(): Promise<StaffWallet | null> {
   if (wErr) throw new Error(`getMyStaffWallet balance: ${wErr.message}`);
   if (!wallet) return null;
 
-  const [led, methods, reqs, pens] = await Promise.all([
+  const [led, methods, reqs, pens, slips] = await Promise.all([
     supabase.from('wallet_ledger')
       .select('id, amount, kind, note, created_at, orders(code)')
       .eq('staff_id', session.entityId).order('created_at', { ascending: false }).returns<LedgerRow[]>(),
@@ -101,16 +106,21 @@ export async function getMyStaffWallet(): Promise<StaffWallet | null> {
     supabase.from('staff_penalties')
       .select('id, type, amount, detail, status, dispute_note, created_at')
       .eq('staff_id', session.entityId).order('created_at', { ascending: false }).returns<PenaltyRow[]>(),
+    supabase.from('payroll_runs')
+      .select('id, period, salary, gig, bonus, total')
+      .eq('staff_id', session.entityId).order('period', { ascending: false }).returns<PayslipRow[]>(),
   ]);
   if (led.error) throw new Error(`getMyStaffWallet ledger: ${led.error.message}`);
   if (methods.error) throw new Error(`getMyStaffWallet methods: ${methods.error.message}`);
   if (reqs.error) throw new Error(`getMyStaffWallet payouts: ${reqs.error.message}`);
   if (pens.error) throw new Error(`getMyStaffWallet penalties: ${pens.error.message}`);
+  if (slips.error) throw new Error(`getMyStaffWallet payslips: ${slips.error.message}`);
   return {
     balance: Number(wallet.balance),
     ledger: (led.data ?? []).map(toEntry),
     methods: (methods.data ?? []).map(toMethod),
     payouts: (reqs.data ?? []).map(toRequest),
     penalties: (pens.data ?? []).map(toPenalty),
+    payslips: (slips.data ?? []).map(toPayslip),
   };
 }
