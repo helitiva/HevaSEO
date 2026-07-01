@@ -174,7 +174,8 @@ Kiểu chốt: `Broadcast`, `BroadcastAudience`, `BroadcastKind`, `BroadcastStat
 ## 8. Affiliate / KOL (Lane E)
 
 ```ts
-// [READ] data/affiliatePortal.ts, data/adminAffiliate.ts
+// [READ — REAL, Lane E inc-E1] data/affiliate.server.ts → getMyAffiliate(): PortalData | null  // signed-in affiliate's own affiliates row + referrals + commission_ledger + balance + payouts (affiliate_*_own RLS) → PortalData; marketing metadata (platform/audience/niche/clicks) defaulted (untabled); null → mock fallback. Wired into /affiliate (dash).
+// [READ] data/affiliatePortal.ts, data/adminAffiliate.ts (mock fallback + admin views)
 portalDataFor(id): PortalData
 useAdminAffiliates() · partnerVolumeSeries(a): VolMonth[]
 referredServiceMix(affiliateId): ReferredSvc[]

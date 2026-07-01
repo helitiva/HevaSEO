@@ -274,3 +274,23 @@ insert into public.payroll_runs (tenant_id, staff_id, period, salary, gig, bonus
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', '2026-05', 1300, 48, 0, 1348),
   ('a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000003', '2026-06', 1300, 66, 50, 1416)
 on conflict (tenant_id, staff_id, period) do nothing;
+
+-- Lane E inc-E1 — Jane (affiliate demo account, profile ...05) as a real affiliate with referrals +
+-- commission ledger + a payout. balance == SUM(commission_ledger) (K11 invariant): +120+80+40−100 = 140.
+insert into public.affiliates (id, tenant_id, user_id, code, tier, status, joined_at) values
+  ('e0000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000005', 'JANESEO', 'gold', 'active', '2025-11-01')
+on conflict do nothing;
+insert into public.affiliate_referrals (id, tenant_id, affiliate_id, customer_id, volume, status) values
+  ('e1000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 600, 'active'),
+  ('e1000000-0000-4000-8000-000000000002', 'a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', 400, 'active'),
+  ('e1000000-0000-4000-8000-000000000003', 'a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000003', 200, 'churned');
+insert into public.commission_ledger (tenant_id, affiliate_id, amount, kind, referral_id) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 120, 'commission', 'e1000000-0000-4000-8000-000000000001'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 80,  'commission', 'e1000000-0000-4000-8000-000000000002'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 40,  'commission', 'e1000000-0000-4000-8000-000000000003'),
+  ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', -100, 'payout', null);
+insert into public.affiliate_commission (affiliate_id, tenant_id, balance) values
+  ('e0000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 140)
+on conflict (affiliate_id) do update set balance = excluded.balance;
+insert into public.affiliate_payouts (tenant_id, affiliate_id, amount, status, resolved_at) values
+  ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 100, 'paid', now());
