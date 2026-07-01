@@ -25,3 +25,17 @@ export async function resolveAffiliatePayoutAction(payoutId: string, action: 'ap
   revalidatePath('/affiliate'); revalidatePath('/affiliate/payouts');
   return { ok: true };
 }
+
+// Lane E inc-E5 — admin approves/suspends/reactivates a partner. UI status ('active'|'pending'|'suspended')
+// → set_affiliate_status maps 'suspended'→'churned'. Admin-gated.
+export async function setAffiliateStatusAction(affiliateId: string, status: 'active' | 'pending' | 'suspended'): Promise<ResolveResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_affiliate_status', { p_affiliate: affiliateId, p_status: status });
+  if (error) {
+    if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change a partner’s status.' };
+    if (error.message.includes('AFFILIATE_NOT_FOUND')) return { ok: false, error: 'That partner no longer exists.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/admin/affiliate');
+  return { ok: true };
+}

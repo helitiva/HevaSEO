@@ -2599,6 +2599,10 @@ export type Database = {
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
+      set_affiliate_status: {
+        Args: { p_affiliate: string; p_status: string }
+        Returns: undefined
+      }
       set_broadcast_status: {
         Args: { p_id: string; p_status: string }
         Returns: undefined

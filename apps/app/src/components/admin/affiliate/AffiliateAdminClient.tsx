@@ -10,7 +10,7 @@ import {
   type PartnerStatus, type ProgramRules, type EditableTier, type AdminAffiliate, type AdminPayout,
 } from '@/data/adminAffiliate';
 import { useAdminAffiliates, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
-import { resolveAffiliatePayoutAction } from '@/app/admin/affiliate/payout.actions';
+import { resolveAffiliatePayoutAction, setAffiliateStatusAction } from '@/app/admin/affiliate/payout.actions';
 import { AFFILIATE_TIERS, tierFor } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
@@ -78,7 +78,13 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
     [basePartners, realMode, statusOverride, payouts, basePayoutStatus],
   );
 
-  const setPartnerStatus = (id: string, next: PartnerStatus) => setStatusOverride({ ...statusOverride, [id]: next });
+  const setPartnerStatus = (id: string, next: PartnerStatus) => {
+    if (realMode) {
+      void setAffiliateStatusAction(id, next).then((r) => { if (r.ok) router.refresh(); });
+      return;
+    }
+    setStatusOverride({ ...statusOverride, [id]: next });
+  };
   const setPayoutStatus = (id: string, next: PayoutStatus) => {
     if (realMode) {
       const action = next === 'approved' ? 'approve' : next === 'paid' ? 'pay' : next === 'rejected' ? 'reject' : null;
