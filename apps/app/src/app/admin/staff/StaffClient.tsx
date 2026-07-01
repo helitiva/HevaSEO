@@ -8,9 +8,8 @@ import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { impersonate } from '@/lib/impersonation';
 import { type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy } from '@/lib/viewer';
-import { createAccount } from '@/lib/auth';
 import { addCreatedStaff, useCreatedStaff } from '@/data/staffAccountsStore';
-import { CredentialPanel } from '@/components/admin/accounts/CredentialPanel';
+import { createStaffMemberAction } from '@/app/admin/staff/staff.actions';
 import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 export interface ActiveOrder {
@@ -91,7 +90,8 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
   const [panelId, setPanelId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
+  const [invited, setInvited] = useState<{ email: string } | null>(null);
+  const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [log, setLog] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
 
@@ -119,14 +119,18 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
     record(`${s.name} ${has ? 'lost' : 'gained'} ${skillMeta[skill].label} skill`, 'ph-certificate');
   };
   const reassign = (orderId: string, toName: string, code: string) => { setPlacement((p) => ({ ...p, [orderId]: toName })); record(`Reassigned ${code} → ${toName}`, 'ph-arrows-left-right'); };
-  const addStaff = (data: { name: string; email: string; role: string; capacity: number; skills: string[] }) => {
-    const id = `s${Date.now()}`;
-    // Create the login account (lib/auth emails mock credentials to the outbox).
-    const { account, tempPassword } = createAccount({ role: 'staff', name: data.name, email: data.email, entityId: id });
-    // Persist to the overlay store; the merge effect adds it to the roster.
-    addCreatedStaff({ id, name: data.name, email: account.email, role: data.role, capacity: data.capacity, skills: data.skills, createdAt: new Date().toISOString() });
-    setCreds({ email: account.email, password: tempPassword });
-    record(`Added ${data.name} — credentials emailed`, 'ph-user-plus');
+  // inc-E23 — real provisioning: create_staff_member makes a SHADOW profile + staff_details + wallet;
+  // the person claims it by signing up with the same email. The overlay add keeps the new member visible
+  // in this (mock-display) roster immediately; the credential panel is replaced by an invite confirmation.
+  const addStaff = async (data: { name: string; email: string; role: string; capacity: number; skills: string[] }) => {
+    if (adding) return;
+    setAdding(true);
+    const res = await createStaffMemberAction({ name: data.name, email: data.email, roleLabel: data.role, capacity: data.capacity, skills: data.skills });
+    setAdding(false);
+    if (!res.ok) { setToast(res.error); record(`Could not add ${data.name}: ${res.error}`, 'ph-warning-circle'); return; }
+    addCreatedStaff({ id: `s${Date.now()}`, name: data.name, email: data.email, role: data.role, capacity: data.capacity, skills: data.skills, createdAt: new Date().toISOString() });
+    setInvited({ email: data.email });
+    record(`Invited ${data.name} — they'll activate by signing up`, 'ph-user-plus');
   };
 
   // ---- bulk selection ----
@@ -383,7 +387,7 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
             onToggleActive={() => toggleActive(panel)} onCapacity={(n) => setCapacity(panel, n)} onToggleSkill={(k) => toggleSkill(panel, k)} onReassign={reassign} />
         </SlideOver>
       )}
-      {addOpen && <AddStaffModal allSkills={allSkills} skillMeta={skillMeta} creds={creds} onClose={() => { setAddOpen(false); setCreds(null); }} onSave={addStaff} />}
+      {addOpen && <AddStaffModal allSkills={allSkills} skillMeta={skillMeta} invited={invited} busy={adding} onClose={() => { setAddOpen(false); setInvited(null); }} onSave={addStaff} />}
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl">{toast}</div>}
     </section>
   );
@@ -705,7 +709,7 @@ function Due({ d }: { d: number }) {
   return <span className={`shrink-0 text-[11px] font-medium ${tone}`}>{d < 0 ? `${-d}d over` : d === 0 ? 'today' : `${d}d`}</span>;
 }
 
-function AddStaffModal({ allSkills, skillMeta, creds, onClose, onSave }: { allSkills: string[]; skillMeta: SkillMeta; creds: { email: string; password: string } | null; onClose: () => void; onSave: (d: { name: string; email: string; role: string; capacity: number; skills: string[] }) => void }) {
+function AddStaffModal({ allSkills, skillMeta, invited, busy, onClose, onSave }: { allSkills: string[]; skillMeta: SkillMeta; invited: { email: string } | null; busy: boolean; onClose: () => void; onSave: (d: { name: string; email: string; role: string; capacity: number; skills: string[] }) => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
@@ -719,10 +723,13 @@ function AddStaffModal({ allSkills, skillMeta, creds, onClose, onSave }: { allSk
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <p className="display mb-4 text-base font-bold">{creds ? 'Staff account created' : 'Add staff member'}</p>
-        {creds ? (
+        <p className="display mb-4 text-base font-bold">{invited ? 'Staff invited' : 'Add staff member'}</p>
+        {invited ? (
           <>
-            <CredentialPanel email={creds.email} password={creds.password} />
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
+              <i className="ph-fill ph-paper-plane-tilt mt-0.5 text-emerald-600" aria-hidden />
+              <p className="text-sm text-muted-foreground"><b className="text-foreground">{invited.email}</b> is set up as staff. They&apos;ll activate their account by signing up with this email — it links automatically with the role you assigned.</p>
+            </div>
             <div className="mt-5 flex justify-end">
               <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-check" aria-hidden /> Done</button>
             </div>
@@ -744,7 +751,7 @@ function AddStaffModal({ allSkills, skillMeta, creds, onClose, onSave }: { allSk
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
-              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), role: role.trim(), capacity, skills })} disabled={!canSave} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Add member</button>
+              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), role: role.trim(), capacity, skills })} disabled={!canSave || busy} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"><i className={`ph-bold ${busy ? 'ph-circle-notch animate-spin' : 'ph-user-plus'}`} aria-hidden /> {busy ? 'Adding…' : 'Add member'}</button>
             </div>
           </>
         )}

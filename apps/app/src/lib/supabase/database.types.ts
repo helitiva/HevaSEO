@@ -2599,6 +2599,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_staff_member: {
+        Args: {
+          p_capacity: number
+          p_email: string
+          p_name: string
+          p_role_label: string
+          p_skills: string[]
+        }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          last_active_at: string | null
+          name: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          tenant_id: string
+          two_fa_enabled: boolean
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_app_role: { Args: never; Returns: string }
       current_profile_id: { Args: never; Returns: string }
       current_skills: { Args: never; Returns: string[] }
