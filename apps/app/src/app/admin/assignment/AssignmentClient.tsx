@@ -9,6 +9,7 @@ import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
 import { statusLabel, SKILL_META, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney } from '@/lib/viewer';
+import { assignOrderAction } from './assign.actions';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
 interface Cand { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skillMatch: boolean }
@@ -102,15 +103,24 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const selVisible = visible.filter((q) => sel.has(q.id));
   const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const selAll = () => setSel((s) => (s.size === visible.length && visible.length ? new Set<string>() : new Set(visible.map((q) => q.id))));
+  // Lane A cleanup — persist an assignment to the DB (assign_order, admin-gated). name→profile id from
+  // the real staff roster; optimistic UI already moved the card, so this just records it (toast on error).
+  const idOfName = useMemo(() => { const m = new Map<string, string>(); for (const s of staff) m.set(s.name, s.id); return m; }, [staff]);
+  const persist = (orderId: string, name: string | null) => {
+    if (!name) return; const sid = idOfName.get(name); if (!sid) return;
+    void assignOrderAction(orderId, sid).then((r) => { if (!r.ok) record(`⚠ ${r.error}`, 'ph-warning'); });
+  };
+
   const bulkAuto = () => routeMany(selVisible, 'selected');
   const bulkAssign = (name: string) => {
     if (!name) return; const picks = Object.fromEntries(selVisible.map((q) => [q.id, name] as const));
     const n = selVisible.length; setPlace((p) => ({ ...p, ...picks })); setSel(new Set()); setBulkTo('');
+    for (const id of Object.keys(picks)) persist(id, name);
     record(`Bulk-assigned ${n} order${n > 1 ? 's' : ''} → ${name}`, 'ph-users-three');
   };
 
   const moveTo = (id: string, target: string | null) => setPlace((p) => ({ ...p, [id]: target }));
-  const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); record(loadOf(name) >= capOf(name) ? `⚠ ${name} over capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`, 'ph-user-plus'); };
+  const doAssign = (id: string, name: string, code: string) => { moveTo(id, name); persist(id, name); record(loadOf(name) >= capOf(name) ? `⚠ ${name} over capacity — assigned ${code} anyway` : `Assigned ${code} → ${name}`, 'ph-user-plus'); };
   // Guardrail: confirm before manually pushing an order onto a staff who is already full.
   const assignWithGuard = (id: string, name: string, code: string) => {
     if (loadOf(name) >= capOf(name)) setConfirm({ msg: `${name} is already at capacity (${loadOf(name)}/${capOf(name)}). Assign ${code} anyway?`, onYes: () => { doAssign(id, name, code); setConfirm(null); } });
@@ -125,6 +135,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     }
     const n = Object.keys(picks).length;
     setPlace((p) => ({ ...p, ...picks })); setSel(new Set());
+    for (const [id, name] of Object.entries(picks)) persist(id, name);
     record(n ? `Auto-routed ${n} ${label}${held ? ` · held ${held} (no free capacity)` : ''} — balanced by load` : held ? `Held ${held} — no free capacity` : 'Nothing to route', 'ph-magic-wand');
   };
   const autoAll = () => routeMany(pending, pending.length === 1 ? 'order' : 'orders');
@@ -140,7 +151,7 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       const orders = allItems.filter((it) => next[it.id] === hi.name)
         .sort((a, b) => (lo.skills.includes(SKILL_OF[b.service]) ? 1 : 0) - (lo.skills.includes(SKILL_OF[a.service]) ? 1 : 0));
       if (!orders[0]) break;
-      next[orders[0].id] = lo.name; moved++;
+      next[orders[0].id] = lo.name; persist(orders[0].id, lo.name); moved++;
     }
     setPlace(next);
     record(moved ? `Rebalanced ${moved} order${moved > 1 ? 's' : ''} across the team` : 'Load already balanced', 'ph-scales');

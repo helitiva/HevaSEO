@@ -8,6 +8,7 @@ import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
 import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
+import { advanceOrderAction } from '@/app/admin/orders/actions';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
 import { useStaffViewOnly } from '@/lib/staffView';
@@ -17,11 +18,13 @@ interface Props {
   days: number | null; prevId: string | null; nextId: string | null;
   client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
   selfNotes: SelfNote[]; authorName?: string;
+  /** Lane A cleanup: real assigned order → transitions call advance_order (else mock local-state). */
+  real?: boolean;
 }
 
 interface Activity { icon: string; color: string; title: string; detail?: string; at: string }
 
-export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes, authorName = CURRENT_STAFF.name }: Props) {
+export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes, authorName = CURRENT_STAFF.name, real = false }: Props) {
   const router = useRouter();
   const viewOnly = useStaffViewOnly();
   const [status, setStatus] = useState<OrderStatus>(task.status);
@@ -61,15 +64,25 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   }, [prevId, nextId, router]);
 
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2400); }
-  function transition(to: OrderStatus, label: string) {
+  async function transition(to: OrderStatus, label: string) {
+    if (real) {
+      const res = await advanceOrderAction(task.id, to); // advance_order: claims-derived, ownership-enforced
+      if (!res.ok) { flash(res.error); return; }
+    }
     setStatus(to);
     setLog((l) => [{ icon: 'ph-arrow-right', color: 'text-primary', title: `Moved to ${label}`, at: 'just now' }, ...l]);
     flash(`${task.code} → ${label}`);
+    if (real) router.refresh();
   }
-  function submit(note: string) {
+  async function submit(note: string) {
+    if (real) {
+      const res = await advanceOrderAction(task.id, 'internal_review'); // deliverable upload stays mock; the state move is real
+      if (!res.ok) { flash(res.error); return; }
+    }
     setStatus('internal_review');
     setLog((l) => [{ icon: 'ph-paper-plane-tilt', color: 'text-primary', title: 'Submitted for review', detail: note, at: 'just now' }, ...l]);
     flash(`Submitted for review — ${note.slice(0, 40)}${note.length > 40 ? '…' : ''}`);
+    if (real) router.refresh();
   }
 
   function copyLink() {

@@ -2271,6 +2271,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assign_order: {
+        Args: { p_order: string; p_staff: string }
+        Returns: undefined
+      }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
         Args: { p_order: string }

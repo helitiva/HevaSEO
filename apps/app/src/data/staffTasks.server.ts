@@ -1,5 +1,5 @@
 import 'server-only';
-import { getPodOrders } from '@/data/orders.server';
+import { getPodOrders, getPodOrderById } from '@/data/orders.server';
 import type { StaffTask } from '@/data/staffMock';
 import { SERVICE_SKILL, qaCriteriaFor, type AdminOrder } from '@/data/adminMock';
 
@@ -30,4 +30,10 @@ function toStaffTask(o: AdminOrder): StaffTask {
 export async function getMyTasks(): Promise<StaffTask[]> {
   const orders = await getPodOrders(); // staff session → own assigned orders via orders_mgr (money-stripped)
   return orders.map(toStaffTask);
+}
+
+// A single assigned task (money-blind); null when it isn't the staffer's (the view WHERE is the gate).
+export async function getMyTaskById(id: string): Promise<StaffTask | null> {
+  const o = await getPodOrderById(id);
+  return o ? toStaffTask(o) : null;
 }
