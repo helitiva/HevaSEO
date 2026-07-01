@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { reviewDeliverableAction } from '@/app/admin/review/review.actions';
+import { advanceOrderAction } from '@/app/admin/orders/actions';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { SnippetPicker } from '@/components/staff/SnippetPicker';
@@ -52,7 +55,10 @@ function autoGrow(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }: Props) {
+  const router = useRouter();
   const money = useMoney();
   const showMoney = useShowMoney();
   const [decided, setDecided] = useState<Record<string, 'approved' | 'changes_requested'>>({});
@@ -94,8 +100,20 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
   const toggleCheck = (q: QueueItem, i: number) => setChecks((c) => { const cur = (c[q.id] ?? q.checklist.map(() => false)).slice(); cur[i] = !cur[i]; return { ...c, [q.id]: cur }; });
 
   const nextAfter = (id: string) => visible.filter((q) => q.id !== id)[0]?.id ?? null;
-  const approve = (q: QueueItem) => { if (!allChecked(q)) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'approved' })); record(`Approved ${q.code} → ${q.staff}`, 'ph-check-circle'); };
-  const submitChanges = () => { const q = crModal!; if (!crNote.trim()) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'changes_requested' })); record(`Requested changes on ${q.code} → ${q.staff}`, 'ph-arrow-u-up-left'); setCrModal(null); setCrNote(''); };
+  // inc-E28 — persist the verdict for real (deliverable review + order move) when the queue is real data
+  // (q.latest.id is a real deliverable uuid). The optimistic setDecided keeps the board snappy.
+  const persistReview = (q: QueueItem, action: 'approve' | 'request_changes', note?: string) => {
+    if (!UUID_RE.test(q.latest.id)) return;
+    void reviewDeliverableAction(q.latest.id, action, note).then((r) => {
+      if (!r.ok) { record(r.error, 'ph-warning-circle'); return; }
+      void advanceOrderAction(q.id, action === 'approve' ? 'approved' : 'changes_requested').then((a) => {
+        if (!a.ok) record(a.error, 'ph-warning-circle');
+        router.refresh();
+      });
+    });
+  };
+  const approve = (q: QueueItem) => { if (!allChecked(q)) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'approved' })); record(`Approved ${q.code} → ${q.staff}`, 'ph-check-circle'); persistReview(q, 'approve'); };
+  const submitChanges = () => { const q = crModal!; if (!crNote.trim()) return; setSelectedId(nextAfter(q.id)); setDecided((d) => ({ ...d, [q.id]: 'changes_requested' })); record(`Requested changes on ${q.code} → ${q.staff}`, 'ph-arrow-u-up-left'); persistReview(q, 'request_changes', crNote); setCrModal(null); setCrNote(''); };
   // Leave a note for the staffer and/or the customer on the selected task (Phase-0: records it).
   const sendNotes = (q: QueueItem) => {
     const to: string[] = [];

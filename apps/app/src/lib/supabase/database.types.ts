@@ -2871,6 +2871,29 @@ export type Database = {
         Args: { p_transfer_ref: string }
         Returns: undefined
       }
+      review_deliverable: {
+        Args: { p_action: string; p_deliverable: string; p_note?: string }
+        Returns: {
+          files: Json
+          id: string
+          order_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["deliverable_status"]
+          submitted_at: string
+          submitter_id: string
+          summary: string | null
+          task_id: string | null
+          tenant_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deliverables"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       run_payroll: {
         Args: {
           p_bonus: number
