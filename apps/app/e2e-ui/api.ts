@@ -23,3 +23,12 @@ export async function seedPendingStaffPayout(): Promise<string | null> {
   if (error) throw new Error(`seedPendingStaffPayout: ${error.message}`);
   return (req as { id: string }).id;
 }
+
+// Find an order still in `new` state (via the admin client) for the admin-advance UI journey.
+export async function getNewOrderId(): Promise<string | null> {
+  if (!hasApiCreds) return null;
+  const admin = createClient(URL, ANON!, { auth: { persistSession: false } });
+  await admin.auth.signInWithPassword({ email: 'admin@hevaseo.com', password: 'demo1234' });
+  const { data } = await admin.from('orders').select('id').eq('state', 'new').limit(1);
+  return data?.[0]?.id ?? null;
+}

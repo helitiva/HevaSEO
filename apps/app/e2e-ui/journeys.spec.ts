@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login, ACCOUNTS } from './helpers';
-import { seedPendingStaffPayout, hasApiCreds } from './api';
+import { seedPendingStaffPayout, getNewOrderId, hasApiCreds } from './api';
 
 // Deeper multi-step journeys that mutate real state through the UI.
 
@@ -44,6 +44,17 @@ test('customer places an in-app order (services → place → credit charged)', 
   for (const sel of await page.locator('form select:visible').all()) await sel.selectOption({ index: 1 }).catch(() => {});
   await page.getByRole('button', { name: /Place order/i }).first().click();
   await expect(page).toHaveURL(/\/orders(\b|\?|$)/, { timeout: 15_000 }); // success navigates to /orders
+});
+
+test('admin confirms a new order through the UI (advance_order)', async ({ page }) => {
+  test.skip(!hasApiCreds, 'needs SMOKE creds to locate a new order');
+  const id = await getNewOrderId();
+  test.skip(!id, 'no order in "new" state available');
+  await login(page, ACCOUNTS.admin);
+  await page.goto(`/admin/orders/${id}`);
+  await page.getByRole('button', { name: /^Confirm$/ }).first().click();
+  // transition('confirmed') persists via advance_order and toasts "Confirmed · … credit debited"
+  await expect(page.getByText(/Confirmed|credit debited/i).first()).toBeVisible({ timeout: 15_000 });
 });
 
 test('staff opens a task and submits a deliverable (when submittable)', async ({ page }) => {
