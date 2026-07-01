@@ -6,9 +6,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev --turbopack --port 4400",
+    "dev": "next dev --turbopack --port 4500",
     "build": "next build",
-    "start": "next start --port 4400",
+    "start": "next start --port 4500",
     "lint": "next lint",
     "test": "vitest run",
     "test:e2e": "node scripts/e2e/run.mjs",

@@ -28,7 +28,7 @@ for (const role of Object.keys(PAGES) as (keyof typeof ACCOUNTS)[]) {
     page.on('pageerror', (e) => { if (!IGNORE.test(e.message)) issues.push(`[pageerror] ${page.url()} :: ${e.message}`); });
     page.on('response', (r) => {
       const s = r.status();
-      const sameOrigin = r.url().includes('localhost:4455');
+      const sameOrigin = r.url().includes('localhost:4500');
       if ((s >= 500 || (s >= 400 && sameOrigin)) && !IGNORE.test(r.url())) issues.push(`[${s}] ${r.url()}`);
     });
 
