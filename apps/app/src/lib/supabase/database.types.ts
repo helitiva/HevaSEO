@@ -2719,6 +2719,7 @@ export type Database = {
       runtests:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
+      set_affiliate_code: { Args: { p_code: string }; Returns: undefined }
       set_affiliate_status: {
         Args: { p_affiliate: string; p_status: string }
         Returns: undefined
@@ -2756,7 +2757,12 @@ export type Database = {
         Returns: undefined
       }
       update_affiliate_profile: {
-        Args: { p_audience: string; p_niche: string; p_platform: string }
+        Args: {
+          p_audience: string
+          p_name: string
+          p_niche: string
+          p_platform: string
+        }
         Returns: undefined
       }
       upsert_affiliate_program_config: {

@@ -27,15 +27,32 @@ export async function requestAffiliatePayoutAction(amount: number): Promise<Affi
   return { ok: true };
 }
 
-// Lane E inc-E12 — the signed-in affiliate edits their OWN marketing profile (platform/niche/audience).
+// Lane E inc-E12/E14 — the signed-in affiliate edits their OWN profile (name + marketing metadata).
 // update_affiliate_profile is claims-derived + own-affiliate-only.
-export async function updateAffiliateProfileAction(input: { platform: string; niche: string; audience: string }): Promise<AffiliatePayoutResult> {
+export async function updateAffiliateProfileAction(input: { name: string; platform: string; niche: string; audience: string }): Promise<AffiliatePayoutResult> {
+  if (!input.name.trim()) return { ok: false, error: 'Enter a display name.' };
   const supabase = await createClient();
   const { error } = await supabase.rpc('update_affiliate_profile', {
-    p_platform: input.platform, p_niche: input.niche, p_audience: input.audience,
+    p_name: input.name, p_platform: input.platform, p_niche: input.niche, p_audience: input.audience,
   });
   if (error) {
+    if (error.message.includes('BAD_NAME')) return { ok: false, error: 'Enter a display name.' };
     if (error.message.includes('NOT_AFFILIATE')) return { ok: false, error: 'Only an affiliate can edit this profile.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/affiliate/settings');
+  revalidatePath('/affiliate');
+  return { ok: true };
+}
+
+// Lane E inc-E14 — the signed-in affiliate changes their OWN referral code (unique per tenant).
+export async function setAffiliateCodeAction(code: string): Promise<AffiliatePayoutResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_affiliate_code', { p_code: code });
+  if (error) {
+    if (error.message.includes('BAD_CODE')) return { ok: false, error: '3–20 letters and numbers only.' };
+    if (error.message.includes('CODE_TAKEN')) return { ok: false, error: 'That code is already taken.' };
+    if (error.message.includes('NOT_AFFILIATE')) return { ok: false, error: 'Only an affiliate can change this code.' };
     return { ok: false, error: error.message };
   }
   revalidatePath('/affiliate/settings');
