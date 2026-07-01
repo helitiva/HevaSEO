@@ -7,8 +7,9 @@ import { seedPendingStaffPayout, hasApiCreds } from './api';
 test('customer tops up credit through the UI (real credit)', async ({ page }) => {
   await login(page, ACCOUNTS.customer);
   await page.goto('/credit');
-  // PayPal path is provider-agnostic (no Stripe Element / card fields needed).
-  await page.getByRole('button', { name: 'PayPal', exact: true }).click();
+  // PayPal path is provider-agnostic (no Stripe Element / card fields needed). The method toggle is the
+  // first "PayPal" button; the confirm button is "Continue with PayPal".
+  await page.locator('button:has-text("PayPal")').first().click();
   await page.getByRole('button', { name: /Continue with PayPal/i }).click();
   await expect(page.getByText(/Topped up \$/i)).toBeVisible({ timeout: 15_000 });
 });
@@ -17,7 +18,7 @@ test('admin resolves (rejects) a staff payout through the UI', async ({ page }) 
   test.skip(!hasApiCreds, 'needs SMOKE_ANON/SMOKE_SVC to seed a pending payout');
   await seedPendingStaffPayout();
   await login(page, ACCOUNTS.admin);
-  await page.goto('/admin/finance');
+  await page.goto('/admin/finance?tab=payouts'); // WithdrawalRequests lives under the Payouts tab
   const rejectBtns = page.getByRole('button', { name: 'Reject' });
   await expect(rejectBtns.first()).toBeVisible({ timeout: 15_000 });
   const before = await rejectBtns.count();
