@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
-import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money } from '@/data/adminMock';
+import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money, type AdminCustomer, type OrderStatus } from '@/data/adminMock';
 import { mockTodayDate } from '@/lib/today';
+import { getCustomers } from '@/data/customers.server';
+import { getOrders } from '@/data/orders.server';
 import { CustomerProfileClient } from './CustomerProfileClient';
 
 // Shared by the admin and manager customer detail pages. `showMoney` defaults to
@@ -8,10 +10,22 @@ import { CustomerProfileClient } from './CustomerProfileClient';
 // feed (which bakes order/ledger amounts into plain text) is redacted too — the
 // ViewerProvider only reaches the client component, not this server derivation.
 export async function CustomerDetailView({ id, showMoney = true }: { id: string; showMoney?: boolean }) {
-  const c = CUSTOMERS.find((x) => x.id === id);
-  if (!c) notFound();
+  // mock demo customer first; for a REAL customer (getCustomers, uuid id from the real list) resolve real
+  // identity + real orders so the admin customers list → profile never 404s (preventive bugfix). The
+  // remaining sections (contact/projects/ledger/tickets) fall back to safe defaults for a real id.
+  let c: AdminCustomer | undefined = CUSTOMERS.find((x) => x.id === id);
+  let realOrders: { id: string; code: string; service: string; pkg: string; status: OrderStatus; value: number; created: string }[] | null = null;
+  if (!c) {
+    const [custs, allOrders] = await Promise.all([getCustomers(), getOrders()]);
+    c = custs.find((x) => x.id === id);
+    if (!c) notFound();
+    const company = c.company;
+    realOrders = allOrders
+      .filter((o) => o.customer === company || o.customer === c!.name)
+      .map((o) => ({ id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status, value: o.value, created: o.created }));
+  }
 
-  const orders = ORDERS.filter((o) => o.customer === c.company)
+  const orders = realOrders ?? ORDERS.filter((o) => o.customer === c!.company)
     .map((o) => ({ id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status, value: o.value, created: o.created }));
   const extra = CUSTOMER_EXTRA[id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
   const today = mockTodayDate();
