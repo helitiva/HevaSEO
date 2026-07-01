@@ -1,6 +1,7 @@
 # HevaSEO Platform — Developer Onboarding Guide
 
-> Last updated: 2026-06-28. Source of truth for getting oriented and contributing.
+> Last updated: 2026-07-01. Source of truth for getting oriented and contributing.
+> 📘 Backend build history → [BACKEND-BUILD-LOG.md](BACKEND-BUILD-LOG.md) · 🔍 Reviewing the project → [REVIEW-GUIDE.md](REVIEW-GUIDE.md).
 
 ---
 

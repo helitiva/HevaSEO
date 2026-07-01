@@ -1,6 +1,7 @@
 # STATUS.md — Bảng điều phối backend HevaSEO
 
-> **Cập nhật:** 2026-06-28 · **Nguồn:** [ORCHESTRATION.md](ORCHESTRATION.md) (lane) + [ADR-backend.md](ADR-backend.md) §5 (phase).
+> **Cập nhật:** 2026-07-01 · **Nguồn:** [ORCHESTRATION.md](ORCHESTRATION.md) (lane) + [ADR-backend.md](ADR-backend.md) §5 (phase).
+> 📘 **Full build log:** [BACKEND-BUILD-LOG.md](BACKEND-BUILD-LOG.md) · 🔍 **Reviewing the project?** [REVIEW-GUIDE.md](REVIEW-GUIDE.md) (docs index + fresh-session prompt).
 > Đây là **single source of truth** cho fleet: slice nào ở đâu, ai làm, kẹt gì. Orchestrator + mỗi agent cập nhật hàng của mình.
 
 **Trạng thái:** ⬜ chưa bắt đầu · 🟡 đang làm · 🔵 PR mở (chờ gác) · ✅ merged · 🔴 kẹt (xem Blocked-on)
