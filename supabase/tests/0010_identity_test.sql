@@ -20,16 +20,16 @@ insert into profiles(tenant_id, email, name, role) values
   ('11111111-1111-1111-1111-111111111111', 'a1@example.com', 'A1', 'staff'),
   ('22222222-2222-2222-2222-222222222222', 'b1@example.com', 'B1', 'staff');
 
--- act as an authenticated request scoped to Tenant A
+-- act as an authenticated request scoped to Tenant A (role-aware profiles RLS → carry an app_role)
 set local role authenticated;
-set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111"}';
+set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"staff"}';
 select is(
   (select count(*) from profiles)::int, 1,
   'tenant A sees only its own profile (RLS tenant isolation)'
 );
 
 -- a request for an unrelated tenant sees nothing (cross-tenant invisible)
-set local request.jwt.claims = '{"tenant_id":"33333333-3333-3333-3333-333333333333"}';
+set local request.jwt.claims = '{"tenant_id":"33333333-3333-3333-3333-333333333333","app_role":"staff"}';
 select is(
   (select count(*) from profiles)::int, 0,
   'foreign tenant sees zero profiles (cross-tenant = 0 rows)'
