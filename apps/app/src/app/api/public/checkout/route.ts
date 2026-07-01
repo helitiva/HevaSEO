@@ -42,10 +42,26 @@ const RATE_MAX = 8;
 type Body = {
   serviceSlug?: unknown; packageId?: unknown; qty?: unknown;
   addonPicks?: unknown; email?: unknown; name?: unknown;
-  billing?: unknown; saveBilling?: unknown;
+  billing?: unknown; saveBilling?: unknown; turnstileToken?: unknown;
 };
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// chốt 2 (bot): Cloudflare Turnstile server verify. Gated on TURNSTILE_SECRET — when unset (local/dev)
+// it's a no-op so nothing breaks; wire the widget token as body.turnstileToken to activate in prod.
+async function turnstileOk(token: unknown): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET;
+  if (!secret) return true; // not configured → skip
+  if (typeof token !== 'string' || !token) return false;
+  try {
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret, response: token }),
+    });
+    const d = (await r.json()) as { success?: boolean };
+    return Boolean(d.success);
+  } catch { return false; }
+}
 
 export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
@@ -66,6 +82,7 @@ export async function POST(req: Request) {
   }
   const email = body.email.trim().toLowerCase();
   if (!EMAIL_RE.test(email)) return json({ ok: false, error: 'Enter a valid email.' }, 400);
+  if (!(await turnstileOk(body.turnstileToken))) return json({ ok: false, error: 'Bot check failed — please retry.' }, 403);
   const qty = typeof body.qty === 'number' && body.qty > 0 ? Math.floor(body.qty) : undefined;
   const addonPicks = (body.addonPicks && typeof body.addonPicks === 'object')
     ? (body.addonPicks as Record<string, string>) : {};

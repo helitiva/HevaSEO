@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { REF_ORIGIN } from '@/lib/affiliate';
 
 // Lane E inc-E16/E17 — the affiliate share link. Records the click (record_affiliate_click, anon-callable
@@ -9,26 +10,24 @@ import { REF_ORIGIN } from '@/lib/affiliate';
 //
 // Dedup (E17): a per-code `hvc_<code>` cookie suppresses repeat counts from the same browser within the
 // window, so a refresh / re-open doesn't inflate clicks.
-// Rate-limit (E21): a per-(IP, code) in-memory cap defends against cookie-clearing abuse — at most
-// MAX_PER_IP counted clicks per window from one IP for a given code. In-memory (per server instance;
-// resets on restart / not shared across instances) — matches the checkout limiter; a durable store is a
-// follow-up. Attribution + redirect always happen; only the COUNT is gated.
+// Rate-limit (E21): a per-(IP, code) cap defends against cookie-clearing abuse — at most MAX_PER_IP
+// counted clicks per window from one IP for a given code. Backed by the durable Postgres rate_hit()
+// (multi-instance safe). Attribution + redirect always happen; only the COUNT is gated, and a limiter
+// error fails OPEN (best-effort counting must never block the redirect).
 const DEDUP_WINDOW_S = 60 * 60 * 6; // 6h
 const REF_COOKIE_S = 60 * 60 * 24 * 30; // 30d
-const RL_WINDOW_MS = 60 * 60 * 1000; // 1h
+const RL_WINDOW_S = 60 * 60; // 1h
 const RL_MAX_PER_IP = 10;
-const rlBuckets = new Map<string, { n: number; win: number }>();
 
-function ipAllows(ip: string, code: string): boolean {
-  const now = Date.now();
-  // opportunistic prune so the map can't grow unbounded
-  if (rlBuckets.size > 5000) for (const [k, b] of rlBuckets) if (now - b.win > RL_WINDOW_MS) rlBuckets.delete(k);
-  const key = `${ip}:${code}`;
-  const b = rlBuckets.get(key);
-  if (!b || now - b.win > RL_WINDOW_MS) { rlBuckets.set(key, { n: 1, win: now }); return true; }
-  if (b.n >= RL_MAX_PER_IP) return false;
-  b.n += 1;
-  return true;
+async function ipAllows(ip: string, code: string): Promise<boolean> {
+  try {
+    const svc = createServiceClient();
+    const { data: allowed, error } = await svc.rpc('rate_hit', { p_key: `refclick:${ip}:${code}`, p_max: RL_MAX_PER_IP, p_window_secs: RL_WINDOW_S });
+    if (error) return true; // fail-open
+    return allowed !== false;
+  } catch {
+    return true; // fail-open
+  }
 }
 
 function clientIp(req: Request): string {
@@ -43,7 +42,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   const jar = await cookies();
   const alreadyCounted = clean ? jar.has(`hvc_${clean}`) : true;
   // count only when the cookie hasn't seen it AND the IP is under its per-code cap
-  const shouldCount = Boolean(clean) && !alreadyCounted && ipAllows(clientIp(req), clean);
+  const shouldCount = Boolean(clean) && !alreadyCounted && (await ipAllows(clientIp(req), clean));
 
   if (shouldCount) {
     try {
