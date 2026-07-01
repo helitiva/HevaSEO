@@ -2,6 +2,9 @@
   "name": "hevaseo-platform",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --filter @heva/web dev",
     "build": "pnpm --filter @heva/web build",

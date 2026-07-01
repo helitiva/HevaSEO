@@ -2822,6 +2822,10 @@ export type Database = {
       num_failed: { Args: never; Returns: number }
       order_assignee_id: { Args: { p_order: string }; Returns: string }
       order_pod_manager: { Args: { p_order: string }; Returns: string }
+      rate_hit: {
+        Args: { p_key: string; p_max: number; p_window_secs: number }
+        Returns: boolean
+      }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }

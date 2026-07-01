@@ -13,6 +13,13 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient as createSvc } from '@supabase/supabase-js';
 
+// @supabase/realtime-js needs a native WebSocket → Node 22+. Fail with a clear message instead of the
+// cryptic "Node.js 20 detected without native WebSocket support" crash from deep in the client.
+if (Number(process.versions.node.split('.')[0]) < 22) {
+  console.error(`This smoke needs Node >= 22 (found ${process.versions.node}). Use: nvm use 22`);
+  process.exit(2);
+}
+
 const URL = process.env.SMOKE_URL || 'http://127.0.0.1:54321';
 const ANON = process.env.SMOKE_ANON;
 const SVC = process.env.SMOKE_SVC;

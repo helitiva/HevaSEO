@@ -33,13 +33,20 @@ export async function POST(req: Request) {
   try {
     if (event.type === 'account.updated') {
       const acct = event.data.object as { id: string; payouts_enabled?: boolean };
-      await supabase.rpc('sync_stripe_account_status', { p_account_id: acct.id, p_enabled: Boolean(acct.payouts_enabled) });
+      const { error } = await supabase.rpc('sync_stripe_account_status', { p_account_id: acct.id, p_enabled: Boolean(acct.payouts_enabled) });
+      if (error) throw error;
     } else if (event.type === 'transfer.reversed') {
       const tr = event.data.object as { id: string };
-      await supabase.rpc('revert_affiliate_payout_by_transfer', { p_transfer_ref: tr.id });
+      const { error } = await supabase.rpc('revert_affiliate_payout_by_transfer', { p_transfer_ref: tr.id });
+      if (error) throw error;
     }
+    // unknown event types fall through and get ACKed below (no retry-storm on events we don't handle).
   } catch {
-    // ACK anyway — a durable reconcile job backstops a dropped handler; retrying rarely helps.
+    // A HANDLED event whose reconcile failed → return 5xx so Stripe RETRIES with backoff (both fns are
+    // idempotent, so a replay is safe). This closes the "silent clawback loss" gap: previously the
+    // handler swallowed the error and ACKed 2xx, so Stripe never retried and a reversed transfer's
+    // refund could be lost.
+    return new NextResponse('Handler failed — retry', { status: 500 });
   }
   return NextResponse.json({ received: true });
 }
