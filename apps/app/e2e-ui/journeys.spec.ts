@@ -29,6 +29,23 @@ test('admin resolves (rejects) a staff payout through the UI', async ({ page }) 
   }).toPass({ timeout: 15_000 });
 });
 
+test('customer places an in-app order (services → place → credit charged)', async ({ page }) => {
+  await login(page, ACCOUNTS.customer);
+  await page.goto('/services/audit');
+  // Satisfy native reportValidity(): fill every visible text-like field and pick a real option in any
+  // required <select>. On success the form navigates to /orders.
+  for (const inp of await page.locator('form input:visible').all()) {
+    const type = (await inp.getAttribute('type')) ?? 'text';
+    if (['checkbox', 'radio', 'file', 'hidden', 'range', 'submit'].includes(type)) continue;
+    const v = type === 'email' ? 'qa@e2e.test' : type === 'url' ? 'https://qa-inapp.example.com' : type === 'number' ? '1' : 'QA order';
+    await inp.fill(v).catch(() => {});
+  }
+  for (const ta of await page.locator('form textarea:visible').all()) await ta.fill('QA order brief — focus on the money pages.').catch(() => {});
+  for (const sel of await page.locator('form select:visible').all()) await sel.selectOption({ index: 1 }).catch(() => {});
+  await page.getByRole('button', { name: /Place order/i }).first().click();
+  await expect(page).toHaveURL(/\/orders(\b|\?|$)/, { timeout: 15_000 }); // success navigates to /orders
+});
+
 test('staff opens a task and submits a deliverable (when submittable)', async ({ page }) => {
   await login(page, ACCOUNTS.staff);
   await page.goto('/staff/tasks');
