@@ -3027,6 +3027,15 @@ export type Database = {
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }
+      staff_perf_all: {
+        Args: never
+        Returns: {
+          on_time: number
+          profile_id: string
+          quality: number
+          throughput: number
+        }[]
+      }
       submit_deliverable: {
         Args: { p_files?: Json; p_order: string; p_summary: string }
         Returns: {
