@@ -156,6 +156,7 @@ export type Database = {
           affiliate_id: string
           amount: number
           id: string
+          provider_ref: string | null
           requested_at: string
           resolved_at: string | null
           status: string
@@ -165,6 +166,7 @@ export type Database = {
           affiliate_id: string
           amount: number
           id?: string
+          provider_ref?: string | null
           requested_at?: string
           resolved_at?: string | null
           status?: string
@@ -174,6 +176,7 @@ export type Database = {
           affiliate_id?: string
           amount?: number
           id?: string
+          provider_ref?: string | null
           requested_at?: string
           resolved_at?: string | null
           status?: string
@@ -2733,6 +2736,7 @@ export type Database = {
           affiliate_id: string
           amount: number
           id: string
+          provider_ref: string | null
           requested_at: string
           resolved_at: string | null
           status: string
@@ -2765,11 +2769,12 @@ export type Database = {
         }
       }
       resolve_affiliate_payout: {
-        Args: { p_action: string; p_request: string }
+        Args: { p_action: string; p_provider_ref?: string; p_request: string }
         Returns: {
           affiliate_id: string
           amount: number
           id: string
+          provider_ref: string | null
           requested_at: string
           resolved_at: string | null
           status: string

@@ -3,7 +3,7 @@ begin;
 select plan(8);
 
 select has_function('resolve_affiliate_payout', 'resolve_affiliate_payout() exists');
-select ok(not has_function_privilege('anon', 'resolve_affiliate_payout(uuid,text)', 'execute'), 'anon CANNOT resolve');
+select ok(not has_function_privilege('anon', 'resolve_affiliate_payout(uuid,text,text)', 'execute'), 'anon CANNOT resolve');
 
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');
 insert into profiles(id, tenant_id, email, name, role) values

@@ -14,11 +14,48 @@ const ERR: Record<string, string> = {
   BAD_ACTION: 'Invalid action.',
 };
 
-// Lane E inc-E3 — admin resolves an affiliate payout, MONEY (gác③). resolve_affiliate_payout is
-// admin-gated + idempotent; reject refunds the held amount to the affiliate's commission balance.
+async function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  const { default: Stripe } = await import('stripe');
+  return new Stripe(key);
+}
+
+// Lane E inc-E3/E20 — admin resolves an affiliate payout, MONEY (gác③). On 'pay', when Stripe is
+// configured, a real Stripe transfer moves the money to the affiliate's connected account (inc-E19)
+// BEFORE the DB marks it paid — so we never mark paid without a settled transfer, and the transfer id is
+// stored as provider_ref. reject refunds the held amount. Idempotent + admin-gated in the fn.
 export async function resolveAffiliatePayoutAction(payoutId: string, action: 'approve' | 'pay' | 'reject'): Promise<ResolveResult> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc('resolve_affiliate_payout', { p_request: payoutId, p_action: action });
+  let providerRef: string | undefined;
+
+  if (action === 'pay') {
+    const stripe = await getStripe();
+    if (stripe) {
+      const { data: pay, error: readErr } = await supabase
+        .from('affiliate_payouts')
+        .select('amount, status, affiliates(stripe_account_id, stripe_payouts_enabled)')
+        .eq('id', payoutId).maybeSingle();
+      if (readErr) return { ok: false, error: readErr.message };
+      if (!pay) return { ok: false, error: ERR.REQUEST_NOT_FOUND };
+      if (pay.status === 'paid' || pay.status === 'rejected') return { ok: false, error: ERR.ALREADY_RESOLVED };
+      const acct = Array.isArray(pay.affiliates) ? pay.affiliates[0] : pay.affiliates;
+      if (!acct?.stripe_account_id || !acct.stripe_payouts_enabled) {
+        return { ok: false, error: 'This partner hasn’t connected a Stripe payout account yet — ask them to finish onboarding in Settings.' };
+      }
+      try {
+        const transfer = await stripe.transfers.create({
+          amount: Math.round(Number(pay.amount) * 100), currency: 'usd',
+          destination: acct.stripe_account_id, metadata: { heva_payout: payoutId },
+        });
+        providerRef = transfer.id;
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? `Transfer failed: ${e.message}` : 'Transfer failed.' };
+      }
+    }
+  }
+
+  const { error } = await supabase.rpc('resolve_affiliate_payout', { p_request: payoutId, p_action: action, p_provider_ref: providerRef });
   if (error) {
     const key = Object.keys(ERR).find((k) => error.message.includes(k));
     return { ok: false, error: key ? ERR[key] : error.message };
