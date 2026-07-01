@@ -9,6 +9,7 @@ import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
 import { advanceOrderAction } from '@/app/admin/orders/actions';
+import { submitDeliverableAction } from '@/app/staff/tasks/deliverable.actions';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
 import { useStaffViewOnly } from '@/lib/staffView';
@@ -76,7 +77,10 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   }
   async function submit(note: string) {
     if (real) {
-      const res = await advanceOrderAction(task.id, 'internal_review'); // deliverable upload stays mock; the state move is real
+      // record the real deliverable version, THEN move the order to review (both real, inc-E27)
+      const sub = await submitDeliverableAction(task.id, note, []);
+      if (!sub.ok) { flash(sub.error); return; }
+      const res = await advanceOrderAction(task.id, 'internal_review');
       if (!res.ok) { flash(res.error); return; }
     }
     setStatus('internal_review');
