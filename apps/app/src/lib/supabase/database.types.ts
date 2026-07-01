@@ -2806,6 +2806,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revert_affiliate_payout_by_transfer: {
+        Args: { p_transfer_ref: string }
+        Returns: undefined
+      }
       run_payroll: {
         Args: {
           p_bonus: number
@@ -2861,6 +2865,10 @@ export type Database = {
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }
+      sync_stripe_account_status: {
+        Args: { p_account_id: string; p_enabled: boolean }
+        Returns: undefined
+      }
       throws_ok: { Args: { "": string }; Returns: string }
       todo:
         | { Args: { how_many: number }; Returns: boolean[] }
