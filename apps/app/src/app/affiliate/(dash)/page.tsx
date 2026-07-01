@@ -68,7 +68,7 @@ export default async function AffiliateOverviewPage() {
 
         {/* What they can earn — the tier ladder at zero volume */}
         <SectionHead title="What you can earn" icon="ph-crown-simple" />
-        <TierProgress lifetimeVolume={lifetimeVolume} />
+        <TierProgress lifetimeVolume={lifetimeVolume} tiers={real?.tiers} />
 
         {/* Give them something to share right now */}
         <SectionHead title="Start promoting" icon="ph-megaphone" href="/affiliate/assets" cta="All assets" />
@@ -99,7 +99,7 @@ export default async function AffiliateOverviewPage() {
 
       {/* Tier progress & funnel */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <TierProgress lifetimeVolume={lifetimeVolume} />
+        <TierProgress lifetimeVolume={lifetimeVolume} tiers={real?.tiers} />
         <ConversionFunnel stages={funnel} />
       </div>
 
@@ -111,7 +111,7 @@ export default async function AffiliateOverviewPage() {
 
       {/* Referrals preview */}
       <SectionHead title="Your referrals" icon="ph-users-three" href="/affiliate/referrals" cta="View all" />
-      <ReferralsTable referrals={referrals} lifetimeVolume={lifetimeVolume} limit={5} />
+      <ReferralsTable referrals={referrals} lifetimeVolume={lifetimeVolume} limit={5} tiers={real?.tiers} />
 
       {/* Commission & payouts summary */}
       <SectionHead title="Commission & payouts" icon="ph-wallet" href="/affiliate/payouts" cta="See ledger" />

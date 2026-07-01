@@ -5,6 +5,7 @@ import { IMPERSONATE_AFFILIATE_COOKIE } from '@/lib/impersonation';
 import type { PortalData } from '@/data/affiliatePortal';
 import type { Affiliate } from '@/data/affiliateMock';
 import type { Referral, CommissionEvent, PayoutRequest } from '@/lib/affiliate';
+import { defaultTierRows, type EditableTier } from '@/data/adminAffiliate';
 
 // Lane E — an affiliate's REAL portal data. inc-E1: the signed-in affiliate's own (affiliate_*_own RLS).
 // inc-E4: admin impersonation reads any tenant affiliate by id (affiliate_*_admin RLS). Maps to the mock
@@ -20,14 +21,28 @@ type RefRow = { id: string; volume: number | string; status: string; created_at:
 type LedRow = { id: string; amount: number | string; kind: string; referral_id: string | null; created_at: string };
 type PayRow = { id: string; amount: number | string; status: string; requested_at: string };
 
-// PortalData + the authoritative withdrawable balance (affiliate_commission.balance == SUM(ledger)).
-export type MyAffiliate = PortalData & { balance: number };
+// PortalData + the authoritative withdrawable balance (affiliate_commission.balance == SUM(ledger)) +
+// the config tier ladder (inc-E10; undefined → the UI falls back to the lib default ladder).
+export type MyAffiliate = PortalData & { balance: number; tiers?: EditableTier[] };
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
+// The tenant's configured tier ladder (RLS tenant-scoped read). undefined when unconfigured → the
+// partner UI falls back to the lib ladder. Missing tiers fall back to the shared-ladder default row.
+async function readTierLadder(supabase: Supa): Promise<EditableTier[] | undefined> {
+  const { data, error } = await supabase.from('affiliate_tier_config').select('tier, min_volume, rate')
+    .returns<{ tier: string; min_volume: number | string; rate: number | string }[]>();
+  if (error || !data || data.length === 0) return undefined;
+  const by = new Map(data.map((t) => [t.tier, t]));
+  return defaultTierRows().map((d): EditableTier => {
+    const t = by.get(d.id);
+    return t ? { ...d, minVolume: Number(t.min_volume), rate: Number(t.rate) } : d;
+  });
+}
+
 // Build the portal for one resolved affiliate row (all sub-reads scoped to its id).
 async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
-  const [refs, led, pays, bal] = await Promise.all([
+  const [refs, led, pays, bal, tiers] = await Promise.all([
     supabase.from('affiliate_referrals').select('id, volume, status, created_at, customers(name, company)')
       .eq('affiliate_id', aff.id).order('created_at', { ascending: false }).returns<RefRow[]>(),
     supabase.from('commission_ledger').select('id, amount, kind, referral_id, created_at')
@@ -35,6 +50,7 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
     supabase.from('affiliate_payouts').select('id, amount, status, requested_at')
       .eq('affiliate_id', aff.id).order('requested_at', { ascending: false }).returns<PayRow[]>(),
     supabase.from('affiliate_commission').select('balance').eq('affiliate_id', aff.id).maybeSingle().returns<{ balance: number | string } | null>(),
+    readTierLadder(supabase),
   ]);
   if (refs.error || led.error || pays.error || bal.error) throw new Error('getAffiliate portal reads failed');
 
@@ -60,7 +76,7 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
     id: p.id, at: ymd(p.requested_at), amount: Number(p.amount), method: affiliate.payoutLabel,
     status: p.status as PayoutRequest['status'],
   }));
-  return { affiliate, referrals, events, payouts, clicks: 0, balance: Number(bal.data?.balance ?? 0) };
+  return { affiliate, referrals, events, payouts, clicks: 0, balance: Number(bal.data?.balance ?? 0), tiers };
 }
 
 const AFF_SELECT = 'id, code, tier, status, joined_at, profiles:user_id(name, email)';

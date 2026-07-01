@@ -1,10 +1,12 @@
 import { money } from '@/data/adminMock';
-import { AFFILIATE_TIERS, tierFor, nextTierProgress, nextTierUpside } from '@/lib/affiliate';
+import { AFFILIATE_TIERS, tierForIn, tierProgressIn, tierUpsideIn, type TierLike } from '@/lib/affiliate';
 
-export function TierProgress({ lifetimeVolume }: { lifetimeVolume: number }) {
-  const tier = tierFor(lifetimeVolume);
-  const { next, pct, remaining } = nextTierProgress(lifetimeVolume);
-  const { gapValue } = nextTierUpside(lifetimeVolume);
+// `tiers` (config ladder, inc-E10) overrides the default lib ladder when the admin has configured tiers.
+export function TierProgress({ lifetimeVolume, tiers }: { lifetimeVolume: number; tiers?: TierLike[] }) {
+  const ladder: readonly TierLike[] = tiers && tiers.length ? tiers : AFFILIATE_TIERS;
+  const tier = tierForIn(lifetimeVolume, ladder);
+  const { next, pct, remaining } = tierProgressIn(lifetimeVolume, ladder);
+  const { gapValue } = tierUpsideIn(lifetimeVolume, ladder);
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
@@ -47,7 +49,7 @@ export function TierProgress({ lifetimeVolume }: { lifetimeVolume: number }) {
 
       {/* tier ladder */}
       <div className="mt-4 grid grid-cols-4 gap-1.5">
-        {AFFILIATE_TIERS.map((t) => {
+        {ladder.map((t) => {
           const reached = lifetimeVolume >= t.minVolume;
           const current = t.id === tier.id;
           return (

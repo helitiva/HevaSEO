@@ -1,16 +1,17 @@
 'use client';
 import { useState } from 'react';
 import { money } from '@/data/adminMock';
-import { tierFor, type Referral } from '@/lib/affiliate';
+import { AFFILIATE_TIERS, tierForIn, type Referral, type TierLike } from '@/lib/affiliate';
 
 type SortKey = 'customer' | 'joinedAt' | 'orders' | 'volume' | 'commission';
 
 // Each referral's commission shown here is what THIS affiliate earned from that
 // customer's orders, at the affiliate's current tier rate (own earnings only).
+// `tiers` (config ladder, inc-E10) overrides the default lib ladder when configured.
 export function ReferralsTable({
-  referrals, lifetimeVolume, limit, compact = false,
-}: { referrals: Referral[]; lifetimeVolume: number; limit?: number; compact?: boolean }) {
-  const rate = tierFor(lifetimeVolume).rate;
+  referrals, lifetimeVolume, limit, compact = false, tiers,
+}: { referrals: Referral[]; lifetimeVolume: number; limit?: number; compact?: boolean; tiers?: TierLike[] }) {
+  const rate = tierForIn(lifetimeVolume, tiers && tiers.length ? tiers : AFFILIATE_TIERS).rate;
   const [sort, setSort] = useState<SortKey>('volume');
   const [dir, setDir] = useState<1 | -1>(-1);
 

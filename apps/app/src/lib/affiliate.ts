@@ -26,29 +26,55 @@ export const AFFILIATE_TIERS: readonly AffiliateTier[] = [
   { id: 'platinum', label: 'Platinum', minVolume: 50_000, rate: 0.25, hue: 'violet' },
 ];
 
-/** The highest tier whose threshold the lifetime volume has reached. */
-export function tierFor(lifetimeVolume: number): AffiliateTier {
-  let current = AFFILIATE_TIERS[0];
-  for (const t of AFFILIATE_TIERS) {
-    if (lifetimeVolume >= t.minVolume) current = t;
-  }
+// ── Ladder-parameterized tier math (inc-E10) ──────────────────────────────────
+// The lib AFFILIATE_TIERS is the default ladder; the admin can override thresholds/rates via the
+// program config (affiliate_tier_config). These generic fns take ANY ladder so the same math drives
+// both the default and the config-driven tiers. Defensive sort lets a config ladder be out of order.
+/** Minimal tier shape shared by the lib ladder and admin-configured tiers. */
+export type TierLike = { id: TierId; label: string; minVolume: number; rate: number };
+
+const sortedLadder = <T extends TierLike>(ladder: readonly T[]): T[] =>
+  [...ladder].sort((a, b) => a.minVolume - b.minVolume);
+
+/** The highest tier in `ladder` whose threshold `volume` has reached. */
+export function tierForIn<T extends TierLike>(volume: number, ladder: readonly T[]): T {
+  const s = sortedLadder(ladder);
+  let current = s[0];
+  for (const t of s) if (volume >= t.minVolume) current = t;
   return current;
 }
 
-/** Progress toward the next tier: the next tier (null at the top), % filled, and USD remaining. */
-export function nextTierProgress(lifetimeVolume: number): {
-  next: AffiliateTier | null;
-  pct: number;       // 0..100 across the current band
-  remaining: number; // USD of volume still needed to reach `next` (0 at the top)
-} {
-  const current = tierFor(lifetimeVolume);
-  const idx = AFFILIATE_TIERS.findIndex((t) => t.id === current.id);
-  const next = AFFILIATE_TIERS[idx + 1] ?? null;
+/** Progress toward the next tier in `ladder`: next (null at top), % filled, USD remaining. */
+export function tierProgressIn<T extends TierLike>(volume: number, ladder: readonly T[]): { next: T | null; pct: number; remaining: number } {
+  const s = sortedLadder(ladder);
+  const current = tierForIn(volume, s);
+  const idx = s.findIndex((t) => t.id === current.id);
+  const next = s[idx + 1] ?? null;
   if (!next) return { next: null, pct: 100, remaining: 0 };
   const band = next.minVolume - current.minVolume;
-  const into = lifetimeVolume - current.minVolume;
-  const pct = Math.max(0, Math.min(100, Math.round((into / band) * 100)));
-  return { next, pct, remaining: Math.max(0, next.minVolume - lifetimeVolume) };
+  const into = volume - current.minVolume;
+  const pct = band <= 0 ? 100 : Math.max(0, Math.min(100, Math.round((into / band) * 100)));
+  return { next, pct, remaining: Math.max(0, next.minVolume - volume) };
+}
+
+/** Loss-aversion upside: what the driven volume would earn at the next tier's rate. */
+export function tierUpsideIn<T extends TierLike>(volume: number, ladder: readonly T[]): { next: T | null; gapValue: number } {
+  const s = sortedLadder(ladder);
+  const current = tierForIn(volume, s);
+  const idx = s.findIndex((t) => t.id === current.id);
+  const next = s[idx + 1] ?? null;
+  if (!next) return { next: null, gapValue: 0 };
+  return { next, gapValue: Math.round(volume * (next.rate - current.rate)) };
+}
+
+/** The highest tier whose threshold the lifetime volume has reached (default lib ladder). */
+export function tierFor(lifetimeVolume: number): AffiliateTier {
+  return tierForIn(lifetimeVolume, AFFILIATE_TIERS);
+}
+
+/** Progress toward the next tier (default lib ladder). */
+export function nextTierProgress(lifetimeVolume: number): { next: AffiliateTier | null; pct: number; remaining: number } {
+  return tierProgressIn(lifetimeVolume, AFFILIATE_TIERS);
 }
 
 /** Commission a single order earns at a given tier. */
@@ -59,14 +85,10 @@ export function commissionFor(orderValue: number, tier: AffiliateTier): number {
 /**
  * The "money left on the table": how much MORE the volume already driven would have
  * paid at the next tier's rate. A pure loss-aversion number — what staying put costs.
- * Zero at the top tier (nothing higher to miss).
+ * Zero at the top tier (nothing higher to miss). Default lib ladder.
  */
 export function nextTierUpside(lifetimeVolume: number): { next: AffiliateTier | null; gapValue: number } {
-  const current = tierFor(lifetimeVolume);
-  const idx = AFFILIATE_TIERS.findIndex((t) => t.id === current.id);
-  const next = AFFILIATE_TIERS[idx + 1] ?? null;
-  if (!next) return { next: null, gapValue: 0 };
-  return { next, gapValue: Math.round(lifetimeVolume * (next.rate - current.rate)) };
+  return tierUpsideIn(lifetimeVolume, AFFILIATE_TIERS);
 }
 
 /**
