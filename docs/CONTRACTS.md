@@ -34,6 +34,7 @@ getMyOrders(): Promise<Order[]>                   // customer dashboard: own ord
 // [PURE] lib/orderMap.ts — DB-row→model mappers (toAdminOrder/toMgrOrder/toCustomerOrder + CUST_STATUS/SERVICE_KEY/UUID_RE); unit-tested (orderMap.test.ts). Used by orders.server.ts.
 // [READ — REAL, inc-5b/c] data/orders.server.ts → getOrderDetail(id): order_details brief/project/folder/included + order_addons (money-blind) — for /orders/[id]
 // [READ — REAL, inc-5e] data/deliverables.server.ts → getDeliverables(): Promise<AdminDeliverable[]>  // review board (admin RLS); staff name via submitter join
+// [READ — REAL, Lane A cleanup] data/staffTasks.server.ts → getMyTasks(): StaffTask[]  // signed-in staffer's own assigned orders, money-blind via orders_mgr → board shape; /staff/tasks (+ My Day) with mock fallback for impersonation. Transitions reuse advanceOrderAction (advance_order, claims-derived, ownership-enforced)
 // [HOOK — REAL, inc-5f] lib/useOrderDetail.ts → useOrderDetail(orderId): OrderDetailExtra | undefined  // client lazy fetch of order_details+order_addons (RLS) for slide-over previews
 // [READ — mock, migrating consumer-by-consumer] data/mock.ts, data/adminMock.ts
 ORDERS: AdminOrder[]                              // → SELECT scoped RLS (customer own / manager pod / admin all)
