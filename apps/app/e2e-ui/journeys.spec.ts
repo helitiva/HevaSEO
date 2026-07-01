@@ -46,6 +46,14 @@ test('customer places an in-app order (services → place → credit charged)', 
   await expect(page).toHaveURL(/\/orders(\b|\?|$)/, { timeout: 15_000 }); // success navigates to /orders
 });
 
+test('manager Assignment shows REAL orders (not mock)', async ({ page }) => {
+  await login(page, ACCOUNTS.manager);
+  await page.goto('/manager/assignment');
+  // AUD-1001 is a real seeded unassigned order the manager can see via orders_mgr — proves the page
+  // reads live data, not the old mock queue.
+  await expect(page.getByText('AUD-1001').first()).toBeVisible({ timeout: 15_000 });
+});
+
 test('admin confirms a new order through the UI (advance_order)', async ({ page }) => {
   test.skip(!hasApiCreds, 'needs SMOKE creds to locate a new order');
   const id = await getNewOrderId();

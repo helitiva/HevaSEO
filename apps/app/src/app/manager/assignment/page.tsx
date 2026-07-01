@@ -2,15 +2,18 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { AssignmentClient } from '@/app/admin/assignment/AssignmentClient';
 import { buildAssignmentProps } from '@/app/admin/assignment/build';
 import { TIER } from '@/data/adminMock';
-import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
+import { getStaff } from '@/data/staff.server';
+import { getPodOrders } from '@/data/orders.server';
+import { getRules } from '@/data/assignmentRules.server';
 
 export const metadata = { title: 'Assignment' };
 
-// Manager Assignment — routes from the shared unassigned queue, but candidates
-// and in-flight workload are limited to this manager's pod. Money-blind.
-export default function ManagerAssignmentPage() {
-  const scope = managerScope(MANAGER_PERSONA);
-  const p = buildAssignmentProps(scope.staff);
+// Manager Assignment — the REAL pod queue: unassigned + pod orders via the money-stripped orders_mgr
+// view, routed to pod staff. RLS scopes the reads to this manager's pod; assign_order permits
+// pod-scoped manager assignment. (Previously this rendered mock data and never showed real orders.)
+export default async function ManagerAssignmentPage() {
+  const [staff, orders, rules] = await Promise.all([getStaff(), getPodOrders(), getRules()]);
+  const p = buildAssignmentProps(staff, orders, rules);
   return (
     <section className="space-y-4">
       <PageHeader title="Assignment" subtitle="Route work to your pod" />
