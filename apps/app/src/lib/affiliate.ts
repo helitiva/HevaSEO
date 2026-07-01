@@ -290,6 +290,13 @@ export function buildAffiliateUrl(code: string): string {
   return `${REF_ORIGIN}/?ref=${encodeURIComponent(code)}`;
 }
 
+// The tracked share link (inc-E16): routes through the app's /r/:code endpoint, which records the click
+// then 302s to the marketing site with ?ref. `origin` is the app origin (env in prod, window origin
+// client-side); empty → a relative path (still works when the app serves it).
+export function buildTrackedUrl(code: string, origin = ''): string {
+  return `${origin}/r/${encodeURIComponent(code)}`;
+}
+
 /** A tracked deep link to a specific service/landing path. */
 export function buildDeepLink(code: string, servicePath: string): string {
   const path = servicePath.startsWith('/') ? servicePath : `/${servicePath}`;

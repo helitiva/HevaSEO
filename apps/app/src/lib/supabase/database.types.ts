@@ -34,6 +34,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_clicks: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_clicks_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_clicks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_commission: {
         Row: {
           affiliate_id: string
@@ -2677,6 +2713,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_affiliate_click: { Args: { p_code: string }; Returns: undefined }
       remove_affiliate_payout_method: {
         Args: { p_id: string }
         Returns: undefined

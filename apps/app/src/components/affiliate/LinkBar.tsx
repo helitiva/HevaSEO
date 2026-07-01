@@ -1,12 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CopyButton } from './CopyButton';
 import { FauxQR } from './FauxQR';
-import { buildAffiliateUrl, buildDeepLink } from '@/lib/affiliate';
+import { buildTrackedUrl, buildDeepLink } from '@/lib/affiliate';
 import { LINK_TARGETS } from '@/data/affiliateMock';
 
 export function LinkBar({ code }: { code: string }) {
-  const url = buildAffiliateUrl(code);
+  // Tracked share link (inc-E16): app origin from env, else the current window origin after mount.
+  const [origin, setOrigin] = useState(process.env.NEXT_PUBLIC_APP_ORIGIN ?? '');
+  useEffect(() => { if (!origin && typeof window !== 'undefined') setOrigin(window.location.origin); }, [origin]);
+  const url = buildTrackedUrl(code, origin);
   const [targetPath, setTargetPath] = useState(LINK_TARGETS[1].path); // default: Free SEO audit
   const deepLink = buildDeepLink(code, targetPath);
 

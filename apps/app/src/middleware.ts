@@ -5,7 +5,8 @@ import { createServerClient } from '@supabase/ssr';
 // read RLS-scoped data (which requires an authenticated JWT) — so an anonymous request must be sent
 // to /login, not allowed to hit the data layer (where the read would error and crash the page).
 // /api/public/* is the unauthenticated marketing surface (quick-checkout) — it must NOT be auth-gated.
-const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/api/public'];
+// /r/* is the public affiliate click-tracking redirect (inc-E16) — a click has no session.
+const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/api/public', '/r'];
 
 // Role-shell gating: each portal shell belongs to one role. A signed-in user on the WRONG shell is
 // sent to their own home. (RLS is the real data gate; this is UX + defense-in-depth. Customer portal
