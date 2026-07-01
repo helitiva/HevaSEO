@@ -71,6 +71,30 @@ export async function saveAffiliateTiersAction(tiers: EditableTier[]): Promise<R
   return { ok: true };
 }
 
+// Lane E inc-E13 — admin provisions a new affiliate partner (shadow profile + affiliate row; the
+// partner claims it by signing up with the same email). Admin-gated via create_affiliate_partner.
+export type CreatePartnerResult = { ok: true; code: string } | { ok: false; error: string };
+export async function createAffiliatePartnerAction(input: {
+  name: string; email: string; code: string; tier: TierId; platform?: string; niche?: string; audience?: string;
+}): Promise<CreatePartnerResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('create_affiliate_partner', {
+    p_name: input.name, p_email: input.email, p_code: input.code, p_tier: input.tier,
+    p_platform: input.platform || undefined, p_niche: input.niche || undefined, p_audience: input.audience || undefined,
+  });
+  if (error) {
+    const map: Record<string, string> = {
+      NOT_ADMIN: 'Only an admin can create partners.',
+      BAD_EMAIL: 'Enter a valid email.', BAD_CODE: '3–20 letters/numbers only.', BAD_NAME: 'Enter a name.',
+      EMAIL_TAKEN: 'An account with this email already exists.', CODE_TAKEN: 'That referral code is taken.',
+    };
+    const key = Object.keys(map).find((k) => error.message.includes(k));
+    return { ok: false, error: key ? map[key] : error.message };
+  }
+  revalidatePath('/admin/affiliate');
+  return { ok: true, code: (data as { code: string }).code };
+}
+
 // Lane E inc-E6 — admin pins a partner's tier (override the volume ladder) or reverts to auto (tier=null).
 // Admin-gated via set_affiliate_tier.
 export async function setAffiliateTierAction(affiliateId: string, tier: TierId | null): Promise<ResolveResult> {

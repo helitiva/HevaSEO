@@ -2425,6 +2425,38 @@ export type Database = {
             }
             Returns: string
           }
+      create_affiliate_partner: {
+        Args: {
+          p_audience?: string
+          p_code: string
+          p_email: string
+          p_name: string
+          p_niche?: string
+          p_platform?: string
+          p_tier: string
+        }
+        Returns: {
+          audience: string | null
+          clicks: number
+          code: string
+          created_at: string
+          id: string
+          joined_at: string | null
+          niche: string | null
+          platform: string | null
+          status: Database["public"]["Enums"]["affiliate_status"]
+          tenant_id: string
+          tier: Database["public"]["Enums"]["affiliate_tier"]
+          tier_pinned: boolean
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "affiliates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_order: {
         Args: {
           p_actor: string

@@ -252,7 +252,7 @@ export function AffiliateAdminClient({ realPartners, realPayouts, realConfig }: 
       )}
 
       <PartnerDrawer partner={selected} payouts={payouts} tierRows={tierRows} onToggle={setPartnerStatus} onClose={() => setSelectedId(null)} />
-      {createOpen && <PartnerCreateModal onClose={() => setCreateOpen(false)} />}
+      {createOpen && <PartnerCreateModal realMode={realMode} onCreated={() => router.refresh()} onClose={() => setCreateOpen(false)} />}
     </section>
   );
 }
