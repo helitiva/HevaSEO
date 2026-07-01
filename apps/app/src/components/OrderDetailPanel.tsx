@@ -62,9 +62,12 @@ function Cell({ icon, label, full, children }: { icon: string; label: string; fu
 
 export function OrderDetailPanel() {
   const id = useSearchParams().get('order');
-  const { addedOrders } = useOrdersStore();
-  // Session-placed orders (carrying the real submitted brief) take precedence over seed data.
-  const order = id ? (addedOrders.find((o) => o.id === id) ?? ORDERS.find((o) => o.id === id)) : undefined;
+  const { addedOrders, realOrders } = useOrdersStore();
+  // Resolve by id: session-placed orders → the customer's REAL orders (getMyOrders, id = order code) →
+  // mock seed (demo fallback). Real orders are the primary source now the board reads live data.
+  const order = id
+    ? (addedOrders.find((o) => o.id === id) ?? realOrders.find((o) => o.id === id) ?? ORDERS.find((o) => o.id === id))
+    : undefined;
   if (!order) return null;
   return <Panel key={order.id} order={order} />;
 }
