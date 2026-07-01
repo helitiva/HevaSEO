@@ -2,12 +2,16 @@ import type { Metadata } from 'next';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ReferralsTable } from '@/components/affiliate/ReferralsTable';
 import { portalDataFor } from '@/data/affiliatePortal';
+import { getAffiliatePortalData } from '@/data/affiliate.server';
 import { currentAffiliateId } from '@/lib/currentAffiliate';
 
 export const metadata: Metadata = { title: 'Referrals' };
 
 export default async function ReferralsPage() {
-  const { referrals } = portalDataFor(await currentAffiliateId());
+  // Lane E inc-E11 — real referrals (RLS-scoped) with mock fallback for impersonation/demo personas,
+  // matching the dash + payouts pages (was mock-only).
+  const real = await getAffiliatePortalData();
+  const { referrals } = real ?? portalDataFor(await currentAffiliateId());
   const lifetimeVolume = referrals.reduce((s, r) => s + r.volume, 0);
   const slipping = referrals.filter((r) => r.status === 'churned');
 
@@ -33,7 +37,7 @@ export default async function ReferralsPage() {
         </div>
       )}
 
-      <ReferralsTable referrals={referrals} lifetimeVolume={lifetimeVolume} />
+      <ReferralsTable referrals={referrals} lifetimeVolume={lifetimeVolume} tiers={real?.tiers} />
     </section>
   );
 }
