@@ -1466,6 +1466,65 @@ export type Database = {
           },
         ]
       }
+      order_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          internal: boolean
+          order_id: string
+          tenant_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          internal?: boolean
+          order_id: string
+          tenant_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          internal?: boolean
+          order_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_mgr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           assignee_id: string | null
@@ -2774,6 +2833,24 @@ export type Database = {
           p_order: string
         }
         Returns: undefined
+      }
+      post_order_message: {
+        Args: { p_body: string; p_internal?: boolean; p_order: string }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          internal: boolean
+          order_id: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "order_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       post_staff_pay: {
         Args: {

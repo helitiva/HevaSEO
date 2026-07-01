@@ -5,7 +5,8 @@ export interface ThreadMessage { who: string; body: string; internal: boolean; a
 
 // Shared two-thread chat. The composer carries a recipient label that flips with the active tab,
 // so an internal note is never posted to the customer by mistake (the leak guard, D5).
-export function MessageThread({ initial, className }: { initial: ThreadMessage[]; className?: string }) {
+// `onSend` (inc-E29) persists the message to the real order thread; when omitted the thread is mock-only.
+export function MessageThread({ initial, className, onSend }: { initial: ThreadMessage[]; className?: string; onSend?: (body: string, internal: boolean) => void }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initial);
   const [tab, setTab] = useState<'customer' | 'internal'>('customer');
   const [draft, setDraft] = useState('');
@@ -15,8 +16,9 @@ export function MessageThread({ initial, className }: { initial: ThreadMessage[]
   function send() {
     const body = draft.trim();
     if (!body) return;
-    setMessages((m) => [...m, { who: 'You', body, internal, at: 'now' }]);
+    setMessages((m) => [...m, { who: 'You', body, internal, at: 'now' }]); // optimistic
     setDraft('');
+    onSend?.(body, internal);
   }
 
   return (

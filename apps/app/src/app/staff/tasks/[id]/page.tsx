@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { myTasks, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor } from '@/data/staffMock';
 import { getMyTasks, getMyTaskById } from '@/data/staffTasks.server';
+import { getOrderMessages } from '@/data/orderMessages.server';
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { daysToDue } from '@/lib/staff';
@@ -25,13 +26,15 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   const next = idx >= 0 && idx < board.length - 1 ? board[idx + 1].id : null;
 
   const manager = myManager(sid);
+  // inc-E29 — real order thread when this is a real assigned order; mock otherwise.
+  const messages = real ? await getOrderMessages(id) : messagesFor(id);
 
   return (
     <TaskDetailClient
       task={task}
       real={real}
       deliverables={deliverablesFor(id)}
-      messages={messagesFor(id)}
+      messages={messages}
       days={daysToDue(task.deadline)}
       prevId={prev}
       nextId={next}

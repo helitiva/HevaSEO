@@ -10,6 +10,7 @@ import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
 import { advanceOrderAction } from '@/app/admin/orders/actions';
 import { submitDeliverableAction } from '@/app/staff/tasks/deliverable.actions';
+import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
 import { useStaffViewOnly } from '@/lib/staffView';
@@ -194,7 +195,9 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
         </div>
 
         <div className="flex flex-col gap-4">
-          <MessageThread initial={messages} />
+          <MessageThread initial={messages} onSend={real ? (body, internal) => {
+            void postOrderMessageAction(task.id, body, internal).then((r) => { if (!r.ok) flash(r.error); else router.refresh(); });
+          } : undefined} />
           <RevisionThread deliverables={deliverables} sessionLog={log} fallbackReviewer={manager.name} created={task.created} className="min-h-[28rem] flex-1" />
         </div>
       </div>
