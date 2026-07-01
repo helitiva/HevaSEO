@@ -63,8 +63,10 @@
 |---|-----|-------|---------|-----|
 | 1 | HIGH | `post_order_message` | participant gate NULL-leak: customer could post on a shadow-customer order | migration `20260701470000` + pgTAP `0670` (found by BE E2E) |
 | 2 | HIGH | marketing `OrderShell.astro` | checkout POSTed to `:4500` but the app dev server is `:4400` → quick-checkout silently failed in local dev | default → `:4400` (override via `PUBLIC_CHECKOUT_URL`); verified live E2E (order placed) |
-| 3 | LOW | marketing `index.astro` | `cdn.simpleicons.org/openai` icon 404 (upstream removed) | replaced with a Phosphor `ph-sparkle` icon |
+| 3 | HIGH | `affiliate/(dash)/layout.tsx` | `/affiliate/settings` 500'd — `useToast must be used within ToastProvider` (provider missing from the affiliate layout) | wrap the affiliate dash in `ToastProvider`; confirmed via per-role console sweep (all 5 roles clean on prod build) |
+| 4 | LOW | marketing `index.astro` | `cdn.simpleicons.org/openai` icon 404 (upstream removed) | replaced with a Phosphor `ph-sparkle` icon |
 | — | n/a | journeys.spec | 2 test-nav gaps (Payouts tab URL, PayPal locator) — NOT app bugs | test fixes |
+| — | env | app dev (turbopack) | intermittent dev-HMR `global-error.js not in Client Manifest` 500 under sweep load (Next 15 turbopack flake; `next build` is clean) — NOT an app bug | run the sweep against `next start` (prod build) |
 
 ## Coverage status
 - Automated (green): pgTAP 524 · unit 378 · backend E2E 81 · Playwright 20 (auth/surfaces/checkout-api/journeys).
