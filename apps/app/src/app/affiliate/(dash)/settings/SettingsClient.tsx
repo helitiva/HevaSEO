@@ -5,6 +5,7 @@ import { isCodeValid, buildAffiliateUrl } from '@/lib/affiliate';
 import type { Affiliate } from '@/data/affiliateMock';
 import type { AffiliatePayoutMethod } from '@/data/affiliate.server';
 import { useToast } from '@/components/Toast';
+import { createClient } from '@/lib/supabase/client';
 import {
   updateAffiliateProfileAction, setAffiliateCodeAction,
   addAffiliatePayoutMethodAction, setDefaultAffiliatePayoutMethodAction, removeAffiliatePayoutMethodAction,
@@ -70,6 +71,20 @@ export function SettingsClient({ me, editable = false, methods = [] }: { me: Aff
     router.refresh();
   };
 
+  // Email (inc-E18) — sign-in identity; goes through GoTrue's verified email-change flow (confirmation
+  // link), and a trigger syncs profiles.email once confirmed.
+  const [email, setEmail] = useState(me.email);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const emailChanged = email.trim() !== me.email && /.+@.+\..+/.test(email.trim());
+  const updateEmail = async () => {
+    if (!editable || !emailChanged || savingEmail) return;
+    setSavingEmail(true);
+    const { error } = await createClient().auth.updateUser({ email: email.trim() });
+    setSavingEmail(false);
+    if (error) { toast(error.message, 'error'); return; }
+    toast(`Confirmation link sent to ${email.trim()}`, 'success');
+  };
+
   // Referral code (inc-E14) — real edit, unique per tenant.
   const [code, setCode] = useState(me.code);
   const [savingCode, setSavingCode] = useState(false);
@@ -94,8 +109,16 @@ export function SettingsClient({ me, editable = false, methods = [] }: { me: Aff
         <div className="mt-4 space-y-3">
           <Field label="Display name"><input className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></Field>
           <Field label="Email">
-            <input className={`${input} cursor-not-allowed opacity-70`} value={me.email} type="email" readOnly disabled />
-            <span className="mt-1 block text-[11px] text-muted-foreground">Contact support to change your sign-in email.</span>
+            <div className="flex gap-2">
+              <input className={input} value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" disabled={!editable} />
+              {editable && emailChanged && (
+                <button type="button" disabled={savingEmail} onClick={updateEmail}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition hover:bg-muted disabled:opacity-50">
+                  <i className={`ph-bold ${savingEmail ? 'ph-circle-notch animate-spin' : 'ph-paper-plane-tilt'}`} aria-hidden /> Update
+                </button>
+              )}
+            </div>
+            <span className="mt-1 block text-[11px] text-muted-foreground">Changing your email sends a confirmation link to the new address; it takes effect once you confirm.</span>
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Primary platform"><input className={input} value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder="e.g. YouTube" /></Field>
