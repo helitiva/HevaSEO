@@ -37,8 +37,21 @@ const Row = ({ label, hint, children }: { label: string; hint?: string; children
   </div>
 );
 
+// Save-button used in realMode (backend). When no save handler is passed the tab is in mock mode
+// (localStorage auto-persists) and no button renders.
+function SaveButton({ onSave, dirty }: { onSave?: () => void; dirty?: boolean }) {
+  if (!onSave) return null;
+  return (
+    <button type="button" onClick={onSave} disabled={!dirty}
+      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 disabled:opacity-40">
+      <i className="ph-bold ph-floppy-disk" aria-hidden /> {dirty ? 'Save' : 'Saved'}
+    </button>
+  );
+}
+
 export function RulesTab({
   rules, setRules, tierRows, setTierRows, applications, onToggle,
+  onSaveRules, onSaveTiers, rulesDirty, tiersDirty,
 }: {
   rules: ProgramRules;
   setRules: (next: ProgramRules) => void;
@@ -46,6 +59,10 @@ export function RulesTab({
   setTierRows: (next: EditableTier[]) => void;
   applications: AdminAffiliate[];
   onToggle: (id: string, next: PartnerStatus) => void;
+  onSaveRules?: () => void;
+  onSaveTiers?: () => void;
+  rulesDirty?: boolean;
+  tiersDirty?: boolean;
 }) {
   const patch = (p: Partial<ProgramRules>) => setRules({ ...rules, ...p });
   const editTier = (id: string, p: Partial<EditableTier>) =>
@@ -57,7 +74,10 @@ export function RulesTab({
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-stack text-primary" aria-hidden /> Commission tiers</p>
-          <button type="button" onClick={() => setTierRows(defaultTierRows())} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setTierRows(defaultTierRows())} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
+            <SaveButton onSave={onSaveTiers} dirty={tiersDirty} />
+          </div>
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">Rate applies to every referred order once lifetime volume crosses the threshold.</p>
         <div className="mt-3 space-y-2">
@@ -79,7 +99,10 @@ export function RulesTab({
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-sliders text-primary" aria-hidden /> Program rules</p>
-          <button type="button" onClick={() => setRules(DEFAULT_RULES)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setRules(DEFAULT_RULES)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Reset</button>
+            <SaveButton onSave={onSaveRules} dirty={rulesDirty} />
+          </div>
         </div>
         <div className="mt-2">
           <Row label="Approval mode" hint="Instant = link works on signup">
@@ -106,7 +129,9 @@ export function RulesTab({
             <Toggle on={rules.selfReferralBlock} onChange={(v) => patch({ selfReferralBlock: v })} />
           </Row>
         </div>
-        <p className="mt-3 rounded-lg bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">Changes are saved in-session (mock). The live program reads these once the backend lands.</p>
+        <p className="mt-3 rounded-lg bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+          {onSaveRules ? 'Saved to the program config. Live enforcement (min payout, tier rates) rolls out per surface.' : 'Changes are saved in-session (mock). The live program reads these once the backend lands.'}
+        </p>
       </section>
 
       {/* Pending applications */}

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { AdminAffiliate, AdminPayout, PartnerStatus } from '@/data/adminAffiliate';
+import type { AdminAffiliate, AdminPayout, PartnerStatus, ProgramRules, EditableTier } from '@/data/adminAffiliate';
+import { defaultTierRows, DEFAULT_RULES } from '@/data/adminAffiliate';
 import type { PayoutStatus, TierId } from '@/lib/affiliate';
 
 // Lane E inc-E3 — admin affiliate console reads (admin RLS = all tenant affiliates). Aggregates the real
@@ -43,6 +44,40 @@ export async function getAffiliates(): Promise<AdminAffiliate[]> {
       tierPinned: a.tier_pinned, pinnedTier: a.tier as TierId,
     };
   });
+}
+
+// Lane E inc-E7 — program config (Rules tab). Returns null when no config row exists yet so the
+// console falls back to DEFAULT_RULES / defaultTierRows. Tier rows always cover all 4 tiers (config
+// row wins; missing tier falls back to the shared ladder default) in the canonical ladder order.
+export type AffiliateProgramConfig = { rules: ProgramRules; tiers: EditableTier[] };
+
+export async function getAffiliateProgramConfig(): Promise<AffiliateProgramConfig | null> {
+  const supabase = await createClient();
+  const [cfg, tiers] = await Promise.all([
+    supabase.from('affiliate_program_config').select('*').maybeSingle(),
+    supabase.from('affiliate_tier_config').select('tier, min_volume, rate')
+      .returns<{ tier: string; min_volume: number | string; rate: number | string }[]>(),
+  ]);
+  if (cfg.error) throw new Error(`getAffiliateProgramConfig: ${cfg.error.message}`);
+  if (tiers.error) throw new Error(`getAffiliateProgramConfig tiers: ${tiers.error.message}`);
+  if (!cfg.data && (tiers.data?.length ?? 0) === 0) return null;
+
+  const c = cfg.data;
+  const rules: ProgramRules = c
+    ? {
+        approvalMode: c.approval_mode as ProgramRules['approvalMode'],
+        attribution: c.attribution as ProgramRules['attribution'],
+        cookieWindowDays: c.cookie_window_days, holdDays: c.hold_days,
+        minPayout: Number(c.min_payout), selfReferralBlock: c.self_referral_block, recurring: c.recurring,
+      }
+    : { ...DEFAULT_RULES };
+
+  const byTier = new Map((tiers.data ?? []).map((t) => [t.tier, t]));
+  const rows = defaultTierRows().map((d): EditableTier => {
+    const t = byTier.get(d.id);
+    return t ? { ...d, minVolume: Number(t.min_volume), rate: Number(t.rate) } : d;
+  });
+  return { rules, tiers: rows };
 }
 
 type PayRow = { id: string; affiliate_id: string; amount: number | string; status: string; requested_at: string; affiliates: { code: string; profiles: { name: string | null } | null } | null };

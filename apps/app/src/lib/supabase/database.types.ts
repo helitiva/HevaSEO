@@ -115,6 +115,50 @@ export type Database = {
           },
         ]
       }
+      affiliate_program_config: {
+        Row: {
+          approval_mode: string
+          attribution: string
+          cookie_window_days: number
+          hold_days: number
+          min_payout: number
+          recurring: boolean
+          self_referral_block: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approval_mode?: string
+          attribution?: string
+          cookie_window_days?: number
+          hold_days?: number
+          min_payout?: number
+          recurring?: boolean
+          self_referral_block?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approval_mode?: string
+          attribution?: string
+          cookie_window_days?: number
+          hold_days?: number
+          min_payout?: number
+          recurring?: boolean
+          self_referral_block?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_program_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_referrals: {
         Row: {
           affiliate_id: string
@@ -160,6 +204,35 @@ export type Database = {
           },
           {
             foreignKeyName: "affiliate_referrals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_tier_config: {
+        Row: {
+          min_volume: number
+          rate: number
+          tenant_id: string
+          tier: Database["public"]["Enums"]["affiliate_tier"]
+        }
+        Insert: {
+          min_volume?: number
+          rate?: number
+          tenant_id: string
+          tier: Database["public"]["Enums"]["affiliate_tier"]
+        }
+        Update: {
+          min_volume?: number
+          rate?: number
+          tenant_id?: string
+          tier?: Database["public"]["Enums"]["affiliate_tier"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_tier_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2636,6 +2709,22 @@ export type Database = {
           p_stripe?: string
           p_tenant: string
         }
+        Returns: undefined
+      }
+      upsert_affiliate_program_config: {
+        Args: {
+          p_approval_mode: string
+          p_attribution: string
+          p_cookie_window_days: number
+          p_hold_days: number
+          p_min_payout: number
+          p_recurring: boolean
+          p_self_referral_block: boolean
+        }
+        Returns: undefined
+      }
+      upsert_affiliate_tier_config: {
+        Args: { p_tiers: Json }
         Returns: undefined
       }
       upsert_broadcast: {

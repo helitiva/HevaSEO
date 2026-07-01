@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { TierId } from '@/lib/affiliate';
+import type { ProgramRules, EditableTier } from '@/data/adminAffiliate';
 
 export type ResolveResult = { ok: true } | { ok: false; error: string };
 
@@ -35,6 +36,35 @@ export async function setAffiliateStatusAction(affiliateId: string, status: 'act
   if (error) {
     if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change a partner’s status.' };
     if (error.message.includes('AFFILIATE_NOT_FOUND')) return { ok: false, error: 'That partner no longer exists.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/admin/affiliate');
+  return { ok: true };
+}
+
+// Lane E inc-E7 — admin saves the program rules (Rules tab). Admin-gated via upsert_affiliate_program_config.
+export async function saveAffiliateRulesAction(rules: ProgramRules): Promise<ResolveResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('upsert_affiliate_program_config', {
+    p_approval_mode: rules.approvalMode, p_attribution: rules.attribution,
+    p_cookie_window_days: rules.cookieWindowDays, p_hold_days: rules.holdDays,
+    p_min_payout: rules.minPayout, p_self_referral_block: rules.selfReferralBlock, p_recurring: rules.recurring,
+  });
+  if (error) {
+    if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change program rules.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/admin/affiliate');
+  return { ok: true };
+}
+
+// Lane E inc-E7 — admin saves the commission-tier definitions (replaces all rows).
+export async function saveAffiliateTiersAction(tiers: EditableTier[]): Promise<ResolveResult> {
+  const supabase = await createClient();
+  const payload = tiers.map((t) => ({ tier: t.id, min_volume: t.minVolume, rate: t.rate }));
+  const { error } = await supabase.rpc('upsert_affiliate_tier_config', { p_tiers: payload });
+  if (error) {
+    if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change tiers.' };
     return { ok: false, error: error.message };
   }
   revalidatePath('/admin/affiliate');

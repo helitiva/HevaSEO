@@ -10,7 +10,7 @@ import {
   type PartnerStatus, type ProgramRules, type EditableTier, type AdminAffiliate, type AdminPayout,
 } from '@/data/adminAffiliate';
 import { useAdminAffiliates, setPartnerTier as mockSetPartnerTier, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
-import { resolveAffiliatePayoutAction, setAffiliateStatusAction, setAffiliateTierAction } from '@/app/admin/affiliate/payout.actions';
+import { resolveAffiliatePayoutAction, setAffiliateStatusAction, setAffiliateTierAction, saveAffiliateRulesAction, saveAffiliateTiersAction } from '@/app/admin/affiliate/payout.actions';
 import { AFFILIATE_TIERS, tierFor, type TierId } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
@@ -30,7 +30,11 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
 
 // Lane E inc-E3 — when realPartners/realPayouts are passed (server-fed), the console renders real data
 // and payout resolve goes through resolve_affiliate_payout; otherwise it's the localStorage mock.
-export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartners?: AdminAffiliate[]; realPayouts?: AdminPayout[] } = {}) {
+export function AffiliateAdminClient({ realPartners, realPayouts, realConfig }: {
+  realPartners?: AdminAffiliate[];
+  realPayouts?: AdminPayout[];
+  realConfig?: { rules: ProgramRules; tiers: EditableTier[] } | null;
+} = {}) {
   const realMode = Boolean(realPayouts);
   const router = useRouter();
   const pathname = usePathname();
@@ -45,8 +49,22 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
   // In-session admin actions (mock; localStorage-backed).
   const [statusOverride, setStatusOverride] = usePersistedState<Record<string, PartnerStatus>>('partnerStatus', {});
   const [payoutOverride, setPayoutOverride] = usePersistedState<Record<string, PayoutStatus>>('payoutStatus', {});
-  const [rules, setRules] = usePersistedState<ProgramRules>('rules', DEFAULT_RULES);
-  const [tierRows, setTierRows] = usePersistedState<EditableTier[]>('tiers', defaultTierRows());
+  // Program rules/tiers: mock persists to localStorage on every change; real edits buffer in local
+  // state and commit via an explicit Save (upsert fn) — the server config is the saved baseline.
+  const savedRules = realConfig?.rules ?? DEFAULT_RULES;
+  const savedTiers = realConfig?.tiers ?? defaultTierRows();
+  const [rulesMock, setRulesMock] = usePersistedState<ProgramRules>('rules', DEFAULT_RULES);
+  const [tiersMock, setTiersMock] = usePersistedState<EditableTier[]>('tiers', defaultTierRows());
+  const [rulesReal, setRulesReal] = useState<ProgramRules>(savedRules);
+  const [tiersReal, setTiersReal] = useState<EditableTier[]>(savedTiers);
+  const rules = realMode ? rulesReal : rulesMock;
+  const setRules = realMode ? setRulesReal : setRulesMock;
+  const tierRows = realMode ? tiersReal : tiersMock;
+  const setTierRows = realMode ? setTiersReal : setTiersMock;
+  const rulesDirty = realMode && JSON.stringify(rulesReal) !== JSON.stringify(savedRules);
+  const tiersDirty = realMode && JSON.stringify(tiersReal) !== JSON.stringify(savedTiers);
+  const saveRules = () => { void saveAffiliateRulesAction(rulesReal).then((r) => { if (r.ok) router.refresh(); }); };
+  const saveTiers = () => { void saveAffiliateTiersAction(tiersReal).then((r) => { if (r.ok) router.refresh(); }); };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -227,7 +245,9 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
       {tab === 'partners' && <PartnersTab partners={partners} tierRows={tierRows} overrides={tierOverrides} onToggle={setPartnerStatus} onSelect={setSelectedId} onSetTier={setPartnerTier} />}
       {tab === 'payouts' && <PayoutsTab payouts={payouts} onAction={setPayoutStatus} />}
       {tab === 'rules' && (
-        <RulesTab rules={rules} setRules={setRules} tierRows={tierRows} setTierRows={setTierRows} applications={pending} onToggle={setPartnerStatus} />
+        <RulesTab rules={rules} setRules={setRules} tierRows={tierRows} setTierRows={setTierRows} applications={pending} onToggle={setPartnerStatus}
+          onSaveRules={realMode ? saveRules : undefined} onSaveTiers={realMode ? saveTiers : undefined}
+          rulesDirty={rulesDirty} tiersDirty={tiersDirty} />
       )}
 
       <PartnerDrawer partner={selected} payouts={payouts} tierRows={tierRows} onToggle={setPartnerStatus} onClose={() => setSelectedId(null)} />
