@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start --port 4400",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "node scripts/e2e/run.mjs",
+    "test:ui": "playwright test"
   },
   "dependencies": {
     "@heva/catalog": "workspace:*",
@@ -29,6 +31,7 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

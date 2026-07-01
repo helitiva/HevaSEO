@@ -1,0 +1,5 @@
+# Playwright UI E2E artifacts (generated)
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
