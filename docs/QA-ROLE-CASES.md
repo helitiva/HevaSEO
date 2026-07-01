@@ -62,7 +62,7 @@
 | # | Sev | Where | Finding | Fix |
 |---|-----|-------|---------|-----|
 | 1 | HIGH | `post_order_message` | participant gate NULL-leak: customer could post on a shadow-customer order | migration `20260701470000` + pgTAP `0670` (found by BE E2E) |
-| 2 | HIGH | marketing `OrderShell.astro` | checkout POSTed to `:4500` but the app dev server is `:4400` → quick-checkout silently failed in local dev | default → `:4400` (override via `PUBLIC_CHECKOUT_URL`); verified live E2E (order placed) |
+| 2 | — | marketing `OrderShell.astro` | FALSE POSITIVE — I briefly changed the checkout default `:4500 → :4400`, but the app actually runs on `:4500` in this workspace (matches the Stripe webhook forward). Reverted to `:4500`. (The E2E order placement was verified against `:4455`/`PUBLIC_CHECKOUT_URL`, which still holds.) |
 | 3 | HIGH | `affiliate/(dash)/layout.tsx` | `/affiliate/settings` 500'd — `useToast must be used within ToastProvider` (provider missing from the affiliate layout) | wrap the affiliate dash in `ToastProvider`; confirmed via per-role console sweep (all 5 roles clean on prod build) |
 | 4 | LOW | marketing `index.astro` | `cdn.simpleicons.org/openai` icon 404 (upstream removed) | replaced with a Phosphor `ph-sparkle` icon |
 | — | n/a | journeys.spec | 2 test-nav gaps (Payouts tab URL, PayPal locator) — NOT app bugs | test fixes |
