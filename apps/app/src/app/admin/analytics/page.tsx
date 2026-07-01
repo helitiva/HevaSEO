@@ -10,17 +10,18 @@ import { TeamPerformance } from '@/components/admin/TeamPerformance';
 import { Donut } from '@/components/admin/Donut';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { PeriodSelector } from './PeriodSelector';
-import {
-  REVENUE_KPIS, REVENUE_ANALYTICS, REVENUE_90, SERVICE_MIX, CUSTOMERS, money, type RevKpi,
-} from '@/data/adminMock';
+import { money, type RevKpi } from '@/data/adminMock';
+import { getAnalytics } from '@/data/analytics.server';
 
 export const metadata = { title: 'Analytics' };
 
-export default function AnalyticsPage() {
-  const r = REVENUE_ANALYTICS;
-  const srcSegs = r.bySource.map((s) => ({ label: s.label, value: s.value, color: s.color }));
-  const srcTotal = srcSegs.reduce((s, x) => s + x.value, 0);
-  const topRev = [...CUSTOMERS].sort((a, b) => b.spend - a.spend).slice(0, 5);
+// inc-analytics — revenue section reads REAL aggregates from orders (getAnalytics); audience/geo/support
+// panels stay mock (no events/geo/tickets data source).
+export default async function AnalyticsPage() {
+  const a = await getAnalytics();
+  const srcSegs = a.bySource;
+  const srcTotal = a.bySourceTotal || 1;
+  const topRev = a.topCustomers;
   const maxSpend = Math.max(...topRev.map((c) => c.spend), 1);
 
   return (
@@ -33,10 +34,10 @@ export default function AnalyticsPage() {
 
       {/* ---- Revenue (lead) ---- */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {REVENUE_KPIS.map((k) => <RevTile key={k.key} kpi={k} />)}
+        {a.kpis.map((k) => <RevTile key={k.key} kpi={k} />)}
       </div>
 
-      <RevenueChart data={REVENUE_90} services={SERVICE_MIX} />
+      <RevenueChart data={a.daily} services={a.serviceMix} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -54,7 +55,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <ServiceMix data={SERVICE_MIX} />
+        <ServiceMix data={a.serviceMix} />
 
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
