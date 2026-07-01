@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
 import { topUpAction } from '@/app/(portal)/credit.actions';
+import { StripeTopUp, stripeConfigured } from './StripeTopUp';
 
 const PRESETS = [20, 80, 200, 400, 800];
 type Method = 'card' | 'paypal';
@@ -108,6 +109,10 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       </div>
 
       {method === 'card' ? (
+        stripeConfigured() ? (
+          // Stripe Payment Element — Link + card + Apple/Google Pay in one embedded widget
+          <StripeTopUp amount={amount} onDone={onDone} />
+        ) : (
         <>
           {/* express wallets */}
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -143,6 +148,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
             <i className={`ph-bold ${paying ? 'ph-circle-notch animate-spin' : 'ph-lock-simple'}`} aria-hidden /> {paying ? 'Processing…' : `Pay $${amount}`}
           </button>
         </>
+        )
       ) : (
         <div className="mt-4">
           <div className="rounded-xl border border-border bg-background p-5 text-center">
