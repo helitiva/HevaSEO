@@ -878,8 +878,9 @@ const steps = [
       setUsageMode('paste');
     }
 
-    // The public quick-checkout endpoint (apps/app). Override per-env with PUBLIC_CHECKOUT_URL.
-    const CHECKOUT_URL = import.meta.env.PUBLIC_CHECKOUT_URL || 'http://127.0.0.1:4500/api/public/checkout';
+    // The public quick-checkout endpoint (apps/app). Default matches the app dev port (`next dev
+    // --port 4400`); override per-env with PUBLIC_CHECKOUT_URL (e.g. the deployed app origin).
+    const CHECKOUT_URL = import.meta.env.PUBLIC_CHECKOUT_URL || 'http://127.0.0.1:4400/api/public/checkout';
     const payPanel = document.getElementById('order-payment');
     const paySubmit = document.getElementById('pay-submit') as HTMLButtonElement | null;
     const payErr = document.getElementById('pay-error');

@@ -9,7 +9,7 @@
 1. Home renders, nav + service links work — no console errors. ✅ browse
 2. Each service landing page loads (`/audit`, `/keyword-strategy`, `/content`, `/backlink`, `/website-optimization`, `/seo-web-design`, `/indexer`). ✅ browse
 3. "Choose {plan}" → `/order/{service}?plan=…` brief form (URL, name, email, package, add-ons). ✅ browse
-4. Brief → "Continue to payment" → pay step → **test card** → order placed, temp password issued. ⚠ partial (payment step needs deeper drive; the money path itself is proven at UI+DB: `POST /api/public/checkout`). ✅ UI (checkout-api) ✅ DB
+4. Brief → "Continue to payment" → pay step → **Stripe test card 4242…** → order placed, temp password issued. ✅ browse (verified live: order QO-5385, $39, customer provisioned, invariant holds) ✅ UI ✅ DB
 5. Checkout server-prices (client total ignored); unknown service 404; invalid email 400; **privileged email refused 409**. ✅ UI (checkout-api)
 6. Existing customer email → order attached, no new password. ✅ UI
 
@@ -62,7 +62,8 @@
 | # | Sev | Where | Finding | Fix |
 |---|-----|-------|---------|-----|
 | 1 | HIGH | `post_order_message` | participant gate NULL-leak: customer could post on a shadow-customer order | migration `20260701470000` + pgTAP `0670` (found by BE E2E) |
-| 2 | LOW | marketing `index.astro` | `cdn.simpleicons.org/openai` icon 404 (upstream removed) | replaced with a Phosphor `ph-sparkle` icon |
+| 2 | HIGH | marketing `OrderShell.astro` | checkout POSTed to `:4500` but the app dev server is `:4400` → quick-checkout silently failed in local dev | default → `:4400` (override via `PUBLIC_CHECKOUT_URL`); verified live E2E (order placed) |
+| 3 | LOW | marketing `index.astro` | `cdn.simpleicons.org/openai` icon 404 (upstream removed) | replaced with a Phosphor `ph-sparkle` icon |
 | — | n/a | journeys.spec | 2 test-nav gaps (Payouts tab URL, PayPal locator) — NOT app bugs | test fixes |
 
 ## Coverage status
