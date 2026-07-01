@@ -12,6 +12,9 @@ import {
 import { useOrdersStore, useComments } from './OrdersStore';
 import { useToast } from './Toast';
 import { Modal } from './Modal';
+import { UUID_RE } from '@/lib/orderMap';
+import { useOrderMessages } from '@/lib/useOrderMessages';
+import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 
 const DELIV_PILL: Record<'approved' | 'review' | 'rejected', { label: string; bg: string; fg: string }> = {
   approved: { label: 'Approved', bg: 'rgba(16,185,129,.15)', fg: '#059669' },
@@ -76,7 +79,11 @@ function Panel({ order }: { order: Order }) {
   const router = useRouter();
   const pathname = usePathname();
   const { statusOverrides, setStatus, addComment } = useOrdersStore();
-  const comments = useComments(order.id);
+  // inc-E30 — real order thread for real orders (customer sees non-internal via RLS); mock otherwise.
+  const real = UUID_RE.test(order.id);
+  const mockComments = useComments(order.id);
+  const { comments: realComments, reload: reloadMsgs } = useOrderMessages(real ? order.id : null);
+  const comments = real ? realComments : mockComments;
   const toast = useToast();
 
   const status = statusOverrides[order.id] ?? order.status;
@@ -305,7 +312,18 @@ function Panel({ order }: { order: Order }) {
             </div>
             <form
               className="mt-3 flex items-center gap-2"
-              onSubmit={(e) => { e.preventDefault(); if (draft.trim()) { addComment(order.id, draft.trim()); setDraft(''); toast('Comment added'); } }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const body = draft.trim();
+                if (!body) return;
+                setDraft('');
+                if (real) {
+                  void postOrderMessageAction(order.id, body, false).then((r) => {
+                    if (!r.ok) { toast(r.error); return; }
+                    reloadMsgs(); toast('Comment sent');
+                  });
+                } else { addComment(order.id, body); toast('Comment added'); }
+              }}
             >
               <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add a comment…" className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-primary" />
               <button type="submit" aria-label="Send comment" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50" disabled={!draft.trim()}><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
