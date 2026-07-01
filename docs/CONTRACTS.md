@@ -175,6 +175,7 @@ Kiểu chốt: `Broadcast`, `BroadcastAudience`, `BroadcastKind`, `BroadcastStat
 
 ```ts
 // [READ — REAL, Lane E inc-E1] data/affiliate.server.ts → getMyAffiliate(): PortalData | null  // signed-in affiliate's own affiliates row + referrals + commission_ledger + balance + payouts (affiliate_*_own RLS) → PortalData; marketing metadata (platform/audience/niche/clicks) defaulted (untabled); null → mock fallback. Wired into /affiliate (dash).
+// [READ+WRITE — REAL, Lane E inc-E2/E3] request_affiliate_payout (affiliate self, inc-E2) · data/adminAffiliate.server.ts → getAffiliates(): AdminAffiliate[] · getAffiliatePayouts(): AdminPayout[] (admin RLS, aggregates real tables) · resolveAffiliatePayoutAction(payoutId, approve|pay|reject) → resolve_affiliate_payout (admin-gated, reject refunds balance). AffiliateAdminClient takes realPartners/realPayouts.
 // [READ] data/affiliatePortal.ts, data/adminAffiliate.ts (mock fallback + admin views)
 portalDataFor(id): PortalData
 useAdminAffiliates() · partnerVolumeSeries(a): VolMonth[]

@@ -7,10 +7,11 @@ import { EarningsChart } from '@/components/affiliate/EarningsChart';
 import {
   adminPayouts, programSeries,
   DEFAULT_RULES, defaultTierRows, newlyPaidTotal,
-  type PartnerStatus, type ProgramRules, type EditableTier,
+  type PartnerStatus, type ProgramRules, type EditableTier, type AdminAffiliate, type AdminPayout,
 } from '@/data/adminAffiliate';
-import { useAdminAffiliates } from '@/data/affiliateAdminStore';
-import { AFFILIATE_TIERS } from '@/lib/affiliate';
+import { useAdminAffiliates, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
+import { resolveAffiliatePayoutAction } from '@/app/admin/affiliate/payout.actions';
+import { AFFILIATE_TIERS, tierFor } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
 import { PayoutsTab } from './PayoutsTab';
@@ -27,7 +28,10 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'rules', label: 'Rules & tiers', icon: 'ph-sliders' },
 ];
 
-export function AffiliateAdminClient() {
+// Lane E inc-E3 — when realPartners/realPayouts are passed (server-fed), the console renders real data
+// and payout resolve goes through resolve_affiliate_payout; otherwise it's the localStorage mock.
+export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartners?: AdminAffiliate[]; realPayouts?: AdminPayout[] } = {}) {
+  const realMode = Boolean(realPayouts);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -49,29 +53,41 @@ export function AffiliateAdminClient() {
   // Merged seed + admin-created partners, each carrying its effectiveTier (override
   // wins over volume-derived). The overrides map is read so we can flag pinned tiers.
   const { partners: mergedPartners, overrides } = useAdminAffiliates();
+  const basePartners = realPartners ?? mergedPartners;
 
-  // Base payout statuses, to tell which requests the admin newly marked paid this session.
+  // Base payout statuses, to tell which requests the admin newly marked paid this session (mock only).
   const basePayoutStatus = useMemo(
     () => Object.fromEntries(adminPayouts().map((p) => [p.id, p.status])) as Record<string, PayoutStatus>,
     [],
   );
+  // Real: DB statuses are authoritative (router.refresh after resolve). Mock: apply session overrides.
   const payouts = useMemo(
-    () => adminPayouts().map((p) => ({ ...p, status: payoutOverride[p.id] ?? p.status })),
-    [payoutOverride],
+    () => realPayouts ?? adminPayouts().map((p) => ({ ...p, status: payoutOverride[p.id] ?? p.status })),
+    [realPayouts, payoutOverride],
   );
-  // Partner balances reconcile with the payout queue: a request marked PAID raises the
-  // partner's `claimed` (and lowers unclaimed), so headline, table and drawer all agree.
+  // Partner balances reconcile with the payout queue: (mock) a request marked PAID raises the partner's
+  // `claimed`; (real) `claimed` already comes from the reader (Σ paid payouts).
   const partners = useMemo(
-    () => mergedPartners.map((p) => ({
+    () => basePartners.map((p) => ({
       ...p,
-      status: statusOverride[p.id] ?? p.status,
-      claimed: p.claimed + newlyPaidTotal(p.id, payouts, basePayoutStatus),
+      // real partners have no admin tier override → tier derives from volume; mock carries effectiveTier
+      effectiveTier: realMode ? tierFor(p.volume).id : (p as AdminAffiliateWithTier).effectiveTier,
+      status: realMode ? p.status : (statusOverride[p.id] ?? p.status),
+      claimed: realMode ? p.claimed : p.claimed + newlyPaidTotal(p.id, payouts, basePayoutStatus),
     })),
-    [mergedPartners, statusOverride, payouts, basePayoutStatus],
+    [basePartners, realMode, statusOverride, payouts, basePayoutStatus],
   );
 
   const setPartnerStatus = (id: string, next: PartnerStatus) => setStatusOverride({ ...statusOverride, [id]: next });
-  const setPayoutStatus = (id: string, next: PayoutStatus) => setPayoutOverride({ ...payoutOverride, [id]: next });
+  const setPayoutStatus = (id: string, next: PayoutStatus) => {
+    if (realMode) {
+      const action = next === 'approved' ? 'approve' : next === 'paid' ? 'pay' : next === 'rejected' ? 'reject' : null;
+      if (!action) return;
+      void resolveAffiliatePayoutAction(id, action).then((r) => { if (r.ok) router.refresh(); });
+      return;
+    }
+    setPayoutOverride({ ...payoutOverride, [id]: next });
+  };
 
   // Money reflects everyone who ever earned (active + suspended) — suspending a partner
   // doesn't un-drive the revenue they brought or erase commission still owed to them.

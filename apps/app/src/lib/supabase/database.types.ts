@@ -2532,6 +2532,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_affiliate_payout: {
+        Args: { p_action: string; p_request: string }
+        Returns: {
+          affiliate_id: string
+          amount: number
+          id: string
+          requested_at: string
+          resolved_at: string | null
+          status: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "affiliate_payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolve_payout: {
         Args: { p_action: string; p_request: string }
         Returns: {
