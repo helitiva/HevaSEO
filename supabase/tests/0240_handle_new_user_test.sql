@@ -12,23 +12,25 @@ select plan(7);
 
 select has_function('handle_new_user', 'handle_new_user() trigger fn exists');
 
--- ── path (1): claim an existing shadow profile in the agency tenant ─────────────
+-- ── path (1): claim an existing CUSTOMER shadow in the agency tenant ─────────────
+-- (Privileged shadows are deliberately NOT claimable by open self-signup — see 20260701450000 +
+-- the 0650 guard test. Only a customer shadow is claimed via a bare email match.)
 insert into profiles(id, tenant_id, user_id, email, name, role) values
   ('33333333-3333-3333-3333-3333000000a1', 'a9e0c0de-0000-4000-8000-000000000001',
-   null, 'shadow@test.co', 'Shadow Staff', 'staff');
+   null, 'shadow@test.co', 'Shadow Cust', 'customer');
 
 insert into auth.users(id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('33333333-3333-3333-3333-3333aaaa0001', 'authenticated', 'authenticated', 'shadow@test.co',
-   '{"role":"customer","name":"Ignored"}'::jsonb, now(), now());
+   '{"role":"admin","name":"Ignored"}'::jsonb, now(), now());
 
 select is(
   (select user_id from profiles where id = '33333333-3333-3333-3333-3333000000a1'),
   '33333333-3333-3333-3333-3333aaaa0001'::uuid,
-  'shadow profile is claimed (user_id linked) by matching agency+email');
+  'customer shadow profile is claimed (user_id linked) by matching agency+email');
 select is(
   (select role from profiles where id = '33333333-3333-3333-3333-3333000000a1'),
-  'staff'::app_role,
-  'claim preserves the existing role (metadata role is ignored on link)');
+  'customer'::app_role,
+  'claim keeps the customer role (hostile metadata role=admin is ignored on link)');
 select is(
   (select count(*) from profiles where tenant_id = 'a9e0c0de-0000-4000-8000-000000000001' and email = 'shadow@test.co'),
   1::bigint,

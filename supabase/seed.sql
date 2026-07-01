@@ -54,6 +54,13 @@ begin
       jsonb_build_object('sub', r.uid::text, 'email', r.email, 'email_verified', true),
       'email', now(), now(), now()
     ) on conflict (provider_id, provider) do nothing;
+
+    -- Link the shadow directly. handle_new_user now only auto-claims CUSTOMER shadows (privileged
+    -- self-signup claiming was closed as an escalation path — see 20260701450000). Demo privileged
+    -- accounts are therefore linked explicitly here; `user_id is null` keeps it idempotent (the
+    -- customer row is already trigger-claimed, so this no-ops for it).
+    update public.profiles set user_id = r.uid, status = 'active'
+     where id = r.pid and user_id is null;
   end loop;
 end $$;
 

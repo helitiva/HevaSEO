@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomBytes, randomInt } from 'node:crypto';
 import { getOrderService, priceQuickOrder } from '@heva/catalog/orders';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPaymentProvider } from '@/lib/payments/provider';
@@ -23,7 +24,7 @@ import type { Json } from '@/lib/supabase/database.types';
 
 const AGENCY_TENANT = 'a9e0c0de-0000-4000-8000-000000000001';
 const CORS = {
-  'Access-Control-Allow-Origin': process.env.MARKETING_ORIGIN ?? '*',
+  'Access-Control-Allow-Origin': process.env.MARKETING_ORIGIN ?? process.env.NEXT_PUBLIC_APP_ORIGIN ?? '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
@@ -33,18 +34,10 @@ export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-// chốt 2: best-effort in-memory rate limit (per server instance). Real abuse control = Turnstile +
-// a shared store (Redis); this just blunts a naive loop in the demo.
-const HITS = new Map<string, { n: number; t: number }>();
-const RATE_WINDOW_MS = 60_000;
+// chốt 2: durable per-IP rate limit via Postgres rate_hit() (multi-instance-safe; replaces the old
+// in-memory Map). Turnstile verify remains a documented stub.
+const RATE_WINDOW_SECS = 60;
 const RATE_MAX = 8;
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const cur = HITS.get(ip);
-  if (!cur || now - cur.t > RATE_WINDOW_MS) { HITS.set(ip, { n: 1, t: now }); return false; }
-  cur.n += 1;
-  return cur.n > RATE_MAX;
-}
 
 type Body = {
   serviceSlug?: unknown; packageId?: unknown; qty?: unknown;
@@ -56,7 +49,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
-  if (rateLimited(ip)) return json({ ok: false, error: 'Too many attempts — please wait a minute.' }, 429);
+  const svc = createServiceClient();
+
+  // durable rate limit; fail-open on limiter error so a paid checkout is never blocked by limiter downtime.
+  try {
+    const { data: allowed, error } = await svc.rpc('rate_hit', { p_key: `checkout:${ip}`, p_max: RATE_MAX, p_window_secs: RATE_WINDOW_SECS });
+    if (!error && allowed === false) return json({ ok: false, error: 'Too many attempts — please wait a minute.' }, 429);
+  } catch { /* limiter unavailable → fail open */ }
 
   let body: Body;
   try { body = (await req.json()) as Body; } catch { return json({ ok: false, error: 'Invalid request body.' }, 400); }
@@ -84,12 +83,17 @@ export async function POST(req: Request) {
   }
   if (!(priced.value > 0)) return json({ ok: false, error: 'Nothing to charge for this selection.' }, 400);
 
-  const svc = createServiceClient();
-
   // ── chốt 4/5: provision or link the account ──
   // Branch on the auth-linked identity (a profile with user_id = an existing login).
   const { data: profileRow } = await svc
-    .from('profiles').select('id, user_id').eq('tenant_id', AGENCY_TENANT).eq('email', email).maybeSingle();
+    .from('profiles').select('id, user_id, role').eq('tenant_id', AGENCY_TENANT).eq('email', email).maybeSingle();
+
+  // SECURITY: never let a public, unverified checkout claim or provision against a privileged
+  // (staff/manager/admin/affiliate) identity — that would be an escalation path. Team emails sign in
+  // through the proper flow, not the storefront.
+  if (profileRow && profileRow.role !== 'customer') {
+    return json({ ok: false, error: 'This email is registered to a team account — please sign in instead.' }, 409);
+  }
 
   let profileId = profileRow?.id ?? null;
   let tempPassword: string | null = null;
@@ -98,7 +102,7 @@ export async function POST(req: Request) {
   if (!existingAccount) {
     // new email OR an admin-provisioned shadow → create an auth login with a temp password (the trigger
     // links the shadow profile or creates a fresh customer profile).
-    tempPassword = `Heva-${Math.random().toString(36).slice(2, 8)}${Math.floor(10 + Math.random() * 90)}`;
+    tempPassword = `Heva-${randomBytes(9).toString('base64url')}`;
     const { error: cuErr } = await svc.auth.admin.createUser({
       email, password: tempPassword, email_confirm: true, user_metadata: { name: body.name },
     });
@@ -131,7 +135,7 @@ export async function POST(req: Request) {
   if (!charge.ok) return json({ ok: false, error: charge.error }, 402);
 
   // ── chốt H2: atomic topup + order (idempotent by the payment ref) ──
-  const code = `QO-${Math.floor(1000 + Math.random() * 9000)}`;
+  const code = `QO-${randomInt(1000, 10000)}`;
   const { data: order, error: moErr } = await svc.rpc('materialize_order', {
     p_tenant: AGENCY_TENANT, p_customer: customerId, p_code: code,
     p_service: service.name, p_value: priced.value, p_actor: profileId, p_ref: charge.ref,
