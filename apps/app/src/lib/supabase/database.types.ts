@@ -176,6 +176,7 @@ export type Database = {
           status: Database["public"]["Enums"]["affiliate_status"]
           tenant_id: string
           tier: Database["public"]["Enums"]["affiliate_tier"]
+          tier_pinned: boolean
           user_id: string | null
         }
         Insert: {
@@ -186,6 +187,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["affiliate_status"]
           tenant_id: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
+          tier_pinned?: boolean
           user_id?: string | null
         }
         Update: {
@@ -196,6 +198,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["affiliate_status"]
           tenant_id?: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
+          tier_pinned?: boolean
           user_id?: string | null
         }
         Relationships: [
@@ -2601,6 +2604,10 @@ export type Database = {
         | { Args: { "": string }; Returns: string[] }
       set_affiliate_status: {
         Args: { p_affiliate: string; p_status: string }
+        Returns: undefined
+      }
+      set_affiliate_tier: {
+        Args: { p_affiliate: string; p_tier?: string }
         Returns: undefined
       }
       set_broadcast_status: {

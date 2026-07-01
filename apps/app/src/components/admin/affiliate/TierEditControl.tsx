@@ -6,10 +6,13 @@ import { TierBadge } from './shared';
 
 // A small popover that shows a partner's effective tier with an "override" badge when
 // pinned, and lets the admin pick any of the 4 tiers or revert to volume-derived (auto).
-export function TierEditControl({ partnerId, tier, rate, overridden }: {
+// onSetTier is supplied by the console (real fn in realMode); falls back to the localStorage mock.
+export function TierEditControl({ partnerId, tier, rate, overridden, onSetTier }: {
   partnerId: string; tier: TierId; rate: number; overridden: boolean;
+  onSetTier?: (id: string, tier: TierId | null) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const applyTier = (next: TierId | null) => (onSetTier ?? setPartnerTier)(partnerId, next);
 
   return (
     <div className="relative inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -35,7 +38,7 @@ export function TierEditControl({ partnerId, tier, rate, overridden }: {
             {AFFILIATE_TIERS.map((t) => { const on = t.id === tier && overridden; return (
               <button
                 key={t.id} type="button"
-                onClick={() => { setPartnerTier(partnerId, t.id); setOpen(false); }}
+                onClick={() => { applyTier(t.id); setOpen(false); }}
                 className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs font-semibold capitalize transition hover:bg-accent ${on ? 'text-primary' : ''}`}
               >
                 <span className="flex items-center gap-1.5"><i className="ph-fill ph-crown-simple text-[10px]" aria-hidden />{t.label}</span>
@@ -44,7 +47,7 @@ export function TierEditControl({ partnerId, tier, rate, overridden }: {
             ); })}
             <button
               type="button"
-              onClick={() => { setPartnerTier(partnerId, null); setOpen(false); }}
+              onClick={() => { applyTier(null); setOpen(false); }}
               disabled={!overridden}
               className="mt-1 flex w-full items-center gap-1.5 rounded-lg border-t border-border px-2 py-1.5 text-left text-xs font-semibold text-muted-foreground transition hover:bg-accent disabled:opacity-40"
             >

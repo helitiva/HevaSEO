@@ -28,6 +28,10 @@ export interface AdminAffiliate {
   commission: number;      // lifetime commission earned by the partner (our cost)
   claimed: number;         // already paid out to the partner
   // unclaimed (= commission - claimed) is derived; never stored, never drifts.
+  // Real backend only (Lane E inc-E6): a pinned tier overrides the volume-derived ladder.
+  // Undefined for mock rows (mock uses its own localStorage override map).
+  tierPinned?: boolean;
+  pinnedTier?: TierId;
 }
 
 // Tier is DERIVED from volume via the shared ladder — the admin table and the

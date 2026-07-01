@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { AdminAffiliate, AdminPayout, PartnerStatus } from '@/data/adminAffiliate';
-import type { PayoutStatus } from '@/lib/affiliate';
+import type { PayoutStatus, TierId } from '@/lib/affiliate';
 
 // Lane E inc-E3 — admin affiliate console reads (admin RLS = all tenant affiliates). Aggregates the real
 // tables into the AdminAffiliate / AdminPayout shapes the console already renders: refs = referral count,
@@ -12,12 +12,12 @@ const initialsOf = (name: string): string =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 const toPartnerStatus = (s: string): PartnerStatus => (s === 'pending' ? 'pending' : s === 'churned' ? 'suspended' : 'active');
 
-type AffRow = { id: string; code: string; status: string; joined_at: string | null; profiles: { name: string | null; email: string | null } | null };
+type AffRow = { id: string; code: string; status: string; tier: string; tier_pinned: boolean; joined_at: string | null; profiles: { name: string | null; email: string | null } | null };
 
 export async function getAffiliates(): Promise<AdminAffiliate[]> {
   const supabase = await createClient();
   const [affs, refs, led, pays] = await Promise.all([
-    supabase.from('affiliates').select('id, code, status, joined_at, profiles:user_id(name, email)').returns<AffRow[]>(),
+    supabase.from('affiliates').select('id, code, status, tier, tier_pinned, joined_at, profiles:user_id(name, email)').returns<AffRow[]>(),
     supabase.from('affiliate_referrals').select('affiliate_id, volume').returns<{ affiliate_id: string; volume: number | string }[]>(),
     supabase.from('commission_ledger').select('affiliate_id, amount, kind').returns<{ affiliate_id: string; amount: number | string; kind: string }[]>(),
     supabase.from('affiliate_payouts').select('affiliate_id, amount, status').returns<{ affiliate_id: string; amount: number | string; status: string }[]>(),
@@ -40,6 +40,7 @@ export async function getAffiliates(): Promise<AdminAffiliate[]> {
       status: toPartnerStatus(a.status), joinedAt: a.joined_at ?? '', lastActiveAt: a.joined_at ?? '',
       refs: refCount.get(a.id) ?? 0, volume: volume.get(a.id) ?? 0,
       commission: commission.get(a.id) ?? 0, claimed: claimed.get(a.id) ?? 0,
+      tierPinned: a.tier_pinned, pinnedTier: a.tier as TierId,
     };
   });
 }

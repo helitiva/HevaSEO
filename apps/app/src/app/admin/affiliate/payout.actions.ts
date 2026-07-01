@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import type { TierId } from '@/lib/affiliate';
 
 export type ResolveResult = { ok: true } | { ok: false; error: string };
 
@@ -33,6 +34,21 @@ export async function setAffiliateStatusAction(affiliateId: string, status: 'act
   const { error } = await supabase.rpc('set_affiliate_status', { p_affiliate: affiliateId, p_status: status });
   if (error) {
     if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change a partner’s status.' };
+    if (error.message.includes('AFFILIATE_NOT_FOUND')) return { ok: false, error: 'That partner no longer exists.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/admin/affiliate');
+  return { ok: true };
+}
+
+// Lane E inc-E6 — admin pins a partner's tier (override the volume ladder) or reverts to auto (tier=null).
+// Admin-gated via set_affiliate_tier.
+export async function setAffiliateTierAction(affiliateId: string, tier: TierId | null): Promise<ResolveResult> {
+  const supabase = await createClient();
+  // null tier → omit p_tier so the fn's `default null` revert-to-auto path runs
+  const { error } = await supabase.rpc('set_affiliate_tier', { p_affiliate: affiliateId, p_tier: tier ?? undefined });
+  if (error) {
+    if (error.message.includes('NOT_ADMIN')) return { ok: false, error: 'Only an admin can change a partner’s tier.' };
     if (error.message.includes('AFFILIATE_NOT_FOUND')) return { ok: false, error: 'That partner no longer exists.' };
     return { ok: false, error: error.message };
   }

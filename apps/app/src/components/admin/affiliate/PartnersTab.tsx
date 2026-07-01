@@ -11,12 +11,13 @@ import { PartnerHoverCard } from '../PartnerHoverCard';
 type SortKey = 'name' | 'refs' | 'volume' | 'commission' | 'claimed' | 'unclaimed' | 'lastActiveAt';
 const STATUS_FILTERS: (PartnerStatus | 'all')[] = ['all', 'active', 'pending', 'suspended'];
 
-export function PartnersTab({ partners, tierRows, overrides, onToggle, onSelect }: {
+export function PartnersTab({ partners, tierRows, overrides, onToggle, onSelect, onSetTier }: {
   partners: AdminAffiliateWithTier[];
   tierRows: EditableTier[];
   overrides: Record<string, TierId>;
   onToggle: (id: string, next: PartnerStatus) => void;
   onSelect: (id: string) => void;
+  onSetTier?: (id: string, tier: TierId | null) => void;
 }) {
   const [status, setStatus] = useState<PartnerStatus | 'all'>('all');
   const [tier, setTier] = useState<TierId | 'all'>('all');
@@ -115,7 +116,7 @@ export function PartnersTab({ partners, tierRows, overrides, onToggle, onSelect 
                       </span>
                     </PartnerHoverCard>
                   </td>
-                  <td className="px-3 py-2.5">{p.status === 'pending' ? <span className="text-xs text-muted-foreground">—</span> : <TierEditControl partnerId={p.id} tier={p.tierId} rate={p.rate} overridden={p.overridden} />}</td>
+                  <td className="px-3 py-2.5">{p.status === 'pending' ? <span className="text-xs text-muted-foreground">—</span> : <TierEditControl partnerId={p.id} tier={p.tierId} rate={p.rate} overridden={p.overridden} onSetTier={onSetTier} />}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={p.status} /></td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{p.refs}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{money(p.volume)}</td>

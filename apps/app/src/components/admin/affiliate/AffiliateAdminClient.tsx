@@ -9,9 +9,9 @@ import {
   DEFAULT_RULES, defaultTierRows, newlyPaidTotal,
   type PartnerStatus, type ProgramRules, type EditableTier, type AdminAffiliate, type AdminPayout,
 } from '@/data/adminAffiliate';
-import { useAdminAffiliates, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
-import { resolveAffiliatePayoutAction, setAffiliateStatusAction } from '@/app/admin/affiliate/payout.actions';
-import { AFFILIATE_TIERS, tierFor } from '@/lib/affiliate';
+import { useAdminAffiliates, setPartnerTier as mockSetPartnerTier, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
+import { resolveAffiliatePayoutAction, setAffiliateStatusAction, setAffiliateTierAction } from '@/app/admin/affiliate/payout.actions';
+import { AFFILIATE_TIERS, tierFor, type TierId } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
 import { PayoutsTab } from './PayoutsTab';
@@ -70,8 +70,8 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
   const partners = useMemo(
     () => basePartners.map((p) => ({
       ...p,
-      // real partners have no admin tier override → tier derives from volume; mock carries effectiveTier
-      effectiveTier: realMode ? tierFor(p.volume).id : (p as AdminAffiliateWithTier).effectiveTier,
+      // real: a pinned tier (inc-E6) overrides the volume ladder, else derive from volume; mock carries effectiveTier
+      effectiveTier: realMode ? (p.tierPinned && p.pinnedTier ? p.pinnedTier : tierFor(p.volume).id) : (p as AdminAffiliateWithTier).effectiveTier,
       status: realMode ? p.status : (statusOverride[p.id] ?? p.status),
       claimed: realMode ? p.claimed : p.claimed + newlyPaidTotal(p.id, payouts, basePayoutStatus),
     })),
@@ -84,6 +84,20 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
       return;
     }
     setStatusOverride({ ...statusOverride, [id]: next });
+  };
+  // Tier pins: real (inc-E6) come from the affiliates row (tier_pinned); mock from localStorage `overrides`.
+  const tierOverrides = useMemo(
+    () => realMode
+      ? Object.fromEntries(partners.filter((p) => p.tierPinned && p.pinnedTier).map((p) => [p.id, p.pinnedTier as TierId]))
+      : overrides,
+    [realMode, partners, overrides],
+  );
+  const setPartnerTier = (id: string, tier: TierId | null) => {
+    if (realMode) {
+      void setAffiliateTierAction(id, tier).then((r) => { if (r.ok) router.refresh(); });
+      return;
+    }
+    mockSetPartnerTier(id, tier);
   };
   const setPayoutStatus = (id: string, next: PayoutStatus) => {
     if (realMode) {
@@ -210,7 +224,7 @@ export function AffiliateAdminClient({ realPartners, realPayouts }: { realPartne
         </div>
       )}
 
-      {tab === 'partners' && <PartnersTab partners={partners} tierRows={tierRows} overrides={overrides} onToggle={setPartnerStatus} onSelect={setSelectedId} />}
+      {tab === 'partners' && <PartnersTab partners={partners} tierRows={tierRows} overrides={tierOverrides} onToggle={setPartnerStatus} onSelect={setSelectedId} onSetTier={setPartnerTier} />}
       {tab === 'payouts' && <PayoutsTab payouts={payouts} onAction={setPayoutStatus} />}
       {tab === 'rules' && (
         <RulesTab rules={rules} setRules={setRules} tierRows={tierRows} setTierRows={setTierRows} applications={pending} onToggle={setPartnerStatus} />
