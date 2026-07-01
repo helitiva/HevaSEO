@@ -11,14 +11,15 @@ import { Donut } from '@/components/admin/Donut';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { PeriodSelector } from './PeriodSelector';
 import { money, type RevKpi } from '@/data/adminMock';
-import { getAnalytics } from '@/data/analytics.server';
+import { getAnalytics, getSupportStats, getGeoStats } from '@/data/analytics.server';
+import { getStaff } from '@/data/staff.server';
 
 export const metadata = { title: 'Analytics' };
 
 // inc-analytics — revenue section reads REAL aggregates from orders (getAnalytics); audience/geo/support
 // panels stay mock (no events/geo/tickets data source).
 export default async function AnalyticsPage() {
-  const a = await getAnalytics();
+  const [a, staff, support, geo] = await Promise.all([getAnalytics(), getStaff(), getSupportStats(), getGeoStats()]);
   const srcSegs = a.bySource;
   const srcTotal = a.bySourceTotal || 1;
   const topRev = a.topCustomers;
@@ -81,10 +82,10 @@ export default async function AnalyticsPage() {
 
       {/* ---- Performance & reach ---- */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <SupportStats />
-        <div className="lg:col-span-2"><TeamPerformance /></div>
+        <SupportStats stats={support} />
+        <div className="lg:col-span-2"><TeamPerformance staff={staff} /></div>
       </div>
-      <GeoPanel />
+      <GeoPanel data={geo} />
     </section>
   );
 }

@@ -874,6 +874,7 @@ export type Database = {
         Row: {
           billing: Json | null
           company: string | null
+          country_iso: string | null
           created_at: string
           email: string | null
           id: string
@@ -892,6 +893,7 @@ export type Database = {
         Insert: {
           billing?: Json | null
           company?: string | null
+          country_iso?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -910,6 +912,7 @@ export type Database = {
         Update: {
           billing?: Json | null
           company?: string | null
+          country_iso?: string | null
           created_at?: string
           email?: string | null
           id?: string

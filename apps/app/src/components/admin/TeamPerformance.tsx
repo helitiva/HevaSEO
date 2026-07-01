@@ -1,13 +1,14 @@
 import Link from 'next/link';
-import { STAFF } from '@/data/adminMock';
+import { STAFF, type AdminStaff } from '@/data/adminMock';
 
 const scoreColor = (n: number) => (n >= 90 ? '#10b981' : n >= 80 ? '#f59e0b' : '#ef4444');
 
-export function TeamPerformance() {
-  const n = STAFF.length || 1;
-  const avg = (k: 'composite' | 'quality' | 'onTime') => Math.round(STAFF.reduce((s, x) => s + x[k], 0) / n);
-  const ranked = [...STAFF].sort((a, b) => b.composite - a.composite);
-  const top = ranked[0];
+// `staff` (real, getStaff — computed perf inc-E32) overrides the mock roster when provided.
+export function TeamPerformance({ staff }: { staff?: AdminStaff[] } = {}) {
+  const roster = staff && staff.length ? staff : STAFF;
+  const n = roster.length || 1;
+  const avg = (k: 'composite' | 'quality' | 'onTime') => Math.round(roster.reduce((s, x) => s + x[k], 0) / n);
+  const ranked = [...roster].sort((a, b) => b.composite - a.composite);
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">

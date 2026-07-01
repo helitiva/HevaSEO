@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { money, MOCK_TODAY, type RevenuePoint, type ServiceMixRow, type RevKpi } from '@/data/adminMock';
+import { money, MOCK_TODAY, GEO, type RevenuePoint, type ServiceMixRow, type RevKpi, type GeoRow } from '@/data/adminMock';
 
 // inc-analytics — real revenue analytics (admin RLS = all tenant orders). Derives KPIs + a 90-day daily
 // series + service mix + revenue-by-source + top customers from real orders. Audience/geo/support panels
@@ -93,4 +93,37 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   });
 
   return { kpis, daily, serviceMix, bySource, bySourceTotal, topCustomers };
+}
+
+// Support stats (SupportStats panel) — real from tickets (admin RLS). answeredToday = a reply on
+// MOCK_TODAY; avgFirstResponseH ≈ created_at → last_reply_at (hours) over replied tickets.
+export type SupportStats = { open: number; pending: number; resolved: number; closed: number; answeredToday: number; avgFirstResponseH: number };
+
+export async function getSupportStats(): Promise<SupportStats> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('tickets').select('status, created_at, last_reply_at')
+    .returns<{ status: string; created_at: string; last_reply_at: string | null }[]>();
+  if (error) throw new Error(`getSupportStats: ${error.message}`);
+  const rows = data ?? [];
+  const by = (s: string) => rows.filter((t) => t.status === s).length;
+  const replied = rows.filter((t) => t.last_reply_at);
+  const answeredToday = replied.filter((t) => t.last_reply_at!.slice(0, 10) === MOCK_TODAY).length;
+  const avgFirstResponseH = replied.length
+    ? Math.round((10 * replied.reduce((s, t) => s + (new Date(t.last_reply_at!).getTime() - new Date(t.created_at).getTime()) / 3_600_000, 0)) / replied.length) / 10
+    : 0;
+  return { open: by('open'), pending: by('pending'), resolved: by('resolved'), closed: by('closed'), answeredToday, avgFirstResponseH };
+}
+
+// Customers by country (GeoPanel) — real counts (admin RLS) joined to static display meta (flag/name/map
+// coords) from the GEO lookup; unknown ISOs fall back to a neutral marker.
+export async function getGeoStats(): Promise<GeoRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('customers').select('country_iso').returns<{ country_iso: string | null }[]>();
+  if (error) throw new Error(`getGeoStats: ${error.message}`);
+  const meta = new Map(GEO.map((g) => [g.isoNum, g]));
+  const counts = new Map<string, number>();
+  for (const c of data ?? []) if (c.country_iso) counts.set(c.country_iso, (counts.get(c.country_iso) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([iso, users]): GeoRow => { const m = meta.get(iso); return m ? { ...m, users } : { country: iso, flag: '🌐', users, x: 0.5, y: 0.5, isoNum: iso }; })
+    .sort((a, b) => b.users - a.users);
 }

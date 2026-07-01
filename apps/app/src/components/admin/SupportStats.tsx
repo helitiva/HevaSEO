@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Donut } from './Donut';
 import { TICKET_STATS } from '@/data/adminMock';
+import type { SupportStats as SupportStatsData } from '@/data/analytics.server';
 
-export function SupportStats() {
-  const t = TICKET_STATS;
+// `stats` (real, getSupportStats) overrides the mock ticket counts when provided.
+export function SupportStats({ stats }: { stats?: SupportStatsData } = {}) {
+  const t = stats ?? TICKET_STATS;
   const segs = [
     { label: 'Open', value: t.open, color: '#f59e0b' },
     { label: 'Pending', value: t.pending, color: '#a78bfa' },

@@ -294,3 +294,27 @@ insert into public.affiliate_commission (affiliate_id, tenant_id, balance) value
 on conflict (affiliate_id) do update set balance = excluded.balance;
 insert into public.affiliate_payouts (tenant_id, affiliate_id, amount, status, resolved_at) values
   ('a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 100, 'paid', now());
+
+-- Analytics: support tickets (SupportStats). Statuses across the enum; a few replied today (2026-06-24)
+-- for "answered today"; last_reply_at drives avg first-response. Customers c...01–04, handler Mai.
+insert into public.tickets (tenant_id, code, subject, customer_id, type, channel, status, priority, assignee_id, sla_tier, created_at, last_reply_at) values
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2001','Cannot access report',      'c0000000-0000-4000-8000-000000000001','technical','portal','open',    'high','b000aaaa-0000-4000-8000-000000000003','urgent',   '2026-06-24T06:00:00Z', null),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2002','Invoice question',          'c0000000-0000-4000-8000-000000000002','billing',  'email', 'open',    'med', 'b000aaaa-0000-4000-8000-000000000003','standard', '2026-06-23T09:00:00Z', null),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2003','Keyword strategy call',     'c0000000-0000-4000-8000-000000000003','consultation','whatsapp','pending','med','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-22T10:00:00Z','2026-06-24T08:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2004','Change target URL',         'c0000000-0000-4000-8000-000000000001','technical','portal','pending', 'low', 'b000aaaa-0000-4000-8000-000000000003','standard', '2026-06-21T12:00:00Z','2026-06-24T09:30:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2005','Refund request',            'c0000000-0000-4000-8000-000000000004','billing',  'email', 'pending', 'high','b000aaaa-0000-4000-8000-000000000003','urgent',   '2026-06-20T08:00:00Z','2026-06-23T15:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2006','Great work — thanks',       'c0000000-0000-4000-8000-000000000001','consultation','portal','resolved','low','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-18T10:00:00Z','2026-06-19T11:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2007','Report format tweak',       'c0000000-0000-4000-8000-000000000002','technical','portal','resolved','med','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-17T09:00:00Z','2026-06-17T14:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2008','Upgrade package',           'c0000000-0000-4000-8000-000000000003','billing',  'portal','resolved','med','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-16T11:00:00Z','2026-06-16T13:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2009','Onboarding help',           'c0000000-0000-4000-8000-000000000004','consultation','messenger','closed','low','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-10T09:00:00Z','2026-06-11T10:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2010','Password reset',            'c0000000-0000-4000-8000-000000000001','technical','email', 'closed','low','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-09T08:00:00Z','2026-06-09T08:30:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2011','Billing address update',    'c0000000-0000-4000-8000-000000000002','billing',  'portal','closed','low','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-08T10:00:00Z','2026-06-08T12:00:00Z'),
+  ('a9e0c0de-0000-4000-8000-000000000001','TK-2012','Extra backlinks?',          'c0000000-0000-4000-8000-000000000003','consultation','whatsapp','closed','med','b000aaaa-0000-4000-8000-000000000003','standard','2026-06-05T09:00:00Z','2026-06-06T09:00:00Z');
+
+-- Analytics(geo): tag the demo customers with countries (numeric ISO) so GeoPanel aggregates real.
+update public.customers set country_iso = '840' where id = 'c0000000-0000-4000-8000-000000000001'; -- US
+update public.customers set country_iso = '826' where id = 'c0000000-0000-4000-8000-000000000002'; -- UK
+update public.customers set country_iso = '276' where id = 'c0000000-0000-4000-8000-000000000003'; -- DE
+update public.customers set country_iso = '124' where id = 'c0000000-0000-4000-8000-000000000004'; -- CA
+update public.customers set country_iso = '356' where id = 'c0000000-0000-4000-8000-000000000005'; -- IN
+update public.customers set country_iso = '036' where id = 'c0000000-0000-4000-8000-000000000006'; -- AU
