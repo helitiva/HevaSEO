@@ -8,19 +8,44 @@ import { REF_ORIGIN } from '@/lib/affiliate';
 // failure never blocks the redirect. No auth — a click has no session.
 //
 // Dedup (E17): a per-code `hvc_<code>` cookie suppresses repeat counts from the same browser within the
-// window, so a refresh / re-open doesn't inflate clicks. Best-effort (cookie-based); IP/rate-limit is a
-// further hardening step. Attribution + redirect still happen on a deduped hit.
+// window, so a refresh / re-open doesn't inflate clicks.
+// Rate-limit (E21): a per-(IP, code) in-memory cap defends against cookie-clearing abuse — at most
+// MAX_PER_IP counted clicks per window from one IP for a given code. In-memory (per server instance;
+// resets on restart / not shared across instances) — matches the checkout limiter; a durable store is a
+// follow-up. Attribution + redirect always happen; only the COUNT is gated.
 const DEDUP_WINDOW_S = 60 * 60 * 6; // 6h
 const REF_COOKIE_S = 60 * 60 * 24 * 30; // 30d
+const RL_WINDOW_MS = 60 * 60 * 1000; // 1h
+const RL_MAX_PER_IP = 10;
+const rlBuckets = new Map<string, { n: number; win: number }>();
 
-export async function GET(_req: Request, { params }: { params: Promise<{ code: string }> }) {
+function ipAllows(ip: string, code: string): boolean {
+  const now = Date.now();
+  // opportunistic prune so the map can't grow unbounded
+  if (rlBuckets.size > 5000) for (const [k, b] of rlBuckets) if (now - b.win > RL_WINDOW_MS) rlBuckets.delete(k);
+  const key = `${ip}:${code}`;
+  const b = rlBuckets.get(key);
+  if (!b || now - b.win > RL_WINDOW_MS) { rlBuckets.set(key, { n: 1, win: now }); return true; }
+  if (b.n >= RL_MAX_PER_IP) return false;
+  b.n += 1;
+  return true;
+}
+
+function clientIp(req: Request): string {
+  const xff = req.headers.get('x-forwarded-for');
+  return (xff ? xff.split(',')[0]?.trim() : '') || req.headers.get('x-real-ip') || 'unknown';
+}
+
+export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const clean = (code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
 
   const jar = await cookies();
   const alreadyCounted = clean ? jar.has(`hvc_${clean}`) : true;
+  // count only when the cookie hasn't seen it AND the IP is under its per-code cap
+  const shouldCount = Boolean(clean) && !alreadyCounted && ipAllows(clientIp(req), clean);
 
-  if (clean && !alreadyCounted) {
+  if (shouldCount) {
     try {
       const supabase = await createClient();
       await supabase.rpc('record_affiliate_click', { p_code: clean });
