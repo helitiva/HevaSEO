@@ -6,12 +6,12 @@ import { pctDelta, type PayoutStatus } from '@/lib/affiliate';
 import { EarningsChart } from '@/components/affiliate/EarningsChart';
 import {
   adminPayouts, programSeries,
-  DEFAULT_RULES, defaultTierRows, newlyPaidTotal,
+  DEFAULT_RULES, defaultTierRows, newlyPaidTotal, tierRowFor,
   type PartnerStatus, type ProgramRules, type EditableTier, type AdminAffiliate, type AdminPayout,
 } from '@/data/adminAffiliate';
 import { useAdminAffiliates, setPartnerTier as mockSetPartnerTier, type AdminAffiliateWithTier } from '@/data/affiliateAdminStore';
 import { resolveAffiliatePayoutAction, setAffiliateStatusAction, setAffiliateTierAction, saveAffiliateRulesAction, saveAffiliateTiersAction } from '@/app/admin/affiliate/payout.actions';
-import { AFFILIATE_TIERS, tierFor, type TierId } from '@/lib/affiliate';
+import { AFFILIATE_TIERS, type TierId } from '@/lib/affiliate';
 import { Kpi, TierBadge, usePersistedState } from './shared';
 import { PartnersTab } from './PartnersTab';
 import { PayoutsTab } from './PayoutsTab';
@@ -88,12 +88,13 @@ export function AffiliateAdminClient({ realPartners, realPayouts, realConfig }: 
   const partners = useMemo(
     () => basePartners.map((p) => ({
       ...p,
-      // real: a pinned tier (inc-E6) overrides the volume ladder, else derive from volume; mock carries effectiveTier
-      effectiveTier: realMode ? (p.tierPinned && p.pinnedTier ? p.pinnedTier : tierFor(p.volume).id) : (p as AdminAffiliateWithTier).effectiveTier,
+      // real: a pinned tier (inc-E6) overrides; else derive from volume via the CONFIG tier thresholds
+      // (inc-E8b) so the badge matches the Rules-tab tiers, not the lib ladder. mock carries effectiveTier.
+      effectiveTier: realMode ? (p.tierPinned && p.pinnedTier ? p.pinnedTier : tierRowFor(tierRows, p.volume).id) : (p as AdminAffiliateWithTier).effectiveTier,
       status: realMode ? p.status : (statusOverride[p.id] ?? p.status),
       claimed: realMode ? p.claimed : p.claimed + newlyPaidTotal(p.id, payouts, basePayoutStatus),
     })),
-    [basePartners, realMode, statusOverride, payouts, basePayoutStatus],
+    [basePartners, realMode, statusOverride, payouts, basePayoutStatus, tierRows],
   );
 
   const setPartnerStatus = (id: string, next: PartnerStatus) => {
