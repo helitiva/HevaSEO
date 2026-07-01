@@ -2567,6 +2567,27 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_manager: {
+        Args: { p_email: string; p_name: string; p_role: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          last_active_at: string | null
+          name: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          tenant_id: string
+          two_fa_enabled: boolean
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_order: {
         Args: {
           p_actor: string

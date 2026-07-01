@@ -11,9 +11,8 @@ import {
 } from '@/components/manager/ManagerScorecard';
 import { money } from '@/data/adminMock';
 import type { ManagerPerf, CompanyBenchmark } from '@/lib/managerPerf';
-import { createAccount } from '@/lib/auth';
 import { addCreatedManager, useCreatedManagers } from '@/data/managerAccountsStore';
-import { CredentialPanel } from '@/components/admin/accounts/CredentialPanel';
+import { createManagerAction } from '@/app/admin/managers/manager.actions';
 import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 // ── view-model types (built in page.tsx) ──────────────────────────────────────
@@ -71,7 +70,8 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
   const [sortBy, setSortBy] = useState<SortKey>('score');
   const [panelId, setPanelId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
+  const [invited, setInvited] = useState<{ email: string; role: 'manager' | 'admin' } | null>(null);
+  const [adding, setAdding] = useState(false);
 
   // Merge admin-provisioned managers/admins into the directory (Phase-0 overlay).
   // Created entries carry a `createdByAdmin` flag so the card can show a "New" state.
@@ -98,13 +98,19 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
     setLeaveState((s) => ({ ...s, [id]: status }));
     notify(`${who}'s leave ${status === 'approved' ? 'approved ✓' : 'declined'}`);
   };
-  const addManager = (data: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => {
+  // inc-E24 — real provisioning: create_manager makes a SHADOW profile (+ wallet for managers); the
+  // person claims it by signing up with the same email. The overlay add keeps them in this (mock-display)
+  // directory immediately; the credential panel is replaced by an invite confirmation.
+  const addManager = async (data: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => {
+    if (adding) return;
+    setAdding(true);
+    const res = await createManagerAction({ name: data.name, email: data.email, role: data.role });
+    setAdding(false);
+    if (!res.ok) { notify(res.error); return; }
     const id = data.role === 'admin' ? `adm${Date.now()}` : `mgr${Date.now()}`;
-    // Create the login account (lib/auth emails mock credentials to the outbox).
-    const { account, tempPassword } = createAccount({ role: data.role, name: data.name, email: data.email, entityId: id });
-    addCreatedManager({ id, name: data.name, email: account.email, title: data.title || (data.role === 'admin' ? 'Administrator' : 'Manager'), rank: data.rank, role: data.role, createdAt: new Date().toISOString() });
-    setCreds({ email: account.email, password: tempPassword });
-    notify(`${data.name} added as ${data.role} — credentials emailed`);
+    addCreatedManager({ id, name: data.name, email: data.email, title: data.title || (data.role === 'admin' ? 'Administrator' : 'Manager'), rank: data.rank, role: data.role, createdAt: new Date().toISOString() });
+    setInvited({ email: data.email, role: data.role });
+    notify(`${data.name} invited as ${data.role} — they'll activate by signing up`);
   };
 
   // ── drag a staff chip onto a manager card (or the unassign zone) ──
@@ -274,7 +280,7 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
         </div>
       )}
 
-      {addOpen && <AddManagerModal creds={creds} onClose={() => { setAddOpen(false); setCreds(null); }} onSave={addManager} />}
+      {addOpen && <AddManagerModal invited={invited} busy={adding} onClose={() => { setAddOpen(false); setInvited(null); }} onSave={addManager} />}
     </section>
   );
 }
@@ -622,8 +628,9 @@ function PanelStat({ label, value, tone }: { label: string; value: string; tone?
 }
 
 // ── add manager / admin modal ─────────────────────────────────────────────────
-function AddManagerModal({ creds, onClose, onSave }: {
-  creds: { email: string; password: string } | null;
+function AddManagerModal({ invited, busy, onClose, onSave }: {
+  invited: { email: string; role: 'manager' | 'admin' } | null;
+  busy: boolean;
   onClose: () => void;
   onSave: (d: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => void;
 }) {
@@ -640,10 +647,13 @@ function AddManagerModal({ creds, onClose, onSave }: {
     <div className="fixed inset-0 z-[100] grid place-items-center p-4">
       <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <p className="display mb-4 text-base font-bold">{creds ? 'Account created' : 'Add manager or admin'}</p>
-        {creds ? (
+        <p className="display mb-4 text-base font-bold">{invited ? `${invited.role === 'admin' ? 'Admin' : 'Manager'} invited` : 'Add manager or admin'}</p>
+        {invited ? (
           <>
-            <CredentialPanel email={creds.email} password={creds.password} />
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
+              <i className="ph-fill ph-paper-plane-tilt mt-0.5 text-emerald-600" aria-hidden />
+              <p className="text-sm text-muted-foreground"><b className="text-foreground">{invited.email}</b> is set up as {invited.role}. They&apos;ll activate their account by signing up with this email — it links automatically with the role you assigned.</p>
+            </div>
             <div className="mt-5 flex justify-end">
               <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-check" aria-hidden /> Done</button>
             </div>
@@ -672,7 +682,7 @@ function AddManagerModal({ creds, onClose, onSave }: {
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
-              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), title: title.trim(), rank: rank.trim(), role })} disabled={!canSave} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Create account</button>
+              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), title: title.trim(), rank: rank.trim(), role })} disabled={!canSave || busy} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"><i className={`ph-bold ${busy ? 'ph-circle-notch animate-spin' : 'ph-user-plus'}`} aria-hidden /> {busy ? 'Creating…' : 'Create account'}</button>
             </div>
           </>
         )}
