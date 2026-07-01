@@ -21,3 +21,19 @@ export async function createManagerAction(input: { name: string; email: string; 
   revalidatePath('/admin/managers');
   return { ok: true };
 }
+
+// inc-E25 — admin sets/clears a staff member's pod manager (staff_details.manager_id). null = unassign.
+export async function assignStaffToManagerAction(staffId: string, managerId: string | null): Promise<CreateManagerResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('assign_staff_to_manager', { p_staff: staffId, p_manager: managerId ?? undefined });
+  if (error) {
+    const map: Record<string, string> = {
+      NOT_ADMIN: 'Only an admin can assign pods.', NOT_STAFF: 'That person is not a staff member.',
+      NOT_MANAGER: 'That target is not a manager.', STAFF_DETAILS_MISSING: 'Staff record is incomplete.',
+    };
+    const key = Object.keys(map).find((k) => error.message.includes(k));
+    return { ok: false, error: key ? map[key] : error.message };
+  }
+  revalidatePath('/admin/managers');
+  return { ok: true };
+}

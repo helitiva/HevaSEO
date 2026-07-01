@@ -12,7 +12,7 @@ import {
 import { money } from '@/data/adminMock';
 import type { ManagerPerf, CompanyBenchmark } from '@/lib/managerPerf';
 import { addCreatedManager, useCreatedManagers } from '@/data/managerAccountsStore';
-import { createManagerAction } from '@/app/admin/managers/manager.actions';
+import { createManagerAction, assignStaffToManagerAction } from '@/app/admin/managers/manager.actions';
 import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 // ── view-model types (built in page.tsx) ──────────────────────────────────────
@@ -62,6 +62,8 @@ function derive(meta: ManagerMeta, staff: StaffMemberVM[], leave: TeamLeaveVM[],
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function ManagersClient({ managers: managersProp, staff, leave, skillMeta, perfById, benchmark }: {
   managers: ManagerMeta[]; staff: StaffMemberVM[]; leave: TeamLeaveVM[]; skillMeta: SkillMeta;
   perfById: Record<string, ManagerPerf>; benchmark: CompanyBenchmark;
@@ -91,8 +93,12 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
 
   const assign = (staffId: string, managerId: string | null) => {
     const who = staff.find((s) => s.id === staffId)?.name ?? 'Staff';
-    setAssignment((a) => ({ ...a, [staffId]: managerId }));
+    setAssignment((a) => ({ ...a, [staffId]: managerId }));           // optimistic
     notify(managerId ? `${who} → ${nameOf(managerId)}'s team` : `${who} unassigned from a manager`);
+    // inc-E25 — persist real pod link for real profiles (uuid ids); mock-id rows stay display-only.
+    if (UUID_RE.test(staffId) && (managerId === null || UUID_RE.test(managerId))) {
+      void assignStaffToManagerAction(staffId, managerId).then((r) => { if (!r.ok) notify(r.error); });
+    }
   };
   const decide = (id: string, status: 'approved' | 'declined', who: string) => {
     setLeaveState((s) => ({ ...s, [id]: status }));

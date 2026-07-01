@@ -2471,6 +2471,10 @@ export type Database = {
         Args: { p_order: string; p_staff: string }
         Returns: undefined
       }
+      assign_staff_to_manager: {
+        Args: { p_manager?: string; p_staff: string }
+        Returns: undefined
+      }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
         Args: { p_order: string }
