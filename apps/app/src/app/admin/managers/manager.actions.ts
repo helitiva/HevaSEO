@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { provisionInviteLogin } from '@/lib/provisionInvite';
 
-// inc-E24 — admin provisions a manager or admin (shadow profile + wallet for managers; the person claims
-// it by signing up with the same email). Admin-gated via create_manager.
-export type CreateManagerResult = { ok: true } | { ok: false; error: string };
+// inc-E24 — admin provisions a manager or admin (shadow profile + wallet for managers), then creates the
+// login (temp password) and links it (privileged shadows are no longer self-claimable via open signup —
+// see 20260701450000). Admin-gated via create_manager.
+export type CreateManagerResult = { ok: true; tempPassword?: string } | { ok: false; error: string };
 
 export async function createManagerAction(input: { name: string; email: string; role: 'manager' | 'admin'; title?: string; rank?: string }): Promise<CreateManagerResult> {
   const supabase = await createClient();
@@ -21,8 +23,10 @@ export async function createManagerAction(input: { name: string; email: string; 
     const key = Object.keys(map).find((k) => error.message.includes(k));
     return { ok: false, error: key ? map[key] : error.message };
   }
+  const login = await provisionInviteLogin(input.email, input.name);
+  if (!login.ok) return { ok: false, error: login.error };
   revalidatePath('/admin/managers');
-  return { ok: true };
+  return { ok: true, tempPassword: login.tempPassword };
 }
 
 // inc-E25 — admin sets/clears a staff member's pod manager (staff_details.manager_id). null = unassign.

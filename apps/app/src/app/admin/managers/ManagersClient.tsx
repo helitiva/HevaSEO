@@ -72,7 +72,7 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
   const [sortBy, setSortBy] = useState<SortKey>('score');
   const [panelId, setPanelId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [invited, setInvited] = useState<{ email: string; role: 'manager' | 'admin' } | null>(null);
+  const [invited, setInvited] = useState<{ email: string; role: 'manager' | 'admin'; tempPassword?: string } | null>(null);
   const [adding, setAdding] = useState(false);
 
   // Merge admin-provisioned managers/admins into the directory (Phase-0 overlay).
@@ -115,8 +115,8 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
     if (!res.ok) { notify(res.error); return; }
     const id = data.role === 'admin' ? `adm${Date.now()}` : `mgr${Date.now()}`;
     addCreatedManager({ id, name: data.name, email: data.email, title: data.title || (data.role === 'admin' ? 'Administrator' : 'Manager'), rank: data.rank, role: data.role, createdAt: new Date().toISOString() });
-    setInvited({ email: data.email, role: data.role });
-    notify(`${data.name} invited as ${data.role} — they'll activate by signing up`);
+    setInvited({ email: data.email, role: data.role, tempPassword: res.tempPassword });
+    notify(`${data.name} added as ${data.role} — share their temporary password`);
   };
 
   // ── drag a staff chip onto a manager card (or the unassign zone) ──
@@ -635,7 +635,7 @@ function PanelStat({ label, value, tone }: { label: string; value: string; tone?
 
 // ── add manager / admin modal ─────────────────────────────────────────────────
 function AddManagerModal({ invited, busy, onClose, onSave }: {
-  invited: { email: string; role: 'manager' | 'admin' } | null;
+  invited: { email: string; role: 'manager' | 'admin'; tempPassword?: string } | null;
   busy: boolean;
   onClose: () => void;
   onSave: (d: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => void;
@@ -653,12 +653,17 @@ function AddManagerModal({ invited, busy, onClose, onSave }: {
     <div className="fixed inset-0 z-[100] grid place-items-center p-4">
       <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <p className="display mb-4 text-base font-bold">{invited ? `${invited.role === 'admin' ? 'Admin' : 'Manager'} invited` : 'Add manager or admin'}</p>
+        <p className="display mb-4 text-base font-bold">{invited ? `${invited.role === 'admin' ? 'Admin' : 'Manager'} added` : 'Add manager or admin'}</p>
         {invited ? (
           <>
-            <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
-              <i className="ph-fill ph-paper-plane-tilt mt-0.5 text-emerald-600" aria-hidden />
-              <p className="text-sm text-muted-foreground"><b className="text-foreground">{invited.email}</b> is set up as {invited.role}. They&apos;ll activate their account by signing up with this email — it links automatically with the role you assigned.</p>
+            <div className="space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
+              <p className="text-sm text-muted-foreground"><b className="text-foreground">{invited.email}</b> is set up as {invited.role}. Share these first-login credentials securely — they change the password on first sign-in.</p>
+              {invited.tempPassword && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm">
+                  <span className="text-muted-foreground">Temp password</span>
+                  <span className="select-all font-semibold text-foreground">{invited.tempPassword}</span>
+                </div>
+              )}
             </div>
             <div className="mt-5 flex justify-end">
               <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-check" aria-hidden /> Done</button>

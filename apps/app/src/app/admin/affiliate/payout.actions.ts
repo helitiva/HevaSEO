@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { provisionInviteLogin } from '@/lib/provisionInvite';
 import type { TierId } from '@/lib/affiliate';
 import type { ProgramRules, EditableTier } from '@/data/adminAffiliate';
 
@@ -110,7 +111,7 @@ export async function saveAffiliateTiersAction(tiers: EditableTier[]): Promise<R
 
 // Lane E inc-E13 — admin provisions a new affiliate partner (shadow profile + affiliate row; the
 // partner claims it by signing up with the same email). Admin-gated via create_affiliate_partner.
-export type CreatePartnerResult = { ok: true; code: string } | { ok: false; error: string };
+export type CreatePartnerResult = { ok: true; code: string; tempPassword?: string } | { ok: false; error: string };
 export async function createAffiliatePartnerAction(input: {
   name: string; email: string; code: string; tier: TierId; platform?: string; niche?: string; audience?: string;
 }): Promise<CreatePartnerResult> {
@@ -128,8 +129,12 @@ export async function createAffiliatePartnerAction(input: {
     const key = Object.keys(map).find((k) => error.message.includes(k));
     return { ok: false, error: key ? map[key] : error.message };
   }
+  // Privileged shadows are no longer self-claimable via open signup (20260701450000): create the login
+  // + link it now, and hand the temp password back for the admin to share.
+  const login = await provisionInviteLogin(input.email, input.name);
+  if (!login.ok) return { ok: false, error: login.error };
   revalidatePath('/admin/affiliate');
-  return { ok: true, code: (data as { code: string }).code };
+  return { ok: true, code: (data as { code: string }).code, tempPassword: login.tempPassword };
 }
 
 // Lane E inc-E6 — admin pins a partner's tier (override the volume ladder) or reverts to auto (tier=null).

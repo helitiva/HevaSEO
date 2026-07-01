@@ -18,7 +18,7 @@ export function PartnerCreateModal({ onClose, realMode = false, onCreated }: { o
   const [codeTouched, setCodeTouched] = useState(false);
   const [tier, setTier] = useState<TierId>('bronze');
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
-  const [invited, setInvited] = useState<{ email: string; code: string } | null>(null);
+  const [invited, setInvited] = useState<{ email: string; code: string; tempPassword?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -42,7 +42,7 @@ export function PartnerCreateModal({ onClose, realMode = false, onCreated }: { o
       });
       setBusy(false);
       if (!res.ok) { setErr(res.error); return; }
-      setInvited({ email: email.trim(), code: res.code });
+      setInvited({ email: email.trim(), code: res.code, tempPassword: res.tempPassword });
       onCreated?.();
       return;
     }
@@ -71,9 +71,10 @@ export function PartnerCreateModal({ onClose, realMode = false, onCreated }: { o
                 <i className="ph-fill ph-paper-plane-tilt mt-0.5 text-emerald-600" aria-hidden />
                 <p className="text-sm text-muted-foreground">
                   <b className="text-foreground">{invited.email}</b> is now a partner with code <b className="font-mono text-foreground">{invited.code}</b>.
-                  They&apos;ll activate their dashboard by signing up with this email — their account links automatically.
+                  Share the first-login credentials below securely — they change the password on first sign-in.
                 </p>
               </div>
+              {invited.tempPassword && <CredentialPanel email={invited.email} password={invited.tempPassword} />}
             </div>
           ) : created ? (
             <CredentialPanel email={created.email} password={created.password} />

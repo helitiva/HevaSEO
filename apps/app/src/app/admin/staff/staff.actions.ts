@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { provisionInviteLogin } from '@/lib/provisionInvite';
 
-// Lane C/A inc-E23 — admin provisions a staff member (shadow profile + details + wallet; the person
-// claims it by signing up with the same email). Admin-gated via create_staff_member.
-export type CreateStaffResult = { ok: true } | { ok: false; error: string };
+// Lane C/A inc-E23 — admin provisions a staff member (shadow profile + details + wallet), then creates
+// the login (temp password) and links it (privileged shadows are no longer self-claimable via open
+// signup — see 20260701450000). Admin-gated via create_staff_member.
+export type CreateStaffResult = { ok: true; tempPassword: string } | { ok: false; error: string };
 
 export async function createStaffMemberAction(input: {
   name: string; email: string; roleLabel: string; capacity: number; skills: string[];
@@ -23,6 +25,8 @@ export async function createStaffMemberAction(input: {
     const key = Object.keys(map).find((k) => error.message.includes(k));
     return { ok: false, error: key ? map[key] : error.message };
   }
+  const login = await provisionInviteLogin(input.email, input.name);
+  if (!login.ok) return { ok: false, error: login.error };
   revalidatePath('/admin/staff');
-  return { ok: true };
+  return { ok: true, tempPassword: login.tempPassword };
 }
