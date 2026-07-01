@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { money } from '@/data/adminMock';
+import { requestAffiliatePayoutAction } from '@/app/affiliate/(dash)/payout.actions';
 import type { CommissionEvent, PayoutRequest } from '@/lib/affiliate';
 
 const EVENT_BADGE: Record<CommissionEvent['status'], string> = {
@@ -16,16 +18,32 @@ const PAYOUT_BADGE: Record<PayoutRequest['status'], string> = {
 };
 
 export function CommissionLedger({
-  events, payouts, payoutLabel, compact = false,
-}: { events: CommissionEvent[]; payouts: PayoutRequest[]; payoutLabel: string; compact?: boolean }) {
+  events, payouts, payoutLabel, compact = false, balance,
+}: { events: CommissionEvent[]; payouts: PayoutRequest[]; payoutLabel: string; compact?: boolean; balance?: number }) {
+  const router = useRouter();
   // Balances are derived from event status: pending = not yet clearable;
-  // cleared = available to withdraw; paid = already withdrawn.
-  const available = events.filter((e) => e.status === 'cleared').reduce((s, e) => s + e.amount, 0);
+  // cleared = available to withdraw; paid = already withdrawn. When `balance` is passed (Lane E inc-E2:
+  // real affiliate), it's the authoritative withdrawable amount (affiliate_commission.balance).
+  const real = balance !== undefined;
+  const available = real ? balance : events.filter((e) => e.status === 'cleared').reduce((s, e) => s + e.amount, 0);
   const pending = events.filter((e) => e.status === 'pending').reduce((s, e) => s + e.amount, 0);
   const lifetimePaid = events.filter((e) => e.status === 'paid').reduce((s, e) => s + e.amount, 0);
 
   const [requested, setRequested] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const eventRows = compact ? events.slice(0, 5) : events;
+
+  async function requestPayout() {
+    if (real) {
+      setBusy(true); setErr('');
+      const res = await requestAffiliatePayoutAction(available);
+      setBusy(false);
+      if (!res.ok) { setErr(res.error); return; }
+    }
+    setRequested(true);
+    if (real) router.refresh();
+  }
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
@@ -34,13 +52,16 @@ export function CommissionLedger({
           <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-wallet text-primary" aria-hidden /> Commission & payouts</p>
           <p className="mt-0.5 text-xs text-muted-foreground">Your earnings — withdraw cleared balance to {payoutLabel}</p>
         </div>
-        <button
-          type="button" disabled={available === 0 || requested} onClick={() => setRequested(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-        >
-          <i className={`ph-bold ${requested ? 'ph-check' : 'ph-arrow-line-down'}`} aria-hidden />
-          {requested ? 'Payout requested' : `Request payout · ${money(available)}`}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button" disabled={available <= 0 || requested || busy} onClick={requestPayout}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+          >
+            <i className={`ph-bold ${requested ? 'ph-check' : busy ? 'ph-circle-notch animate-spin' : 'ph-arrow-line-down'}`} aria-hidden />
+            {requested ? 'Payout requested' : busy ? 'Requesting…' : `Request payout · ${money(available)}`}
+          </button>
+          {err && <span className="text-[11px] font-medium text-destructive">{err}</span>}
+        </div>
       </div>
 
       {/* balances */}

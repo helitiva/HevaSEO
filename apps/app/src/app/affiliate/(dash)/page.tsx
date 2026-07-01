@@ -36,8 +36,8 @@ function SectionHead({ title, icon, href, cta }: { title: string; icon: string; 
 export default async function AffiliateOverviewPage() {
   // Lane E inc-E1 — real affiliate portal data (RLS-scoped) for a provisioned affiliate session; falls
   // back to the mock for admin-impersonation / demo personas with no own affiliate row.
-  const { affiliate: me, referrals, events, clicks, payouts } =
-    (await getMyAffiliate()) ?? portalDataFor(await currentAffiliateId());
+  const real = await getMyAffiliate();
+  const { affiliate: me, referrals, events, clicks, payouts } = real ?? portalDataFor(await currentAffiliateId());
 
   const kpis = rollupKpis(referrals, events, clicks);
   const series = monthlySeries(events);
@@ -115,7 +115,7 @@ export default async function AffiliateOverviewPage() {
 
       {/* Commission & payouts summary */}
       <SectionHead title="Commission & payouts" icon="ph-wallet" href="/affiliate/payouts" cta="See ledger" />
-      <CommissionLedger events={events} payouts={payouts} payoutLabel={me.payoutLabel} compact />
+      <CommissionLedger events={events} payouts={payouts} payoutLabel={me.payoutLabel} balance={real?.balance} compact />
 
       {/* Marketing assets preview */}
       <SectionHead title="Promote HevaSEO" icon="ph-megaphone" href="/affiliate/assets" cta="All assets" />

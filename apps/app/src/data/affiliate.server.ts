@@ -18,7 +18,10 @@ type RefRow = { id: string; volume: number | string; status: string; created_at:
 type LedRow = { id: string; amount: number | string; kind: string; referral_id: string | null; created_at: string };
 type PayRow = { id: string; amount: number | string; status: string; requested_at: string };
 
-export async function getMyAffiliate(): Promise<PortalData | null> {
+// PortalData + the authoritative withdrawable balance (affiliate_commission.balance == SUM(ledger)).
+export type MyAffiliate = PortalData & { balance: number };
+
+export async function getMyAffiliate(): Promise<MyAffiliate | null> {
   const supabase = await createClient();
   const { data: aff, error } = await supabase
     .from('affiliates')
@@ -29,17 +32,19 @@ export async function getMyAffiliate(): Promise<PortalData | null> {
   if (error) throw new Error(`getMyAffiliate: ${error.message}`);
   if (!aff) return null;
 
-  const [refs, led, pays] = await Promise.all([
+  const [refs, led, pays, bal] = await Promise.all([
     supabase.from('affiliate_referrals').select('id, volume, status, created_at, customers(name, company)')
       .order('created_at', { ascending: false }).returns<RefRow[]>(),
     supabase.from('commission_ledger').select('id, amount, kind, referral_id, created_at')
       .order('created_at', { ascending: false }).returns<LedRow[]>(),
     supabase.from('affiliate_payouts').select('id, amount, status, requested_at')
       .order('requested_at', { ascending: false }).returns<PayRow[]>(),
+    supabase.from('affiliate_commission').select('balance').maybeSingle().returns<{ balance: number | string } | null>(),
   ]);
   if (refs.error) throw new Error(`getMyAffiliate referrals: ${refs.error.message}`);
   if (led.error) throw new Error(`getMyAffiliate ledger: ${led.error.message}`);
   if (pays.error) throw new Error(`getMyAffiliate payouts: ${pays.error.message}`);
+  if (bal.error) throw new Error(`getMyAffiliate balance: ${bal.error.message}`);
 
   const name = aff.profiles?.name ?? 'Affiliate';
   const affiliate: Affiliate = {
@@ -69,5 +74,5 @@ export async function getMyAffiliate(): Promise<PortalData | null> {
     status: p.status as PayoutRequest['status'],
   }));
 
-  return { affiliate, referrals, events, payouts, clicks: 0 };
+  return { affiliate, referrals, events, payouts, clicks: 0, balance: Number(bal.data?.balance ?? 0) };
 }

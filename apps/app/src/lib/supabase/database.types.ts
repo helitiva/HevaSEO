@@ -2495,6 +2495,24 @@ export type Database = {
         Returns: undefined
       }
       remove_payout_method: { Args: { p_id: string }; Returns: undefined }
+      request_affiliate_payout: {
+        Args: { p_amount: number }
+        Returns: {
+          affiliate_id: string
+          amount: number
+          id: string
+          requested_at: string
+          resolved_at: string | null
+          status: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "affiliate_payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_payout: {
         Args: { p_amount: number; p_method?: string }
         Returns: {
