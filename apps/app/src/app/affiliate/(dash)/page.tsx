@@ -14,7 +14,7 @@ import { ActivityPulse } from '@/components/affiliate/ActivityPulse';
 import { HowItWorks } from '@/components/affiliate/HowItWorks';
 import { rollupKpis, monthlySeries, funnelStats, earningStreak, projectMonth } from '@/lib/affiliate';
 import { portalDataFor } from '@/data/affiliatePortal';
-import { getMyAffiliate } from '@/data/affiliate.server';
+import { getAffiliatePortalData } from '@/data/affiliate.server';
 import { currentAffiliateId } from '@/lib/currentAffiliate';
 import { MOCK_TODAY } from '@/lib/today';
 
@@ -36,7 +36,7 @@ function SectionHead({ title, icon, href, cta }: { title: string; icon: string; 
 export default async function AffiliateOverviewPage() {
   // Lane E inc-E1 — real affiliate portal data (RLS-scoped) for a provisioned affiliate session; falls
   // back to the mock for admin-impersonation / demo personas with no own affiliate row.
-  const real = await getMyAffiliate();
+  const real = await getAffiliatePortalData(); // own, or the impersonated partner (admin), else null
   const { affiliate: me, referrals, events, clicks, payouts } = real ?? portalDataFor(await currentAffiliateId());
 
   const kpis = rollupKpis(referrals, events, clicks);

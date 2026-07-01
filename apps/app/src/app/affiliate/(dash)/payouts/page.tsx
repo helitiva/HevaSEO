@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { CommissionLedger } from '@/components/affiliate/CommissionLedger';
 import { portalDataFor } from '@/data/affiliatePortal';
-import { getMyAffiliate } from '@/data/affiliate.server';
+import { getAffiliatePortalData } from '@/data/affiliate.server';
 import { currentAffiliateId } from '@/lib/currentAffiliate';
 import { nextTierUpside, tierFor } from '@/lib/affiliate';
 import { money } from '@/data/adminMock';
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Payouts' };
 
 export default async function PayoutsPage() {
   // Lane E inc-E2 — real affiliate data (+ withdrawable balance) with mock fallback for impersonation.
-  const real = await getMyAffiliate();
+  const real = await getAffiliatePortalData(); // own, or the impersonated partner (admin), else null
   const { affiliate: me, referrals, events, payouts } = real ?? portalDataFor(await currentAffiliateId());
   const lifetimeVolume = referrals.reduce((s, r) => s + r.volume, 0);
   const pending = events.filter((e) => e.status === 'pending').reduce((s, e) => s + e.amount, 0);
