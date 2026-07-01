@@ -25,7 +25,37 @@ const mockProvider: PaymentProvider = {
   },
 };
 
-// One switch point for the whole app. PAYMENTS_PROVIDER=stripe (+ a StripeProvider) flips it later.
+// Real Stripe in TEST mode. The card never touches our server (PCI-safe): we charge Stripe's built-in
+// test payment-method token (pm_card_visa succeeds; pm_card_visaChargeDeclined fails), so this creates a
+// genuine test-mode PaymentIntent visible in the Stripe dashboard — no client-side Stripe.js needed.
+// Enable with PAYMENTS_PROVIDER=stripe + STRIPE_SECRET_KEY=sk_test_… (keep .99 as the decline shortcut).
+const stripeProvider: PaymentProvider = {
+  name: 'stripe-test',
+  async charge({ amount, description }: ChargeInput): Promise<ChargeResult> {
+    if (!(amount > 0)) return { ok: false, error: 'Invalid amount.' };
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return { ok: false, error: 'Stripe key not configured.' };
+    const declined = Math.round((amount % 1) * 100) === 99; // keep the $x.99 = decline test
+    try {
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(key);
+      const pi = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        description,
+        payment_method: declined ? 'pm_card_visaChargeDeclined' : 'pm_card_visa',
+        confirm: true,
+        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      });
+      return pi.status === 'succeeded' ? { ok: true, ref: pi.id } : { ok: false, error: `Payment ${pi.status}.` };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'Card declined.' };
+    }
+  },
+};
+
+// One switch point for the whole app. PAYMENTS_PROVIDER=stripe (+ STRIPE_SECRET_KEY) → real Stripe test.
 export function getPaymentProvider(): PaymentProvider {
+  if (process.env.PAYMENTS_PROVIDER === 'stripe' && process.env.STRIPE_SECRET_KEY) return stripeProvider;
   return mockProvider;
 }
