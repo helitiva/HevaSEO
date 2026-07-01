@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isCodeValid, buildAffiliateUrl } from '@/lib/affiliate';
 import type { Affiliate } from '@/data/affiliateMock';
 import type { AffiliatePayoutMethod } from '@/data/affiliate.server';
@@ -10,6 +10,9 @@ import {
   updateAffiliateProfileAction, setAffiliateCodeAction,
   addAffiliatePayoutMethodAction, setDefaultAffiliatePayoutMethodAction, removeAffiliatePayoutMethodAction,
 } from '@/app/affiliate/(dash)/payout.actions';
+import { startAffiliateOnboardingAction, refreshAffiliateConnectStatusAction } from '@/app/affiliate/(dash)/connect.actions';
+
+type ConnectStatus = { hasAccount: boolean; payoutsEnabled: boolean };
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="block">
@@ -29,9 +32,29 @@ const KINDS: { v: AffiliatePayoutMethod['kind']; label: string; icon: string }[]
 const kindMeta = (k: string) => KINDS.find((x) => x.v === k) ?? KINDS[0];
 
 // `editable` gates the real Save (a genuine affiliate session); demo/impersonation views stay read-only.
-export function SettingsClient({ me, editable = false, methods = [] }: { me: Affiliate; editable?: boolean; methods?: AffiliatePayoutMethod[] }) {
+export function SettingsClient({ me, editable = false, methods = [], connect = { hasAccount: false, payoutsEnabled: false } }: { me: Affiliate; editable?: boolean; methods?: AffiliatePayoutMethod[]; connect?: ConnectStatus }) {
   const router = useRouter();
   const toast = useToast();
+  const params = useSearchParams();
+
+  // Stripe Connect (inc-E19). When we return from hosted onboarding (?stripe=return), refresh status.
+  const [busyConnect, setBusyConnect] = useState(false);
+  useEffect(() => {
+    if (params.get('stripe') === 'return') {
+      void refreshAffiliateConnectStatusAction().then((r) => {
+        if (r.ok) toast(r.enabled ? 'Payouts enabled — you can receive transfers.' : 'Onboarding saved; finish any remaining steps to enable payouts.', r.enabled ? 'success' : 'info');
+        router.replace('/affiliate/settings');
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const startConnect = async () => {
+    if (busyConnect) return;
+    setBusyConnect(true);
+    const res = await startAffiliateOnboardingAction();
+    if (!res.ok) { setBusyConnect(false); toast(res.error, 'error'); return; }
+    window.location.href = res.url;
+  };
 
   // Payout methods (inc-E15).
   const [addKind, setAddKind] = useState<AffiliatePayoutMethod['kind']>('paypal');
@@ -205,6 +228,26 @@ export function SettingsClient({ me, editable = false, methods = [] }: { me: Aff
                 </button>
               </div>
             </div>
+          )}
+        </section>
+
+        {/* Stripe Connect payout account (inc-E19) */}
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-lightning text-primary" aria-hidden /> Payout account (Stripe)</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Connect Stripe so approved payouts land in your account automatically.</p>
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+            <span className="flex items-center gap-2">
+              <i className={`ph-bold ${connect.payoutsEnabled ? 'ph-check-circle text-emerald-500' : connect.hasAccount ? 'ph-clock text-amber-500' : 'ph-plug text-muted-foreground'}`} aria-hidden />
+              {connect.payoutsEnabled ? 'Connected — payouts enabled' : connect.hasAccount ? 'Onboarding incomplete' : 'Not connected'}
+            </span>
+            {connect.payoutsEnabled && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">ready</span>}
+          </div>
+          {editable && (
+            <button type="button" disabled={busyConnect} onClick={startConnect}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
+              <i className={`ph-bold ${busyConnect ? 'ph-circle-notch animate-spin' : 'ph-arrow-square-out'}`} aria-hidden />
+              {connect.payoutsEnabled ? 'Manage account' : connect.hasAccount ? 'Finish onboarding' : 'Connect Stripe'}
+            </button>
           )}
         </section>
       </div>

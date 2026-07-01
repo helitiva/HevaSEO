@@ -332,6 +332,8 @@ export type Database = {
           niche: string | null
           platform: string | null
           status: Database["public"]["Enums"]["affiliate_status"]
+          stripe_account_id: string | null
+          stripe_payouts_enabled: boolean
           tenant_id: string
           tier: Database["public"]["Enums"]["affiliate_tier"]
           tier_pinned: boolean
@@ -347,6 +349,8 @@ export type Database = {
           niche?: string | null
           platform?: string | null
           status?: Database["public"]["Enums"]["affiliate_status"]
+          stripe_account_id?: string | null
+          stripe_payouts_enabled?: boolean
           tenant_id: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
           tier_pinned?: boolean
@@ -362,6 +366,8 @@ export type Database = {
           niche?: string | null
           platform?: string | null
           status?: Database["public"]["Enums"]["affiliate_status"]
+          stripe_account_id?: string | null
+          stripe_payouts_enabled?: boolean
           tenant_id?: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
           tier_pinned?: boolean
@@ -2544,6 +2550,8 @@ export type Database = {
           niche: string | null
           platform: string | null
           status: Database["public"]["Enums"]["affiliate_status"]
+          stripe_account_id: string | null
+          stripe_payouts_enabled: boolean
           tenant_id: string
           tier: Database["public"]["Enums"]["affiliate_tier"]
           tier_pinned: boolean
@@ -2826,6 +2834,10 @@ export type Database = {
       set_affiliate_code: { Args: { p_code: string }; Returns: undefined }
       set_affiliate_status: {
         Args: { p_affiliate: string; p_status: string }
+        Returns: undefined
+      }
+      set_affiliate_stripe_account: {
+        Args: { p_account_id: string; p_enabled: boolean }
         Returns: undefined
       }
       set_affiliate_tier: {

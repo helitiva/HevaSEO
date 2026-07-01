@@ -41,6 +41,14 @@ export function payoutMethodLabel(kind: string, detail: string): string {
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
+// Lane E inc-E19 — the signed-in affiliate's Stripe Connect status (for the settings payout-account card).
+export async function getMyAffiliateConnect(): Promise<{ hasAccount: boolean; payoutsEnabled: boolean }> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('affiliates').select('stripe_account_id, stripe_payouts_enabled').maybeSingle()
+    .returns<{ stripe_account_id: string | null; stripe_payouts_enabled: boolean } | null>();
+  return { hasAccount: Boolean(data?.stripe_account_id), payoutsEnabled: Boolean(data?.stripe_payouts_enabled) };
+}
+
 // The signed-in affiliate's own payout methods (own RLS), default first.
 export async function getMyAffiliatePayoutMethods(): Promise<AffiliatePayoutMethod[]> {
   const supabase = await createClient();
