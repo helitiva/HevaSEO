@@ -277,8 +277,8 @@ on conflict (tenant_id, staff_id, period) do nothing;
 
 -- Lane E inc-E1 — Jane (affiliate demo account, profile ...05) as a real affiliate with referrals +
 -- commission ledger + a payout. balance == SUM(commission_ledger) (K11 invariant): +120+80+40−100 = 140.
-insert into public.affiliates (id, tenant_id, user_id, code, tier, status, joined_at) values
-  ('e0000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000005', 'JANESEO', 'gold', 'active', '2025-11-01')
+insert into public.affiliates (id, tenant_id, user_id, code, tier, status, joined_at, platform, niche, audience, clicks) values
+  ('e0000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 'b000aaaa-0000-4000-8000-000000000005', 'JANESEO', 'gold', 'active', '2025-11-01', 'YouTube', 'SEO & Marketing', '120k subscribers', 480)
 on conflict do nothing;
 insert into public.affiliate_referrals (id, tenant_id, affiliate_id, customer_id, volume, status) values
   ('e1000000-0000-4000-8000-000000000001', 'a9e0c0de-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 600, 'active'),

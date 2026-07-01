@@ -26,3 +26,19 @@ export async function requestAffiliatePayoutAction(amount: number): Promise<Affi
   revalidatePath('/affiliate/payouts');
   return { ok: true };
 }
+
+// Lane E inc-E12 — the signed-in affiliate edits their OWN marketing profile (platform/niche/audience).
+// update_affiliate_profile is claims-derived + own-affiliate-only.
+export async function updateAffiliateProfileAction(input: { platform: string; niche: string; audience: string }): Promise<AffiliatePayoutResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('update_affiliate_profile', {
+    p_platform: input.platform, p_niche: input.niche, p_audience: input.audience,
+  });
+  if (error) {
+    if (error.message.includes('NOT_AFFILIATE')) return { ok: false, error: 'Only an affiliate can edit this profile.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath('/affiliate/settings');
+  revalidatePath('/affiliate');
+  return { ok: true };
+}

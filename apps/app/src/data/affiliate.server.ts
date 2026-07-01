@@ -16,7 +16,7 @@ const initialsOf = (name: string): string =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type AffRow = { id: string; code: string; tier: string; status: string; joined_at: string | null; profiles: { name: string | null; email: string | null } | null };
+type AffRow = { id: string; code: string; tier: string; status: string; joined_at: string | null; platform: string | null; niche: string | null; audience: string | null; clicks: number | null; profiles: { name: string | null; email: string | null } | null };
 type RefRow = { id: string; volume: number | string; status: string; created_at: string; customers: { name: string | null; company: string | null } | null };
 type LedRow = { id: string; amount: number | string; kind: string; referral_id: string | null; created_at: string };
 type PayRow = { id: string; amount: number | string; status: string; requested_at: string };
@@ -57,7 +57,7 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
   const name = aff.profiles?.name ?? 'Affiliate';
   const affiliate: Affiliate = {
     name, handle: `@${aff.code.toLowerCase()}`, code: aff.code, email: aff.profiles?.email ?? '',
-    avatarInitials: initialsOf(name), platform: '—', audience: '—', niche: '—',
+    avatarInitials: initialsOf(name), platform: aff.platform ?? '—', audience: aff.audience ?? '—', niche: aff.niche ?? '—',
     joinedAt: aff.joined_at ?? '', status: 'active', payoutKind: 'paypal', payoutLabel: 'PayPal ••…',
   };
   const refName = (r: RefRow) => r.customers?.company ?? r.customers?.name ?? 'Referred customer';
@@ -76,10 +76,10 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
     id: p.id, at: ymd(p.requested_at), amount: Number(p.amount), method: affiliate.payoutLabel,
     status: p.status as PayoutRequest['status'],
   }));
-  return { affiliate, referrals, events, payouts, clicks: 0, balance: Number(bal.data?.balance ?? 0), tiers };
+  return { affiliate, referrals, events, payouts, clicks: Number(aff.clicks ?? 0), balance: Number(bal.data?.balance ?? 0), tiers };
 }
 
-const AFF_SELECT = 'id, code, tier, status, joined_at, profiles:user_id(name, email)';
+const AFF_SELECT = 'id, code, tier, status, joined_at, platform, niche, audience, clicks, profiles:user_id(name, email)';
 
 // The signed-in affiliate's own portal (RLS own). null when the session isn't a provisioned affiliate.
 export async function getMyAffiliate(): Promise<MyAffiliate | null> {

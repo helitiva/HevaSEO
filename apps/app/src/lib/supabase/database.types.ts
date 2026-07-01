@@ -242,10 +242,14 @@ export type Database = {
       }
       affiliates: {
         Row: {
+          audience: string | null
+          clicks: number
           code: string
           created_at: string
           id: string
           joined_at: string | null
+          niche: string | null
+          platform: string | null
           status: Database["public"]["Enums"]["affiliate_status"]
           tenant_id: string
           tier: Database["public"]["Enums"]["affiliate_tier"]
@@ -253,10 +257,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          audience?: string | null
+          clicks?: number
           code: string
           created_at?: string
           id?: string
           joined_at?: string | null
+          niche?: string | null
+          platform?: string | null
           status?: Database["public"]["Enums"]["affiliate_status"]
           tenant_id: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
@@ -264,10 +272,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          audience?: string | null
+          clicks?: number
           code?: string
           created_at?: string
           id?: string
           joined_at?: string | null
+          niche?: string | null
+          platform?: string | null
           status?: Database["public"]["Enums"]["affiliate_status"]
           tenant_id?: string
           tier?: Database["public"]["Enums"]["affiliate_tier"]
@@ -2709,6 +2721,10 @@ export type Database = {
           p_stripe?: string
           p_tenant: string
         }
+        Returns: undefined
+      }
+      update_affiliate_profile: {
+        Args: { p_audience: string; p_niche: string; p_platform: string }
         Returns: undefined
       }
       upsert_affiliate_program_config: {
