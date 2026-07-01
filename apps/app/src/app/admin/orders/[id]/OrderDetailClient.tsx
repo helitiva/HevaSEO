@@ -6,6 +6,9 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
 import { useMoney, useShowMoney, useAreaBase } from '@/lib/viewer';
+import { UUID_RE } from '@/lib/orderMap';
+import { useOrderMessages } from '@/lib/useOrderMessages';
+import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 import { Checklist } from './Checklist';
 
 interface StaffLite { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skills: string[] }
@@ -78,6 +81,9 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState('');
   const [msgInternal, setMsgInternal] = useState(true);
+  // inc-E31 — real order thread for real orders (admin all / pod-manager pod, via RLS); mock otherwise.
+  const realThread = UUID_RE.test(p.order.id);
+  const { comments: realMsgs, reload: reloadMsgs } = useOrderMessages(realThread ? p.order.id : null);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundAmt, setRefundAmt] = useState(String(p.order.value));
   const [staffNotes, setStaffNotes] = useState<{ body: string; at: string }[]>([{ body: "Use the client's brand voice; avoid mentioning competitors by name.", at: `${p.today} 09:00` }]);
@@ -126,7 +132,19 @@ export function OrderDetailClient(p: OrderDetailProps) {
     transition(a.to);
   }
   function assignTo(name: string) { setStaff(name); setPicker(false); if (status === 'confirmed') transition('assigned', `→ ${name}`); else { log('assign', `${o.code} → ${name}`); notify(`Assigned to ${name}`); } }
-  function sendMsg() { if (!msg.trim()) return; setMessages((m) => [...m, { who: 'You', body: msg.trim(), internal: msgInternal }]); setMsg(''); notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
+  function sendMsg() {
+    const body = msg.trim();
+    if (!body) return;
+    setMessages((m) => [...m, { who: 'You', body, internal: msgInternal }]); // optimistic
+    setMsg('');
+    if (realThread) {
+      void postOrderMessageAction(p.order.id, body, msgInternal).then((r) => {
+        if (!r.ok) { notify(r.error); return; }
+        reloadMsgs(); notify(msgInternal ? 'Internal note added' : 'Message sent to customer');
+      });
+    } else { notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
+  }
+  const shownMessages = realThread ? realMsgs.map((c) => ({ who: c.author, body: c.text, internal: Boolean(c.internal) })) : messages;
   function sendStaffNote() { if (!staffNote.trim()) return; setStaffNotes((n) => [...n, { body: staffNote.trim(), at: nowStamp }]); setStaffNote(''); log('note', `${o.code} note to staff`); notify(`Note sent to ${staff ?? 'staff (unassigned)'}`); }
   function doRefund() { const amt = Math.max(0, Number(refundAmt) || 0); setBalance((b) => b + amt); log('refund', `${o.code} refund ${money(amt)}`); notify(`Refunded ${money(amt)}`); setRefundOpen(false); }
 
@@ -266,7 +284,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
           </Card>
 
           <Card icon="ph-chats-circle" title="Messages">
-            <div className="space-y-2">{messages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} />)}</div>
+            <div className="space-y-2">{shownMessages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} />)}</div>
             <div className="mt-3 flex items-center gap-2">
               <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMsg()} placeholder="Write a message…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               <label className="flex items-center gap-1 text-xs text-muted-foreground"><input type="checkbox" checked={msgInternal} onChange={(e) => setMsgInternal(e.target.checked)} className="accent-primary" /> internal</label>

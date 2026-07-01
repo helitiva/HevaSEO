@@ -37,6 +37,7 @@ getMyOrders(): Promise<Order[]>                   // customer dashboard: own ord
 // [READ — REAL, Lane A cleanup] data/staffTasks.server.ts → getMyTasks(): StaffTask[]  // signed-in staffer's own assigned orders, money-blind via orders_mgr → board shape; /staff/tasks (+ My Day) with mock fallback for impersonation. Transitions reuse advanceOrderAction (advance_order, claims-derived, ownership-enforced)
 // [READ — REAL, inc-E29] data/orderMessages.server.ts → getOrderMessages(orderId): StaffMessage[]  // real order thread; RLS admin all / assigned staff all / customer non-internal only. Post via post_order_message (participant-gated, customer forced non-internal); staff task-detail MessageThread wired
 // [HOOK — REAL, inc-5f] lib/useOrderDetail.ts → useOrderDetail(orderId): OrderDetailExtra | undefined  // client lazy fetch of order_details+order_addons (RLS) for slide-over previews
+// [HOOK — REAL, inc-E30/E31] lib/useOrderMessages.ts → useOrderMessages(orderId): { comments: OrderComment[]; reload }  // client lazy fetch of order_messages (RLS: customer non-internal / staff+admin+pod-manager all); customer panel + admin/manager order detail threads
 // [READ — mock, migrating consumer-by-consumer] data/mock.ts, data/adminMock.ts
 ORDERS: AdminOrder[]                              // → SELECT scoped RLS (customer own / manager pod / admin all)
 activityFor(o: Order): Activity[]

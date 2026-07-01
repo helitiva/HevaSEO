@@ -2818,6 +2818,7 @@ export type Database = {
       no_plan: { Args: never; Returns: boolean[] }
       num_failed: { Args: never; Returns: number }
       order_assignee_id: { Args: { p_order: string }; Returns: string }
+      order_pod_manager: { Args: { p_order: string }; Returns: string }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }
