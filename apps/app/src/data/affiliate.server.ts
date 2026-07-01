@@ -25,7 +25,31 @@ type PayRow = { id: string; amount: number | string; status: string; requested_a
 // the config tier ladder (inc-E10; undefined → the UI falls back to the lib default ladder).
 export type MyAffiliate = PortalData & { balance: number; tiers?: EditableTier[] };
 
+// Lane E inc-E15 — an affiliate's own payout destinations.
+export type AffiliatePayoutMethod = { id: string; kind: 'bank' | 'paypal' | 'wise' | 'crypto'; detail: string; isDefault: boolean };
+type PayoutMethodRow = { id: string; kind: string; detail: string; is_default: boolean };
+
+// Short label for a payout method (masks sensitive detail for bank/crypto).
+export function payoutMethodLabel(kind: string, detail: string): string {
+  const last4 = detail.slice(-4);
+  if (kind === 'paypal') return `PayPal · ${detail}`;
+  if (kind === 'wise') return `Wise · ${detail}`;
+  if (kind === 'bank') return `Bank ••${last4}`;
+  if (kind === 'crypto') return `Crypto ••${last4}`;
+  return detail;
+}
+
 type Supa = Awaited<ReturnType<typeof createClient>>;
+
+// The signed-in affiliate's own payout methods (own RLS), default first.
+export async function getMyAffiliatePayoutMethods(): Promise<AffiliatePayoutMethod[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('affiliate_payout_methods')
+    .select('id, kind, detail, is_default').order('is_default', { ascending: false }).order('created_at')
+    .returns<PayoutMethodRow[]>();
+  if (error) throw new Error(`getMyAffiliatePayoutMethods: ${error.message}`);
+  return (data ?? []).map((m) => ({ id: m.id, kind: m.kind as AffiliatePayoutMethod['kind'], detail: m.detail, isDefault: m.is_default }));
+}
 
 // The tenant's configured tier ladder (RLS tenant-scoped read). undefined when unconfigured → the
 // partner UI falls back to the lib ladder. Missing tiers fall back to the shared-ladder default row.
@@ -42,7 +66,7 @@ async function readTierLadder(supabase: Supa): Promise<EditableTier[] | undefine
 
 // Build the portal for one resolved affiliate row (all sub-reads scoped to its id).
 async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
-  const [refs, led, pays, bal, tiers] = await Promise.all([
+  const [refs, led, pays, bal, tiers, methods] = await Promise.all([
     supabase.from('affiliate_referrals').select('id, volume, status, created_at, customers(name, company)')
       .eq('affiliate_id', aff.id).order('created_at', { ascending: false }).returns<RefRow[]>(),
     supabase.from('commission_ledger').select('id, amount, kind, referral_id, created_at')
@@ -51,14 +75,19 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
       .eq('affiliate_id', aff.id).order('requested_at', { ascending: false }).returns<PayRow[]>(),
     supabase.from('affiliate_commission').select('balance').eq('affiliate_id', aff.id).maybeSingle().returns<{ balance: number | string } | null>(),
     readTierLadder(supabase),
+    supabase.from('affiliate_payout_methods').select('kind, detail, is_default').eq('affiliate_id', aff.id)
+      .order('is_default', { ascending: false }).order('created_at').returns<PayoutMethodRow[]>(),
   ]);
   if (refs.error || led.error || pays.error || bal.error) throw new Error('getAffiliate portal reads failed');
+  const defMethod = methods.data?.find((m) => m.is_default) ?? methods.data?.[0] ?? null;
 
   const name = aff.profiles?.name ?? 'Affiliate';
   const affiliate: Affiliate = {
     name, handle: `@${aff.code.toLowerCase()}`, code: aff.code, email: aff.profiles?.email ?? '',
     avatarInitials: initialsOf(name), platform: aff.platform ?? '—', audience: aff.audience ?? '—', niche: aff.niche ?? '—',
-    joinedAt: aff.joined_at ?? '', status: 'active', payoutKind: 'paypal', payoutLabel: 'PayPal ••…',
+    joinedAt: aff.joined_at ?? '', status: 'active',
+    payoutKind: (defMethod?.kind as Affiliate['payoutKind']) ?? 'paypal',
+    payoutLabel: defMethod ? payoutMethodLabel(defMethod.kind, defMethod.detail) : 'No payout method yet',
   };
   const refName = (r: RefRow) => r.customers?.company ?? r.customers?.name ?? 'Referred customer';
   const referrals: Referral[] = (refs.data ?? []).map((r) => ({

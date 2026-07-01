@@ -3,8 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isCodeValid, buildAffiliateUrl } from '@/lib/affiliate';
 import type { Affiliate } from '@/data/affiliateMock';
+import type { AffiliatePayoutMethod } from '@/data/affiliate.server';
 import { useToast } from '@/components/Toast';
-import { updateAffiliateProfileAction, setAffiliateCodeAction } from '@/app/affiliate/(dash)/payout.actions';
+import {
+  updateAffiliateProfileAction, setAffiliateCodeAction,
+  addAffiliatePayoutMethodAction, setDefaultAffiliatePayoutMethodAction, removeAffiliatePayoutMethodAction,
+} from '@/app/affiliate/(dash)/payout.actions';
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="block">
@@ -15,10 +19,37 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 
 const input = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary';
 
+const KINDS: { v: AffiliatePayoutMethod['kind']; label: string; icon: string }[] = [
+  { v: 'paypal', label: 'PayPal', icon: 'ph-paypal-logo' },
+  { v: 'bank', label: 'Bank', icon: 'ph-bank' },
+  { v: 'wise', label: 'Wise', icon: 'ph-globe-hemisphere-west' },
+  { v: 'crypto', label: 'Crypto', icon: 'ph-currency-btc' },
+];
+const kindMeta = (k: string) => KINDS.find((x) => x.v === k) ?? KINDS[0];
+
 // `editable` gates the real Save (a genuine affiliate session); demo/impersonation views stay read-only.
-export function SettingsClient({ me, editable = false }: { me: Affiliate; editable?: boolean }) {
+export function SettingsClient({ me, editable = false, methods = [] }: { me: Affiliate; editable?: boolean; methods?: AffiliatePayoutMethod[] }) {
   const router = useRouter();
   const toast = useToast();
+
+  // Payout methods (inc-E15).
+  const [addKind, setAddKind] = useState<AffiliatePayoutMethod['kind']>('paypal');
+  const [addDetail, setAddDetail] = useState('');
+  const [busyMethod, setBusyMethod] = useState(false);
+  const runMethod = async (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) => {
+    if (busyMethod) return;
+    setBusyMethod(true);
+    const res = await fn();
+    setBusyMethod(false);
+    if (!res.ok) { toast(res.error ?? 'Something went wrong', 'error'); return; }
+    toast(okMsg, 'success');
+    router.refresh();
+  };
+  const addMethod = () => {
+    if (!addDetail.trim()) return;
+    void runMethod(() => addAffiliatePayoutMethodAction({ kind: addKind, detail: addDetail, makeDefault: methods.length === 0 }), 'Payout method added')
+      .then(() => setAddDetail(''));
+  };
 
   // Profile (inc-E12/E14): display name + marketing metadata, saved together.
   const clean = (v: string) => (v === '—' ? '' : v);
@@ -110,16 +141,48 @@ export function SettingsClient({ me, editable = false }: { me: Affiliate; editab
           )}
         </section>
 
-        {/* Payout method */}
+        {/* Payout methods (inc-E15) */}
         <section className="rounded-2xl border border-border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bank text-primary" aria-hidden /> Payout method</p>
-          <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
-            <span className="flex items-center gap-2"><i className="ph-bold ph-paypal-logo text-[#003087]" aria-hidden /> {me.payoutLabel}</span>
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">default</span>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bank text-primary" aria-hidden /> Payout methods</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Where we send your commission when you withdraw.</p>
+
+          <div className="mt-3 space-y-2">
+            {methods.length === 0 && <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">No payout method yet — add one below.</p>}
+            {methods.map((m) => {
+              const meta = kindMeta(m.kind);
+              return (
+                <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                  <span className="flex min-w-0 items-center gap-2"><i className={`ph-bold ${meta.icon} text-primary`} aria-hidden /> <span className="truncate">{m.detail}</span></span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {m.isDefault
+                      ? <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">default</span>
+                      : editable && <button type="button" disabled={busyMethod} onClick={() => runMethod(() => setDefaultAffiliatePayoutMethodAction(m.id), 'Default updated')} className="rounded-md border border-border px-2 py-0.5 text-[11px] font-semibold transition hover:bg-muted disabled:opacity-50">Make default</button>}
+                    {editable && <button type="button" disabled={busyMethod} aria-label="Remove" onClick={() => runMethod(() => removeAffiliatePayoutMethodAction(m.id), 'Method removed')} className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground transition hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"><i className="ph-bold ph-trash" aria-hidden /></button>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <button type="button" className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition hover:bg-muted">
-            <i className="ph-bold ph-plus" aria-hidden /> Add payout method
-          </button>
+
+          {editable && (
+            <div className="mt-3 space-y-2 border-t border-border pt-3">
+              <div className="flex flex-wrap gap-1.5">
+                {KINDS.map((k) => (
+                  <button key={k.v} type="button" onClick={() => setAddKind(k.v)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${addKind === k.v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}>
+                    <i className={`ph-bold ${k.icon}`} aria-hidden /> {k.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input value={addDetail} onChange={(e) => setAddDetail(e.target.value)} placeholder={addKind === 'paypal' || addKind === 'wise' ? 'email@example.com' : addKind === 'bank' ? 'IBAN / account number' : 'wallet address'} className={input} />
+                <button type="button" disabled={!addDetail.trim() || busyMethod} onClick={addMethod}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
+                  <i className={`ph-bold ${busyMethod ? 'ph-circle-notch animate-spin' : 'ph-plus'}`} aria-hidden /> Add
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>

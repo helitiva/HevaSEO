@@ -45,6 +45,39 @@ export async function updateAffiliateProfileAction(input: { name: string; platfo
   return { ok: true };
 }
 
+// Lane E inc-E15 — the signed-in affiliate manages their OWN payout methods (add / set-default / remove).
+const METHOD_ERR: Record<string, string> = {
+  NOT_AFFILIATE: 'Only an affiliate can manage payout methods.',
+  INVALID_KIND: 'Choose a valid payout type.', INVALID_DETAIL: 'Enter the payout details.',
+  METHOD_NOT_FOUND: 'That payout method no longer exists.',
+};
+function mapMethodError(message: string): string {
+  const key = Object.keys(METHOD_ERR).find((k) => message.includes(k));
+  return key ? METHOD_ERR[key] : message;
+}
+export async function addAffiliatePayoutMethodAction(input: { kind: string; detail: string; makeDefault: boolean }): Promise<AffiliatePayoutResult> {
+  if (!input.detail.trim()) return { ok: false, error: 'Enter the payout details.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('add_affiliate_payout_method', { p_kind: input.kind, p_detail: input.detail, p_make_default: input.makeDefault });
+  if (error) return { ok: false, error: mapMethodError(error.message) };
+  revalidatePath('/affiliate/settings'); revalidatePath('/affiliate'); revalidatePath('/affiliate/payouts');
+  return { ok: true };
+}
+export async function setDefaultAffiliatePayoutMethodAction(id: string): Promise<AffiliatePayoutResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_default_affiliate_payout_method', { p_id: id });
+  if (error) return { ok: false, error: mapMethodError(error.message) };
+  revalidatePath('/affiliate/settings'); revalidatePath('/affiliate'); revalidatePath('/affiliate/payouts');
+  return { ok: true };
+}
+export async function removeAffiliatePayoutMethodAction(id: string): Promise<AffiliatePayoutResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('remove_affiliate_payout_method', { p_id: id });
+  if (error) return { ok: false, error: mapMethodError(error.message) };
+  revalidatePath('/affiliate/settings'); revalidatePath('/affiliate'); revalidatePath('/affiliate/payouts');
+  return { ok: true };
+}
+
 // Lane E inc-E14 — the signed-in affiliate changes their OWN referral code (unique per tenant).
 export async function setAffiliateCodeAction(code: string): Promise<AffiliatePayoutResult> {
   const supabase = await createClient();

@@ -70,6 +70,51 @@ export type Database = {
           },
         ]
       }
+      affiliate_payout_methods: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          detail: string
+          id: string
+          is_default: boolean
+          kind: string
+          tenant_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          detail: string
+          id?: string
+          is_default?: boolean
+          kind: string
+          tenant_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          detail?: string
+          id?: string
+          is_default?: boolean
+          kind?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payout_methods_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_payout_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_payouts: {
         Row: {
           affiliate_id: string
@@ -2287,6 +2332,24 @@ export type Database = {
       _table_privs: { Args: never; Returns: unknown[] }
       _temptypes: { Args: { "": string }; Returns: string }
       _todo: { Args: never; Returns: string }
+      add_affiliate_payout_method: {
+        Args: { p_detail: string; p_kind: string; p_make_default: boolean }
+        Returns: {
+          affiliate_id: string
+          created_at: string
+          detail: string
+          id: string
+          is_default: boolean
+          kind: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "affiliate_payout_methods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_payout_method: {
         Args: { p_detail: string; p_kind: string; p_make_default: boolean }
         Returns: {
@@ -2614,6 +2677,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      remove_affiliate_payout_method: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       remove_payout_method: { Args: { p_id: string }; Returns: undefined }
       request_affiliate_payout: {
         Args: { p_amount: number }
@@ -2730,6 +2797,10 @@ export type Database = {
       }
       set_broadcast_status: {
         Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_default_affiliate_payout_method: {
+        Args: { p_id: string }
         Returns: undefined
       }
       set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
