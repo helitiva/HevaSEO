@@ -4,6 +4,7 @@ import {
   myFinance, myRewards, myPenalties, myWorkStats, workHistory,
 } from '@/data/staffMock';
 import { STAFF } from '@/data/adminMock';
+import { getMyTasks } from '@/data/staffTasks.server';
 import { currentStaffIdentity } from '@/lib/currentStaff';
 import { summarisePenalties } from '@/lib/staffFinance';
 import { rewardsEarned } from '@/lib/staffRewards';
@@ -22,7 +23,10 @@ function greeting(hour: number): string {
 
 export default async function MyDayPage() {
   const { id: sid, name } = await currentStaffIdentity();
-  const tasks = myTasks(sid);
+  // inc-E33 — My Day focus/upcoming from real assigned orders (money-blind via getMyTasks); mock
+  // fallback for impersonation/demo. Finance/rewards/manager snippets stay their own (Lane D real / mock).
+  const realTasks = await getMyTasks();
+  const tasks = realTasks.length ? realTasks : myTasks(sid);
   const CAPACITY = STAFF.find((s) => s.id === sid)?.capacity ?? 6;
   const focus: MyDayTask[] = tasks
     .filter((t) => ACTIONABLE.has(t.status))
