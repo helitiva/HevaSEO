@@ -1755,6 +1755,7 @@ export type Database = {
           on_time: number
           profile_id: string
           quality: number
+          rank: string | null
           role_label: string | null
           since: string | null
           skills: string[]
@@ -1773,6 +1774,7 @@ export type Database = {
           on_time?: number
           profile_id: string
           quality?: number
+          rank?: string | null
           role_label?: string | null
           since?: string | null
           skills?: string[]
@@ -1791,6 +1793,7 @@ export type Database = {
           on_time?: number
           profile_id?: string
           quality?: number
+          rank?: string | null
           role_label?: string | null
           since?: string | null
           skills?: string[]
@@ -2572,7 +2575,13 @@ export type Database = {
         }
       }
       create_manager: {
-        Args: { p_email: string; p_name: string; p_role: string }
+        Args: {
+          p_email: string
+          p_name: string
+          p_rank?: string
+          p_role: string
+          p_title?: string
+        }
         Returns: {
           created_at: string
           email: string

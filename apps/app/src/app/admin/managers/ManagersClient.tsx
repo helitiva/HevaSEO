@@ -110,7 +110,7 @@ export function ManagersClient({ managers: managersProp, staff, leave, skillMeta
   const addManager = async (data: { name: string; email: string; title: string; rank: string; role: 'manager' | 'admin' }) => {
     if (adding) return;
     setAdding(true);
-    const res = await createManagerAction({ name: data.name, email: data.email, role: data.role });
+    const res = await createManagerAction({ name: data.name, email: data.email, role: data.role, title: data.title, rank: data.rank });
     setAdding(false);
     if (!res.ok) { notify(res.error); return; }
     const id = data.role === 'admin' ? `adm${Date.now()}` : `mgr${Date.now()}`;

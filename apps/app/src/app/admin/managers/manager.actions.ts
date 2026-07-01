@@ -7,9 +7,12 @@ import { createClient } from '@/lib/supabase/server';
 // it by signing up with the same email). Admin-gated via create_manager.
 export type CreateManagerResult = { ok: true } | { ok: false; error: string };
 
-export async function createManagerAction(input: { name: string; email: string; role: 'manager' | 'admin' }): Promise<CreateManagerResult> {
+export async function createManagerAction(input: { name: string; email: string; role: 'manager' | 'admin'; title?: string; rank?: string }): Promise<CreateManagerResult> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc('create_manager', { p_name: input.name, p_email: input.email, p_role: input.role });
+  const { error } = await supabase.rpc('create_manager', {
+    p_name: input.name, p_email: input.email, p_role: input.role,
+    p_title: input.title || undefined, p_rank: input.rank || undefined,
+  });
   if (error) {
     const map: Record<string, string> = {
       NOT_ADMIN: 'Only an admin can add managers.', BAD_EMAIL: 'Enter a valid email.', BAD_NAME: 'Enter a name.',
