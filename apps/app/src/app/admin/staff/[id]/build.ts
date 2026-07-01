@@ -1,5 +1,5 @@
-import { ORDERS, STAFF, customerByCompany, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
-import { buildStaffInsight } from '@/data/adminStaffInsight';
+import { ORDERS, STAFF, customerByCompany, type OrderStatus, type Priority, type Tier, type AdminOrder, type AdminStaff } from '@/data/adminMock';
+import { buildStaffInsight, buildStaffInsightReal } from '@/data/adminStaffInsight';
 import type { ProfileOrder, Workload, TeamAvg } from './StaffProfileClient';
 import { mockTodayDate } from '@/lib/today';
 
@@ -45,5 +45,35 @@ export function buildStaffProfile(id: string) {
   const avg = (sel: (s: (typeof STAFF)[number]) => number) => Math.round(act.reduce((n, s) => n + sel(s), 0) / (act.length || 1));
   const teamAvg: TeamAvg = { composite: avg((s) => s.composite), quality: avg((s) => s.quality), onTime: avg((s) => s.onTime), throughput: avg((s) => s.throughput) };
 
+  return { insight, workload, teamAvg };
+}
+
+// Real staff profile (getStaff): identity + perf real; workload from real assigned orders; team avg from
+// the real roster. Used when the id is a real profile (not in the mock roster) so the page never 404s.
+function toProfileOrderReal(o: AdminOrder): ProfileOrder {
+  const d = dueIn(o.deadline);
+  return {
+    id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status,
+    priority: o.priority, value: o.value, customer: o.customer, tier: 'new' as Tier,
+    daysToDue: d === null ? 9999 : d, deadline: o.deadline,
+  };
+}
+
+export function buildStaffProfileReal(rs: AdminStaff, realOrders: AdminOrder[], team: AdminStaff[]) {
+  const insight = buildStaffInsightReal(rs);
+  const mine = realOrders.filter((o) => o.staff === rs.name);
+  const active = mine.filter((o) => ACTIVE.has(o.status)).map(toProfileOrderReal).sort((a, b) => a.daysToDue - b.daysToDue);
+  const shipped = mine.filter((o) => o.status === 'completed' || o.status === 'approved').map(toProfileOrderReal).slice(0, 8);
+  const workload: Workload = {
+    capacity: rs.capacity, load: active.length,
+    valueInFlight: active.reduce((n, o) => n + o.value, 0),
+    valueDelivered: shipped.reduce((n, o) => n + o.value, 0),
+    overdue: active.filter((o) => o.daysToDue < 0).length,
+    dueSoon: active.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 1).length,
+    active, shipped,
+  };
+  const act = team.filter((s) => s.active);
+  const avg = (sel: (s: AdminStaff) => number) => Math.round(act.reduce((n, s) => n + sel(s), 0) / (act.length || 1));
+  const teamAvg: TeamAvg = { composite: avg((s) => s.composite), quality: avg((s) => s.quality), onTime: avg((s) => s.onTime), throughput: avg((s) => s.throughput) };
   return { insight, workload, teamAvg };
 }
