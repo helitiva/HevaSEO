@@ -13,6 +13,7 @@ import { useOrdersStore, useComments } from './OrdersStore';
 import { useToast } from './Toast';
 import { Modal } from './Modal';
 import { UUID_RE } from '@/lib/orderMap';
+import { getCustomerOrderDetailAction, reviewDeliveryAction, type CustomerOrderDetail } from '@/app/(portal)/order.actions';
 import { useOrderMessages } from '@/lib/useOrderMessages';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 
@@ -99,6 +100,28 @@ function Panel({ order }: { order: Order }) {
   const [skill, setSkill] = useState(0);         // staff skill
   const [reviewNote, setReviewNote] = useState('');
   const [reviewed, setReviewed] = useState(false);
+  // Real, RLS-scoped detail (brief + delivered work + activity), fetched by order code; falls back to
+  // the representative mock when the order has none (seed/demo).
+  const [detail, setDetail] = useState<CustomerOrderDetail | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setDetail(null);
+    void getCustomerOrderDetailAction(order.id).then((d) => { if (alive) setDetail(d); });
+    return () => { alive = false; };
+  }, [order.id]);
+  const [reviewBusy, setReviewBusy] = useState<null | 'approve' | 'request_changes'>(null);
+  const [reviewErr, setReviewErr] = useState<string | null>(null);
+  const decideDelivery = (action: 'approve' | 'request_changes') => {
+    if (!detail) return;
+    setReviewBusy(action); setReviewErr(null);
+    void reviewDeliveryAction(detail.id, action).then((r) => {
+      setReviewBusy(null);
+      if (!r.ok) { setReviewErr(r.error); return; }
+      toast(action === 'approve' ? 'Delivery approved — thank you!' : 'Sent back for revision');
+      router.refresh();
+      close();
+    });
+  };
 
   const close = useCallback(() => {
     setClosing((c) => {
@@ -127,9 +150,9 @@ function Panel({ order }: { order: Order }) {
   const proj = projectForDomain(order.domain);
   const path = folderPathForDomain(order.domain);
   const p = order.progress ?? (status === 'completed' ? 100 : status === 'review' ? 95 : 8);
-  const deliverables = deliverablesFor(order.id);
-  const activity = activityFor(order);
-  const intake = intakeFor(order);
+  const deliverables = detail?.deliverables.length ? detail.deliverables : deliverablesFor(order.id);
+  const activity = detail?.activity.length ? detail.activity : activityFor(order);
+  const intake = detail?.brief.length ? detail.brief : intakeFor(order);
 
   return (
     <div className="fixed inset-0 z-[60]">
@@ -151,6 +174,18 @@ function Panel({ order }: { order: Order }) {
               </select>
             </label>
           </div>
+
+          {/* delivered-work review — the customer approves or sends the delivery back */}
+          {order.awaitingReview && (
+            <div className="rounded-xl border border-primary/30 bg-primary/[0.05] p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-[13px] font-medium"><i className="ph-bold ph-package text-primary" aria-hidden /> This delivery is ready for your review.</p>
+              {reviewErr && <p role="alert" className="mb-2 text-[12px] text-destructive">{reviewErr}</p>}
+              <div className="flex gap-2">
+                <button type="button" disabled={!detail || !!reviewBusy} onClick={() => decideDelivery('approve')} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"><i className="ph-bold ph-check-circle" aria-hidden />{reviewBusy === 'approve' ? 'Approving…' : 'Approve delivery'}</button>
+                <button type="button" disabled={!detail || !!reviewBusy} onClick={() => decideDelivery('request_changes')} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-500/10 disabled:opacity-40"><i className="ph-bold ph-arrow-u-up-left" aria-hidden />{reviewBusy === 'request_changes' ? 'Sending…' : 'Request changes'}</button>
+              </div>
+            </div>
+          )}
 
           {/* properties — 2-column grid, collapsible field set */}
           <div className="border-y border-border py-3">
@@ -250,19 +285,20 @@ function Panel({ order }: { order: Order }) {
                                 {r.note && <p className="mt-1 text-[12px] leading-relaxed text-foreground/80">{r.note}</p>}
                                 {r.files && r.files.length > 0 && (
                                   <div className="mt-1.5 space-y-1">
-                                    {r.files.map((f, fi) => (
-                                      <button
-                                        key={fi}
-                                        type="button"
-                                        onClick={() => toast(f.kind === 'link' ? `Opening ${f.name}` : `Downloading ${f.name}`)}
-                                        className="flex w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-primary/50"
-                                      >
-                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} aria-hidden />
-                                        <span className="min-w-0 truncate">{f.name}</span>
-                                        {f.meta && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{f.meta}</span>}
-                                        <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} aria-hidden />
-                                      </button>
-                                    ))}
+                                    {r.files.map((f, fi) => {
+                                      const cls = 'flex w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-primary/50';
+                                      const inner = (
+                                        <>
+                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} aria-hidden />
+                                          <span className="min-w-0 truncate">{f.name}</span>
+                                          {f.meta && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{f.meta}</span>}
+                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} aria-hidden />
+                                        </>
+                                      );
+                                      return f.url
+                                        ? <a key={fi} href={f.url} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
+                                        : <button key={fi} type="button" onClick={() => toast(f.kind === 'link' ? `Opening ${f.name}` : `Downloading ${f.name}`)} className={cls}>{inner}</button>;
+                                    })}
                                   </div>
                                 )}
                                 {r.feedback && (

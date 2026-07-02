@@ -175,7 +175,7 @@ export function folderForDomain(domain: string): { name: string; color: string }
 
 // ── Order detail (slide-over panel) ───────────────────────────────────────────
 /** A file or external link delivered within a deliverable revision. */
-export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; }
+export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; url?: string; }
 /** One submitted version of a deliverable — staff submits, customer approves or asks for changes. */
 export interface DeliverableRevision {
   version: string;                               // 'v1', 'v2', 'v3', 'final'

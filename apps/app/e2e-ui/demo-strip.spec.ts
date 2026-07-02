@@ -11,13 +11,15 @@ test('customer delivered-review — single-line rows + order-detail sidebar', as
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${SHOTS}/strip_01_rows.png` });
 
-  // clicking a row opens the slide-over order detail (delivered work + approve/send-back)
+  // clicking a row opens the shared full order-detail panel (real brief + delivered work + actions)
   await page.getByText('DEMO-501').first().click();
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('button', { name: /Approve delivery/i })).toBeVisible();
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: `${SHOTS}/strip_02_sidebar.png` });
+  await expect(page.getByRole('button', { name: /Approve delivery/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/Order brief/i)).toBeVisible();
+  await expect(page.getByText('Known issues')).toBeVisible(); // real brief field
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${SHOTS}/strip_02_panel.png` });
   await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
 
   // the Kanban Completed column shows the same orders tagged "Awaiting review" + countdown
   await page.setViewportSize({ width: 1500, height: 1000 });

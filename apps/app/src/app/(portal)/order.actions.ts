@@ -72,6 +72,71 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   return { ok: true, code };
 }
 
+// Real, RLS-scoped detail for the customer order slide-over: the brief they submitted at order time
+// (order_details), the delivered work they may read (deliverables — approved versions per RLS), and a
+// small derived activity timeline. Resolved by order code (the customer Order model keys on code).
+type BriefField = { label: string; value: string; full?: boolean };
+type DelivFile = { kind: 'file' | 'link'; name: string; meta?: string; url?: string };
+type DelivRevision = { version: string; date: string; status: 'approved' | 'review' | 'rejected'; note?: string; files?: DelivFile[]; feedback?: string };
+type Deliverable = { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DelivRevision[] };
+export type CustomerOrderDetail = {
+  id: string; state: string; project: string | null; folder: string | null;
+  brief: BriefField[]; deliverables: Deliverable[]; activity: { label: string; date: string }[];
+};
+
+const DELIV_STATUS: Record<string, 'approved' | 'review' | 'rejected'> = {
+  approved: 'approved', submitted: 'review', changes_requested: 'rejected',
+};
+const shortDate = (ts: string | null): string => (ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
+
+export async function getCustomerOrderDetailAction(code: string): Promise<CustomerOrderDetail | null> {
+  const supabase = await createClient();
+  const { data: ord, error: oErr } = await supabase.from('orders').select('id, created_at, delivered_at, state').eq('code', code).maybeSingle();
+  if (oErr || !ord) return null;
+
+  const [detailRes, delivRes] = await Promise.all([
+    supabase.from('order_details').select('project, folder, brief').eq('order_id', ord.id).maybeSingle(),
+    supabase.from('deliverables').select('summary, version, status, files, submitted_at').eq('order_id', ord.id).order('version', { ascending: false }),
+  ]);
+
+  const briefRaw = Array.isArray(detailRes.data?.brief) ? (detailRes.data!.brief as unknown[]) : [];
+  const brief: BriefField[] = briefRaw
+    .filter((b): b is Record<string, unknown> => !!b && typeof b === 'object')
+    .map((b) => ({ label: String(b.label ?? ''), value: String(b.value ?? ''), full: Boolean(b.full) }))
+    .filter((b) => b.label);
+
+  const delivRows = delivRes.data ?? [];
+  const toFiles = (files: unknown): DelivFile[] => (Array.isArray(files) ? files : []).map((f, i) => {
+    if (f && typeof f === 'object') {
+      const o = f as Record<string, unknown>;
+      const url = o.url ? String(o.url) : undefined;
+      let host: string | undefined;
+      if (url) { try { host = new URL(url).hostname; } catch { host = undefined; } }
+      return { kind: 'link', name: String(o.label ?? url ?? `Attachment ${i + 1}`), meta: host, url };
+    }
+    const url = typeof f === 'string' ? f : undefined;
+    return { kind: 'link', name: url ?? `Attachment ${i + 1}`, url };
+  });
+  const deliverables: Deliverable[] = delivRows.length
+    ? [{
+        name: 'Delivered work',
+        status: DELIV_STATUS[delivRows[0].status] ?? 'review',
+        date: shortDate(delivRows[0].submitted_at),
+        revisions: delivRows.map((d) => ({
+          version: `v${d.version}`, date: shortDate(d.submitted_at), status: DELIV_STATUS[d.status] ?? 'review',
+          note: d.summary ?? undefined, files: toFiles(d.files),
+        })),
+      }]
+    : [];
+
+  const activity: { label: string; date: string }[] = [];
+  if (ord.delivered_at) activity.push({ label: 'Delivered — awaiting your review', date: shortDate(ord.delivered_at) });
+  for (const d of delivRows) activity.push({ label: `Deliverable v${d.version} ${(DELIV_STATUS[d.status] ?? 'submitted').replace('rejected', 'changes requested')}`, date: shortDate(d.submitted_at) });
+  activity.push({ label: 'Order created', date: shortDate(ord.created_at) });
+
+  return { id: ord.id, state: ord.state, project: detailRes.data?.project ?? null, folder: detailRes.data?.folder ?? null, brief, deliverables, activity };
+}
+
 // The customer's post-delivery decision on a DELIVERED order: approve it (delivered → approved) or send
 // it back for revision (delivered → changes_requested). advance_order derives role/ownership from the
 // JWT and enforces the allowed-transitions rules, so this just forwards the customer's intent.
