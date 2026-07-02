@@ -70,22 +70,27 @@ function initials(name: string) {
   return name.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-/** Assigned staff: initials avatar + name + job title. Shared by cards and the list table. */
+/** Given name only (drop the surname), e.g. "Olivia Chen" → "Olivia". Full name lives in the tooltip. */
+function firstName(name: string) {
+  return name.split(/\s+/)[0] || name;
+}
+
+/** Assigned staff: initials avatar + given name; full name · role on hover. Shared by cards + list. */
 function StaffTag({ name, role, className = '' }: { name: string; role?: string; className?: string }) {
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`} title={role ? `${name} · ${role}` : name}>
       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">{initials(name)}</span>
-      <span className="min-w-0 truncate">{name}{role && <span className="text-muted-foreground"> · {role}</span>}</span>
+      <span className="min-w-0 truncate">{firstName(name)}</span>
     </span>
   );
 }
 
-/** Manager in charge: amber avatar + name + "Manager" title + a tag that flips to "Reviewing" in review. */
+/** Manager in charge: amber avatar + given name (full name · Manager on hover) + a "Reviewing" tag in review. */
 function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600" title="Manager in charge">{initials(name)}</span>
-      <span className="min-w-0 truncate">{name}<span className="text-muted-foreground"> · Manager</span></span>
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`} title={`${name} · Manager`}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600">{initials(name)}</span>
+      <span className="min-w-0 truncate">{firstName(name)}</span>
       {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
     </span>
   );
@@ -208,14 +213,6 @@ function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order
   );
 }
 
-/** Extra row shown only in Detail density: ETA (staff is shown on every card). */
-function DetailRows({ o }: { o: Order }) {
-  return (
-    <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      <p className="flex items-center gap-1.5"><i className="ph-bold ph-timer shrink-0" aria-hidden /> ETA: <span className="font-medium text-foreground">{o.eta}</span></p>
-    </div>
-  );
-}
 
 /**
  * Card content. `template` picks the headline emphasis; `density` picks how much
@@ -270,11 +267,14 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
           {autoApproveLabel(o.deliveredAt) && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}</span>}
         </div>
       )}
-      <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
-      {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="mt-1 text-[11px] font-medium text-foreground/70" />}
+      {/* staff + manager share one line: given name shown, full name · role on hover */}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium">
+        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="text-foreground/80" />
+        {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="text-foreground/70" />}
+      </div>
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
-      {detail && <div className="mt-1.5"><DetailRows o={o} /></div>}
       <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
+      {detail && <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground"><i className="ph-bold ph-timer shrink-0" aria-hidden />ETA: <span className="font-medium text-foreground">{o.eta}</span></p>}
       {!compact && <FolderPath o={o} />}
     </>
   );
