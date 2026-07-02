@@ -1,10 +1,14 @@
 import { OrdersBoard } from '@/components/OrdersBoard';
 import { OrdersSummary } from '@/components/OrdersSummary';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { DeliveredReview } from '@/components/DeliveredReview';
+import { getMyDeliveredOrders } from '@/data/orders.server';
 
 export const metadata = { title: 'Orders' };
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
+  const delivered = await getMyDeliveredOrders(); // RLS-scoped to the signed-in customer's own orders
+
   return (
     <>
       <div className="flex items-start justify-between gap-4">
@@ -14,6 +18,11 @@ export default function OrdersPage() {
         </div>
         <QuickOrderButton />
       </div>
+      {delivered.length > 0 && (
+        <section className="mt-6">
+          <DeliveredReview orders={delivered} />
+        </section>
+      )}
       <section className="mt-6">
         <OrdersSummary />
       </section>

@@ -106,7 +106,10 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
     if (!UUID_RE.test(q.latest.id)) return;
     void reviewDeliverableAction(q.latest.id, action, note).then((r) => {
       if (!r.ok) { record(r.error, 'ph-warning-circle'); return; }
-      void advanceOrderAction(q.id, action === 'approve' ? 'approved' : 'changes_requested').then((a) => {
+      // QA approve DELIVERS the order to the customer (internal_review → delivered); the customer then
+      // approves or sends it back. 'approved' is the customer's post-delivery verdict — not a valid
+      // transition from internal_review, so approving must move to 'delivered', not 'approved'.
+      void advanceOrderAction(q.id, action === 'approve' ? 'delivered' : 'changes_requested').then((a) => {
         if (!a.ok) record(a.error, 'ph-warning-circle');
         router.refresh();
       });

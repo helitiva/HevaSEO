@@ -71,3 +71,25 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   revalidatePath('/dashboard');
   return { ok: true, code };
 }
+
+// The customer's post-delivery decision on a DELIVERED order: approve it (delivered → approved) or send
+// it back for revision (delivered → changes_requested). advance_order derives role/ownership from the
+// JWT and enforces the allowed-transitions rules, so this just forwards the customer's intent.
+export type ReviewDeliveryResult = { ok: true } | { ok: false; error: string };
+export async function reviewDeliveryAction(orderId: string, action: 'approve' | 'request_changes'): Promise<ReviewDeliveryResult> {
+  const supabase = await createClient();
+  const to = action === 'approve' ? 'approved' : 'changes_requested';
+  const { error } = await supabase.rpc('advance_order', { p_order: orderId, p_to: to });
+  if (error) {
+    const map: Record<string, string> = {
+      ILLEGAL_TRANSITION: 'This order can no longer be actioned.',
+      NOT_AUTHORIZED: 'You can only review your own orders.',
+      ORDER_NOT_FOUND: 'That order no longer exists.',
+    };
+    const key = Object.keys(map).find((k) => error.message.includes(k));
+    return { ok: false, error: key ? map[key] : error.message };
+  }
+  revalidatePath('/orders');
+  revalidatePath('/dashboard');
+  return { ok: true };
+}

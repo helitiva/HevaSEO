@@ -109,3 +109,19 @@ export async function getMyOrders(): Promise<Order[]> {
   if (error) throw new Error(`getMyOrders: ${error.message}`);
   return (data ?? []).map(toCustomerOrder);
 }
+
+/** The signed-in customer's orders that have been DELIVERED and are awaiting their approve / send-back
+ * decision (delivered → approved | changes_requested). RLS scopes this to the customer's own orders. */
+export type DeliveredOrder = { id: string; code: string; service: string };
+export async function getMyDeliveredOrders(): Promise<DeliveredOrder[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, code, service')
+    .eq('state', 'delivered')
+    .order('created_at', { ascending: false })
+    .returns<DeliveredOrder[]>();
+
+  if (error) throw new Error(`getMyDeliveredOrders: ${error.message}`);
+  return data ?? [];
+}
