@@ -2777,6 +2777,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_ticket: {
+        Args: {
+          p_body: string
+          p_subject: string
+          p_type: Database["public"]["Enums"]["ticket_type"]
+        }
+        Returns: {
+          assignee_id: string | null
+          channel: Database["public"]["Enums"]["ticket_channel"]
+          code: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          last_reply_at: string | null
+          order_id: string | null
+          priority: Database["public"]["Enums"]["order_priority"]
+          sla_tier: Database["public"]["Enums"]["sla_tier"]
+          status: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          tenant_id: string
+          type: Database["public"]["Enums"]["ticket_type"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_app_role: { Args: never; Returns: string }
       current_profile_id: { Args: never; Returns: string }
       current_skills: { Args: never; Returns: string[] }
@@ -2922,6 +2951,10 @@ export type Database = {
           p_order: string
           p_staff: string
         }
+        Returns: undefined
+      }
+      post_ticket_message: {
+        Args: { p_body: string; p_ticket: string }
         Returns: undefined
       }
       rate_hit: {
@@ -3089,6 +3122,13 @@ export type Database = {
         Returns: undefined
       }
       set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
+      set_ticket_status: {
+        Args: {
+          p_status: Database["public"]["Enums"]["ticket_status"]
+          p_ticket: string
+        }
+        Returns: undefined
+      }
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }
@@ -3129,6 +3169,7 @@ export type Database = {
         Returns: undefined
       }
       throws_ok: { Args: { "": string }; Returns: string }
+      ticket_participant: { Args: { p_ticket: string }; Returns: boolean }
       todo:
         | { Args: { how_many: number }; Returns: boolean[] }
         | { Args: { how_many: number; why: string }; Returns: boolean[] }
