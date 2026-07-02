@@ -5,6 +5,7 @@ import { resolveAddOns } from '@heva/catalog';
 import { getServerSession, createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { computeOrderPrice } from '@/lib/orderPricing';
+import { deadlineFromSla } from '@/lib/orderSla';
 import { SERVICE_CATALOG } from '@/data/services';
 import { SERVICES, type ServiceKey } from '@/data/mock';
 
@@ -37,16 +38,17 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const catalog = SERVICE_CATALOG[input.serviceKey];
   if (!catalog) return { ok: false, error: 'Unknown service.' };
 
-  const price = computeOrderPrice(catalog, {
+  const priced = computeOrderPrice(catalog, {
     packageId: input.packageId, qty: input.qty, addonPicks: input.addonPicks, isVip: cust.tier === 'vip',
-  }).value;
+  });
   const serviceLabel = SERVICES[input.serviceKey]?.label ?? input.serviceKey;
   const code = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const deadline = deadlineFromSla(priced.sla); // ETA from the chosen package's SLA
 
   const svc = createServiceClient();
   const { data: order, error } = await svc.rpc('create_order', {
     p_tenant: cust.tenant_id, p_customer: cust.id, p_code: code,
-    p_service: serviceLabel, p_value: price, p_actor: session.entityId,
+    p_service: serviceLabel, p_value: priced.value, p_actor: session.entityId, p_deadline: deadline,
   });
   if (error) {
     const msg = error.message.includes('INSUFFICIENT_CREDIT')

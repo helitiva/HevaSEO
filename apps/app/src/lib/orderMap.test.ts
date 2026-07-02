@@ -134,6 +134,12 @@ describe('toCustomerOrder (derive)', () => {
     expect(o.owner).toBe('Unassigned');
   });
 
+  it('eta shows the turnaround in days (deadline − created)', () => {
+    const o = toCustomerOrder({ ...myRow, created_at: '2026-06-13T00:00:00+00:00', deadline: '2026-06-16T00:00:00+00:00' });
+    expect(o.eta).toBe('3 days');
+    expect(toCustomerOrder({ ...myRow, created_at: '2026-06-13T00:00:00+00:00', deadline: '2026-06-14T00:00:00+00:00' }).eta).toBe('1 day');
+  });
+
   it('domain falls back company→name→"My site"', () => {
     expect(toCustomerOrder({ ...myRow, customers: { company: null, name: 'Solo' } }).domain).toBe('Solo');
     expect(toCustomerOrder({ ...myRow, customers: null }).domain).toBe('My site');

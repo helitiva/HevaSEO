@@ -8,10 +8,10 @@ select has_function('materialize_order', 'materialize_order() exists');
 
 -- (chốt 1) value is client-untrusted → only service_role may call it (not the public API roles).
 select ok(
-  not has_function_privilege('authenticated', 'materialize_order(uuid,uuid,text,text,numeric,uuid,text)', 'execute'),
+  not has_function_privilege('authenticated', 'materialize_order(uuid,uuid,text,text,numeric,uuid,text,timestamptz)', 'execute'),
   'authenticated CANNOT execute materialize_order');
 select ok(
-  not has_function_privilege('anon', 'materialize_order(uuid,uuid,text,text,numeric,uuid,text)', 'execute'),
+  not has_function_privilege('anon', 'materialize_order(uuid,uuid,text,text,numeric,uuid,text,timestamptz)', 'execute'),
   'anon CANNOT execute materialize_order');
 
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');

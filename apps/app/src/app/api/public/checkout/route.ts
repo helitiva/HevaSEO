@@ -3,6 +3,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { getOrderService, priceQuickOrder } from '@heva/catalog/orders';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import { deadlineFromSla } from '@/lib/orderSla';
 import type { Json } from '@/lib/supabase/database.types';
 
 // Phase 2 / inc-Q2 — public marketing quick-checkout (ADR §7, the 6 chốt). An anonymous visitor on the
@@ -156,6 +157,7 @@ export async function POST(req: Request) {
   const { data: order, error: moErr } = await svc.rpc('materialize_order', {
     p_tenant: AGENCY_TENANT, p_customer: customerId, p_code: code,
     p_service: service.name, p_value: priced.value, p_actor: profileId, p_ref: charge.ref,
+    p_deadline: deadlineFromSla(priced.plan?.sla),
   });
   if (moErr) return json({ ok: false, error: moErr.message }, 500);
 

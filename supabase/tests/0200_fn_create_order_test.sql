@@ -1,7 +1,7 @@
 -- E0d increment 1: topup + create_order atomic money functions.
 -- CRITICAL: the debit is atomic (no negative balance), and balance always equals SUM(ledger).
 begin;
-select plan(12);
+select plan(13);
 
 select has_function('topup', 'topup() exists');
 select has_function('create_order', 'create_order() exists');
@@ -9,7 +9,7 @@ select has_function('create_order', 'create_order() exists');
 -- SECURITY (inc-4 hardening): value/amount are client-untrusted, so only service_role may call these
 -- money-in functions — never the public API roles (anon/authenticated). Server actions call them.
 select ok(
-  not has_function_privilege('authenticated', 'create_order(uuid,uuid,text,text,numeric,uuid)', 'execute'),
+  not has_function_privilege('authenticated', 'create_order(uuid,uuid,text,text,numeric,uuid,timestamptz)', 'execute'),
   'authenticated CANNOT execute create_order (server/service-role only)');
 select ok(
   not has_function_privilege('anon', 'topup(uuid,uuid,numeric,uuid,text)', 'execute'),
@@ -50,6 +50,12 @@ select throws_ok(
 select is(
   (select balance from customer_balances where customer_id = '00000000-0000-0000-0000-000000000001')::numeric,
   70::numeric, 'balance unchanged after a rejected order');
+
+-- deadline (ETA) is stamped when passed
+select create_order('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'O-3', 'Audit', 10, null, now() + interval '3 days');
+select ok(
+  (select deadline from orders where code = 'O-3') between now() + interval '2 days' and now() + interval '4 days',
+  'create_order stamps the passed deadline (ETA)');
 
 select * from finish();
 rollback;

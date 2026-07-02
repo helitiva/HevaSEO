@@ -67,6 +67,12 @@ const usDate = (ts: string): string => {
   const d = new Date(ts);
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
 };
+/** ETA as a turnaround in days (deadline − created), e.g. "3 days"; "—" when no deadline. */
+const etaLabel = (created: string, deadline: string | null): string => {
+  if (!deadline) return '—';
+  const n = Math.max(1, Math.round((new Date(deadline).getTime() - new Date(created).getTime()) / 86_400_000));
+  return `${n} day${n === 1 ? '' : 's'}`;
+};
 export function toCustomerOrder(r: MyOrderRow): Order {
   const status = CUST_STATUS[r.state] ?? 'planned';
   return {
@@ -79,7 +85,7 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     status,
     priority: r.priority,
     progress: null,
-    eta: r.deadline ? new Date(r.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
+    eta: etaLabel(r.created_at, r.deadline),
     owner: r.assignee?.name ?? 'Unassigned',
     cost: Number(r.value),
     pay: status === 'completed' ? 'paid' : 'pending',

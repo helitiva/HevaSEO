@@ -24,6 +24,8 @@ export type PriceBreakdown = {
   vipOff: number;
   /** false for "Consult"/"Custom quote" packages (priceLabel set, non-usage) → no numeric charge */
   hasNumericTotal: boolean;
+  /** chosen package SLA string, e.g. "2–3 days" (drives the order deadline / ETA) */
+  sla: string | null;
 };
 
 export function computeOrderPrice(catalog: SvcCatalog, sel: OrderSelection): PriceBreakdown {
@@ -55,5 +57,5 @@ export function computeOrderPrice(catalog: SvcCatalog, sel: OrderSelection): Pri
     ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT))
     : 0;
 
-  return { value: total - vipOff, subtotal, bulkDiscount, addonsTotal, vipOff, hasNumericTotal };
+  return { value: total - vipOff, subtotal, bulkDiscount, addonsTotal, vipOff, hasNumericTotal, sla: plan?.sla ?? null };
 }
