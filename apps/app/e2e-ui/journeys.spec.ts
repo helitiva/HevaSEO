@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login, ACCOUNTS } from './helpers';
-import { seedPendingStaffPayout, getNewOrderId, assignOpenOrderToMai, hasApiCreds } from './api';
+import { seedPendingStaffPayout, getNewOrderId, assignOpenOrderToMai, seedSubmittedDeliverableForPod, hasApiCreds } from './api';
 
 // Deeper multi-step journeys that mutate real state through the UI.
 
@@ -91,4 +91,18 @@ test('staff opens a task and submits a deliverable (when submittable)', async ({
   await note.fill('E2E deliverable — please review the money pages.');
   await page.getByRole('button', { name: /Submit v\d+ for review/i }).click();
   await expect(page.getByText(/Submitted for review/i)).toBeVisible({ timeout: 15_000 });
+});
+
+test('manager Review shows a REAL pod deliverable and can act on it', async ({ page }) => {
+  test.skip(!hasApiCreds, 'needs SMOKE creds to seed a submitted deliverable');
+  const code = await seedSubmittedDeliverableForPod();
+  test.skip(!code, 'could not seed a pod deliverable');
+  await login(page, ACCOUNTS.manager);
+  await page.goto('/manager/review');
+  // The seeded order appears in the pod QA queue (proves the page reads live pod data, not mock) …
+  await expect(page.getByText(code!).first()).toBeVisible({ timeout: 15_000 });
+  // … and the pod manager has the review controls (previously admin-only).
+  await page.getByText(code!).first().click();
+  await expect(page.getByRole('button', { name: /Approve/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Request changes/ }).first()).toBeVisible();
 });
