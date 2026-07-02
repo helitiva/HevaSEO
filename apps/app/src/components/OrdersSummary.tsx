@@ -5,10 +5,11 @@ import { useOrdersStore } from './OrdersStore';
 
 const COLS: OrderStatus[] = ['planned', 'progress', 'review', 'completed'];
 
-/** Compact status summary above the orders board. */
+/** Compact status summary above the orders board. Real (RLS-scoped) orders from the store; falls back
+ * to the mock seed only when the store has none wired. */
 export function OrdersSummary() {
-  const { addedOrders, statusOverrides } = useOrdersStore();
-  const all = [...addedOrders, ...ORDERS];
+  const { addedOrders, statusOverrides, realOrders } = useOrdersStore();
+  const all = [...addedOrders, ...(realOrders.length ? realOrders : ORDERS)];
   const statusOf = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
   const count = (s: OrderStatus) => all.filter((o) => statusOf(o) === s).length;
 

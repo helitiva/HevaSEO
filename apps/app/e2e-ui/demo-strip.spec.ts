@@ -25,4 +25,10 @@ test('customer delivered-review — single-line rows + order-detail sidebar', as
   await expect(page.getByText('Awaiting review').first()).toBeVisible({ timeout: 10_000 });
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${SHOTS}/strip_03_board_completed.png` });
+
+  // List view renders the same real orders
+  await page.getByRole('button', { name: /^List/ }).click();
+  await expect(page.getByText('DEMO-501').first()).toBeVisible({ timeout: 10_000 });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${SHOTS}/strip_04_board_list.png` });
 });

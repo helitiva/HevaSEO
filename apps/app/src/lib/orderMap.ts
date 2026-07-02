@@ -52,13 +52,14 @@ export const SERVICE_KEY: Record<string, ServiceKey> = {
 export const CUST_STATUS: Record<string, CustStatus> = {
   new: 'planned', confirmed: 'planned', assigned: 'planned',
   in_progress: 'progress', changes_requested: 'progress',
-  internal_review: 'review', delivered: 'review',
+  // delivered = team-completed, awaiting the customer's review → lives in the Completed column (tagged).
+  internal_review: 'review', delivered: 'completed',
   approved: 'completed', completed: 'completed',
 };
 export type MyOrderRow = {
   code: string; service: string; pkg: string | null;
   state: string; priority: Priority; value: number | string;
-  deadline: string | null; created_at: string;
+  deadline: string | null; created_at: string; delivered_at: string | null;
   customers: { company: string | null; name: string | null } | null;
   assignee: { name: string | null } | null;
 };
@@ -83,5 +84,7 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     cost: Number(r.value),
     pay: status === 'completed' ? 'paid' : 'pending',
     invoice: null,
+    awaitingReview: r.state === 'delivered',
+    deliveredAt: r.delivered_at,
   };
 }

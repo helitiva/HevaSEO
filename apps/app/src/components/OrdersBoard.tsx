@@ -264,6 +264,12 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     <>
       {topRow}
       {headline}
+      {o.awaitingReview && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review</span>
+          {autoApproveLabel(o.deliveredAt) && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}</span>}
+        </div>
+      )}
       <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
       {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="mt-1 text-[11px] font-medium text-foreground/70" />}
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
@@ -276,7 +282,7 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
 
 function OrderCard({ o, template, density = 'standard', preview = false, tint, index = 0, status, onOpen }: { o: Order; template: CardTemplate; density?: CardDensity; preview?: boolean; tint?: string; index?: number; status?: OrderStatus; onOpen?: (id: string) => void }) {
   const eff = status ?? o.status;
-  const done = eff === 'completed';
+  const done = eff === 'completed' && !o.awaitingReview; // delivered-awaiting-review isn't "done" yet
   const p = o.progress ?? (eff === 'completed' ? 100 : eff === 'review' ? 95 : 8);
   const style: { backgroundColor?: string; borderColor?: string; borderLeft?: string; animationDelay?: string } = {};
   if (tint) {
@@ -293,34 +299,16 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
 
 const SAMPLE: Order = ORDERS.find((o) => o.progress != null) ?? ORDERS[0];
 
-// Delivered orders awaiting the customer's approve/send-back decision. Surfaced in the Completed column
-// with an "awaiting review" tag + a countdown to auto-approval (auto_approve_stale_deliveries, 7 days).
+// Delivered orders awaiting the customer's approve/send-back decision show an "awaiting review" tag +
+// a countdown to auto-approval (auto_approve_stale_deliveries, 7 days).
 const AUTO_APPROVE_GRACE_DAYS = 7;
 function autoApproveLabel(deliveredAt?: string | null): string | null {
   if (!deliveredAt) return null;
   const left = Math.max(0, Math.ceil((new Date(deliveredAt).getTime() + AUTO_APPROVE_GRACE_DAYS * 86_400_000 - Date.now()) / 86_400_000));
   return left <= 0 ? 'auto-approves today' : `auto-approves in ${left}d`;
 }
-function AwaitingReviewCard({ o, tint, onOpen }: { o: Order; tint: string; onOpen?: (id: string) => void }) {
-  const cd = autoApproveLabel(o.deliveredAt);
-  return (
-    <button type="button" onClick={() => onOpen?.(o.id)} className="kcard onav kcard-anim block w-full text-left" style={{ backgroundColor: `${tint}1f`, borderColor: `${tint}40` }}>
-      <div className="flex items-center gap-2">
-        <span className="inline-flex min-w-0 items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
-          <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden /><span className="truncate">{SERVICES[o.service].label}</span>
-        </span>
-        <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#{o.id}</span>
-      </div>
-      <h4 className="mt-1.5 truncate text-sm font-semibold">{o.title}</h4>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review</span>
-        {cd && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{cd}</span>}
-      </div>
-    </button>
-  );
-}
 
-export function OrdersBoard({ initialService = 'all', domain, orders, awaitingReview = [] }: { initialService?: ServiceKey | 'all'; domain?: string; orders?: Order[]; awaitingReview?: Order[] }) {
+export function OrdersBoard({ initialService = 'all', domain, orders }: { initialService?: ServiceKey | 'all'; domain?: string; orders?: Order[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const { statusOverrides, addedOrders } = useOrdersStore();
@@ -590,9 +578,6 @@ export function OrdersBoard({ initialService = 'all', domain, orders, awaitingRe
         <div key={`${svc}-${proj}-${card}-${density}-${mobileCol}`} className="mt-4 grid grid-cols-1 items-start gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {COLS.map((st) => {
               const items = data.filter((o) => effStatus(o) === st);
-              // Delivered-awaiting-review orders sit at the top of the Completed column (real data).
-              const review = st === 'completed' ? awaitingReview : [];
-              const total = items.length + review.length;
               const c = STATUSES[st].color;
               return (
                 <div key={st} className={`rounded-xl p-2 sm:block ${st === mobileCol ? '' : 'hidden'}`} style={{ backgroundColor: `${c}0d` }}>
@@ -600,13 +585,12 @@ export function OrdersBoard({ initialService = 'all', domain, orders, awaitingRe
                     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: `${c}24`, color: c }}>
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c }} /> {STATUSES[st].label}
                     </span>
-                    <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${c}1a`, color: c }}>{total}</span>
+                    <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${c}1a`, color: c }}>{items.length}</span>
                   </div>
                   <div className="space-y-2">
-                    {review.map((o) => <AwaitingReviewCard key={o.id} o={o} tint={c} onOpen={openOrder} />)}
                     {items.length
                       ? items.map((o, i) => <OrderCard key={o.id} o={o} template={card} density={density} tint={c} index={i} status={st} onOpen={openOrder} />)
-                      : review.length === 0 && <p className="rounded-lg border border-dashed px-3 py-4 text-center text-[11px] text-muted-foreground" style={{ borderColor: `${c}33` }}>Empty</p>}
+                      : <p className="rounded-lg border border-dashed px-3 py-4 text-center text-[11px] text-muted-foreground" style={{ borderColor: `${c}33` }}>Empty</p>}
                   </div>
                 </div>
               );

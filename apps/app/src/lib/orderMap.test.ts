@@ -77,7 +77,7 @@ describe('CUST_STATUS — DB state → customer 4-state', () => {
   it.each([
     ['new', 'planned'], ['confirmed', 'planned'], ['assigned', 'planned'],
     ['in_progress', 'progress'], ['changes_requested', 'progress'],
-    ['internal_review', 'review'], ['delivered', 'review'],
+    ['internal_review', 'review'], ['delivered', 'completed'],
     ['approved', 'completed'], ['completed', 'completed'],
   ])('%s → %s', (state, expected) => {
     expect(CUST_STATUS[state]).toBe(expected);
@@ -99,7 +99,7 @@ describe('SERVICE_KEY — DB service label → ServiceKey', () => {
 const myRow: MyOrderRow = {
   code: 'KW-1013', service: 'Keyword', pkg: 'Standard', state: 'completed',
   priority: 'med', value: 39, deadline: '2026-06-19T00:00:00+00:00',
-  created_at: '2026-06-13T00:00:00+00:00',
+  created_at: '2026-06-13T00:00:00+00:00', delivered_at: null,
   customers: { company: 'Acme Co', name: 'Jane Doe' }, assignee: { name: 'Mai T.' },
 };
 
@@ -137,6 +137,17 @@ describe('toCustomerOrder (derive)', () => {
   it('domain falls back company→name→"My site"', () => {
     expect(toCustomerOrder({ ...myRow, customers: { company: null, name: 'Solo' } }).domain).toBe('Solo');
     expect(toCustomerOrder({ ...myRow, customers: null }).domain).toBe('My site');
+  });
+
+  it('delivered → awaiting review in the Completed column, carrying delivered_at', () => {
+    const o = toCustomerOrder({ ...myRow, state: 'delivered', delivered_at: '2026-07-01T00:00:00+00:00' });
+    expect(o.status).toBe('completed');
+    expect(o.awaitingReview).toBe(true);
+    expect(o.deliveredAt).toBe('2026-07-01T00:00:00+00:00');
+  });
+
+  it('non-delivered states are not awaiting review', () => {
+    expect(toCustomerOrder({ ...myRow, state: 'completed' }).awaitingReview).toBe(false);
   });
 });
 
