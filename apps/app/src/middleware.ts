@@ -7,7 +7,8 @@ import { createServerClient } from '@supabase/ssr';
 // /api/public/* is the unauthenticated marketing surface (quick-checkout) — it must NOT be auth-gated.
 // /r/* is the public affiliate click-tracking redirect (inc-E16) — a click has no session.
 // /api/stripe/* is the signature-verified Stripe webhook (inc-E22) — no session, verified by secret.
-const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/api/public', '/r', '/api/stripe'];
+// /api/cron/* is the scheduled-job surface (auto-approve stale deliveries) — no session, CRON_SECRET-gated.
+const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/api/public', '/r', '/api/stripe', '/api/cron'];
 
 // Role-shell gating: each portal shell belongs to one role. A signed-in user on the WRONG shell is
 // sent to their own home. (RLS is the real data gate; this is UX + defense-in-depth. Customer portal

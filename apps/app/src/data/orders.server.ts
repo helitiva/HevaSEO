@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { AdminOrder } from '@/data/adminMock';
 import type { Order } from '@/data/mock';
 import type { OrderDetailExtra } from '@/lib/orderDetail';
+import type { Json } from '@/lib/supabase/database.types';
 import {
   UUID_RE, toAdminOrder, toMgrOrder, toCustomerOrder,
   type OrderRow, type MgrOrderRow, type MyOrderRow,
@@ -111,17 +112,34 @@ export async function getMyOrders(): Promise<Order[]> {
 }
 
 /** The signed-in customer's orders that have been DELIVERED and are awaiting their approve / send-back
- * decision (delivered → approved | changes_requested). RLS scopes this to the customer's own orders. */
-export type DeliveredOrder = { id: string; code: string; service: string };
+ * decision (delivered → approved | changes_requested). RLS scopes this to the customer's own orders;
+ * `deliverables` is auto-filtered to the approved version they may read. `deliveredAt` drives the
+ * auto-approve countdown (kept in sync with auto_approve_stale_deliveries' 7-day default). */
+export type DeliveredOrder = {
+  id: string; code: string; service: string; deliveredAt: string | null;
+  deliverable: { summary: string | null; version: number; files: Json } | null;
+};
+type DeliveredRow = {
+  id: string; code: string; service: string; delivered_at: string | null;
+  deliverables: { summary: string | null; version: number; files: Json; status: string }[] | null;
+};
 export async function getMyDeliveredOrders(): Promise<DeliveredOrder[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('id, code, service')
+    .select('id, code, service, delivered_at, deliverables(summary, version, files, status)')
     .eq('state', 'delivered')
-    .order('created_at', { ascending: false })
-    .returns<DeliveredOrder[]>();
+    .order('delivered_at', { ascending: true })
+    .returns<DeliveredRow[]>();
 
   if (error) throw new Error(`getMyDeliveredOrders: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map((o) => {
+    const latest = (o.deliverables ?? [])
+      .filter((d) => d.status === 'approved')
+      .sort((a, b) => b.version - a.version)[0] ?? null;
+    return {
+      id: o.id, code: o.code, service: o.service, deliveredAt: o.delivered_at,
+      deliverable: latest ? { summary: latest.summary, version: latest.version, files: latest.files } : null,
+    };
+  });
 }

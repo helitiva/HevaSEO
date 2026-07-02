@@ -1536,6 +1536,7 @@ export type Database = {
           created_at: string
           customer_id: string
           deadline: string | null
+          delivered_at: string | null
           id: string
           pkg: string | null
           priority: Database["public"]["Enums"]["order_priority"]
@@ -1552,6 +1553,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           deadline?: string | null
+          delivered_at?: string | null
           id?: string
           pkg?: string | null
           priority?: Database["public"]["Enums"]["order_priority"]
@@ -1568,6 +1570,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           deadline?: string | null
+          delivered_at?: string | null
           id?: string
           pkg?: string | null
           priority?: Database["public"]["Enums"]["order_priority"]
@@ -1805,6 +1808,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          bucket: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
       }
       staff_details: {
         Row: {
@@ -2490,6 +2511,7 @@ export type Database = {
           created_at: string
           customer_id: string
           deadline: string | null
+          delivered_at: string | null
           id: string
           pkg: string | null
           priority: Database["public"]["Enums"]["order_priority"]
@@ -2540,6 +2562,10 @@ export type Database = {
         Args: { p_manager?: string; p_staff: string }
         Returns: undefined
       }
+      auto_approve_stale_deliveries: {
+        Args: { p_grace_days?: number }
+        Returns: number
+      }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
         Args: { p_order: string }
@@ -2550,6 +2576,7 @@ export type Database = {
           created_at: string
           customer_id: string
           deadline: string | null
+          delivered_at: string | null
           id: string
           pkg: string | null
           priority: Database["public"]["Enums"]["order_priority"]
@@ -2565,6 +2592,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      claim_invite: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: undefined
       }
       col_is_null:
         | {
@@ -2679,6 +2710,7 @@ export type Database = {
           created_at: string
           customer_id: string
           deadline: string | null
+          delivered_at: string | null
           id: string
           pkg: string | null
           priority: Database["public"]["Enums"]["order_priority"]
@@ -2802,6 +2834,7 @@ export type Database = {
           created_at: string
           customer_id: string
           deadline: string | null
+          delivered_at: string | null
           id: string
           pkg: string | null
           priority: Database["public"]["Enums"]["order_priority"]
@@ -2822,14 +2855,6 @@ export type Database = {
       num_failed: { Args: never; Returns: number }
       order_assignee_id: { Args: { p_order: string }; Returns: string }
       order_pod_manager: { Args: { p_order: string }; Returns: string }
-      claim_invite: {
-        Args: { p_email: string; p_user_id: string }
-        Returns: undefined
-      }
-      rate_hit: {
-        Args: { p_key: string; p_max: number; p_window_secs: number }
-        Returns: boolean
-      }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }
@@ -2873,6 +2898,10 @@ export type Database = {
           p_staff: string
         }
         Returns: undefined
+      }
+      rate_hit: {
+        Args: { p_key: string; p_max: number; p_window_secs: number }
+        Returns: boolean
       }
       record_affiliate_click: { Args: { p_code: string }; Returns: undefined }
       remove_affiliate_payout_method: {
