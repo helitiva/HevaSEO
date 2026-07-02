@@ -11,7 +11,7 @@ import { NewProjectModal, type ProjectInput } from '@/components/NewProjectModal
 import { NewFolderModal, type FolderInput } from '@/components/NewFolderModal';
 
 /** Gear menu on each project card — edit / open / delete. */
-function ProjectMenu({ project, onEdit, onDelete, onRestore }: { project: Project; onEdit: () => void; onDelete: () => void; onRestore?: () => void }) {
+function ProjectMenu({ project, onEdit, onDelete, onRestore, onArchive }: { project: Project; onEdit: () => void; onDelete: () => void; onRestore?: () => void; onArchive?: () => void }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const stop = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
@@ -28,6 +28,7 @@ function ProjectMenu({ project, onEdit, onDelete, onRestore }: { project: Projec
             {onRestore && <button type="button" onClick={(e) => { stop(e); setOpen(false); onRestore(); }} className={item}><i className="ph-bold ph-arrow-counter-clockwise text-muted-foreground" aria-hidden /> Restore</button>}
             <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" aria-hidden /> Edit project</button>
             <button type="button" onClick={(e) => { stop(e); setOpen(false); router.push(`/projects/${project.id}`); }} className={item}><i className="ph-bold ph-arrow-square-out text-muted-foreground" aria-hidden /> Open</button>
+            {onArchive && <button type="button" onClick={(e) => { stop(e); setOpen(false); onArchive(); }} className={item}><i className="ph-bold ph-archive-box text-muted-foreground" aria-hidden /> Move to Archive</button>}
             <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" aria-hidden /> Delete</button>
           </span>
         </>
@@ -173,6 +174,10 @@ function ProjectsInner() {
   const restoreProject = async (p: Project) => {
     const r = await updateProject(p.id, { archived: false });
     toast(r.ok ? `Restored ${p.domain}` : r.error, r.ok ? undefined : 'error');
+  };
+  const archiveProject = async (p: Project) => {
+    const r = await updateProject(p.id, { archived: true });
+    toast(r.ok ? `Archived ${p.domain}` : r.error, r.ok ? 'info' : 'error');
   };
   const moveProjectToFolder = async (projectId: string, folderId: string) => {
     const p = allProjects.find((x) => x.id === projectId);
@@ -341,7 +346,7 @@ function ProjectsInner() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <h3 className="truncate text-sm font-semibold">{p.domain}</h3>
-                          <ProjectMenu project={p} onEdit={() => setEditTarget(p)} onDelete={() => setDeleteTarget(p)} onRestore={p.archived ? () => restoreProject(p) : undefined} />
+                          <ProjectMenu project={p} onEdit={() => setEditTarget(p)} onDelete={() => setDeleteTarget(p)} onRestore={p.archived ? () => restoreProject(p) : undefined} onArchive={!p.archived ? () => archiveProject(p) : undefined} />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">
                           {p.archived
