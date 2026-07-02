@@ -121,6 +121,8 @@ export interface Project {
   status: 'progress' | 'completed' | 'planned';
   note: string;
   updated: string;
+  /** archived projects are hidden from active folders and listed under the Archive rail entry */
+  archived?: boolean;
   tags: Partial<Record<ServiceKey, { plan: number; run: number; done: number }>>;
 }
 

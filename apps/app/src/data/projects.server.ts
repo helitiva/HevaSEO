@@ -19,7 +19,7 @@ export async function getMyFolders(): Promise<Folder[]> {
 
 type ProjectRow = {
   id: string; name: string; domain: string | null; status: string | null; note: string | null;
-  created_at: string; folder_id: string | null; folder: { name: string | null } | null;
+  created_at: string; folder_id: string | null; archived: boolean | null; folder: { name: string | null } | null;
 };
 const rel = (ts: string): string => {
   const days = Math.round((Date.now() - new Date(ts).getTime()) / 86_400_000);
@@ -29,7 +29,7 @@ export async function getMyProjects(): Promise<Project[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('projects')
-    .select('id, name, domain, status, note, created_at, folder_id, folder:folders!projects_folder_id_fkey(name)')
+    .select('id, name, domain, status, note, created_at, folder_id, archived, folder:folders!projects_folder_id_fkey(name)')
     .order('created_at', { ascending: false })
     .returns<ProjectRow[]>();
   if (error) throw new Error(`getMyProjects: ${error.message}`);
@@ -42,6 +42,7 @@ export async function getMyProjects(): Promise<Project[]> {
     status: (p.status === 'progress' || p.status === 'completed' ? p.status : 'planned'),
     note: p.note ?? '',
     updated: rel(p.created_at),
+    archived: p.archived ?? false,
     tags: {},
   }));
 }

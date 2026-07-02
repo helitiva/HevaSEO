@@ -66,7 +66,7 @@ export async function createProjectAction(input: { name: string; domain?: string
   return { ok: true, id: data.id };
 }
 
-export async function updateProjectAction(id: string, patch: { name?: string; domain?: string; folderId?: string | null; status?: string; note?: string }): Promise<MutResult> {
+export async function updateProjectAction(id: string, patch: { name?: string; domain?: string; folderId?: string | null; status?: string; note?: string; archived?: boolean }): Promise<MutResult> {
   const o = await owner();
   if (!o) return { ok: false, error: 'No customer profile.' };
   const { error } = await o.supabase.from('projects').update({
@@ -75,7 +75,20 @@ export async function updateProjectAction(id: string, patch: { name?: string; do
     ...(patch.folderId !== undefined ? { folder_id: patch.folderId } : {}),
     ...(patch.status !== undefined ? { status: patch.status } : {}),
     ...(patch.note !== undefined ? { note: patch.note } : {}),
+    ...(patch.archived !== undefined ? { archived: patch.archived } : {}),
   }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+/** "Move to Archive" a folder: archive its projects (detached from the folder) and remove the folder. */
+export async function archiveFolderAction(id: string): Promise<MutResult> {
+  const o = await owner();
+  if (!o) return { ok: false, error: 'No customer profile.' };
+  const arch = await o.supabase.from('projects').update({ archived: true, folder_id: null }).eq('folder_id', id);
+  if (arch.error) return { ok: false, error: arch.error.message };
+  const { error } = await o.supabase.from('folders').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   revalidate();
   return { ok: true };

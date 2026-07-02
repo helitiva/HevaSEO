@@ -1901,6 +1901,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          archived: boolean
           created_at: string
           customer_id: string
           domain: string | null
@@ -1912,6 +1913,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          archived?: boolean
           created_at?: string
           customer_id: string
           domain?: string | null
@@ -1923,6 +1925,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          archived?: boolean
           created_at?: string
           customer_id?: string
           domain?: string | null

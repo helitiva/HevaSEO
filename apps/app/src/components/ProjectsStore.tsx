@@ -6,7 +6,7 @@ import { type Project } from '@/data/mock';
 import { UUID_RE } from '@/lib/orderMap';
 import {
   createProjectAction, updateProjectAction, deleteProjectAction,
-  createFolderAction, updateFolderAction, deleteFolderAction,
+  createFolderAction, updateFolderAction, deleteFolderAction, archiveFolderAction,
   type MutResult,
 } from '@/app/(portal)/projects.actions';
 
@@ -21,6 +21,7 @@ type ProjectsCtx = {
   addFolder: (f: Folder) => Promise<MutResult>;
   updateFolder: (id: string, patch: Partial<Folder>) => Promise<MutResult>;
   removeFolder: (id: string) => Promise<MutResult>;
+  archiveFolder: (id: string) => Promise<MutResult>;
 };
 
 const Ctx = createContext<ProjectsCtx | null>(null);
@@ -42,11 +43,13 @@ export function ProjectsProvider({ children, initialProjects = [], initialFolder
       updateProject: (id, patch) => run(updateProjectAction(id, {
         name: patch.name, domain: patch.domain, status: patch.status, note: patch.note,
         ...(patch.folder !== undefined ? { folderId: folderId(patch.folder) } : {}),
+        ...(patch.archived !== undefined ? { archived: patch.archived } : {}),
       })),
       removeProject: (id) => run(deleteProjectAction(id)),
       addFolder: (f) => run(createFolderAction({ name: f.name, color: f.color, parentId: folderId(f.parentId) })),
       updateFolder: (id, patch) => run(updateFolderAction(id, { name: patch.name, color: patch.color, parentId: patch.parentId })),
       removeFolder: (id) => run(deleteFolderAction(id)),
+      archiveFolder: (id) => run(archiveFolderAction(id)),
     };
   }, [initialProjects, initialFolders, router]);
 
