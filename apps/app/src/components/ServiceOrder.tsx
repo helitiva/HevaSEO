@@ -121,7 +121,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   // Project + folder assignment. Default is "auto" — we pick one for them and they
   // can rename / move it later. They can also target an existing project or a new one.
   const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
-  const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.name === presetProj.folder)?.id ?? AUTO) : AUTO);
+  const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.id === presetProj.folder)?.id ?? AUTO) : AUTO);
   const [newDomain, setNewDomain] = useState('');
   const [newName, setNewName] = useState('');
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);
