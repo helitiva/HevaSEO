@@ -1,75 +1,50 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
-import { SEED_NOTES, type StaffNote } from './staffNotes';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { type StaffNote } from './staffNotes';
+import { getMyNotesAction, upsertNoteAction, deleteNoteAction } from './notes.actions';
 
-// Customer and admin/manager notebooks start empty — the staff seed notes are
-// authored for a staffer's workflow context and must not appear in other surfaces.
-const EMPTY_NOTES: StaffNote[] = [];
-
-// One source of truth for notes shared by the list, the modal, and the full-page routes.
-// Backed by localStorage so edits persist across navigation and stay in sync between surfaces
-// (a real app would use a server + query cache; this is the Phase-0 mock equivalent).
-//
-// The notebook is PRIVATE per surface: the manager portal (/manager/notes) keeps its own
-// notes, separate from the staff portal, by namespacing the storage key on the URL area.
+// DB-backed notebook (RLS + owner-scoped upsert/delete fns). One source of truth shared by the list,
+// the modal and the full-page routes; the {notes, ready, mutate} API is unchanged so callers don't move.
+// The notebook is PRIVATE per surface (staff / manager / admin / customer), matched to the URL area.
 const EVT = 'heva:notes-changed';
 
-function notesKey(): string {
+function surfaceFor(): string {
   const p = typeof window !== 'undefined' ? window.location.pathname : '';
-  if (p.startsWith('/admin')) return 'heva:admin:notes:v1';
-  if (p.startsWith('/manager')) return 'heva:manager:notes:v1';
-  if (p.startsWith('/staff')) return 'heva:staff:notes:v1';
-  return 'heva:customer:notes:v1';
-}
-
-/** Return the appropriate seed for the current surface when no localStorage data exists yet. */
-function seedForSurface(): StaffNote[] {
-  if (typeof window === 'undefined') return SEED_NOTES; // SSR default — will be overridden on hydration
-  const p = window.location.pathname;
-  // Staff and manager portals get the staff-flavoured seed notes.
-  if (p.startsWith('/staff') || p.startsWith('/manager')) return SEED_NOTES;
-  // Customer, admin, and all other surfaces start empty.
-  return EMPTY_NOTES;
-}
-
-function read(): StaffNote[] {
-  if (typeof window === 'undefined') return SEED_NOTES;
-  try {
-    const raw = window.localStorage.getItem(notesKey());
-    return raw ? (JSON.parse(raw) as StaffNote[]) : seedForSurface();
-  } catch {
-    return seedForSurface();
-  }
-}
-
-function write(notes: StaffNote[]): void {
-  try { window.localStorage.setItem(notesKey(), JSON.stringify(notes)); } catch { /* quota / private mode — ignore */ }
-  window.dispatchEvent(new Event(EVT)); // notify other hook instances in this tab
+  if (p.startsWith('/admin')) return 'admin';
+  if (p.startsWith('/manager')) return 'manager';
+  if (p.startsWith('/staff')) return 'staff';
+  return 'customer';
 }
 
 export function useNotes() {
-  // Use an empty array as the SSR/initial seed to avoid hydration mismatches on surfaces that
-  // don't use staff notes (customer, admin). The correct surface seed is applied on mount in the
-  // useEffect below, where `window.location` is available.
-  const [notes, setNotes] = useState<StaffNote[]>(EMPTY_NOTES);
+  const [notes, setNotes] = useState<StaffNote[]>([]);
   const [ready, setReady] = useState(false);
+  const ref = useRef<StaffNote[]>([]);
+  ref.current = notes;
+  const surface = typeof window !== 'undefined' ? surfaceFor() : 'customer';
 
   useEffect(() => {
-    setNotes(read());
-    setReady(true);
-    const sync = () => setNotes(read());
-    window.addEventListener(EVT, sync);          // same-tab updates
-    window.addEventListener('storage', sync);    // other-tab updates
-    return () => {
-      window.removeEventListener(EVT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+    let alive = true;
+    const load = () => { void getMyNotesAction(surface).then((xs) => { if (alive) { setNotes(xs); setReady(true); } }); };
+    load();
+    window.addEventListener(EVT, load);           // same-tab updates from other hook instances
+    return () => { alive = false; window.removeEventListener(EVT, load); };
+  }, [surface]);
 
+  // Apply the transform optimistically, then reconcile with the DB (upsert changed/new, delete removed).
   const mutate = useCallback((fn: (xs: StaffNote[]) => StaffNote[]) => {
-    const next = fn(read());
-    write(next);
+    const prev = ref.current;
+    const next = fn(prev);
     setNotes(next);
+    const prevById = new Map(prev.map((n) => [n.id, n]));
+    const nextIds = new Set(next.map((n) => n.id));
+    const ops: Promise<unknown>[] = [];
+    for (const n of next) {
+      const before = prevById.get(n.id);
+      if (!before || JSON.stringify(before) !== JSON.stringify(n)) ops.push(upsertNoteAction(surfaceFor(), n));
+    }
+    for (const p of prev) if (!nextIds.has(p.id)) ops.push(deleteNoteAction(p.id));
+    if (ops.length) void Promise.all(ops).then(() => window.dispatchEvent(new Event(EVT)));
   }, []);
 
   return { notes, ready, mutate };

@@ -134,7 +134,8 @@ export const SEED_NOTES: StaffNote[] = [
   },
 ];
 
-export const newNoteId = (): string => `note-${Date.now()}`;
+export const newNoteId = (): string =>
+  (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `note-${Date.now()}`);
 export const newAttachmentId = (): string => `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 export const nowIso = (): string => new Date().toISOString();
 

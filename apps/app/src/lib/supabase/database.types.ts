@@ -2784,6 +2784,7 @@ export type Database = {
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       delete_broadcast: { Args: { p_id: string }; Returns: undefined }
       delete_doc: { Args: { p_id: string }; Returns: undefined }
+      delete_note: { Args: { p_id: string }; Returns: undefined }
       diag:
         | {
             Args: { msg: unknown }
@@ -3239,6 +3240,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "docs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_note: {
+        Args: {
+          p_body: Json
+          p_color: string
+          p_id: string
+          p_surface: string
+          p_title: string
+        }
+        Returns: {
+          body: Json
+          color: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          surface: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notes"
           isOneToOne: true
           isSetofReturn: false
         }
