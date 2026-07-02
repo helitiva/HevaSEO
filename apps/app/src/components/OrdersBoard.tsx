@@ -198,14 +198,19 @@ function FolderPath({ o }: { o: Order }) {
   );
 }
 
-/** Progress bar + created-date / percent footer. */
+/** Progress bar + footer: start date · ETA on one row (left), percent (right). */
 function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order; done: boolean; p: number; showPct?: boolean; showDate?: boolean }) {
   return (
     <>
       <div className="bar mt-2"><i style={{ width: `${p}%` }} /></div>
       {(showDate || showPct) && (
         <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          {showDate ? <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span> : <span />}
+          {showDate ? (
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span>
+              {o.eta && o.eta !== '—' && <span className="inline-flex items-center gap-1"><i className="ph-bold ph-timer" aria-hidden /> ETA {o.eta}</span>}
+            </span>
+          ) : <span />}
           {showPct && <b className={done ? 'text-emerald-600' : 'text-primary'}>{p}%</b>}
         </div>
       )}
@@ -221,7 +226,6 @@ function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order
  */
 function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number, reviewing: boolean, planned: boolean) {
   const compact = density === 'compact';
-  const detail = density === 'detail';
   // Top row: Done badge (when completed), service type tag, service code (right).
   const topRow = (
     <div className="flex items-center gap-2">
@@ -262,9 +266,9 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
       {topRow}
       {headline}
       {o.awaitingReview && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review</span>
-          {autoApproveLabel(o.deliveredAt) && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}</span>}
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review</span>
+          {autoApproveLabel(o.deliveredAt) && <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}</span>}
         </div>
       )}
       {/* staff + manager share one line: given name shown, full name · role on hover */}
@@ -274,7 +278,6 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
       </div>
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
       <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
-      {detail && <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground"><i className="ph-bold ph-timer shrink-0" aria-hidden />ETA: <span className="font-medium text-foreground">{o.eta}</span></p>}
       {!compact && <FolderPath o={o} />}
     </>
   );

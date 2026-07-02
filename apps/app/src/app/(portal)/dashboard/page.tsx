@@ -3,17 +3,24 @@ import { OrdersBoard } from '@/components/OrdersBoard';
 import { DashboardTop } from '@/components/DashboardTop';
 import { SpecialistChat } from '@/components/SpecialistChat';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { DeliveredReview } from '@/components/DeliveredReview';
 import { ACTIVITY } from '@/data/mock';
-import { getMyOrders } from '@/data/orders.server';
+import { getMyOrders, getMyDeliveredOrders } from '@/data/orders.server';
 
 export const metadata = { title: 'Overview' };
 
 export default async function DashboardPage() {
-  const orders = await getMyOrders(); // RLS-scoped: the signed-in customer's own orders
+  const [orders, delivered] = await Promise.all([getMyOrders(), getMyDeliveredOrders()]); // RLS-scoped
 
   return (
     <>
       <DashboardTop realOrders={orders} />
+
+      {delivered.length > 0 && (
+        <section className="mt-5">
+          <DeliveredReview orders={delivered} />
+        </section>
+      )}
 
       {/* ORDERS */}
       <section className="mt-5">
