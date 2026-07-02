@@ -7,6 +7,7 @@ import { UUID_RE } from '@/lib/orderMap';
 import {
   createProjectAction, updateProjectAction, deleteProjectAction,
   createFolderAction, updateFolderAction, deleteFolderAction,
+  type MutResult,
 } from '@/app/(portal)/projects.actions';
 
 export type Folder = { id: string; name: string; color: string; parentId: string | null };
@@ -14,12 +15,12 @@ export type Folder = { id: string; name: string; color: string; parentId: string
 type ProjectsCtx = {
   projects: Project[];
   folders: Folder[];
-  addProject: (p: Project) => void;
-  updateProject: (id: string, patch: Partial<Project>) => void;
-  removeProject: (id: string) => void;
-  addFolder: (f: Folder) => void;
-  updateFolder: (id: string, patch: Partial<Folder>) => void;
-  removeFolder: (id: string) => void;
+  addProject: (p: Project) => Promise<MutResult>;
+  updateProject: (id: string, patch: Partial<Project>) => Promise<MutResult>;
+  removeProject: (id: string) => Promise<MutResult>;
+  addFolder: (f: Folder) => Promise<MutResult>;
+  updateFolder: (id: string, patch: Partial<Folder>) => Promise<MutResult>;
+  removeFolder: (id: string) => Promise<MutResult>;
 };
 
 const Ctx = createContext<ProjectsCtx | null>(null);
@@ -32,19 +33,20 @@ export function ProjectsProvider({ children, initialProjects = [], initialFolder
   const router = useRouter();
 
   const value = useMemo<ProjectsCtx>(() => {
-    const after = (p: Promise<{ ok: boolean }>) => { void p.then((r) => { if (r.ok) router.refresh(); }); };
+    // run the mutation, re-fetch on success, and hand the result back so callers can surface errors.
+    const run = (p: Promise<MutResult>): Promise<MutResult> => p.then((r) => { if (r.ok) router.refresh(); return r; });
     return {
       projects: initialProjects,
       folders: initialFolders,
-      addProject: (p) => after(createProjectAction({ name: p.name, domain: p.domain, folderId: folderId(p.folder), status: p.status, note: p.note })),
-      updateProject: (id, patch) => after(updateProjectAction(id, {
+      addProject: (p) => run(createProjectAction({ name: p.name, domain: p.domain, folderId: folderId(p.folder), status: p.status, note: p.note })),
+      updateProject: (id, patch) => run(updateProjectAction(id, {
         name: patch.name, domain: patch.domain, status: patch.status, note: patch.note,
         ...(patch.folder !== undefined ? { folderId: folderId(patch.folder) } : {}),
       })),
-      removeProject: (id) => after(deleteProjectAction(id)),
-      addFolder: (f) => after(createFolderAction({ name: f.name, color: f.color, parentId: folderId(f.parentId) })),
-      updateFolder: (id, patch) => after(updateFolderAction(id, { name: patch.name, color: patch.color, parentId: patch.parentId })),
-      removeFolder: (id) => after(deleteFolderAction(id)),
+      removeProject: (id) => run(deleteProjectAction(id)),
+      addFolder: (f) => run(createFolderAction({ name: f.name, color: f.color, parentId: folderId(f.parentId) })),
+      updateFolder: (id, patch) => run(updateFolderAction(id, { name: patch.name, color: patch.color, parentId: patch.parentId })),
+      removeFolder: (id) => run(deleteFolderAction(id)),
     };
   }, [initialProjects, initialFolders, router]);
 

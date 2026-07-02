@@ -101,45 +101,45 @@ function ProjectsInner() {
   const folderName = (id: string) => allFolders.find((f) => f.id === id)?.name;
   const folderColor = (id: string) => allFolders.find((f) => f.id === id)?.color ?? '#94a3b8';
 
-  const createFolder = (f: FolderInput) => { addFolder(f); toast(`Folder “${f.name}” created`); };
-  const createProject = (p: ProjectInput) => {
+  // each mutation persists via a server action; surface the real outcome (success or error).
+  const createFolder = async (f: FolderInput) => {
+    const r = await addFolder(f);
+    toast(r.ok ? `Folder “${f.name}” created` : r.error, r.ok ? undefined : 'error');
+  };
+  const createProject = async (p: ProjectInput) => {
     const proj: Project = {
       id: `p-${Date.now().toString(36)}`,
-      name: p.name,
-      domain: p.domain,
-      label: folderName(p.folderId) ?? 'Uncategorized',
-      folder: p.folderId,
-      status: p.status,
-      note: p.note,
-      updated: 'Just now',
-      tags: {},
+      name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized',
+      folder: p.folderId, status: p.status, note: p.note, updated: 'Just now', tags: {},
     };
-    addProject(proj);
-    setFolder('all');
-    toast(`Project ${proj.domain} created`);
+    const r = await addProject(proj);
+    if (r.ok) { setFolder('all'); toast(`Project ${proj.domain} created`); } else toast(r.error, 'error');
   };
-  const saveEdit = (p: ProjectInput) => {
+  const saveEdit = async (p: ProjectInput) => {
     if (!editTarget) return;
-    updateProject(editTarget.id, { name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized', folder: p.folderId, status: p.status, note: p.note, updated: 'Just now' });
-    toast(`Project ${p.domain} updated`);
+    const r = await updateProject(editTarget.id, { name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized', folder: p.folderId, status: p.status, note: p.note, updated: 'Just now' });
+    toast(r.ok ? `Project ${p.domain} updated` : r.error, r.ok ? undefined : 'error');
   };
-  const deleteProject = (p: Project) => { removeProject(p.id); toast(`Project ${p.domain} deleted`, 'info'); };
-  const saveFolderEdit = (f: FolderInput) => {
+  const deleteProject = async (p: Project) => {
+    const r = await removeProject(p.id);
+    toast(r.ok ? `Project ${p.domain} deleted` : r.error, r.ok ? 'info' : 'error');
+  };
+  const saveFolderEdit = async (f: FolderInput) => {
     if (!editFolderTarget) return;
-    updateFolder(editFolderTarget.id, { name: f.name, color: f.color, parentId: f.parentId });
-    toast(`Folder “${f.name}” updated`);
+    const r = await updateFolder(editFolderTarget.id, { name: f.name, color: f.color, parentId: f.parentId });
+    toast(r.ok ? `Folder “${f.name}” updated` : r.error, r.ok ? undefined : 'error');
   };
-  const removeFolder = (f: Folder) => {
+  const removeFolder = async (f: Folder) => {
     const childIds = allFolders.filter((c) => c.parentId === f.id).map((c) => c.id);
     if (folder === f.id || childIds.includes(folder)) setFolder('all');
-    removeFolderFromStore(f.id);
-    toast(`Folder “${f.name}” deleted`, 'info');
+    const r = await removeFolderFromStore(f.id);
+    toast(r.ok ? `Folder “${f.name}” deleted` : r.error, r.ok ? 'info' : 'error');
   };
-  const moveProjectToFolder = (projectId: string, folderId: string) => {
+  const moveProjectToFolder = async (projectId: string, folderId: string) => {
     const p = allProjects.find((x) => x.id === projectId);
     if (!p || p.folder === folderId) return;
-    updateProject(projectId, { folder: folderId, label: folderName(folderId) ?? 'Uncategorized' });
-    toast(`Moved ${p.domain} → ${folderName(folderId)}`);
+    const r = await updateProject(projectId, { folder: folderId, label: folderName(folderId) ?? 'Uncategorized' });
+    toast(r.ok ? `Moved ${p.domain} → ${folderName(folderId)}` : r.error, r.ok ? undefined : 'error');
   };
 
   // Focus the project opened from an order card link (/projects?p=<domain>).

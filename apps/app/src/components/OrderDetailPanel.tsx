@@ -80,12 +80,24 @@ function Panel({ order }: { order: Order }) {
   const router = useRouter();
   const pathname = usePathname();
   const { statusOverrides, setStatus, addComment } = useOrdersStore();
-  // inc-E30 — real order thread for real orders (customer sees non-internal via RLS); mock otherwise.
-  const real = UUID_RE.test(order.id);
-  const mockComments = useComments(order.id);
-  const { comments: realComments, reload: reloadMsgs } = useOrderMessages(real ? order.id : null);
-  const comments = real ? realComments : mockComments;
   const toast = useToast();
+
+  // Real, RLS-scoped detail (brief + delivered work + activity + the order uuid), fetched by code.
+  const [detail, setDetail] = useState<CustomerOrderDetail | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setDetail(null);
+    void getCustomerOrderDetailAction(order.id).then((d) => { if (alive) setDetail(d); });
+    return () => { alive = false; };
+  }, [order.id]);
+  const isReal = detail != null; // the order exists in the DB → show real data, no mock fallback
+
+  // Order thread — real order_messages keyed by the real uuid (from the fetched detail, or the id when it
+  // already is a uuid); mock only for demo/seed orders not in the DB.
+  const orderUuid = detail?.id ?? (UUID_RE.test(order.id) ? order.id : null);
+  const mockComments = useComments(order.id);
+  const { comments: realComments, reload: reloadMsgs } = useOrderMessages(orderUuid);
+  const comments = orderUuid ? realComments : mockComments;
 
   const status = statusOverrides[order.id] ?? order.status;
   const [draft, setDraft] = useState('');
@@ -100,15 +112,6 @@ function Panel({ order }: { order: Order }) {
   const [skill, setSkill] = useState(0);         // staff skill
   const [reviewNote, setReviewNote] = useState('');
   const [reviewed, setReviewed] = useState(false);
-  // Real, RLS-scoped detail (brief + delivered work + activity), fetched by order code; falls back to
-  // the representative mock when the order has none (seed/demo).
-  const [detail, setDetail] = useState<CustomerOrderDetail | null>(null);
-  useEffect(() => {
-    let alive = true;
-    setDetail(null);
-    void getCustomerOrderDetailAction(order.id).then((d) => { if (alive) setDetail(d); });
-    return () => { alive = false; };
-  }, [order.id]);
   const [reviewBusy, setReviewBusy] = useState<null | 'approve' | 'request_changes'>(null);
   const [reviewErr, setReviewErr] = useState<string | null>(null);
   const decideDelivery = (action: 'approve' | 'request_changes') => {
@@ -150,9 +153,9 @@ function Panel({ order }: { order: Order }) {
   const proj = projectForDomain(order.domain);
   const path = folderPathForDomain(order.domain);
   const p = order.progress ?? (status === 'completed' ? 100 : status === 'review' ? 95 : 8);
-  const deliverables = detail?.deliverables.length ? detail.deliverables : deliverablesFor(order.id);
-  const activity = detail?.activity.length ? detail.activity : activityFor(order);
-  const intake = detail?.brief.length ? detail.brief : intakeFor(order);
+  const deliverables = isReal ? detail!.deliverables : deliverablesFor(order.id);
+  const activity = isReal ? detail!.activity : activityFor(order);
+  const intake = isReal ? detail!.brief : intakeFor(order);
 
   return (
     <div className="fixed inset-0 z-[60]">
@@ -169,9 +172,14 @@ function Panel({ order }: { order: Order }) {
             <h2 className="display min-w-0 truncate text-xl font-semibold tracking-tight">{order.title}</h2>
             <label className="inline-flex w-fit shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold" style={{ background: `${st.color}1f`, color: st.color }}>
               <span className="h-2 w-2 rounded-full" style={{ background: st.color }} />
+              {isReal ? (
+                // real orders: status is driven by the workflow (not a free-pick dropdown) — read-only badge
+                <span className="font-semibold">{st.label}</span>
+              ) : (
               <select value={status} onChange={(e) => { const v = e.target.value as OrderStatus; setStatus(order.id, v); toast(`Moved to ${STATUSES[v].label}`); }} className="cursor-pointer bg-transparent font-semibold outline-none" style={{ color: st.color }}>
                 {(Object.keys(STATUSES) as OrderStatus[]).map((s) => <option key={s} value={s} className="text-foreground">{STATUSES[s].label}</option>)}
               </select>
+              )}
             </label>
           </div>
 
@@ -353,8 +361,8 @@ function Panel({ order }: { order: Order }) {
                 const body = draft.trim();
                 if (!body) return;
                 setDraft('');
-                if (real) {
-                  void postOrderMessageAction(order.id, body, false).then((r) => {
+                if (orderUuid) {
+                  void postOrderMessageAction(orderUuid, body, false).then((r) => {
                     if (!r.ok) { toast(r.error); return; }
                     reloadMsgs(); toast('Comment sent');
                   });
@@ -370,7 +378,9 @@ function Panel({ order }: { order: Order }) {
         {/* footer actions */}
         <div className="sticky bottom-0 mt-auto flex gap-1.5 border-t border-border bg-card/95 px-3 py-3 backdrop-blur sm:gap-2 sm:px-[30px] sm:py-3.5">
           <button onClick={() => setModal('message')} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-border py-2 text-xs font-semibold transition hover:bg-accent sm:text-[13px]"><i className="ph-bold ph-chat-circle-dots" aria-hidden /> Message</button>
-          {status === 'review' ? (
+          {/* real orders drive approve/send-back from the "ready for your review" block above (delivered
+              state); the footer only offers the mock quick-actions for demo/seed orders */}
+          {!isReal && status === 'review' ? (
             <>
               <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-amber-500/40 py-2 text-xs font-semibold text-amber-600 transition hover:bg-amber-500/10 sm:text-[13px]"><i className="ph-bold ph-arrow-counter-clockwise" aria-hidden /> <span className="sm:hidden">Changes</span><span className="hidden sm:inline">Request changes</span></button>
               <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); }} className="flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-emerald-600 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 sm:text-[13px]"><i className="ph-bold ph-check" aria-hidden /> Approve</button>
@@ -498,7 +508,9 @@ function Panel({ order }: { order: Order }) {
                   )}
                 </div>
               ) : (
-                deliverables.length > 0 && (
+                // real orders approve/send-back from the panel's "ready for your review" block; these
+                // mock quick-actions are only for demo/seed orders
+                !isReal && deliverables.length > 0 && (
                   <div className="flex justify-end gap-2">
                     <button onClick={() => { setStatus(order.id, 'progress'); toast('Changes requested', 'info'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 px-3.5 py-2 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/10"><i className="ph-bold ph-arrow-counter-clockwise" aria-hidden /> Request changes</button>
                     <button onClick={() => { setStatus(order.id, 'completed'); toast('Order approved'); closeModal(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-emerald-700"><i className="ph-bold ph-check" aria-hidden /> Approve</button>
