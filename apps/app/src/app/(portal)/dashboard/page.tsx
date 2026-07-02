@@ -6,11 +6,13 @@ import { QuickOrderButton } from '@/components/QuickOrderButton';
 import { DeliveredReview } from '@/components/DeliveredReview';
 import { ACTIVITY } from '@/data/mock';
 import { getMyOrders, getMyDeliveredOrders } from '@/data/orders.server';
+import { getMyActivity } from '@/data/activity.server';
 
 export const metadata = { title: 'Overview' };
 
 export default async function DashboardPage() {
-  const [orders, delivered] = await Promise.all([getMyOrders(), getMyDeliveredOrders()]); // RLS-scoped
+  const [orders, delivered, realActivity] = await Promise.all([getMyOrders(), getMyDeliveredOrders(), getMyActivity()]); // RLS-scoped
+  const activity = realActivity.length ? realActivity : ACTIVITY; // real feed; mock only when there's none yet
 
   return (
     <>
@@ -35,7 +37,7 @@ export default async function DashboardPage() {
             <button className="text-xs font-semibold text-primary hover:underline">All</button>
           </div>
           <div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            {ACTIVITY.map((a, i) => (
+            {activity.map((a, i) => (
               <div key={i} className="flex gap-3">
                 <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground"><i className={`ph-bold ${a.icon}`} /></span>
                 <div>

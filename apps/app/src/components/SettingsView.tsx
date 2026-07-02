@@ -6,6 +6,7 @@ import { useToast } from './Toast';
 import { useCredit } from './CreditStore';
 import { Modal } from './Modal';
 import { TeamSettings } from './TeamSettings';
+import { updateProfileAction, updateBillingAction, type ProfileForm, type BillingForm } from '@/app/(portal)/profile.actions';
 
 type TabKey = 'profile' | 'security' | 'notif' | 'billing' | 'team' | 'api' | 'appearance';
 
@@ -28,19 +29,14 @@ const PLANS = [
 
 const INDUSTRIES = ['E-commerce', 'Retail / Supermarket', 'Healthcare / Dental / Clinics', 'Aesthetics / Spa / Beauty', 'Real estate', 'Education / Training', 'Travel / Hospitality', 'Restaurants / F&B', 'Finance / Insurance', 'Technology / Software / SaaS', 'Construction / Interiors', 'Automotive', 'Fashion / Cosmetics', 'Legal / Business consulting', 'Manufacturing / Industrial', 'Logistics / Transportation', 'Agriculture / Food', 'Events / Entertainment'];
 
-/** Controlled form values that persist to localStorage on save. */
-function usePersistedForm<T extends Record<string, string>>(key: string, initial: T) {
+/** Controlled form values seeded from the server; saved via a server action by the caller. */
+function useEditForm<T extends Record<string, string>>(initial: T) {
   const [data, setData] = useState<T>(initial);
-  useEffect(() => {
-    try { const s = localStorage.getItem(key); if (s) setData((d) => ({ ...d, ...(JSON.parse(s) as Partial<T>) })); } catch { /* ignore malformed */ }
-  }, [key]);
   const field = (k: keyof T) => ({
     value: data[k],
     onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setData((d) => ({ ...d, [k]: e.target.value })),
   });
-  const save = () => localStorage.setItem(key, JSON.stringify(data));
-  const reset = () => { setData(initial); localStorage.removeItem(key); };
-  return { field, save, reset };
+  return { data, field };
 }
 
 /** Toggle that remembers its state across reloads when given an `id`. */
@@ -64,7 +60,7 @@ function Switch({ defaultOn = false, id }: { defaultOn?: boolean; id?: string })
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ initialProfile, initialBilling }: { initialProfile: ProfileForm; initialBilling: BillingForm }) {
   const [tab, setTab] = useState<TabKey>('profile');
   const toast = useToast();
   const { balance } = useCredit();
@@ -73,8 +69,8 @@ export function SettingsView() {
   const [plan, setPlan] = useState('VIP');
   const [planOpen, setPlanOpen] = useState(false);
   const planDesc = PLANS.find((p) => p.key === plan)?.desc ?? '';
-  const profile = usePersistedForm('heva.profile', { name: 'Huy Nguyen', email: 'huy@hevashop.com', phone: '+1 (415) 555-0142', company: 'HevaShop JSC', industry: 'E-commerce', website: 'hevashop.com' });
-  const billing = usePersistedForm('heva.billing', { company: 'HevaShop Inc.', taxId: '0312345678', address: '123 Market St, San Francisco, CA' });
+  const profile = useEditForm(initialProfile);
+  const billing = useEditForm(initialBilling);
 
   const saved = (msg: string) => (e: FormEvent) => { e.preventDefault(); toast(msg); };
   const updatePassword = (e: FormEvent<HTMLFormElement>) => {
@@ -110,7 +106,7 @@ export function SettingsView() {
 
       <div>
         {tab === 'profile' && (
-          <form onSubmit={(e) => { e.preventDefault(); profile.save(); toast('Profile saved'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
+          <form onSubmit={async (e) => { e.preventDefault(); const r = await updateProfileAction(profile.data); toast(r.ok ? 'Profile saved' : r.error ?? 'Save failed', r.ok ? 'success' : 'error'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
             <h2 className="display text-lg font-semibold tracking-tight">Profile</h2>
             <p className="text-xs text-muted-foreground">Information shown to advisors and on invoices.</p>
             <div className="mt-5 flex items-center gap-4">
@@ -132,7 +128,7 @@ export function SettingsView() {
               <div><label className="lbl">Default website</label><input className="field" {...profile.field('website')} /></div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => { profile.reset(); toast('Changes discarded', 'info'); }} className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => window.location.reload()} className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
               <button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save changes</button>
             </div>
           </form>
@@ -219,7 +215,7 @@ export function SettingsView() {
                 <span className="pill pill-good">Default</span>
               </div>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); billing.save(); toast('Billing details saved'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
+            <form onSubmit={async (e) => { e.preventDefault(); const r = await updateBillingAction(billing.data); toast(r.ok ? 'Billing details saved' : r.error ?? 'Save failed', r.ok ? 'success' : 'error'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
               <h2 className="display text-base font-semibold tracking-tight">Billing information (VAT)</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div><label className="lbl">Company name</label><input className="field" {...billing.field('company')} /></div>

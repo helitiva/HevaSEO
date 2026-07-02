@@ -878,6 +878,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          industry: string | null
           last_active_at: string | null
           member_since: string | null
           name: string
@@ -889,6 +890,7 @@ export type Database = {
           tier: Database["public"]["Enums"]["customer_tier"]
           timezone: string | null
           user_id: string | null
+          website: string | null
         }
         Insert: {
           billing?: Json | null
@@ -897,6 +899,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          industry?: string | null
           last_active_at?: string | null
           member_since?: string | null
           name: string
@@ -908,6 +911,7 @@ export type Database = {
           tier?: Database["public"]["Enums"]["customer_tier"]
           timezone?: string | null
           user_id?: string | null
+          website?: string | null
         }
         Update: {
           billing?: Json | null
@@ -916,6 +920,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          industry?: string | null
           last_active_at?: string | null
           member_since?: string | null
           name?: string
@@ -927,6 +932,7 @@ export type Database = {
           tier?: Database["public"]["Enums"]["customer_tier"]
           timezone?: string | null
           user_id?: string | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -3195,6 +3201,17 @@ export type Database = {
           p_name: string
           p_niche: string
           p_platform: string
+        }
+        Returns: undefined
+      }
+      update_my_profile: {
+        Args: {
+          p_billing?: Json
+          p_company?: string
+          p_industry?: string
+          p_name?: string
+          p_phone?: string
+          p_website?: string
         }
         Returns: undefined
       }
