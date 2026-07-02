@@ -29,7 +29,7 @@ test('new folder shows, and a project created in it lands in that folder', async
   await expect(page.getByText(domain).first()).toBeVisible({ timeout: 10_000 });
 
   // select the folder in the rail → the project must be listed under it
-  await railFolder.getByRole('button').first().click();
+  await railFolder.click();
   await expect(page.getByText(domain).first()).toBeVisible({ timeout: 10_000 });
   // and the folder count should be at least 1
   await expect(railFolder.locator('.folder-count')).toHaveText(/[1-9]/, { timeout: 10_000 });

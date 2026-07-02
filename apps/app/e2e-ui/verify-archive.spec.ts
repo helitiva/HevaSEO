@@ -29,19 +29,24 @@ test('folder move-to-archive + restore, and single-click folder select', async (
   await expect(page.getByText(domain).first()).toBeVisible({ timeout: 10_000 });
 
   // SINGLE click selects the folder (the header reflects it) — the remount lag bug is gone
-  await folderRow.getByRole('button').first().click();
+  await folderRow.click();
+  await expect(page.locator('section').getByText(folderName, { exact: true }).first()).toBeVisible({ timeout: 5_000 });
+  // the count badge (previously a dead zone that swallowed clicks) now selects too
+  await page.getByRole('button', { name: /^All projects/ }).click();
+  await folderRow.locator('.folder-count').click();
   await expect(page.locator('section').getByText(folderName, { exact: true }).first()).toBeVisible({ timeout: 5_000 });
 
   // folder gear → the action reads "Move to Archive" (not Delete)
   await folderRow.hover();
   await folderRow.getByRole('button', { name: /Folder settings/i }).click();
-  await expect(page.getByRole('button', { name: 'Move to Archive' })).toBeVisible();
-  await page.getByRole('button', { name: 'Move to Archive' }).click();
+  const archiveItem = page.getByRole('button', { name: 'Move to Archive', exact: true });
+  await expect(archiveItem.first()).toBeVisible();
+  await archiveItem.first().click();                    // menu item
   await page.getByRole('button', { name: /Move to Archive/i }).last().click(); // confirm in modal
 
   // folder gone from rail; project now lives under Archive
   await expect(page.locator('.folder-item').filter({ hasText: folderName })).toHaveCount(0, { timeout: 10_000 });
-  await archiveRow.getByRole('button').first().click();
+  await archiveRow.click();
   await expect(page.getByText(domain).first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('Archived').first()).toBeVisible();
 
@@ -68,9 +73,9 @@ test('project gear "Move to Archive" archives it and updates the count', async (
   await expect(card).toBeVisible({ timeout: 10_000 });
 
   await card.getByRole('button', { name: /Project settings/i }).click();
-  await page.getByRole('button', { name: 'Move to Archive' }).click();
+  await page.getByRole('button', { name: 'Move to Archive', exact: true }).click();
   await expect(page.locator('.pcard').filter({ hasText: domain })).toHaveCount(0, { timeout: 10_000 }); // left All
   await expect(archiveRow.locator('.folder-count')).toHaveText(String(before + 1), { timeout: 10_000 }); // count bumped
-  await archiveRow.getByRole('button').first().click();
+  await archiveRow.click();
   await expect(page.getByText(domain).first()).toBeVisible({ timeout: 10_000 });
 });

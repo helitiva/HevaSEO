@@ -80,18 +80,24 @@ function FolderRow({ id, name, color, depth = 0, icon, active, dragOver, count, 
   menu?: ReactNode;
 }) {
   const droppable = !!onDropProject;
+  // The WHOLE row is the click target (was only the inner icon+name button, leaving the count badge and
+  // the gaps as dead zones — taps there did nothing, so folders felt like they needed a second/harder click).
   return (
     <div
-      className={`folder-item group w-full${active ? ' active' : ''}${dragOver ? ' drop-hot' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(id)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(id); } }}
+      className={`folder-item group w-full select-none${active ? ' active' : ''}${dragOver ? ' drop-hot' : ''}`}
       style={{ paddingLeft: `${0.6 + depth * 0.85}rem` }}
       onDragOver={droppable ? (e) => { e.preventDefault(); onDragOverFolder?.(id); } : undefined}
       onDragLeave={droppable ? () => onDragLeaveFolder?.(id) : undefined}
       onDrop={droppable ? (e) => { e.preventDefault(); const pid = e.dataTransfer.getData('text/plain'); if (pid) onDropProject?.(id, pid); } : undefined}
     >
-      <button type="button" onClick={() => onSelect(id)} className="flex min-w-0 flex-1 items-center gap-[.55rem] text-left">
+      <span className="flex min-w-0 flex-1 items-center gap-[.55rem]">
         <i className={`ph-bold ${icon ?? 'ph-folder'} shrink-0`} style={{ color: color ?? 'currentColor' }} aria-hidden />
         <span className="truncate">{name}</span>
-      </button>
+      </span>
       {menu}
       <span className="folder-count">{count}</span>
     </div>
