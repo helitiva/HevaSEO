@@ -68,6 +68,9 @@ export interface Order {
   urls?: number;
   /** true when the order spans several websites (indexer multi-site) */
   multiWeb?: boolean;
+  /** project + folder name captured at order time (real orders carry these; mock orders resolve by domain) */
+  project?: string;
+  folder?: string;
   status: OrderStatus;
   priority: Priority;
   progress: number | null;

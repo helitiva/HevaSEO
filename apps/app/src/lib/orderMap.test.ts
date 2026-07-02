@@ -101,6 +101,7 @@ const myRow: MyOrderRow = {
   priority: 'med', value: 39, deadline: '2026-06-19T00:00:00+00:00',
   created_at: '2026-06-13T00:00:00+00:00', delivered_at: null,
   customers: { company: 'Acme Co', name: 'Jane Doe' }, assignee: { name: 'Mai T.' },
+  order_details: null,
 };
 
 describe('toCustomerOrder (derive)', () => {
@@ -154,6 +155,21 @@ describe('toCustomerOrder (derive)', () => {
 
   it('non-delivered states are not awaiting review', () => {
     expect(toCustomerOrder({ ...myRow, state: 'completed' }).awaitingReview).toBe(false);
+  });
+
+  it('carries the order-time project + folder (object or array embed)', () => {
+    const obj = toCustomerOrder({ ...myRow, order_details: { project: 'HevaShop Store', folder: 'E-commerce client' } });
+    expect(obj.project).toBe('HevaShop Store');
+    expect(obj.folder).toBe('E-commerce client');
+    const arr = toCustomerOrder({ ...myRow, order_details: [{ project: 'An Phat', folder: 'Retail' }] });
+    expect(arr.project).toBe('An Phat');
+    expect(arr.folder).toBe('Retail');
+  });
+
+  it('leaves project/folder undefined when there is no order_details', () => {
+    const o = toCustomerOrder(myRow);
+    expect(o.project).toBeUndefined();
+    expect(o.folder).toBeUndefined();
   });
 });
 

@@ -102,7 +102,7 @@ export async function getMyOrders(): Promise<Order[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name)')
+    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details(project, folder)')
     .neq('state', 'canceled')
     .order('created_at', { ascending: false })
     .returns<MyOrderRow[]>();

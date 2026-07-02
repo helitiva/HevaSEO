@@ -56,12 +56,15 @@ export const CUST_STATUS: Record<string, CustStatus> = {
   internal_review: 'review', delivered: 'completed',
   approved: 'completed', completed: 'completed',
 };
+type OrderDetailLite = { project: string | null; folder: string | null };
 export type MyOrderRow = {
   code: string; service: string; pkg: string | null;
   state: string; priority: Priority; value: number | string;
   deadline: string | null; created_at: string; delivered_at: string | null;
   customers: { company: string | null; name: string | null } | null;
   assignee: { name: string | null } | null;
+  // embedded order_details (project/folder captured at order time). PostgREST may return object or array.
+  order_details: OrderDetailLite | OrderDetailLite[] | null;
 };
 const usDate = (ts: string): string => {
   const d = new Date(ts);
@@ -75,6 +78,7 @@ const etaLabel = (created: string, deadline: string | null): string => {
 };
 export function toCustomerOrder(r: MyOrderRow): Order {
   const status = CUST_STATUS[r.state] ?? 'planned';
+  const det = Array.isArray(r.order_details) ? r.order_details[0] : r.order_details;
   return {
     id: r.code,
     date: usDate(r.created_at),
@@ -82,6 +86,8 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     service: SERVICE_KEY[r.service] ?? 'optimize',
     domain: r.customers?.company ?? r.customers?.name ?? 'My site',
     sub: r.pkg ?? '',
+    project: det?.project ?? undefined,
+    folder: det?.folder ?? undefined,
     status,
     priority: r.priority,
     progress: null,

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  ORDERS, SERVICES, STATUSES, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
+  ORDERS, SERVICES, STATUSES, FOLDERS, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
   type Order, type OrderStatus, type ServiceKey,
 } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
@@ -129,14 +129,15 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
     );
     case 'domain': return o.domain;
     case 'project': {
-      const pr = projectForDomain(o.domain);
-      return pr
-        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{pr.name}</span>
+      const projName = o.project ?? projectForDomain(o.domain)?.name;
+      return projName
+        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{projName}</span>
         : <span className="text-muted-foreground">—</span>;
     }
     case 'folder': {
-      const path = folderPathForDomain(o.domain);
-      const leaf = path[path.length - 1];
+      const leaf = o.folder
+        ? { name: o.folder, color: folderColorByName(o.folder) }
+        : folderPathForDomain(o.domain).at(-1);
       return leaf
         ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" aria-hidden />{leaf.name}</span>
         : <span className="text-muted-foreground">—</span>;
@@ -157,16 +158,27 @@ function DoneBadge({ done }: { done: boolean }) {
   return <span className="pill pill-good">Done</span>;
 }
 
+// Palette for folders that don't carry a stored color (real orders keep only the folder name).
+const FOLDER_HUES = ['#2563eb', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#14b8a6'];
+/** Folder accent color by name: mock folders carry a color; others get a stable hue from the name. */
+function folderColorByName(name: string): string {
+  const mock = FOLDERS.find((f) => f.name === name)?.color;
+  if (mock) return mock;
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return FOLDER_HUES[h % FOLDER_HUES.length];
+}
+
 /** Compact meta block: project + website·URLs on two lines. */
 function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean }) {
-  const proj = projectForDomain(o.domain);
+  const projName = o.project ?? projectForDomain(o.domain)?.name ?? null;
   const website = o.multiWeb ? 'Multi-site' : o.domain;
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      {!hideProject && proj && (
+      {!hideProject && projName && (
         <p className="flex items-center gap-1.5">
           <i className="ph-bold ph-stack shrink-0" aria-hidden />
-          <span className="min-w-0 truncate">Project: <span className="font-semibold text-foreground">{proj.name}</span></span>
+          <span className="min-w-0 truncate">Project: <span className="font-semibold text-foreground">{projName}</span></span>
         </p>
       )}
       <p className="flex items-center gap-1.5">
@@ -180,7 +192,10 @@ function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean 
 
 /** Folder breadcrumb (parent › child) — its own row at the bottom of the card. */
 function FolderPath({ o }: { o: Order }) {
-  const path = folderPathForDomain(o.domain);
+  // Real orders carry a single folder name; mock orders resolve a breadcrumb from the domain.
+  const path = o.folder
+    ? [{ id: o.folder, name: o.folder, color: folderColorByName(o.folder) }]
+    : folderPathForDomain(o.domain);
   if (!path.length) return null;
   const leaf = path[path.length - 1];
   return (
@@ -240,10 +255,10 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
 
   let headline: ReactNode;
   if (template === 'project') {
-    const proj = projectForDomain(o.domain);
+    const projName = o.project ?? projectForDomain(o.domain)?.name;
     headline = (
       <>
-        <h4 className="mt-1.5 truncate text-[15px] font-bold tracking-tight">{proj?.name ?? o.domain}</h4>
+        <h4 className="mt-1.5 truncate text-[15px] font-bold tracking-tight">{projName ?? o.domain}</h4>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.title}</p>
       </>
     );
@@ -287,11 +302,10 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
   const eff = status ?? o.status;
   const done = eff === 'completed' && !o.awaitingReview; // delivered-awaiting-review isn't "done" yet
   const p = o.progress ?? (eff === 'completed' ? 100 : eff === 'review' ? 95 : 8);
-  const style: { backgroundColor?: string; borderColor?: string; borderLeft?: string; animationDelay?: string } = {};
+  const style: { backgroundColor?: string; borderColor?: string; animationDelay?: string } = {};
   if (tint) {
-    style.backgroundColor = `${tint}26`;        // card fill (~15% of the status hue)
-    style.borderColor = `${tint}55`;            // card border — same hue, a bit stronger
-    style.borderLeft = `3px solid ${tint}`;     // solid status accent so cards read colored at any state
+    style.backgroundColor = `${tint}40`;        // card fill (~25% of the status hue) — reads clearly colored
+    style.borderColor = `${tint}40`;            // border blends into the fill (no standout outline)
   }
   if (!preview) style.animationDelay = `${Math.min(index, 12) * 40}ms`;   // staggered entrance
   const cls = `kcard block${done ? ' opacity-90' : ''}${preview ? ' pointer-events-none' : ' onav kcard-anim'}`;
@@ -608,8 +622,10 @@ export function OrdersBoard({ initialService = 'all', domain, orders }: { initia
             const est = effStatus(o);
             const sc = STATUSES[est];
             const pp = pct(o);
-            const proj = projectForDomain(o.domain);
-            const folderLeaf = folderPathForDomain(o.domain).at(-1);
+            const projName = o.project ?? projectForDomain(o.domain)?.name;
+            const folderLeaf = o.folder
+              ? { name: o.folder, color: folderColorByName(o.folder) }
+              : folderPathForDomain(o.domain).at(-1);
             const show = (id: ColId) => !hiddenCols.has(id);
             return (
               <button key={o.id} onClick={() => openOrder(o.id)} className="kcard onav block w-full text-left">
@@ -634,7 +650,7 @@ export function OrdersBoard({ initialService = 'all', domain, orders }: { initia
                   )}
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" aria-hidden /> {proj?.name ?? o.domain}</span>}
+                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" aria-hidden /> {projName ?? o.domain}</span>}
                   {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" aria-hidden /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
                   {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" aria-hidden /> {folderLeaf.name}</span>}
                   {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" aria-hidden /> {o.owner}</span>}

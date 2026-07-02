@@ -52,15 +52,22 @@ test('live chat creates a real ticket', async ({ page }) => {
   await expect(page.getByText('Live chat with your specialist').first()).toBeVisible({ timeout: 10_000 });
 });
 
-// G2 — kanban cards carry a solid status accent (left border) so they read colored at any state.
-test('kanban card has a status accent border', async ({ page }) => {
+// G2 — kanban cards read clearly colored via a tinted fill (no standout outline / accent border).
+test('kanban card has a colored fill and no accent border', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, ACCOUNTS.customer);
   await page.goto('/orders', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(600);
-  const border = await page.evaluate(() => {
+  const box = await page.evaluate(() => {
     const card = document.querySelector('.kcard.onav') as HTMLElement | null;
-    return card ? getComputedStyle(card).borderLeftWidth : null;
+    if (!card) return null;
+    const s = getComputedStyle(card);
+    return { bg: s.backgroundColor, left: s.borderLeftWidth, top: s.borderTopWidth };
   });
-  expect(border).toBe('3px');
+  expect(box).not.toBeNull();
+  // tinted fill: a non-transparent rgba, not white/transparent
+  expect(box!.bg).toMatch(/rgba?\(/);
+  expect(box!.bg).not.toBe('rgba(0, 0, 0, 0)');
+  // border is uniform (no 3px accent on one side)
+  expect(box!.left).toBe(box!.top);
 });
