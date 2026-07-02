@@ -411,6 +411,60 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          label: string
+          last_used_at: string | null
+          last4: string
+          prefix: string
+          revoked_at: string | null
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          last4: string
+          prefix: string
+          revoked_at?: string | null
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          last4?: string
+          prefix?: string
+          revoked_at?: string | null
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_rules: {
         Row: {
           created_at: string
@@ -872,6 +926,8 @@ export type Database = {
       }
       customers: {
         Row: {
+          auto_topup: Json | null
+          avatar_url: string | null
           billing: Json | null
           company: string | null
           country_iso: string | null
@@ -880,6 +936,7 @@ export type Database = {
           id: string
           industry: string | null
           last_active_at: string | null
+          locale: string | null
           member_since: string | null
           name: string
           notif_prefs: Json
@@ -890,10 +947,13 @@ export type Database = {
           tenant_id: string
           tier: Database["public"]["Enums"]["customer_tier"]
           timezone: string | null
+          two_factor_enabled: boolean
           user_id: string | null
           website: string | null
         }
         Insert: {
+          auto_topup?: Json | null
+          avatar_url?: string | null
           billing?: Json | null
           company?: string | null
           country_iso?: string | null
@@ -902,6 +962,7 @@ export type Database = {
           id?: string
           industry?: string | null
           last_active_at?: string | null
+          locale?: string | null
           member_since?: string | null
           name: string
           notif_prefs?: Json
@@ -912,10 +973,13 @@ export type Database = {
           tenant_id: string
           tier?: Database["public"]["Enums"]["customer_tier"]
           timezone?: string | null
+          two_factor_enabled?: boolean
           user_id?: string | null
           website?: string | null
         }
         Update: {
+          auto_topup?: Json | null
+          avatar_url?: string | null
           billing?: Json | null
           company?: string | null
           country_iso?: string | null
@@ -924,6 +988,7 @@ export type Database = {
           id?: string
           industry?: string | null
           last_active_at?: string | null
+          locale?: string | null
           member_since?: string | null
           name?: string
           notif_prefs?: Json
@@ -934,6 +999,7 @@ export type Database = {
           tenant_id?: string
           tier?: Database["public"]["Enums"]["customer_tier"]
           timezone?: string | null
+          two_factor_enabled?: boolean
           user_id?: string | null
           website?: string | null
         }
@@ -1619,6 +1685,57 @@ export type Database = {
           },
           {
             foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          brand: string
+          created_at: string
+          customer_id: string
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          is_default: boolean
+          last4: string
+          tenant_id: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          customer_id: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4: string
+          tenant_id: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          customer_id?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_methods_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2368,6 +2485,54 @@ export type Database = {
           },
         ]
       }
+      webhooks: {
+        Row: {
+          active: boolean
+          created_at: string
+          customer_id: string
+          events: string[]
+          id: string
+          secret: string
+          tenant_id: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          customer_id: string
+          events?: string[]
+          id?: string
+          secret?: string
+          tenant_id: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          customer_id?: string
+          events?: string[]
+          id?: string
+          secret?: string
+          tenant_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhooks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhooks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       orders_mgr: {
@@ -2508,6 +2673,31 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "affiliate_payout_methods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      add_payment_method: {
+        Args: {
+          p_brand: string
+          p_exp_month?: number
+          p_exp_year?: number
+          p_last4: string
+        }
+        Returns: {
+          brand: string
+          created_at: string
+          customer_id: string
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          is_default: boolean
+          last4: string
+          tenant_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payment_methods"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2698,6 +2888,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_api_key: {
+        Args: { p_label?: string }
+        Returns: {
+          created_at: string
+          id: string
+          label: string
+          last4: string
+          token: string
+        }[]
+      }
       create_manager: {
         Args: {
           p_email: string
@@ -2816,6 +3016,7 @@ export type Database = {
         }
       }
       current_app_role: { Args: never; Returns: string }
+      current_customer_id: { Args: never; Returns: string }
       current_profile_id: { Args: never; Returns: string }
       current_skills: { Args: never; Returns: string[] }
       current_tenant_id: { Args: never; Returns: string }
@@ -2823,6 +3024,7 @@ export type Database = {
       delete_broadcast: { Args: { p_id: string }; Returns: undefined }
       delete_doc: { Args: { p_id: string }; Returns: undefined }
       delete_note: { Args: { p_id: string }; Returns: undefined }
+      delete_webhook: { Args: { p_id: string }; Returns: undefined }
       diag:
         | {
             Args: { msg: unknown }
@@ -2975,6 +3177,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      remove_payment_method: { Args: { p_id: string }; Returns: undefined }
       remove_payout_method: { Args: { p_id: string }; Returns: undefined }
       request_affiliate_payout: {
         Args: { p_amount: number }
@@ -3079,6 +3282,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       run_payroll: {
         Args: {
           p_bonus: number
@@ -3130,7 +3334,18 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      set_default_payment_method: { Args: { p_id: string }; Returns: undefined }
       set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
+      set_my_settings: {
+        Args: {
+          p_auto_topup?: Json
+          p_avatar_url?: string
+          p_locale?: string
+          p_timezone?: string
+          p_two_factor?: boolean
+        }
+        Returns: undefined
+      }
       set_notif_prefs: { Args: { p_notif: Json }; Returns: undefined }
       set_ticket_status: {
         Args: {
@@ -3328,6 +3543,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_webhook: {
+        Args: { p_events?: string[]; p_url: string }
+        Returns: {
+          active: boolean
+          created_at: string
+          customer_id: string
+          events: string[]
+          id: string
+          secret: string
+          tenant_id: string
+          url: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "webhooks"
           isOneToOne: true
           isSetofReturn: false
         }
