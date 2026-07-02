@@ -9,16 +9,35 @@ export type BillingForm = { company: string; taxId: string; address: string };
 
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-export async function getMyProfileAction(): Promise<{ profile: ProfileForm; billing: BillingForm } | null> {
+export type NotifPrefs = Record<string, boolean>;
+export async function getMyProfileAction(): Promise<{ profile: ProfileForm; billing: BillingForm; notif: NotifPrefs } | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('customers').select('name, email, phone, company, industry, website, billing').maybeSingle();
+    .from('customers').select('name, email, phone, company, industry, website, billing, notif_prefs').maybeSingle();
   if (error || !data) return null;
   const b = (data.billing && typeof data.billing === 'object' && !Array.isArray(data.billing) ? data.billing : {}) as Record<string, unknown>;
+  const n = (data.notif_prefs && typeof data.notif_prefs === 'object' && !Array.isArray(data.notif_prefs) ? data.notif_prefs : {}) as Record<string, unknown>;
+  const notif: NotifPrefs = {};
+  for (const [k, v] of Object.entries(n)) notif[k] = Boolean(v);
   return {
     profile: { name: s(data.name), email: s(data.email), phone: s(data.phone), company: s(data.company), industry: s(data.industry), website: s(data.website) },
     billing: { company: s(b.company) || s(data.company), taxId: s(b.taxId), address: s(b.address) },
+    notif,
   };
+}
+
+// Real password change via Supabase Auth (the logged-in user's session).
+export async function updatePasswordAction(newPassword: string): Promise<SaveResult> {
+  if (newPassword.length < 8) return { ok: false, error: 'New password must be at least 8 characters.' };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export async function updateNotifPrefsAction(prefs: NotifPrefs): Promise<SaveResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_notif_prefs', { p_notif: prefs as unknown as Json });
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export type SaveResult = { ok: boolean; error?: string };

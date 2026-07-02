@@ -6,7 +6,7 @@ import { useToast } from './Toast';
 import { useCredit } from './CreditStore';
 import { Modal } from './Modal';
 import { TeamSettings } from './TeamSettings';
-import { updateProfileAction, updateBillingAction, type ProfileForm, type BillingForm } from '@/app/(portal)/profile.actions';
+import { updateProfileAction, updateBillingAction, updatePasswordAction, updateNotifPrefsAction, type ProfileForm, type BillingForm, type NotifPrefs } from '@/app/(portal)/profile.actions';
 
 type TabKey = 'profile' | 'security' | 'notif' | 'billing' | 'team' | 'api' | 'appearance';
 
@@ -39,6 +39,16 @@ function useEditForm<T extends Record<string, string>>(initial: T) {
   return { data, field };
 }
 
+/** DB-backed notification toggle (persists to the customer's notif_prefs). Defaults on when unset. */
+function NotifSwitch({ id, prefs, onSet }: { id: string; prefs: NotifPrefs; onSet: (id: string, on: boolean) => void }) {
+  const on = prefs[id] ?? true;
+  const toggle = () => onSet(id, !on);
+  return (
+    <div className={`switch${on ? ' on' : ''}`} role="switch" aria-checked={on} tabIndex={0}
+      onClick={toggle} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } }} />
+  );
+}
+
 /** Toggle that remembers its state across reloads when given an `id`. */
 function Switch({ defaultOn = false, id }: { defaultOn?: boolean; id?: string }) {
   const [on, setOn] = useState(defaultOn);
@@ -60,7 +70,7 @@ function Switch({ defaultOn = false, id }: { defaultOn?: boolean; id?: string })
   );
 }
 
-export function SettingsView({ initialProfile, initialBilling }: { initialProfile: ProfileForm; initialBilling: BillingForm }) {
+export function SettingsView({ initialProfile, initialBilling, initialNotif }: { initialProfile: ProfileForm; initialBilling: BillingForm; initialNotif: NotifPrefs }) {
   const [tab, setTab] = useState<TabKey>('profile');
   const toast = useToast();
   const { balance } = useCredit();
@@ -71,17 +81,23 @@ export function SettingsView({ initialProfile, initialBilling }: { initialProfil
   const planDesc = PLANS.find((p) => p.key === plan)?.desc ?? '';
   const profile = useEditForm(initialProfile);
   const billing = useEditForm(initialBilling);
+  const [notif, setNotif] = useState<NotifPrefs>(initialNotif);
+  const setNotifPref = (id: string, on: boolean) => {
+    const next = { ...notif, [id]: on };
+    setNotif(next);
+    void updateNotifPrefsAction(next);
+  };
 
   const saved = (msg: string) => (e: FormEvent) => { e.preventDefault(); toast(msg); };
-  const updatePassword = (e: FormEvent<HTMLFormElement>) => {
+  const updatePassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const next = String(fd.get('new') ?? '');
     const confirm = String(fd.get('confirm') ?? '');
-    if (next.length < 8) { toast('New password must be at least 8 characters', 'error'); return; }
     if (next !== confirm) { toast('Passwords do not match', 'error'); return; }
-    toast('Password updated');
-    e.currentTarget.reset();
+    const r = await updatePasswordAction(next); // real Supabase auth update
+    if (r.ok) { toast('Password updated'); form.reset(); } else { toast(r.error ?? 'Update failed', 'error'); }
   };
   const copyKey = async () => {
     try { await navigator.clipboard.writeText(apiKey); toast('API key copied'); }
@@ -169,14 +185,14 @@ export function SettingsView({ initialProfile, initialBilling }: { initialProfil
             <p className="text-xs text-muted-foreground">Choose the channels and event types you want to receive.</p>
             <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Channels</p>
             <div className="divide-y divide-border">
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Email</p><p className="text-[11px] text-muted-foreground">huy@hevashop.com</p></div><Switch defaultOn id="notif.email" /></div>
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">In-app</p><p className="text-[11px] text-muted-foreground">Bell & notification center</p></div><Switch defaultOn id="notif.inapp" /></div>
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Header ticker</p><p className="text-[11px] text-muted-foreground">Scrolling notification bar</p></div><Switch defaultOn id="notif.ticker" /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Email</p><p className="text-[11px] text-muted-foreground">{profile.data.email || 'your email'}</p></div><NotifSwitch id="notif.email" prefs={notif} onSet={setNotifPref} /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">In-app</p><p className="text-[11px] text-muted-foreground">Bell & notification center</p></div><NotifSwitch id="notif.inapp" prefs={notif} onSet={setNotifPref} /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Header ticker</p><p className="text-[11px] text-muted-foreground">Scrolling notification bar</p></div><NotifSwitch id="notif.ticker" prefs={notif} onSet={setNotifPref} /></div>
             </div>
             <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Event types</p>
             <div className="divide-y divide-border">
-              {[['Order status changes', true], ['Links got indexed', true], ['Weekly report', true], ['Low credit alerts', true], ['Promotional emails', false]].map(([label, on]) => (
-                <div key={label as string} className="flex items-center justify-between py-3"><p className="text-sm font-medium">{label}</p><Switch defaultOn={on as boolean} id={`notif.evt.${(label as string).toLowerCase().replace(/[^a-z]+/g, '-')}`} /></div>
+              {['Order status changes', 'Links got indexed', 'Weekly report', 'Low credit alerts', 'Promotional emails'].map((label) => (
+                <div key={label} className="flex items-center justify-between py-3"><p className="text-sm font-medium">{label}</p><NotifSwitch id={`notif.evt.${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} prefs={notif} onSet={setNotifPref} /></div>
               ))}
             </div>
           </section>

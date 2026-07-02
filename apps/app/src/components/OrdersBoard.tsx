@@ -289,8 +289,9 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
   const p = o.progress ?? (eff === 'completed' ? 100 : eff === 'review' ? 95 : 8);
   const style: { backgroundColor?: string; borderColor?: string; borderLeft?: string; animationDelay?: string } = {};
   if (tint) {
-    style.backgroundColor = `${tint}1f`;   // card fill — a touch darker than the column
-    style.borderColor = `${tint}40`;       // card border — same hue, a bit darker than the fill
+    style.backgroundColor = `${tint}26`;        // card fill (~15% of the status hue)
+    style.borderColor = `${tint}55`;            // card border — same hue, a bit stronger
+    style.borderLeft = `3px solid ${tint}`;     // solid status accent so cards read colored at any state
   }
   if (!preview) style.animationDelay = `${Math.min(index, 12) * 40}ms`;   // staggered entrance
   const cls = `kcard block${done ? ' opacity-90' : ''}${preview ? ' pointer-events-none' : ' onav kcard-anim'}`;

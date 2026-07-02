@@ -882,6 +882,7 @@ export type Database = {
           last_active_at: string | null
           member_since: string | null
           name: string
+          notif_prefs: Json
           phone: string | null
           referrer_id: string | null
           status: Database["public"]["Enums"]["customer_status"]
@@ -903,6 +904,7 @@ export type Database = {
           last_active_at?: string | null
           member_since?: string | null
           name: string
+          notif_prefs?: Json
           phone?: string | null
           referrer_id?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
@@ -924,6 +926,7 @@ export type Database = {
           last_active_at?: string | null
           member_since?: string | null
           name?: string
+          notif_prefs?: Json
           phone?: string | null
           referrer_id?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
@@ -3128,6 +3131,7 @@ export type Database = {
         Returns: undefined
       }
       set_default_payout_method: { Args: { p_id: string }; Returns: undefined }
+      set_notif_prefs: { Args: { p_notif: Json }; Returns: undefined }
       set_ticket_status: {
         Args: {
           p_status: Database["public"]["Enums"]["ticket_status"]
