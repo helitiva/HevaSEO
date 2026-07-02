@@ -32,3 +32,20 @@ export async function getNewOrderId(): Promise<string | null> {
   const { data } = await admin.from('orders').select('id').eq('state', 'new').limit(1);
   return data?.[0]?.id ?? null;
 }
+
+// Admin assigns an OPEN unassigned order to Mai (staff) and returns its code — for the cross-role
+// "admin assign → staff sees the task" journey.
+export async function assignOpenOrderToMai(): Promise<string | null> {
+  if (!hasApiCreds) return null;
+  const admin = createClient(URL, ANON!, { auth: { persistSession: false } });
+  await admin.auth.signInWithPassword({ email: 'admin@hevaseo.com', password: 'demo1234' });
+  const { data } = await admin.from('orders').select('id,code,state').is('assignee_id', null).in('state', ['new', 'confirmed']).limit(1);
+  const o = data?.[0];
+  if (!o) return null;
+  // real admin flow: confirm first (new→confirmed) so the assign lands the order in 'assigned' (a staff
+  // board column); assigning a raw 'new' order would leave it 'new' and only show in the list view.
+  if (o.state === 'new') await admin.rpc('advance_order', { p_order: o.id, p_to: 'confirmed' });
+  const { error } = await admin.rpc('assign_order', { p_order: o.id, p_staff: MAI });
+  if (error) throw new Error(`assignOpenOrderToMai: ${error.message}`);
+  return o.code as string;
+}

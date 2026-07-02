@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login, ACCOUNTS } from './helpers';
-import { seedPendingStaffPayout, getNewOrderId, hasApiCreds } from './api';
+import { seedPendingStaffPayout, getNewOrderId, assignOpenOrderToMai, hasApiCreds } from './api';
 
 // Deeper multi-step journeys that mutate real state through the UI.
 
@@ -44,6 +44,15 @@ test('customer places an in-app order (services → place → credit charged)', 
   for (const sel of await page.locator('form select:visible').all()) await sel.selectOption({ index: 1 }).catch(() => {});
   await page.getByRole('button', { name: /Place order/i }).first().click();
   await expect(page).toHaveURL(/\/orders(\b|\?|$)/, { timeout: 15_000 }); // success navigates to /orders
+});
+
+test('admin assign → the staffer sees the order in /staff/tasks', async ({ page }) => {
+  test.skip(!hasApiCreds, 'needs SMOKE creds to assign an order');
+  const code = await assignOpenOrderToMai();
+  test.skip(!code, 'no open unassigned order to assign');
+  await login(page, ACCOUNTS.staff);
+  await page.goto('/staff/tasks');
+  await expect(page.getByText(code!).first()).toBeVisible({ timeout: 15_000 });
 });
 
 test('manager Assignment shows REAL orders (not mock)', async ({ page }) => {
