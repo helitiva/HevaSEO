@@ -188,17 +188,20 @@ test('auto-assign lifecycle demo (dashboard + marketing → staff → manager �
   await manager.rpc('review_deliverable', { p_deliverable: await latestDeliverable(staff, dId), p_action: 'approve', p_note: null });
   await manager.rpc('advance_order', { p_order: dId, p_to: 'delivered' });
 
-  // ══ CUSTOMER — the new "Ready for your review" strip ════════════════════════════════════════════
-  // Jane (dashboard order): send it back for revision.
+  // ══ CUSTOMER — the review strip opens the full panel where Approve / Request changes live ═════════
+  // Jane (dashboard order): open it from the strip and send it back for revision.
   const ctxJ = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const pJ = await ctxJ.newPage();
   await login(pJ, ACCOUNTS.customer);
   await pJ.goto('/orders', { waitUntil: 'domcontentloaded' });
-  await expect(pJ.getByText('Ready for your review')).toBeVisible({ timeout: 15_000 });
+  await expect(pJ.getByText(/ready for review/i).first()).toBeVisible({ timeout: 15_000 });
   await cap(pJ, 'customer_delivered_strip'); // 12
-  await pJ.getByRole('button', { name: /Request changes/i }).first().click();
-  await expect.poll(() => stateOf(adminDb, dId), { timeout: 15_000 }).toBe('changes_requested');
+  await pJ.getByText(dashCode).first().click(); // open the shared order-detail panel
+  const jReq = pJ.getByRole('button', { name: /Request changes/i });
+  await expect(jReq).toBeEnabled({ timeout: 10_000 });
   await cap(pJ, 'customer_request_changes'); // 13
+  await jReq.click();
+  await expect.poll(() => stateOf(adminDb, dId), { timeout: 15_000 }).toBe('changes_requested');
   await ctxJ.close();
 
   // staff reworks the dashboard order; manager re-delivers (mechanical)
@@ -208,13 +211,16 @@ test('auto-assign lifecycle demo (dashboard + marketing → staff → manager �
   await manager.rpc('review_deliverable', { p_deliverable: await latestDeliverable(staff, dId), p_action: 'approve', p_note: null });
   await manager.rpc('advance_order', { p_order: dId, p_to: 'delivered' });
 
-  // Jane approves the revised dashboard order.
+  // Jane approves the revised dashboard order (via the panel).
   const ctxJ2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const pJ2 = await ctxJ2.newPage();
   await login(pJ2, ACCOUNTS.customer);
   await pJ2.goto('/orders', { waitUntil: 'domcontentloaded' });
-  await expect(pJ2.getByText('Ready for your review')).toBeVisible({ timeout: 15_000 });
-  await pJ2.getByRole('button', { name: /^Approve/ }).first().click();
+  await expect(pJ2.getByText(/ready for review/i).first()).toBeVisible({ timeout: 15_000 });
+  await pJ2.getByText(dashCode).first().click();
+  const jApprove = pJ2.getByRole('button', { name: /Approve delivery/i });
+  await expect(jApprove).toBeEnabled({ timeout: 10_000 });
+  await jApprove.click();
   await expect.poll(() => stateOf(adminDb, dId), { timeout: 15_000 }).toBe('approved');
   await cap(pJ2, 'customer_approve'); // 14
   await ctxJ2.close();
@@ -224,8 +230,11 @@ test('auto-assign lifecycle demo (dashboard + marketing → staff → manager �
   const pBuy = await ctxBuy.newPage();
   await login(pBuy, buyerEmail, buyerPass);
   await pBuy.goto('/orders', { waitUntil: 'domcontentloaded' });
-  await expect(pBuy.getByText('Ready for your review')).toBeVisible({ timeout: 15_000 });
-  await pBuy.getByRole('button', { name: /^Approve/ }).first().click();
+  await expect(pBuy.getByText(/ready for review/i).first()).toBeVisible({ timeout: 15_000 });
+  await pBuy.getByText(marketingCode).first().click();
+  const bApprove = pBuy.getByRole('button', { name: /Approve delivery/i });
+  await expect(bApprove).toBeEnabled({ timeout: 10_000 });
+  await bApprove.click();
   await expect.poll(() => stateOf(adminDb, mId), { timeout: 15_000 }).toBe('approved');
   await ctxBuy.close();
 
