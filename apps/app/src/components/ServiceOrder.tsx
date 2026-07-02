@@ -7,7 +7,7 @@ import { BulkKeywordList } from './BulkKeywordList';
 import { UsageLinkList } from './UsageLinkList';
 import { useProjects } from './ProjectsStore';
 import { useToast } from './Toast';
-import { FOLDERS, PROJECTS, MEMBERSHIP_DISCOUNT, type IntakeField } from '@/data/mock';
+import { MEMBERSHIP_DISCOUNT, type IntakeField, type Project } from '@/data/mock';
 import type { SvcCatalog, SvcField, SvcPackage } from '@/data/services';
 import { placeOrderAction } from '@/app/(portal)/order.actions';
 
@@ -105,7 +105,7 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
 
 export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain, isVip = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string; isVip?: boolean }) {
   const router = useRouter();
-  const { projects: storeProjects } = useProjects();
+  const { projects: storeProjects, folders: storeFolders, addProject } = useProjects();
   const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
   // When the order is started from inside a project (e.g. the project detail page),
@@ -121,7 +121,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   // Project + folder assignment. Default is "auto" — we pick one for them and they
   // can rename / move it later. They can also target an existing project or a new one.
   const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
-  const [folderId, setFolderId] = useState<string>(presetProj ? presetProj.folder : AUTO);
+  const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.name === presetProj.folder)?.id ?? AUTO) : AUTO);
   const [newDomain, setNewDomain] = useState('');
   const [newName, setNewName] = useState('');
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);
@@ -168,25 +168,26 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
 
   /** Resolve the order's project + folder from the picker, auto-generating when left on "Auto". */
   function resolveAssignment() {
-    const randFolder = () => pick(FOLDERS).id;
-    let domain: string, projectName: string, fid: string, auto = false;
+    const randFolder = () => (storeFolders.length ? pick(storeFolders).id : '');
+    let domain: string, projectName: string, fid: string, auto = false, isNew = false;
     if (proj === NEW_PROJECT) {
+      isNew = true;
       const d = cleanDomain(newDomain);
       projectName = newName.trim() || d || randomProjectName();
       domain = d || `${slug(projectName)}.com`;
       fid = folderId !== AUTO ? folderId : randFolder();
     } else if (proj !== AUTO && proj !== '') {
-      const ep = PROJECTS.find((p) => p.domain === proj);
+      const ep = storeProjects.find((p) => p.domain === proj);
       domain = proj;
       projectName = ep?.name ?? proj;
-      fid = folderId !== AUTO ? folderId : (ep?.folder ?? randFolder());
+      fid = folderId !== AUTO ? folderId : randFolder();
     } else {
       auto = true;
       projectName = randomProjectName();
       domain = `${slug(projectName)}.com`;
       fid = folderId !== AUTO ? folderId : randFolder();
     }
-    return { domain, projectName, folderName: FOLDERS.find((f) => f.id === fid)?.name ?? 'Uncategorized', auto };
+    return { domain, projectName, folderId: fid, folderName: storeFolders.find((f) => f.id === fid)?.name ?? 'Uncategorized', auto, isNew };
   }
 
   const [placing, setPlacing] = useState(false);
@@ -213,6 +214,11 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
     });
     setPlacing(false);
     if (!res.ok) { toast(res.error, 'error'); return; }
+    // Persist the project this order created so it shows up in /projects (not just as order metadata).
+    if (asg.isNew || asg.auto) {
+      const proj: Project = { id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `p-${Date.now()}`), name: asg.projectName, domain: asg.domain, label: asg.folderName, folder: asg.folderId, status: 'planned', note: '', updated: 'Just now', tags: {} };
+      void addProject(proj);
+    }
     toast(`Order ${res.code} placed — credit charged`, 'success');
     if (onPlaced) onPlaced();
     else router.push('/orders');
@@ -353,7 +359,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
                   <label className="text-xs font-semibold">Folder</label>
                   <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className={ctrlCls}>
                     <option value={AUTO}>🎲 Auto</option>
-                    {FOLDERS.map((f) => <option key={f.id} value={f.id}>{f.parentId ? '— ' : ''}{f.name}</option>)}
+                    {storeFolders.map((f) => <option key={f.id} value={f.id}>{f.parentId ? '— ' : ''}{f.name}</option>)}
                   </select>
                 </div>
               </div>
