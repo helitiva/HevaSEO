@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { getMyTicketsAction, getTicketThreadAction, createTicketAction, postTicketMessageAction } from '@/app/(portal)/tickets.actions';
 
 const SPECIALIST = { name: 'Olivia Chen', role: 'SEO Lead', initials: 'OC', replies: 'replies < 2h' };
 const QUICK_REPLIES = ["What's my campaign status?", 'I need a new article', 'Can we review the latest report?'];
+// The live chat is backed by a real support ticket so messages reach the team and their replies come back.
+const LIVE_SUBJECT = 'Live chat with your specialist';
 
 type Msg = { from: 'them' | 'me'; text: string; time: string };
 
 const now = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-const SEED: Msg[] = [
-  { from: 'them', text: "Hi Huy! 👋 I'm Olivia, your SEO lead. How can I help with your campaigns today?", time: '9:14 AM' },
-  { from: 'them', text: 'Your Content batch for hevashop.com is on track — 12 of 30 articles delivered.', time: '9:14 AM' },
-];
+const fmt = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const GREETING: Msg = { from: 'them', text: "Hi! 👋 I'm Olivia, your SEO lead. How can I help with your campaigns today?", time: '' };
 
 function Bubble({ m }: { m: Msg }) {
   const mine = m.from === 'me';
@@ -47,9 +47,10 @@ function Typing() {
 export function SpecialistChat({ className, children }: { className?: string; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>(SEED);
+  const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [draft, setDraft] = useState('');
   const [typing, setTyping] = useState(false);
+  const [ticketId, setTicketId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const close = () => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 230); };
@@ -62,16 +63,33 @@ export function SpecialistChat({ className, children }: { className?: string; ch
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const send = (text: string) => {
+  // On open, resume the real live-chat ticket + its thread (including the team's replies).
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    void getMyTicketsAction().then(async (ts) => {
+      const live = ts.find((t) => t.subject === LIVE_SUBJECT) ?? null;
+      if (!alive || !live) return;
+      setTicketId(live.id);
+      const th = await getTicketThreadAction(live.id);
+      if (alive) setMsgs([GREETING, ...th.map((m) => ({ from: (m.mine ? 'me' : 'them') as Msg['from'], text: m.body, time: fmt(m.createdAt) }))]);
+    });
+    return () => { alive = false; };
+  }, [open]);
+
+  const send = async (text: string) => {
     const t = text.trim();
     if (!t) return;
     setMsgs((m) => [...m, { from: 'me', text: t, time: now() }]);
     setDraft('');
     setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMsgs((m) => [...m, { from: 'them', text: "Thanks for the note — I'll dig in and get back to you shortly. 🙌", time: now() }]);
-    }, 1500);
+    if (ticketId) {
+      await postTicketMessageAction(ticketId, t);
+    } else {
+      const r = await createTicketAction(LIVE_SUBJECT, 'consultation', t); // opens the backing ticket
+      if (r.ok) setTicketId(r.ticket.id);
+    }
+    setTyping(false);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

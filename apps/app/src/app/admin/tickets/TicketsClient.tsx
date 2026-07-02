@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { PriorityBadge, StatusBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
+import { replyTicketAction, setTicketStatusAction } from './actions';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import {
@@ -233,12 +234,14 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
     setAssignOf((a) => ({ ...a, [t.id]: who || null }));
     record(who ? `Reassigned ${t.code} → ${who}` : `Unassigned ${t.code}`, who ? 'ph-arrows-left-right' : 'ph-user-minus');
   };
-  const setStatus = (t: TicketRow, s: TicketStatus, icon: string) => { setStatusOf((m) => ({ ...m, [t.id]: s })); record(`${STATUS_META[s].label} — ${t.code}`, icon); };
+  const setStatus = (t: TicketRow, s: TicketStatus, icon: string) => { setStatusOf((m) => ({ ...m, [t.id]: s })); void setTicketStatusAction(t.id, s); record(`${STATUS_META[s].label} — ${t.code}`, icon); };
   const sendReply = (t: TicketRow) => {
     const text = draftOf(t).trim();
     if (!text) return;
     const msg: TicketMessage = { from: 'staff', author: asgOf(t) ?? agent, text, at: 'Just now' };
     setExtra((e) => ({ ...e, [t.id]: [...(e[t.id] ?? []), msg] }));
+    void replyTicketAction(t.id, text); // persist to the customer's real thread
+    if (stOf(t) === 'open') void setTicketStatusAction(t.id, 'pending');
     setAnswered((a) => ({ ...a, [t.id]: true }));
     if (stOf(t) === 'open') setStatusOf((m) => ({ ...m, [t.id]: 'pending' }));
     setDrafts((d) => { const n = { ...d }; delete n[t.id]; return n; });
