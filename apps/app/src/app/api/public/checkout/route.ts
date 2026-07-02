@@ -157,7 +157,7 @@ export async function POST(req: Request) {
   const { data: order, error: moErr } = await svc.rpc('materialize_order', {
     p_tenant: AGENCY_TENANT, p_customer: customerId, p_code: code,
     p_service: service.name, p_value: priced.value, p_actor: profileId, p_ref: charge.ref,
-    p_deadline: deadlineFromSla(priced.plan?.sla),
+    p_deadline: deadlineFromSla(priced.plan?.sla) ?? undefined,
   });
   if (moErr) return json({ ok: false, error: moErr.message }, 500);
 

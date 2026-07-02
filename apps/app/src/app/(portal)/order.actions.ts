@@ -48,7 +48,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const svc = createServiceClient();
   const { data: order, error } = await svc.rpc('create_order', {
     p_tenant: cust.tenant_id, p_customer: cust.id, p_code: code,
-    p_service: serviceLabel, p_value: priced.value, p_actor: session.entityId, p_deadline: deadline,
+    p_service: serviceLabel, p_value: priced.value, p_actor: session.entityId, p_deadline: deadline ?? undefined,
   });
   if (error) {
     const msg = error.message.includes('INSUFFICIENT_CREDIT')

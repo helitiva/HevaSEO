@@ -1082,24 +1082,30 @@ export type Database = {
       }
       folders: {
         Row: {
+          color: string | null
           created_at: string
           customer_id: string
           id: string
           name: string
+          parent_id: string | null
           tenant_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           customer_id: string
           id?: string
           name: string
+          parent_id?: string | null
           tenant_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           customer_id?: string
           id?: string
           name?: string
+          parent_id?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -1108,6 +1114,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
           {
@@ -1764,25 +1777,34 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          domain: string | null
           folder_id: string | null
           id: string
           name: string
+          note: string | null
+          status: string
           tenant_id: string
         }
         Insert: {
           created_at?: string
           customer_id: string
+          domain?: string | null
           folder_id?: string | null
           id?: string
           name: string
+          note?: string | null
+          status?: string
           tenant_id: string
         }
         Update: {
           created_at?: string
           customer_id?: string
+          domain?: string | null
           folder_id?: string | null
           id?: string
           name?: string
+          note?: string | null
+          status?: string
           tenant_id?: string
         }
         Relationships: [
@@ -2699,6 +2721,7 @@ export type Database = {
           p_actor: string
           p_code: string
           p_customer: string
+          p_deadline?: string
           p_service: string
           p_tenant: string
           p_value: number
@@ -2822,6 +2845,7 @@ export type Database = {
           p_actor: string
           p_code: string
           p_customer: string
+          p_deadline?: string
           p_ref: string
           p_service: string
           p_tenant: string
