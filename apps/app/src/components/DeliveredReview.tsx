@@ -66,24 +66,24 @@ export function DeliveredReview({ orders }: { orders: DeliveredOrder[] }) {
     <section aria-labelledby="delivered-heading" className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-5">
       <div className="flex items-center gap-2">
         <i className="ph-bold ph-package text-primary" aria-hidden />
-        <h2 id="delivered-heading" className="display text-lg font-semibold tracking-tight">Ready for your review</h2>
+        <h2 id="delivered-heading" className="display text-lg font-semibold tracking-tight">Recent completed orders, ready for review</h2>
         <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{orders.length}</span>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">Your team delivered these. Open one to review, approve, or send back — we’ll auto-approve after {AUTO_APPROVE_GRACE_DAYS} days if we don’t hear back.</p>
 
-      <ul className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {orders.map((o) => (
           <li key={o.id}>
             <button
               type="button" onClick={() => { setErr(null); setSelected(o); }}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-accent/50"
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition hover:border-primary/40 hover:bg-accent/50"
             >
               <i className="ph-bold ph-package shrink-0 text-primary" aria-hidden />
               <span className="min-w-0 flex-1 truncate">
                 <span className="font-medium">{o.service}</span>
                 <span className="ml-1.5 text-xs text-muted-foreground">{o.code}</span>
               </span>
-              <Countdown deliveredAt={o.deliveredAt} className="hidden sm:inline-flex" />
+              <Countdown deliveredAt={o.deliveredAt} className="hidden lg:inline-flex" />
               <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground" aria-hidden />
             </button>
           </li>

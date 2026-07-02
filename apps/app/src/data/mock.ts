@@ -80,6 +80,10 @@ export interface Order {
   invoice: string | null;
   /** the brief the customer submitted at order time (captured from the order form) */
   intake?: IntakeField[];
+  /** delivered work awaiting the customer's approve/send-back decision (real `delivered` state) */
+  awaitingReview?: boolean;
+  /** ISO timestamp the order entered `delivered` — drives the auto-approve countdown */
+  deliveredAt?: string | null;
 }
 
 /** One answer from the order-time brief. `full` spans the full width when rendered. */
