@@ -8,7 +8,7 @@ const EMPTY_PROFILE: ProfileForm = { name: '', email: '', phone: '', company: ''
 const EMPTY_BILLING: BillingForm = { company: '', taxId: '', address: '' };
 const EMPTY_SETTINGS: MySettings = {
   twoFactor: false, autoTopup: { enabled: false, threshold: 40, amount: 199 },
-  locale: 'English', timezone: '(GMT-8) Los Angeles', plan: 'new', apiKeys: [], webhook: null, paymentMethods: [],
+  locale: 'English', timezone: '(GMT-8) Los Angeles', plan: 'new', avatarUrl: '', apiKeys: [], webhook: null, paymentMethods: [],
 };
 
 export default async function SettingsPage() {

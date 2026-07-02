@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTheme } from 'next-themes';
 import { useToast } from './Toast';
 import { TeamSettings } from './TeamSettings';
 import { SecurityPanel } from './settings/SecurityPanel';
 import { BillingPanel } from './settings/BillingPanel';
 import { ApiPanel } from './settings/ApiPanel';
+import { createClient } from '@/lib/supabase/client';
 import { updateProfileAction, updateNotifPrefsAction, type ProfileForm, type BillingForm, type NotifPrefs } from '@/app/(portal)/profile.actions';
-import { setAppearanceAction, type MySettings } from '@/app/(portal)/settings.actions';
+import { setAppearanceAction, setAvatarUrlAction, type MySettings } from '@/app/(portal)/settings.actions';
 
 type TabKey = 'profile' | 'security' | 'notif' | 'billing' | 'team' | 'api' | 'appearance';
 
@@ -62,6 +63,40 @@ export function SettingsView({ initialProfile, initialBilling, initialNotif, ini
     void updateNotifPrefsAction(next);
   };
 
+  // Avatar/logo: upload to the Storage 'avatars' bucket (own uid folder), then persist the public URL.
+  const [avatarUrl, setAvatarUrl] = useState(initialSettings.avatarUrl);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const onPhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 2_097_152) { toast('Image must be under 2 MB', 'error'); return; }
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast('Not signed in', 'error'); return; }
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+      if (up.error) { toast(up.error.message, 'error'); return; }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const r = await setAvatarUrlAction(publicUrl);
+      if (!r.ok) { toast(r.error ?? 'Save failed', 'error'); return; }
+      setAvatarUrl(publicUrl);
+      toast('Photo updated');
+    } finally {
+      setUploading(false);
+    }
+  };
+  const removePhoto = async () => {
+    const r = await setAvatarUrlAction('');
+    if (!r.ok) { toast(r.error ?? 'Remove failed', 'error'); return; }
+    setAvatarUrl('');
+    toast('Photo removed');
+  };
+
   return (
     <div className="mt-6 grid gap-5 lg:grid-cols-[220px_1fr]">
       {/* tab nav */}
@@ -79,10 +114,14 @@ export function SettingsView({ initialProfile, initialBilling, initialNotif, ini
             <h2 className="display text-lg font-semibold tracking-tight">Profile</h2>
             <p className="text-xs text-muted-foreground">Information shown to advisors and on invoices.</p>
             <div className="mt-5 flex items-center gap-4">
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-bold text-white">{initials(profile.data.name)}</span>
+              {avatarUrl
+                // eslint-disable-next-line @next/next/no-img-element -- user-supplied Storage URL, dynamic host
+                ? <img src={avatarUrl} alt="Profile photo" className="h-16 w-16 rounded-full object-cover" />
+                : <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-bold text-white">{initials(profile.data.name)}</span>}
               <div className="flex gap-2">
-                <button type="button" onClick={() => toast('Photo upload coming soon')} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent">Change photo</button>
-                <button type="button" onClick={() => toast('Photo removed')} className="rounded-lg px-3 py-2 text-xs font-semibold text-destructive transition hover:bg-destructive/10">Remove</button>
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" className="hidden" onChange={onPhotoChange} />
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent disabled:opacity-60">{uploading ? 'Uploading…' : 'Change photo'}</button>
+                {avatarUrl && <button type="button" onClick={removePhoto} className="rounded-lg px-3 py-2 text-xs font-semibold text-destructive transition hover:bg-destructive/10">Remove</button>}
               </div>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">

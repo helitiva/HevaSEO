@@ -19,6 +19,7 @@ export type MySettings = {
   locale: string;
   timezone: string;
   plan: string;              // real customer tier
+  avatarUrl: string;
   apiKeys: ApiKey[];
   webhook: Webhook;
   paymentMethods: PaymentMethod[];
@@ -31,7 +32,7 @@ const num = (v: unknown, d: number): number => (typeof v === 'number' && Number.
 export async function getMySettingsAction(): Promise<MySettings | null> {
   const supabase = await createClient();
   const [cust, keys, hooks, pms] = await Promise.all([
-    supabase.from('customers').select('two_factor_enabled, auto_topup, locale, timezone, tier').maybeSingle(),
+    supabase.from('customers').select('two_factor_enabled, auto_topup, locale, timezone, tier, avatar_url').maybeSingle(),
     supabase.from('api_keys').select('id, label, last4, created_at, revoked_at').order('created_at', { ascending: false }),
     supabase.from('webhooks').select('id, url, events').maybeSingle(),
     supabase.from('payment_methods').select('id, brand, last4, exp_month, exp_year, is_default').order('created_at', { ascending: false }),
@@ -45,6 +46,7 @@ export async function getMySettingsAction(): Promise<MySettings | null> {
     locale: cust.data.locale ?? 'English',
     timezone: cust.data.timezone ?? '(GMT-8) Los Angeles',
     plan: cust.data.tier ?? 'new',
+    avatarUrl: cust.data.avatar_url ?? '',
     apiKeys: (keys.data ?? []).map((k) => ({ id: k.id, label: k.label, last4: k.last4, createdAt: k.created_at, revokedAt: k.revoked_at })),
     webhook: hooks.data ? { id: hooks.data.id, url: hooks.data.url, events: hooks.data.events ?? [] } : null,
     paymentMethods: (pms.data ?? []).map((p) => ({ id: p.id, brand: p.brand, last4: p.last4, expMonth: p.exp_month, expYear: p.exp_year, isDefault: p.is_default })),
@@ -151,6 +153,14 @@ export async function sendWebhookTestAction(url: string): Promise<SaveResult> {
   } finally {
     clearTimeout(t);
   }
+}
+
+// ── avatar / logo ─────────────────────────────────────────────────────────────────
+/** Persist the resolved public avatar URL (file itself is uploaded client-side to Storage). '' clears it. */
+export async function setAvatarUrlAction(url: string): Promise<SaveResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_my_settings', { p_avatar_url: url });
+  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 // ── appearance ────────────────────────────────────────────────────────────────────
