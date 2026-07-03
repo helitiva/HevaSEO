@@ -47,10 +47,10 @@ export function SupportClient() {
   const refresh = useCallback(() => { void getMyTicketsAction().then(setTickets); }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const addTicket = async (subject: string, type: string) => {
-    const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', subject);
+  const addTicket = async (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high') => {
+    const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', body, priority);
     if (!r.ok) { toast(r.error, 'error'); return; }
-    toast(`Ticket ${r.ticket.code} opened`);
+    toast(`Ticket ${r.ticket.code} opened — we'll reply within business hours`);
     refresh();
   };
 

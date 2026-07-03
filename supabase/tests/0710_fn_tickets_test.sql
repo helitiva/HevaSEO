@@ -1,10 +1,10 @@
 -- Tickets + chat: a customer opens/replies to their own ticket; non-participants are blocked; only a
 -- customer may open one. Participant-gated SECURITY DEFINER fns.
 begin;
-select plan(8);
+select plan(9);
 
 select has_function('create_ticket', 'create_ticket() exists');
-select ok(not has_function_privilege('anon', 'create_ticket(text,ticket_type,text)', 'execute'), 'anon CANNOT open a ticket');
+select ok(not has_function_privilege('anon', 'create_ticket(text,ticket_type,text,order_priority)', 'execute'), 'anon CANNOT open a ticket');
 
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');
 insert into profiles(id, tenant_id, email, name, role) values
@@ -18,9 +18,10 @@ insert into customers(id, tenant_id, name, company, email, status, user_id) valu
 set local role authenticated;
 set local request.jwt.claims = '{"tenant_id":"11111111-1111-1111-1111-111111111111","app_role":"customer","profile_id":"aaaaaaaa-0000-0000-0000-000000000c11"}';
 
-select create_ticket('Links not indexed', 'technical', 'Please take a look.');
+select create_ticket('Links not indexed', 'technical', 'Please take a look.', 'high');
 select is((select count(*)::int from tickets where customer_id = 'cccccccc-0000-0000-0000-0000000000c1'), 1, 'customer opened a ticket');
 select is((select count(*)::int from ticket_messages tm join tickets t on t.id = tm.ticket_id where t.customer_id = 'cccccccc-0000-0000-0000-0000000000c1'), 1, 'the opening message was recorded');
+select is((select priority::text from tickets where customer_id = 'cccccccc-0000-0000-0000-0000000000c1'), 'high', 'the chosen priority is persisted');
 
 -- owner replies
 select post_ticket_message((select id from tickets where customer_id = 'cccccccc-0000-0000-0000-0000000000c1'), 'Any update?');

@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useToast } from './Toast';
 
 const PRIORITIES = [
   { key: 'low', label: 'Low' },
   { key: 'normal', label: 'Normal' },
   { key: 'urgent', label: 'Urgent' },
 ];
+// form priority → DB order_priority
+const PRIO_DB: Record<string, 'low' | 'med' | 'high'> = { low: 'low', normal: 'med', urgent: 'high' };
 
-export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string) => void }) {
+export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high') => void }) {
   const [prio, setPrio] = useState('normal');
   const [svc, setSvc] = useState('BLEN-1042');
   const [files, setFiles] = useState<string[]>([]);
-  const toast = useToast();
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -22,8 +22,9 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
     const subject = String(fd.get('subject') ?? '').trim();
     if (!subject) return;
     const type = String(fd.get('type') ?? 'Other');
-    onSubmit?.(subject, type);
-    toast("Ticket submitted — we'll reply within business hours");
+    // the detailed description IS the first message; fall back to the subject when left blank
+    const body = String(fd.get('description') ?? '').trim() || subject;
+    onSubmit?.(subject, type, body, PRIO_DB[prio] ?? 'med'); // caller reports the real outcome (toast)
     form.reset();
     setPrio('normal');
     setSvc('BLEN-1042');

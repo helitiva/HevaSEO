@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // Real customer support tickets + chat (RLS-scoped reads; participant-gated write fns).
 export type TicketType = 'technical' | 'billing' | 'consultation';
+export type TicketPriority = 'low' | 'med' | 'high';
 export type TicketStatus = 'open' | 'pending' | 'resolved' | 'closed';
 export type Ticket = { id: string; code: string; subject: string; type: TicketType; status: TicketStatus; open: boolean; lastReplyAt: string | null };
 export type TicketMessage = { id: string; mine: boolean; role: string; body: string; createdAt: string };
@@ -32,9 +33,9 @@ export async function getTicketThreadAction(ticketId: string): Promise<TicketMes
 }
 
 export type TicketResult = { ok: true; ticket: Ticket } | { ok: false; error: string };
-export async function createTicketAction(subject: string, type: TicketType, body: string): Promise<TicketResult> {
+export async function createTicketAction(subject: string, type: TicketType, body: string, priority: TicketPriority = 'med'): Promise<TicketResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('create_ticket', { p_subject: subject, p_type: type, p_body: body }).returns<TicketRow>();
+  const { data, error } = await supabase.rpc('create_ticket', { p_subject: subject, p_type: type, p_body: body, p_priority: priority }).returns<TicketRow>();
   if (error || !data) return { ok: false, error: error?.message ?? 'Could not open the ticket.' };
   return { ok: true, ticket: toTicket(data) };
 }
