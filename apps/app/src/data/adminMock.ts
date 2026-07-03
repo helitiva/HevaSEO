@@ -38,7 +38,7 @@ export type TicketType = 'technical'|'billing'|'consultation';
 export type TicketChannel = 'portal'|'whatsapp'|'messenger'|'email';
 export type TicketStatus = 'open'|'pending'|'resolved'|'closed';
 export type SlaTier = 'urgent'|'standard';
-export interface TicketMessage { from: 'customer'|'staff'; author: string; text: string; at: string; }
+export interface TicketMessage { from: 'customer'|'staff'; author: string; text: string; at: string; attachments?: import('@/data/mock').MessageAttachment[]; }
 export interface AdminTicket {
   id: string; code: string; subject: string;
   customer: string; customerId: string | null;

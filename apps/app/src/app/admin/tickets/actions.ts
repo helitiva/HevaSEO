@@ -20,14 +20,17 @@ type Row = {
   customer: { name: string | null; company: string | null } | null;
   assignee: { name: string | null } | null;
   order: { code: string | null } | null;
-  ticket_messages: { author_role: string; body: string; created_at: string }[] | null;
+  ticket_messages: { author_role: string; body: string; created_at: string; attachments: unknown }[] | null;
 };
+const toAttachments = (v: unknown): import('@/data/mock').MessageAttachment[] => (Array.isArray(v) ? v.filter((a): a is import('@/data/mock').MessageAttachment =>
+  !!a && typeof a === 'object' && typeof (a as { url?: unknown }).url === 'string' &&
+  ((a as { kind?: unknown }).kind === 'image' || (a as { kind?: unknown }).kind === 'video')) : []);
 
 export async function getAgentTicketsAction(): Promise<AdminTicket[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('tickets')
-    .select('id, code, subject, type, channel, status, priority, sla_tier, created_at, last_reply_at, customer:customers(name, company), assignee:profiles!tickets_assignee_id_fkey(name), order:orders(code), ticket_messages(author_role, body, created_at)')
+    .select('id, code, subject, type, channel, status, priority, sla_tier, created_at, last_reply_at, customer:customers(name, company), assignee:profiles!tickets_assignee_id_fkey(name), order:orders(code), ticket_messages(author_role, body, created_at, attachments)')
     .order('last_reply_at', { ascending: false, nullsFirst: false })
     .returns<Row[]>();
   if (error) return [];
@@ -36,7 +39,7 @@ export async function getAgentTicketsAction(): Promise<AdminTicket[]> {
     const thread: TicketMessage[] = (t.ticket_messages ?? [])
       .slice()
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      .map((m) => ({ from: m.author_role === 'customer' ? 'customer' : 'staff', author: m.author_role === 'customer' ? custName : (t.assignee?.name ?? 'Support'), text: m.body, at: rel(m.created_at) }));
+      .map((m) => ({ from: m.author_role === 'customer' ? 'customer' : 'staff', author: m.author_role === 'customer' ? custName : (t.assignee?.name ?? 'Support'), text: m.body, at: rel(m.created_at), attachments: toAttachments(m.attachments) }));
     return {
       id: t.id, code: `#${t.code}`, subject: t.subject,
       customer: custName, customerId: null, // real uuid won't match the mock dossier; keep null

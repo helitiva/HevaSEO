@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { PriorityBadge, StatusBadge } from '@/components/shared/StatBadge';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { replyTicketAction, setTicketStatusAction } from './actions';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
@@ -406,7 +407,7 @@ export function TicketsClient({ rows, avgFirstResponseH, staff, tierMeta, agent 
                   {threadOf(selected).map((m, i) => (
                     <div key={i} className={`flex flex-col ${m.from === 'staff' ? 'items-end' : 'items-start'}`}>
                       <span className="px-1 text-[10px] font-medium text-muted-foreground">{m.author} · {m.at}</span>
-                      <div className={`mt-0.5 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${m.from === 'staff' ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm bg-muted text-foreground'}`}>{m.text}</div>
+                      <div className={`mt-0.5 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${m.from === 'staff' ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm bg-muted text-foreground'}`}>{m.text}<MessageAttachments items={m.attachments} /></div>
                     </div>
                   ))}
                 </div>

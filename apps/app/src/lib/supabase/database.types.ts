@@ -2292,6 +2292,7 @@ export type Database = {
       }
       ticket_messages: {
         Row: {
+          attachments: Json
           author_id: string | null
           author_role: string
           body: string
@@ -2301,6 +2302,7 @@ export type Database = {
           ticket_id: string
         }
         Insert: {
+          attachments?: Json
           author_id?: string | null
           author_role: string
           body: string
@@ -2310,6 +2312,7 @@ export type Database = {
           ticket_id: string
         }
         Update: {
+          attachments?: Json
           author_id?: string | null
           author_role?: string
           body?: string
@@ -2348,6 +2351,9 @@ export type Database = {
           channel: Database["public"]["Enums"]["ticket_channel"]
           code: string
           created_at: string
+          csat_at: string | null
+          csat_note: string | null
+          csat_rating: number | null
           customer_id: string | null
           id: string
           last_reply_at: string | null
@@ -2364,6 +2370,9 @@ export type Database = {
           channel?: Database["public"]["Enums"]["ticket_channel"]
           code: string
           created_at?: string
+          csat_at?: string | null
+          csat_note?: string | null
+          csat_rating?: number | null
           customer_id?: string | null
           id?: string
           last_reply_at?: string | null
@@ -2380,6 +2389,9 @@ export type Database = {
           channel?: Database["public"]["Enums"]["ticket_channel"]
           code?: string
           created_at?: string
+          csat_at?: string | null
+          csat_note?: string | null
+          csat_rating?: number | null
           customer_id?: string | null
           id?: string
           last_reply_at?: string | null
@@ -3005,6 +3017,9 @@ export type Database = {
           channel: Database["public"]["Enums"]["ticket_channel"]
           code: string
           created_at: string
+          csat_at: string | null
+          csat_note: string | null
+          csat_rating: number | null
           customer_id: string | null
           id: string
           last_reply_at: string | null
@@ -3178,12 +3193,16 @@ export type Database = {
         Returns: undefined
       }
       post_ticket_message: {
-        Args: { p_body: string; p_ticket: string }
+        Args: { p_attachments?: Json; p_body: string; p_ticket: string }
         Returns: undefined
       }
       rate_hit: {
         Args: { p_key: string; p_max: number; p_window_secs: number }
         Returns: boolean
+      }
+      rate_ticket: {
+        Args: { p_note?: string; p_rating: number; p_ticket: string }
+        Returns: undefined
       }
       record_affiliate_click: { Args: { p_code: string }; Returns: undefined }
       remove_affiliate_payout_method: {

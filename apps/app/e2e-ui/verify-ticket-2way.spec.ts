@@ -25,7 +25,7 @@ test('support ticket full 2-way lifecycle', async ({ browser }) => {
   // open it → the description is the first thread message
   await cust.getByText(subject).first().click();
   await expect(cust.getByText(desc).first()).toBeVisible({ timeout: 10_000 });
-  await cust.getByPlaceholder('Write a reply…').fill(custReply);
+  await cust.getByPlaceholder(/Write a reply/i).fill(custReply);
   await cust.getByRole('button', { name: 'Send reply' }).click();
   await expect(cust.getByText(custReply).first()).toBeVisible({ timeout: 10_000 });
   await cust.keyboard.press('Escape');

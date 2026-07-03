@@ -1,13 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Modal } from './Modal';
 import { TicketForm } from './TicketForm';
 import { SpecialistChat } from './SpecialistChat';
+import { TicketDetailDialog } from './support/TicketDetailDialog';
 import { useToast } from './Toast';
+import type { MessageAttachment } from '@/data/mock';
 import {
-  getMyTicketsAction, getTicketThreadAction, createTicketAction, postTicketMessageAction, setTicketStatusAction,
-  type Ticket, type TicketMessage, type TicketType, type TicketStatus,
+  getMyTicketsAction, getTicketDetailAction, createTicketAction, postTicketMessageAction,
+  setTicketStatusAction, rateTicketAction,
+  type Ticket, type TicketDetail, type TicketType, type TicketStatus,
 } from '@/app/(portal)/tickets.actions';
 
 const CONNECT = [
@@ -36,16 +40,15 @@ const StatusPill = ({ s }: { s: TicketStatus }) => { const m = STATUS_META[s]; r
 
 export function SupportClient() {
   const toast = useToast();
+  const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [connectOpen, setConnectOpen] = useState(false);
-  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
-  const [thread, setThread] = useState<TicketMessage[]>([]);
-  const [reply, setReply] = useState('');
-  const [sending, setSending] = useState(false);
+  const [detail, setDetail] = useState<TicketDetail | null>(null);
   const openCount = tickets.filter((t) => t.open).length;
 
   const refresh = useCallback(() => { void getMyTicketsAction().then(setTickets); }, []);
   useEffect(() => { refresh(); }, [refresh]);
+  const reloadDetail = useCallback(async (id: string) => { setDetail(await getTicketDetailAction(id)); refresh(); }, [refresh]);
 
   const addTicket = async (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high', orderCode?: string) => {
     const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', body, priority, orderCode);
@@ -54,30 +57,33 @@ export function SupportClient() {
     refresh();
   };
 
-  const openTicket = async (t: Ticket) => {
-    setActiveTicket(t); setReply(''); setThread([]);
-    setThread(await getTicketThreadAction(t.id));
-  };
+  const openTicket = async (t: Ticket) => setDetail(await getTicketDetailAction(t.id));
 
-  const sendReply = async () => {
-    if (!activeTicket || !reply.trim()) return;
-    setSending(true);
-    const r = await postTicketMessageAction(activeTicket.id, reply.trim());
-    setSending(false);
-    if (!r.ok) { toast(r.error ?? 'Could not send', 'error'); return; }
-    setReply('');
-    setThread(await getTicketThreadAction(activeTicket.id));
-    refresh();
+  // dialog callbacks — each mutates then reloads the detail + list
+  const onReply = async (body: string, atts: MessageAttachment[]): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await postTicketMessageAction(detail.id, body, atts);
+    if (!r.ok) { toast(r.error ?? 'Could not send', 'error'); return false; }
+    await reloadDetail(detail.id);
+    return true;
   };
-
-  const closeActive = async () => {
-    if (!activeTicket) return;
-    const r = await setTicketStatusAction(activeTicket.id, 'closed');
-    if (!r.ok) { toast(r.error ?? 'Could not close', 'error'); return; }
-    toast('Ticket closed');
-    setActiveTicket({ ...activeTicket, status: 'closed', open: false });
-    refresh();
+  const onSetStatus = async (s: TicketStatus): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await setTicketStatusAction(detail.id, s);
+    if (!r.ok) { toast(r.error ?? 'Could not update', 'error'); return false; }
+    toast(s === 'closed' ? 'Ticket closed' : s === 'resolved' ? 'Marked resolved' : 'Ticket reopened', s === 'open' ? undefined : 'info');
+    await reloadDetail(detail.id);
+    return true;
   };
+  const onRate = async (rating: number, note: string): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await rateTicketAction(detail.id, rating, note);
+    if (!r.ok) { toast(r.error ?? 'Could not submit', 'error'); return false; }
+    toast('Thanks for the feedback!');
+    await reloadDetail(detail.id);
+    return true;
+  };
+  const onOpenOrder = (code: string) => { setDetail(null); router.push(`/orders?order=${code}`, { scroll: false }); };
 
   return (
     <>
@@ -180,7 +186,11 @@ export function SupportClient() {
                 {tickets.map((t) => (
                   <tr key={t.id} onClick={() => openTicket(t)} className="cursor-pointer transition hover:bg-accent/40">
                     <td className={`py-3 pr-3 font-semibold ${t.open ? 'text-primary' : 'text-muted-foreground'}`}>#{t.code}</td>
-                    <td className="px-3 py-3">{t.subject}{t.orderCode && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">#{t.orderCode}</span>}</td>
+                    <td className="px-3 py-3">
+                      {t.priority === 'high' && <span className="mr-1.5 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">Urgent</span>}
+                      {t.subject}
+                      {t.orderCode && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">#{t.orderCode}</span>}
+                    </td>
                     <td className="px-3 py-3 text-muted-foreground">{TYPE_LABEL[t.type]}</td>
                     <td className="px-3 py-3"><StatusPill s={t.status} /></td>
                     <td className="py-3 pl-3 text-right text-muted-foreground">{rel(t.lastReplyAt)}</td>
@@ -210,38 +220,16 @@ export function SupportClient() {
         </Modal>
       )}
 
-      {/* ticket detail modal */}
-      {activeTicket && (
-        <Modal onClose={() => setActiveTicket(null)} title={activeTicket.subject} subtitle={`#${activeTicket.code} · ${TYPE_LABEL[activeTicket.type]}`} icon="ph-ticket">
-          {() => (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs">
-                <StatusPill s={activeTicket.status} />
-                {activeTicket.open && <button onClick={closeActive} className="ml-auto text-[11px] font-semibold text-muted-foreground hover:text-foreground">Close ticket</button>}
-              </div>
-              <div className="space-y-3">
-                {thread.length === 0 && <p className="text-center text-xs text-muted-foreground">No messages yet.</p>}
-                {thread.map((m) => (
-                  <div key={m.id} className={`flex flex-col ${m.mine ? 'items-end' : 'items-start'}`}>
-                    <span className="px-1 text-[10px] font-medium text-muted-foreground">{m.mine ? 'You' : 'Support'} · {rel(m.createdAt)}</span>
-                    <div className={`mt-0.5 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${m.mine ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm bg-muted text-foreground'}`}>{m.body}</div>
-                  </div>
-                ))}
-              </div>
-              {activeTicket.open ? (
-                <form
-                  onSubmit={(e) => { e.preventDefault(); void sendReply(); }}
-                  className="flex items-end gap-2 border-t border-border pt-3"
-                >
-                  <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder="Write a reply…" className="scrollbar-thin max-h-28 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                  <button type="submit" disabled={!reply.trim() || sending} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
-                </form>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">This ticket is closed. Submit a new one if you still need help.</p>
-              )}
-            </div>
-          )}
-        </Modal>
+      {/* ticket detail — 2-pane dialog */}
+      {detail && (
+        <TicketDetailDialog
+          detail={detail}
+          onClose={() => setDetail(null)}
+          onReply={onReply}
+          onSetStatus={onSetStatus}
+          onRate={onRate}
+          onOpenOrder={onOpenOrder}
+        />
       )}
     </>
   );
