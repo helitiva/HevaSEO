@@ -19,6 +19,7 @@ type Row = {
   priority: Priority; sla_tier: SlaTier; created_at: string; last_reply_at: string | null;
   customer: { name: string | null; company: string | null } | null;
   assignee: { name: string | null } | null;
+  order: { code: string | null } | null;
   ticket_messages: { author_role: string; body: string; created_at: string }[] | null;
 };
 
@@ -26,7 +27,7 @@ export async function getAgentTicketsAction(): Promise<AdminTicket[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('tickets')
-    .select('id, code, subject, type, channel, status, priority, sla_tier, created_at, last_reply_at, customer:customers(name, company), assignee:profiles!tickets_assignee_id_fkey(name), ticket_messages(author_role, body, created_at)')
+    .select('id, code, subject, type, channel, status, priority, sla_tier, created_at, last_reply_at, customer:customers(name, company), assignee:profiles!tickets_assignee_id_fkey(name), order:orders(code), ticket_messages(author_role, body, created_at)')
     .order('last_reply_at', { ascending: false, nullsFirst: false })
     .returns<Row[]>();
   if (error) return [];
@@ -40,7 +41,7 @@ export async function getAgentTicketsAction(): Promise<AdminTicket[]> {
       id: t.id, code: `#${t.code}`, subject: t.subject,
       customer: custName, customerId: null, // real uuid won't match the mock dossier; keep null
       type: t.type, channel: t.channel, status: t.status, priority: t.priority,
-      assignee: t.assignee?.name ?? null, slaTier: t.sla_tier, orderCode: null,
+      assignee: t.assignee?.name ?? null, slaTier: t.sla_tier, orderCode: t.order?.code ? `#${t.order.code}` : null,
       createdAt: t.created_at, lastReplyAt: t.last_reply_at ?? t.created_at, age: rel(t.created_at),
       thread,
     };

@@ -2995,6 +2995,7 @@ export type Database = {
       create_ticket: {
         Args: {
           p_body: string
+          p_order_code?: string
           p_priority?: Database["public"]["Enums"]["order_priority"]
           p_subject: string
           p_type: Database["public"]["Enums"]["ticket_type"]

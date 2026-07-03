@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useOrdersStore } from './OrdersStore';
+import { useProjects } from './ProjectsStore';
+import { SERVICES } from '@/data/mock';
 
 const PRIORITIES = [
   { key: 'low', label: 'Low' },
@@ -10,9 +13,14 @@ const PRIORITIES = [
 // form priority → DB order_priority
 const PRIO_DB: Record<string, 'low' | 'med' | 'high'> = { low: 'low', normal: 'med', urgent: 'high' };
 
-export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high') => void }) {
+const NONE = '__none';
+
+export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high', orderCode?: string) => void }) {
+  const { realOrders } = useOrdersStore();     // the customer's REAL orders (getMyOrders)
+  const { projects } = useProjects();          // the customer's REAL projects
+  const activeProjects = projects.filter((p) => !p.archived);
   const [prio, setPrio] = useState('normal');
-  const [svc, setSvc] = useState('BLEN-1042');
+  const [svc, setSvc] = useState(NONE);        // selected order code (the "Related service")
   const [files, setFiles] = useState<string[]>([]);
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -24,10 +32,10 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
     const type = String(fd.get('type') ?? 'Other');
     // the detailed description IS the first message; fall back to the subject when left blank
     const body = String(fd.get('description') ?? '').trim() || subject;
-    onSubmit?.(subject, type, body, PRIO_DB[prio] ?? 'med'); // caller reports the real outcome (toast)
+    onSubmit?.(subject, type, body, PRIO_DB[prio] ?? 'med', svc === NONE ? undefined : svc);
     form.reset();
     setPrio('normal');
-    setSvc('BLEN-1042');
+    setSvc(NONE);
     setFiles([]);
   };
 
@@ -49,26 +57,22 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
         </div>
         <div>
           <label className="lbl">Related project</label>
-          <select name="project" className="field">
-            <option>hevashop.com</option>
-            <option>clinicpro.com</option>
-            <option>anphat.com</option>
-            <option>Not project-related</option>
+          <select name="project" className="field" defaultValue={NONE}>
+            <option value={NONE}>Not project-related</option>
+            {activeProjects.map((p) => <option key={p.id} value={p.domain}>{p.name}{p.domain ? ` · ${p.domain}` : ''}</option>)}
           </select>
         </div>
       </div>
 
       <div className="mt-4">
-        <label className="lbl">Related service</label>
+        <label className="lbl">Related service <span className="font-normal text-muted-foreground">(links the ticket to an order)</span></label>
         <select className="field" value={svc} onChange={(e) => setSvc(e.target.value)}>
-          <option value="BLEN-1042">#BLEN-1042 · Entity Growth — hevashop.com</option>
-          <option value="IDX-1035">#IDX-1035 · Indexer Pro — hevashop.com</option>
-          <option value="CT-1033">#CT-1033 · Content SEO/GEO x30 — hevashop.com</option>
-          <option value="BLPR-1034">#BLPR-1034 · Press backlinks — anphat.com</option>
-          <option value="__id">Enter another service code…</option>
-          <option value="none">Not service-related</option>
+          <option value={NONE}>Not service-related</option>
+          {realOrders.map((o) => (
+            <option key={o.id} value={o.id}>#{o.id} · {SERVICES[o.service].label} — {o.domain}</option>
+          ))}
         </select>
-        {svc === '__id' && <input className="field mt-2" placeholder="Enter a service code, e.g. BLGP-1099 (see the code table on the FAQ page)" />}
+        {realOrders.length === 0 && <p className="mt-1 text-[11px] text-muted-foreground">You don’t have any orders yet — leave this as “Not service-related”.</p>}
       </div>
 
       <div className="mt-4">

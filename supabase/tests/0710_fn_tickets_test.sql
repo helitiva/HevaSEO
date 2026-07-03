@@ -4,7 +4,7 @@ begin;
 select plan(9);
 
 select has_function('create_ticket', 'create_ticket() exists');
-select ok(not has_function_privilege('anon', 'create_ticket(text,ticket_type,text,order_priority)', 'execute'), 'anon CANNOT open a ticket');
+select ok(not has_function_privilege('anon', 'create_ticket(text,ticket_type,text,order_priority,text)', 'execute'), 'anon CANNOT open a ticket');
 
 insert into tenants(id, name) values ('11111111-1111-1111-1111-111111111111', 'A');
 insert into profiles(id, tenant_id, email, name, role) values

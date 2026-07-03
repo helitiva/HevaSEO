@@ -6,17 +6,17 @@ import { createClient } from '@/lib/supabase/server';
 export type TicketType = 'technical' | 'billing' | 'consultation';
 export type TicketPriority = 'low' | 'med' | 'high';
 export type TicketStatus = 'open' | 'pending' | 'resolved' | 'closed';
-export type Ticket = { id: string; code: string; subject: string; type: TicketType; status: TicketStatus; open: boolean; lastReplyAt: string | null };
+export type Ticket = { id: string; code: string; subject: string; type: TicketType; status: TicketStatus; open: boolean; lastReplyAt: string | null; orderCode: string | null };
 export type TicketMessage = { id: string; mine: boolean; role: string; body: string; createdAt: string };
 
 const OPEN_STATES: TicketStatus[] = ['open', 'pending'];
-type TicketRow = { id: string; code: string; subject: string; type: TicketType; status: TicketStatus; last_reply_at: string | null };
-const toTicket = (r: TicketRow): Ticket => ({ id: r.id, code: r.code, subject: r.subject, type: r.type, status: r.status, open: OPEN_STATES.includes(r.status), lastReplyAt: r.last_reply_at });
+type TicketRow = { id: string; code: string; subject: string; type: TicketType; status: TicketStatus; last_reply_at: string | null; order: { code: string | null } | null };
+const toTicket = (r: TicketRow): Ticket => ({ id: r.id, code: r.code, subject: r.subject, type: r.type, status: r.status, open: OPEN_STATES.includes(r.status), lastReplyAt: r.last_reply_at, orderCode: r.order?.code ?? null });
 
 export async function getMyTicketsAction(): Promise<Ticket[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('tickets').select('id, code, subject, type, status, last_reply_at')
+    .from('tickets').select('id, code, subject, type, status, last_reply_at, order:orders(code)')
     .order('last_reply_at', { ascending: false, nullsFirst: false }).returns<TicketRow[]>();
   if (error) return [];
   return (data ?? []).map(toTicket);
@@ -33,9 +33,11 @@ export async function getTicketThreadAction(ticketId: string): Promise<TicketMes
 }
 
 export type TicketResult = { ok: true; ticket: Ticket } | { ok: false; error: string };
-export async function createTicketAction(subject: string, type: TicketType, body: string, priority: TicketPriority = 'med'): Promise<TicketResult> {
+export async function createTicketAction(subject: string, type: TicketType, body: string, priority: TicketPriority = 'med', orderCode?: string): Promise<TicketResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('create_ticket', { p_subject: subject, p_type: type, p_body: body, p_priority: priority }).returns<TicketRow>();
+  const { data, error } = await supabase.rpc('create_ticket', {
+    p_subject: subject, p_type: type, p_body: body, p_priority: priority, p_order_code: orderCode || undefined,
+  }).returns<TicketRow>();
   if (error || !data) return { ok: false, error: error?.message ?? 'Could not open the ticket.' };
   return { ok: true, ticket: toTicket(data) };
 }

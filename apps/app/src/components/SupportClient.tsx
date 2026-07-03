@@ -47,8 +47,8 @@ export function SupportClient() {
   const refresh = useCallback(() => { void getMyTicketsAction().then(setTickets); }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const addTicket = async (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high') => {
-    const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', body, priority);
+  const addTicket = async (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high', orderCode?: string) => {
+    const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', body, priority, orderCode);
     if (!r.ok) { toast(r.error, 'error'); return; }
     toast(`Ticket ${r.ticket.code} opened — we'll reply within business hours`);
     refresh();
@@ -180,7 +180,7 @@ export function SupportClient() {
                 {tickets.map((t) => (
                   <tr key={t.id} onClick={() => openTicket(t)} className="cursor-pointer transition hover:bg-accent/40">
                     <td className={`py-3 pr-3 font-semibold ${t.open ? 'text-primary' : 'text-muted-foreground'}`}>#{t.code}</td>
-                    <td className="px-3 py-3">{t.subject}</td>
+                    <td className="px-3 py-3">{t.subject}{t.orderCode && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">#{t.orderCode}</span>}</td>
                     <td className="px-3 py-3 text-muted-foreground">{TYPE_LABEL[t.type]}</td>
                     <td className="px-3 py-3"><StatusPill s={t.status} /></td>
                     <td className="py-3 pl-3 text-right text-muted-foreground">{rel(t.lastReplyAt)}</td>
