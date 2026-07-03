@@ -76,7 +76,10 @@ export async function createTopUpIntentAction(amount: number): Promise<IntentRes
   try {
     const pi = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), currency: 'usd', description: 'Credit top-up',
-      automatic_payment_methods: { enabled: true }, // Link + card + Apple/Google Pay
+      // Card (+ Apple Pay / Google Pay ride on 'card' when the browser supports them) and Link only.
+      // Explicit list instead of automatic_payment_methods so dashboard-enabled methods like Cash App Pay
+      // / Amazon Pay (redirect-based) don't surface in this inline top-up widget.
+      payment_method_types: ['card', 'link'],
       metadata: { heva_customer: cust.id, heva_tenant: cust.tenant_id, kind: 'topup', amount: String(amount) },
     });
     return pi.client_secret ? { ok: true, clientSecret: pi.client_secret, piId: pi.id } : { ok: false, error: 'Could not start payment.' };
