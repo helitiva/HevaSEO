@@ -1559,6 +1559,7 @@ export type Database = {
       }
       order_messages: {
         Row: {
+          attachments: Json
           author_id: string
           body: string
           created_at: string
@@ -1568,6 +1569,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          attachments?: Json
           author_id: string
           body: string
           created_at?: string
@@ -1577,6 +1579,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          attachments?: Json
           author_id?: string
           body?: string
           created_at?: string
@@ -3147,6 +3150,7 @@ export type Database = {
       post_order_message: {
         Args: { p_body: string; p_internal?: boolean; p_order: string }
         Returns: {
+          attachments: Json
           author_id: string
           body: string
           created_at: string
@@ -3205,6 +3209,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      request_order_changes: {
+        Args: { p_attachments?: Json; p_note: string; p_order: string }
+        Returns: undefined
       }
       request_payout: {
         Args: { p_amount: number; p_method?: string }

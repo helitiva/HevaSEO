@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
 import { useMoney, useShowMoney, useAreaBase } from '@/lib/viewer';
@@ -69,7 +70,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [balance, setBalance] = useState<number>(p.cust?.balance ?? 0);
   const [debited, setDebited] = useState<boolean>(!['new', 'canceled'].includes(p.order.status));
   const [activity, setActivity] = useState<Activity[]>(p.initialActivity);
-  const [messages, setMessages] = useState<{ who: string; body: string; internal: boolean }[]>([
+  const [messages, setMessages] = useState<{ who: string; body: string; internal: boolean; attachments?: import('@/data/mock').MessageAttachment[] }[]>([
     { who: 'You', body: 'Confirmed scope with the client; prioritise the money pages.', internal: true },
     { who: p.cust?.name ?? p.order.customer, body: 'Looking forward to the first draft — thanks!', internal: false },
   ]);
@@ -144,7 +145,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
       });
     } else { notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
   }
-  const shownMessages = realThread ? realMsgs.map((c) => ({ who: c.author, body: c.text, internal: Boolean(c.internal) })) : messages;
+  const shownMessages = realThread ? realMsgs.map((c) => ({ who: c.author, body: c.text, internal: Boolean(c.internal), attachments: c.attachments })) : messages;
   function sendStaffNote() { if (!staffNote.trim()) return; setStaffNotes((n) => [...n, { body: staffNote.trim(), at: nowStamp }]); setStaffNote(''); log('note', `${o.code} note to staff`); notify(`Note sent to ${staff ?? 'staff (unassigned)'}`); }
   function doRefund() { const amt = Math.max(0, Number(refundAmt) || 0); setBalance((b) => b + amt); log('refund', `${o.code} refund ${money(amt)}`); notify(`Refunded ${money(amt)}`); setRefundOpen(false); }
 
@@ -284,7 +285,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
           </Card>
 
           <Card icon="ph-chats-circle" title="Messages">
-            <div className="space-y-2">{shownMessages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} />)}</div>
+            <div className="space-y-2">{shownMessages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} attachments={m.attachments} />)}</div>
             <div className="mt-3 flex items-center gap-2">
               <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMsg()} placeholder="Write a message…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               <label className="flex items-center gap-1 text-xs text-muted-foreground"><input type="checkbox" checked={msgInternal} onChange={(e) => setMsgInternal(e.target.checked)} className="accent-primary" /> internal</label>
@@ -449,6 +450,6 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border bg-background/40 p-2"><p className="display text-base font-bold capitalize leading-none">{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p></div>;
 }
-function Msg({ who, body, internal }: { who: string; body: string; internal: boolean }) {
-  return <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}><p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p><p className="text-sm">{body}</p></div>;
+function Msg({ who, body, internal, attachments }: { who: string; body: string; internal: boolean; attachments?: import('@/data/mock').MessageAttachment[] }) {
+  return <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}><p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p><p className="text-sm">{body}</p><MessageAttachments items={attachments} /></div>;
 }

@@ -191,7 +191,8 @@ export interface DeliverableRevision {
   feedback?: string;                             // customer's feedback (esp. when changes were requested)
 }
 export interface Deliverable { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DeliverableRevision[]; }
-export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; }
+export interface MessageAttachment { kind: 'image' | 'video'; url: string; name: string; }
+export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; attachments?: MessageAttachment[]; }
 export interface Activity { label: string; date: string; }
 
 const DELIVERABLES: Record<string, Deliverable[]> = {

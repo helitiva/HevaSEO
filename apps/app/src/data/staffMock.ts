@@ -30,7 +30,7 @@ export interface StaffTask {
   brief: { label: string; value: string }[]; // full customer intake from checkout
 }
 
-export interface StaffMessage { who: string; body: string; internal: boolean; at: string; }
+export interface StaffMessage { who: string; body: string; internal: boolean; at: string; attachments?: import('@/data/mock').MessageAttachment[]; }
 
 // The signed-in staff member (mock). Swapped for the session user when auth lands.
 export const CURRENT_STAFF = { id: 's3', name: 'Huy N.', role: 'Content Lead' };

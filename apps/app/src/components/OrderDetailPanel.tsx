@@ -13,7 +13,9 @@ import { useOrdersStore, useComments } from './OrdersStore';
 import { useToast } from './Toast';
 import { Modal } from './Modal';
 import { UUID_RE } from '@/lib/orderMap';
-import { getCustomerOrderDetailAction, reviewDeliveryAction, type CustomerOrderDetail } from '@/app/(portal)/order.actions';
+import { getCustomerOrderDetailAction, reviewDeliveryAction, requestOrderChangesAction, type CustomerOrderDetail, type RevisionAttachment } from '@/app/(portal)/order.actions';
+import { RevisionComposer } from './RevisionComposer';
+import { MessageAttachments } from './MessageAttachments';
 import { useOrderMessages } from '@/lib/useOrderMessages';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 
@@ -104,7 +106,7 @@ function Panel({ order }: { order: Order }) {
   const [showAll, setShowAll] = useState(false);
   const [expandedDeliv, setExpandedDeliv] = useState<number | null>(null);
   const [closing, setClosing] = useState(false);
-  const [modal, setModal] = useState<null | 'message' | 'review'>(null);
+  const [modal, setModal] = useState<null | 'message' | 'review' | 'revise'>(null);
   const [msg, setMsg] = useState('');
   // Customer service rating (per order — Panel remounts per order via key).
   const [rating, setRating] = useState(0);       // overall service
@@ -121,6 +123,19 @@ function Panel({ order }: { order: Order }) {
       setReviewBusy(null);
       if (!r.ok) { setReviewErr(r.error); return; }
       toast(action === 'approve' ? 'Delivery approved — thank you!' : 'Sent back for revision');
+      router.refresh();
+      close();
+    });
+  };
+  // Request changes with a required note (+ pasted media). Atomic on the server: note posted + order sent back.
+  const submitRevision = (note: string, attachments: RevisionAttachment[]) => {
+    if (!detail) return;
+    setReviewBusy('request_changes'); setReviewErr(null);
+    void requestOrderChangesAction(detail.id, note, attachments).then((r) => {
+      setReviewBusy(null);
+      if (!r.ok) { setReviewErr(r.error); toast(r.error, 'error'); return; }
+      setModal(null);
+      toast('Sent back for revision — the team will see your note');
       router.refresh();
       close();
     });
@@ -190,7 +205,7 @@ function Panel({ order }: { order: Order }) {
               {reviewErr && <p role="alert" className="mb-2 text-[12px] text-destructive">{reviewErr}</p>}
               <div className="flex gap-2">
                 <button type="button" disabled={!detail || !!reviewBusy} onClick={() => decideDelivery('approve')} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"><i className="ph-bold ph-check-circle" aria-hidden />{reviewBusy === 'approve' ? 'Approving…' : 'Approve delivery'}</button>
-                <button type="button" disabled={!detail || !!reviewBusy} onClick={() => decideDelivery('request_changes')} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-500/10 disabled:opacity-40"><i className="ph-bold ph-arrow-u-up-left" aria-hidden />{reviewBusy === 'request_changes' ? 'Sending…' : 'Request changes'}</button>
+                <button type="button" disabled={!detail || !!reviewBusy} onClick={() => setModal('revise')} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-500/10 disabled:opacity-40"><i className="ph-bold ph-arrow-u-up-left" aria-hidden />{reviewBusy === 'request_changes' ? 'Sending…' : 'Request changes'}</button>
               </div>
             </div>
           )}
@@ -350,6 +365,7 @@ function Panel({ order }: { order: Order }) {
                   <div className="min-w-0 text-[13px]">
                     <p className="font-semibold">{c.author} <span className="text-[11px] font-normal text-muted-foreground">· {c.time}</span>{c.internal && <span className="ml-1 rounded bg-muted px-1 text-[9px] font-bold uppercase text-foreground/60">internal</span>}</p>
                     <p className="mt-0.5">{c.text}</p>
+                    <MessageAttachments items={c.attachments} />
                   </div>
                 </div>
               ))}
@@ -394,6 +410,18 @@ function Panel({ order }: { order: Order }) {
           <button onClick={close} aria-label="Close" className="flex shrink-0 items-center justify-center rounded-lg border border-border px-2.5 py-2 text-muted-foreground transition hover:bg-accent sm:hidden"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
       </aside>
+
+      {/* Request revision — the customer must note WHAT to fix (+ paste images/video) */}
+      {modal === 'revise' && (
+        <Modal
+          onClose={() => (reviewBusy ? undefined : setModal(null))}
+          title="Request changes"
+          subtitle={`Tell the team what to revise on #${order.id}`}
+          icon="ph-arrow-u-up-left"
+        >
+          {() => <RevisionComposer busy={reviewBusy === 'request_changes'} onCancel={() => setModal(null)} onSubmit={submitRevision} />}
+        </Modal>
+      )}
 
       {/* Message — posts into the order's conversation */}
       {modal === 'message' && (

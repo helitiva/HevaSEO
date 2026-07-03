@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
@@ -363,7 +364,7 @@ function ManagerPanel({ m, seed }: { m: ManagerInfo; seed: StaffMessage[] }) {
       <div className="mb-2 max-h-40 space-y-2 overflow-y-auto">
         {msgs.length === 0 ? <p className="text-xs text-muted-foreground">No messages yet — say hi.</p> : msgs.map((x, i) => (
           <div key={i} className={`flex ${x.who === 'You' ? 'justify-end' : ''}`}>
-            <span className={`max-w-[80%] rounded-lg px-2.5 py-1.5 text-xs ${x.who === 'You' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{x.body} <span className="opacity-60">· {x.at}</span></span>
+            <div className={`max-w-[80%] rounded-lg px-2.5 py-1.5 text-xs ${x.who === 'You' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{x.body} <span className="opacity-60">· {x.at}</span><MessageAttachments items={x.attachments} /></div>
           </div>
         ))}
       </div>

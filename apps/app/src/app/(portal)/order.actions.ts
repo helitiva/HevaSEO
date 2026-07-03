@@ -8,6 +8,7 @@ import { computeOrderPrice } from '@/lib/orderPricing';
 import { deadlineFromSla } from '@/lib/orderSla';
 import { SERVICE_CATALOG } from '@/data/services';
 import { SERVICES, type ServiceKey } from '@/data/mock';
+import type { Json } from '@/lib/supabase/database.types';
 
 export type PlaceOrderInput = {
   serviceKey: ServiceKey;
@@ -150,6 +151,31 @@ export async function reviewDeliveryAction(orderId: string, action: 'approve' | 
   if (error) {
     const map: Record<string, string> = {
       ILLEGAL_TRANSITION: 'This order can no longer be actioned.',
+      NOT_AUTHORIZED: 'You can only review your own orders.',
+      ORDER_NOT_FOUND: 'That order no longer exists.',
+    };
+    const key = Object.keys(map).find((k) => error.message.includes(k));
+    return { ok: false, error: key ? map[key] : error.message };
+  }
+  revalidatePath('/orders');
+  revalidatePath('/dashboard');
+  return { ok: true };
+}
+
+export type RevisionAttachment = { kind: 'image' | 'video'; url: string; name: string };
+// Request changes WITH a required note (+ optional pasted media). Atomic: posts the note as an order
+// message and advances delivered → changes_requested; if the note is empty or the transition is illegal,
+// nothing happens.
+export async function requestOrderChangesAction(orderId: string, note: string, attachments: RevisionAttachment[] = []): Promise<ReviewDeliveryResult> {
+  if (!note.trim()) return { ok: false, error: 'Please describe what needs revising.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('request_order_changes', {
+    p_order: orderId, p_note: note.trim(), p_attachments: attachments as unknown as Json,
+  });
+  if (error) {
+    const map: Record<string, string> = {
+      EMPTY_NOTE: 'Please describe what needs revising.',
+      ILLEGAL_TRANSITION: 'This order can no longer be sent back.',
       NOT_AUTHORIZED: 'You can only review your own orders.',
       ORDER_NOT_FOUND: 'That order no longer exists.',
     };
