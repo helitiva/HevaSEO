@@ -105,7 +105,10 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
 
 export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain, isVip = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string; isVip?: boolean }) {
   const router = useRouter();
-  const { projects: storeProjects, folders: storeFolders, addProject } = useProjects();
+  const { projects: allStoreProjects, folders: storeFolders, addProject } = useProjects();
+  // The brief's Project picker only offers ACTIVE projects — deleted ones are already gone from the DB,
+  // and archived ones (moved to Archive) must not resurface here either.
+  const storeProjects = allStoreProjects.filter((p) => !p.archived);
   const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
   // When the order is started from inside a project (e.g. the project detail page),

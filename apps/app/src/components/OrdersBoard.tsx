@@ -75,25 +75,52 @@ function firstName(name: string) {
   return name.split(/\s+/)[0] || name;
 }
 
-/** Assigned staff: initials avatar + given name; full name · role on hover. Shared by cards + list. */
-function StaffTag({ name, role, className = '' }: { name: string; role?: string; className?: string }) {
+/** What the specialist actually does on this order — surfaced in the hover card. */
+const STAFF_DUTY: Record<ServiceKey, string> = {
+  backlink: 'Builds and places your backlinks & citations, keeping a safe anchor ratio.',
+  content: 'Researches, writes and optimizes your articles for E-E-A-T.',
+  indexer: 'Submits your links and monitors until they’re indexed.',
+  audit: 'Runs the full technical audit and compiles your report.',
+  optimize: 'Implements the on-site & Core Web Vitals fixes.',
+  keyword: 'Researches and maps your target keyword clusters.',
+  design: 'Designs and builds your pages.',
+};
+const MANAGER_DUTY = 'Oversees the pod and reviews & approves the specialist’s work before it reaches you.';
+
+/** Rich hover card for a person on an order: avatar, full name, title, and what they do here. */
+function PersonTag({ name, title, duty, tone, reviewing = false, className = '' }: { name: string; title: string; duty: string; tone: 'staff' | 'manager'; reviewing?: boolean; className?: string }) {
+  const unassigned = name === 'Unassigned';
+  const avatar = tone === 'manager' ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/15 text-primary';
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`} title={role ? `${name} · ${role}` : name}>
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">{initials(name)}</span>
+    <span className={`group/person relative inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatar}`}>{initials(name)}</span>
       <span className="min-w-0 truncate">{firstName(name)}</span>
+      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
+      {!unassigned && (
+        <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-60 origin-top-left scale-95 rounded-xl border border-border bg-card p-3 text-left opacity-0 shadow-xl transition-all duration-150 group-hover/person:scale-100 group-hover/person:opacity-100">
+          <span className="flex items-center gap-2.5">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold ${avatar}`}>{initials(name)}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-foreground">{name}</span>
+              <span className="block truncate text-[11px] font-medium text-muted-foreground">{title}</span>
+            </span>
+          </span>
+          <span className="mt-2 block text-[11px] leading-relaxed text-muted-foreground">{duty}</span>
+          {reviewing && <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-600"><i className="ph-fill ph-circle text-[7px]" aria-hidden /> Currently reviewing your delivery</span>}
+        </span>
+      )}
     </span>
   );
 }
 
-/** Manager in charge: amber avatar + given name (full name · Manager on hover) + a "Reviewing" tag in review. */
+/** Assigned staff — initials + given name; hover shows full name, title & duty. Shared by cards + list. */
+function StaffTag({ name, role, duty, className = '' }: { name: string; role?: string; duty?: string; className?: string }) {
+  return <PersonTag name={name} title={role ?? 'Specialist'} duty={duty ?? 'Handles the day-to-day work on this order.'} tone="staff" className={className} />;
+}
+
+/** Manager in charge — amber avatar; hover shows full name, title & duty (+ Reviewing in review). */
 function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
-  return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`} title={`${name} · Manager`}>
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600">{initials(name)}</span>
-      <span className="min-w-0 truncate">{firstName(name)}</span>
-      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
-    </span>
-  );
+  return <PersonTag name={name} title="Account Manager" duty={MANAGER_DUTY} tone="manager" reviewing={reviewing} className={className} />;
 }
 
 /** Per-column <td> classes for the list table (used with the column manager). */
@@ -142,7 +169,7 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
         ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" aria-hidden />{leaf.name}</span>
         : <span className="text-muted-foreground">—</span>;
     }
-    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} />;
+    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} />;
     case 'manager': return est === 'planned'
       ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" aria-hidden /> Not assigned</span>
       : <ManagerTag name={managerFor(o.id)} reviewing={est === 'review'} />;
@@ -288,7 +315,7 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
       )}
       {/* staff + manager share one line: given name shown, full name · role on hover */}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium">
-        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="text-foreground/80" />
+        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} className="text-foreground/80" />
         {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="text-foreground/70" />}
       </div>
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
