@@ -23,8 +23,8 @@ test('ticket detail dialog: reply w/ media, resolve, and rate', async ({ page })
   await expect(dialog).toBeVisible({ timeout: 10_000 });
   // details rail is present
   await expect(dialog.getByText('Awaiting assignment')).toBeVisible();       // agent
-  await expect(dialog.getByText('Opened')).toBeVisible();                    // created row
-  await expect(dialog.getByText('Urgent').first()).toBeVisible();            // priority chip
+  await expect(dialog.getByText('Opened', { exact: true })).toBeVisible();   // rail property label
+  await expect(dialog.getByText('Urgent').first()).toBeVisible();            // priority
 
   // reply with an image attachment
   await dialog.getByPlaceholder(/Write a reply/i).fill('Here is a screenshot');
