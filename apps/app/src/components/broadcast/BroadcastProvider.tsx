@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useCallback, useContext, useState } from 'react';
 import type { Broadcast } from '@/data/broadcasts';
-import { markBroadcastReadAction, markBroadcastClickAction } from './receipts.actions';
+import { markBroadcastReadAction, markBroadcastClickAction, markBroadcastDismissedAction } from './receipts.actions';
 
 // Lane C inc-C4/C6 — carries the signed-in user's REAL broadcasts + read-receipt state (fetched
 // server-side in each portal layout) down to the recipient store hooks. broadcasts feed the inbox/bell/
@@ -10,15 +10,18 @@ import { markBroadcastReadAction, markBroadcastClickAction } from './receipts.ac
 type Ctx = {
   broadcasts: Broadcast[];
   readIds: string[];
+  dismissedIds: string[];
   markRead: (id: string) => void;
   markAllRead: (ids: string[]) => void;
   markUnread: (id: string) => void;
   markClicked: (id: string) => void;
+  markDismissed: (id: string) => void;
 };
 const BroadcastContext = createContext<Ctx | null>(null);
 
-export function BroadcastProvider({ broadcasts, readIds: initial, children }: { broadcasts: Broadcast[]; readIds: string[]; children: React.ReactNode }) {
+export function BroadcastProvider({ broadcasts, readIds: initial, dismissedIds: initialDismissed = [], children }: { broadcasts: Broadcast[]; readIds: string[]; dismissedIds?: string[]; children: React.ReactNode }) {
   const [readIds, setReadIds] = useState<string[]>(initial);
+  const [dismissedIds, setDismissedIds] = useState<string[]>(initialDismissed);
 
   const markRead = useCallback((id: string) => {
     setReadIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
@@ -34,8 +37,14 @@ export function BroadcastProvider({ broadcasts, readIds: initial, children }: { 
     setReadIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     void markBroadcastClickAction(id);
   }, []);
+  // dismiss is durable per-account (also implies read); optimistic so the banner hides instantly
+  const markDismissed = useCallback((id: string) => {
+    setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setReadIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    void markBroadcastDismissedAction(id);
+  }, []);
 
-  return <BroadcastContext.Provider value={{ broadcasts, readIds, markRead, markAllRead, markUnread, markClicked }}>{children}</BroadcastContext.Provider>;
+  return <BroadcastContext.Provider value={{ broadcasts, readIds, dismissedIds, markRead, markAllRead, markUnread, markClicked, markDismissed }}>{children}</BroadcastContext.Provider>;
 }
 
 export function useBroadcastSource(): Broadcast[] | null {

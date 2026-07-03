@@ -14,3 +14,9 @@ export async function markBroadcastClickAction(broadcastId: string): Promise<voi
   const supabase = await createClient();
   await supabase.rpc('mark_broadcast_click', { p_broadcast: broadcastId });
 }
+
+// Dismissing a banner/site-alert is durable per-account (kind 'dismissed', implies read).
+export async function markBroadcastDismissedAction(broadcastId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc('mark_broadcast_dismissed', { p_broadcast: broadcastId });
+}

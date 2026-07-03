@@ -188,25 +188,34 @@ export function useInbox(aud: BroadcastAudience) {
   return { items, unread, ready, isRead: (id: string) => readSet.has(id), markRead, markAllRead, markUnread, markClicked };
 }
 
-// Shared dismiss/ack state hook for the banner + site-alert surfaces.
+// Shared dismiss/ack state hook for the banner + site-alert surfaces. When a BroadcastProvider supplies
+// real receipts, dismissal is durable per-account (broadcast_events 'dismissed'); otherwise localStorage.
 function useDismissAck(aud: BroadcastAudience) {
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  const receipts = useBroadcastReceipts();
+  const [localDismissed, setLocalDismissed] = useState<string[]>([]);
   const [acked, setAcked] = useState<string[]>([]);
   useEffect(() => {
-    const load = () => { setDismissed(readJson<string[]>(dismissKey(aud), [])); setAcked(readJson<string[]>(ackKey(aud), [])); };
+    const load = () => { setLocalDismissed(readJson<string[]>(dismissKey(aud), [])); setAcked(readJson<string[]>(ackKey(aud), [])); };
     load();
     window.addEventListener(EVT, load); window.addEventListener('storage', load);
     return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
   }, [aud]);
+
+  const dismissed = receipts ? receipts.dismissedIds : localDismissed;
+
   const dismiss = useCallback((id: string) => {
+    if (receipts) { receipts.markDismissed(id); return; } // durable per-account, optimistic
     const cur = readJson<string[]>(dismissKey(aud), []);
-    if (!cur.includes(id)) { const next = [...cur, id]; writeJson(dismissKey(aud), next); setDismissed(next); }
-  }, [aud]);
+    if (!cur.includes(id)) { const next = [...cur, id]; writeJson(dismissKey(aud), next); setLocalDismissed(next); }
+  }, [receipts, aud]);
   const acknowledge = useCallback((id: string) => {
+    if (receipts) receipts.markDismissed(id); // dismissed implies read in the DB
     const a = readJson<string[]>(ackKey(aud), []); if (!a.includes(id)) { const na = [...a, id]; writeJson(ackKey(aud), na); setAcked(na); }
-    const d = readJson<string[]>(dismissKey(aud), []); if (!d.includes(id)) { const nd = [...d, id]; writeJson(dismissKey(aud), nd); setDismissed(nd); }
-    const r = readJson<string[]>(readKey(aud), []); if (!r.includes(id)) writeJson(readKey(aud), [...r, id]);
-  }, [aud]);
+    if (!receipts) {
+      const d = readJson<string[]>(dismissKey(aud), []); if (!d.includes(id)) { const nd = [...d, id]; writeJson(dismissKey(aud), nd); setLocalDismissed(nd); }
+      const r = readJson<string[]>(readKey(aud), []); if (!r.includes(id)) writeJson(readKey(aud), [...r, id]);
+    }
+  }, [receipts, aud]);
   return { dismissed, acked, dismiss, acknowledge };
 }
 

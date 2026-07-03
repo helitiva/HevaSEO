@@ -9,6 +9,14 @@ export type BillingForm = { company: string; taxId: string; address: string };
 
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 
+// Light fetch for the top-bar avatar (photo + name → initials). Separate from getMyProfileAction so the
+// portal layout doesn't pull the whole profile/billing/notif payload on every page.
+export async function getMyAvatarAction(): Promise<{ avatarUrl: string; name: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('customers').select('avatar_url, name').maybeSingle();
+  return { avatarUrl: s(data?.avatar_url), name: s(data?.name) };
+}
+
 export type NotifPrefs = Record<string, boolean>;
 export async function getMyProfileAction(): Promise<{ profile: ProfileForm; billing: BillingForm; notif: NotifPrefs } | null> {
   const supabase = await createClient();

@@ -13,7 +13,7 @@ import { readCustomerImpersonation, clearCustomerImpersonation } from '@/lib/imp
 interface Impersonation { id: string; company: string; name: string; initials: string }
 const initialsOf = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
-export function PortalShell({ children }: { children: React.ReactNode }) {
+export function PortalShell({ children, avatarUrl, name }: { children: React.ReactNode; avatarUrl?: string; name?: string }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);
@@ -42,7 +42,12 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setOpen(true)} identity={imp ? { company: imp.company, initials: imp.initials } : undefined} />
+        <Topbar
+          onMenu={() => setOpen(true)}
+          identity={imp ? { company: imp.company, initials: imp.initials } : undefined}
+          avatarUrl={avatarUrl}
+          initials={name ? initialsOf(name) : undefined}
+        />
         {imp && (
           <div className="flex flex-wrap items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-700 lg:px-7">
             <i className="ph-bold ph-user-switch" aria-hidden />

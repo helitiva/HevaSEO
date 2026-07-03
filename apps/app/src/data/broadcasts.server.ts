@@ -76,6 +76,18 @@ export async function getMyBroadcastReadIds(): Promise<string[]> {
   return [...new Set((data ?? []).map((r) => r.broadcast_id))];
 }
 
+/** Broadcast ids this user has dismissed (banner/site-alert), so they stay hidden per-account. */
+export async function getMyBroadcastDismissedIds(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('broadcast_events')
+    .select('broadcast_id')
+    .eq('kind', 'dismissed')
+    .returns<{ broadcast_id: string }[]>();
+  if (error) throw new Error(`getMyBroadcastDismissedIds: ${error.message}`);
+  return [...new Set((data ?? []).map((r) => r.broadcast_id))];
+}
+
 // Lane C inc-C5 — admin sees ALL tenant broadcasts (broadcasts_admin RLS), incl recalled + draft, for
 // the management console. active=false marks recalled (the manager surfaces that as the "Recalled" state).
 export async function getBroadcasts(): Promise<Broadcast[]> {

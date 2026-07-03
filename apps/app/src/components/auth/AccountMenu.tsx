@@ -11,7 +11,7 @@ const ROLE_LABEL: Record<AuthRole, string> = {
 // session) and a Sign out action that clears the session and returns to /login — so you can flip
 // between accounts to test register/login. If no session exists (portals are openable directly in
 // the demo), it offers Sign in instead.
-export function AccountMenu({ initials, accentClass, title }: { initials: string; accentClass?: string; title?: string }) {
+export function AccountMenu({ initials, accentClass, title, avatarUrl }: { initials: string; accentClass?: string; title?: string; avatarUrl?: string }) {
   const router = useRouter();
   const session = useSession();
   const [open, setOpen] = useState(false);
@@ -35,9 +35,12 @@ export function AccountMenu({ initials, accentClass, title }: { initials: string
         aria-label="Account menu"
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary ${accent}`}
+        className={`grid h-10 w-10 place-items-center overflow-hidden rounded-lg text-sm font-bold text-white shadow-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary ${avatarUrl ? 'bg-muted' : accent}`}
       >
-        {initials}
+        {avatarUrl
+          // eslint-disable-next-line @next/next/no-img-element -- user Storage URL, dynamic host
+          ? <img src={avatarUrl} alt="Account" className="h-full w-full object-cover" />
+          : initials}
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-card shadow-xl">

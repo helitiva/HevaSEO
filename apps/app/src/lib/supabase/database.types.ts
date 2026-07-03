@@ -3083,6 +3083,10 @@ export type Database = {
         Args: { p_broadcast: string }
         Returns: undefined
       }
+      mark_broadcast_dismissed: {
+        Args: { p_broadcast: string }
+        Returns: undefined
+      }
       mark_broadcast_read: { Args: { p_broadcast: string }; Returns: undefined }
       materialize_order: {
         Args: {

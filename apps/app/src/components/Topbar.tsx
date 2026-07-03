@@ -4,8 +4,10 @@ import { CreditButton } from './CreditButton';
 import { BroadcastBell } from './broadcast/BroadcastBell';
 import { AccountMenu } from './auth/AccountMenu';
 
-export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: { company: string; initials: string } }) {
-  const initials = identity?.initials ?? 'HV';
+export function Topbar({ onMenu, identity, avatarUrl, initials: realInitials }: { onMenu?: () => void; identity?: { company: string; initials: string }; avatarUrl?: string; initials?: string }) {
+  const initials = identity?.initials ?? realInitials ?? 'HV';
+  // impersonation shows the amber initials avatar, not the signed-in admin's photo
+  const photo = identity ? undefined : (avatarUrl || undefined);
   return (
     <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
       <button
@@ -32,7 +34,7 @@ export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: {
       <CreditButton />
       <ThemeToggle />
       <BroadcastBell />
-      <AccountMenu initials={initials} title={identity ? `Impersonating ${identity.company}` : undefined} accentClass={identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : undefined} />
+      <AccountMenu initials={initials} avatarUrl={photo} title={identity ? `Impersonating ${identity.company}` : undefined} accentClass={identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : undefined} />
     </header>
   );
 }

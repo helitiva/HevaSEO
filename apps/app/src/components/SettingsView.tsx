@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useToast } from './Toast';
 import { TeamSettings } from './TeamSettings';
@@ -55,6 +56,7 @@ function NotifSwitch({ id, prefs, onSet }: { id: string; prefs: NotifPrefs; onSe
 export function SettingsView({ initialProfile, initialBilling, initialNotif, initialSettings }: { initialProfile: ProfileForm; initialBilling: BillingForm; initialNotif: NotifPrefs; initialSettings: MySettings }) {
   const [tab, setTab] = useState<TabKey>('profile');
   const toast = useToast();
+  const router = useRouter();
   const profile = useEditForm(initialProfile);
   const [notif, setNotif] = useState<NotifPrefs>(initialNotif);
   const setNotifPref = (id: string, on: boolean) => {
@@ -85,6 +87,7 @@ export function SettingsView({ initialProfile, initialBilling, initialNotif, ini
       const r = await setAvatarUrlAction(publicUrl);
       if (!r.ok) { toast(r.error ?? 'Save failed', 'error'); return; }
       setAvatarUrl(publicUrl);
+      router.refresh(); // re-fetch the layout so the top-bar avatar updates immediately
       toast('Photo updated');
     } finally {
       setUploading(false);
@@ -94,6 +97,7 @@ export function SettingsView({ initialProfile, initialBilling, initialNotif, ini
     const r = await setAvatarUrlAction('');
     if (!r.ok) { toast(r.error ?? 'Remove failed', 'error'); return; }
     setAvatarUrl('');
+    router.refresh(); // top-bar avatar falls back to initials
     toast('Photo removed');
   };
 
