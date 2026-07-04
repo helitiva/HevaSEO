@@ -6,12 +6,13 @@ import { signInWithPassword, homePathForRole } from '@/lib/auth';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
 
-const DEMO_ACCOUNTS = [
-  { email: 'admin@hevaseo.com', role: 'Admin' },
-  { email: 'sofia@hevaseo.com', role: 'Manager' },
-  { email: 'mai@hevaseo.com', role: 'Staff' },
-  { email: 'jane@acme.com', role: 'Customer' },
-  { email: 'jane@janeseo.com', role: 'Affiliate' },
+// One-click dev logins (skip reCAPTCHA) — password is demo1234 for every seeded account.
+const QUICK_LOGINS = [
+  { email: 'jane@acme.com', label: 'Customer', icon: 'ph-user' },
+  { email: 'mai@hevaseo.com', label: 'Staff', icon: 'ph-headset' },
+  { email: 'sofia@hevaseo.com', label: 'Manager', icon: 'ph-users-three' },
+  { email: 'admin@hevaseo.com', label: 'Admin', icon: 'ph-shield-star' },
+  { email: 'jane@janeseo.com', label: 'Affiliate', icon: 'ph-megaphone-simple' },
 ];
 
 export function LoginClient() {
@@ -21,8 +22,17 @@ export function LoginClient() {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [quick, setQuick] = useState<string | null>(null);
 
   const canSubmit = email.trim() && password.length > 0 && !busy;
+
+  // Dev shortcut: sign in as a seeded role in one click, bypassing reCAPTCHA + the form.
+  const quickLogin = async (loginEmail: string) => {
+    setError(''); setQuick(loginEmail);
+    const res = await signInWithPassword(loginEmail, 'demo1234');
+    if (res.ok) { router.replace(homePathForRole(res.role)); router.refresh(); return; }
+    setError(res.error); setQuick(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,17 +96,25 @@ export function LoginClient() {
         </AuthSubmit>
       </form>
 
-      <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-        <p className="mb-1.5 font-semibold text-foreground">Demo accounts</p>
-        <ul className="space-y-0.5">
-          {DEMO_ACCOUNTS.map((a) => (
-            <li key={a.email} className="flex items-center justify-between gap-3">
-              <span className="font-mono">{a.email}</span>
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">{a.role}</span>
-            </li>
+      <div className="mt-6 rounded-xl border border-dashed border-border bg-muted/30 p-3">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          <i className="ph-bold ph-lightning text-primary" aria-hidden /> Log in as
+          <span className="font-normal">· dev shortcut, skips reCAPTCHA</span>
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {QUICK_LOGINS.map((q) => (
+            <button
+              key={q.email}
+              type="button"
+              onClick={() => quickLogin(q.email)}
+              disabled={busy || quick !== null}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-2 text-xs font-semibold transition hover:border-primary/50 hover:bg-accent disabled:opacity-50"
+            >
+              <i className={`ph-bold ${quick === q.email ? 'ph-circle-notch animate-spin' : q.icon}`} aria-hidden /> {q.label}
+            </button>
           ))}
-        </ul>
-        <p className="mt-1.5">Password for all: <span className="font-mono font-semibold text-foreground">demo1234</span></p>
+        </div>
+        <p className="mt-2 text-[10px] text-muted-foreground">All seeded accounts · password <span className="font-mono font-semibold text-foreground/80">demo1234</span></p>
       </div>
     </AuthShell>
   );
