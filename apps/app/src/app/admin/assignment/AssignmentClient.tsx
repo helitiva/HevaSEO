@@ -5,11 +5,10 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
-import { OrderDetailClient } from '@/app/admin/orders/[id]/OrderDetailClient';
-import { buildOrderDetailProps } from '@/lib/orderDetail';
+import { OrderDetailClient, type OrderDetailProps } from '@/app/admin/orders/[id]/OrderDetailClient';
 import { statusLabel, SKILL_META, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney } from '@/lib/viewer';
-import { assignOrderAction } from './assign.actions';
+import { assignOrderAction, getOrderPanelPropsAction } from './assign.actions';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
 interface Cand { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skillMatch: boolean }
@@ -51,6 +50,10 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
   const [ruleModal, setRuleModal] = useState<{ editing: RuleLite | null } | null>(null);
   const [history, setHistory] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
   const [panelId, setPanelId] = useState<string | null>(null);
+  // The queue holds REAL orders (real UUIDs). Fetch the real detail RLS-scoped on open (managers stay
+  // money-blind) — the old client-side mock lookup returned null for real ids → a blank slide-over.
+  const [panelProps, setPanelProps] = useState<OrderDetailProps | null>(null);
+  const [panelLoading, setPanelLoading] = useState(false);
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
   // record = toast + append to the assignment history log
   const record = (msg: string, icon = 'ph-arrow-right') => { notify(msg); setHistory((h) => [{ id: `${Date.now()}.${h.length}`, at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), text: msg, icon }, ...h].slice(0, 40)); };
@@ -169,6 +172,16 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
     const url = new URL(window.location.href);
     if (panelId) url.searchParams.set('order', panelId); else url.searchParams.delete('order');
     window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+  }, [panelId]);
+  useEffect(() => {
+    if (!panelId) { setPanelProps(null); setPanelLoading(false); return; }
+    let active = true;
+    setPanelLoading(true);
+    setPanelProps(null);
+    getOrderPanelPropsAction(panelId)
+      .then((p) => { if (active) { setPanelProps(p); setPanelLoading(false); } })
+      .catch(() => { if (active) { setPanelProps(null); setPanelLoading(false); } });
+    return () => { active = false; };
   }, [panelId]);
   useEffect(() => {
     if (!panelItem) return;
@@ -430,10 +443,18 @@ export function AssignmentClient({ queue, assigned, staff, rules, kpis, tierMeta
       {ruleModal && <RuleModal editing={ruleModal.editing} staff={staff} onClose={() => setRuleModal(null)} onSave={saveRule} />}
       {panelItem && (
         <SlideOver open onClose={() => setPanelId(null)} title={panelItem.code} widthClass="max-w-5xl">
-          {(() => {
-            const detail = buildOrderDetailProps(panelItem.id);
-            return detail ? <OrderDetailClient key={detail.order.id} {...detail} /> : null;
-          })()}
+          {panelProps ? (
+            <OrderDetailClient key={panelProps.order.id} {...panelProps} />
+          ) : panelLoading ? (
+            <div className="flex items-center justify-center gap-2 p-16 text-sm text-muted-foreground">
+              <i className="ph-bold ph-circle-notch animate-spin" aria-hidden />Loading order…
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 p-16 text-center text-sm text-muted-foreground">
+              <i className="ph ph-warning-circle text-2xl" aria-hidden />
+              <p>Couldn’t load this order’s details.</p>
+            </div>
+          )}
         </SlideOver>
       )}
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl">{toast}</div>}
