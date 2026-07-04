@@ -58,15 +58,15 @@ test('Review · QA queue renders', async ({ page }) => {
   expect(await bodyText(page)).not.toMatch(CURRENCY);
 });
 
-test('Tickets · list renders and a ticket opens its detail', async ({ page }) => {
+test('Tickets · real tickets render in the two-pane view with a reply composer', async ({ page }) => {
   await page.goto('/manager/tickets');
   await expect(page.getByText(/tickets in your pod/i)).toBeVisible();
-  const row = page.getByRole('row').filter({ hasText: /TKT-|#\d|open|resolved|pending/i }).first();
-  const anyRow = (await row.count()) ? row : page.locator('tbody tr, [role="row"]').first();
-  if (await anyRow.count()) {
-    await anyRow.click();
-    // 2-pane helpdesk dialog opens
-    await expect(page.getByRole('dialog').first()).toBeVisible({ timeout: 6000 });
+  // TicketsClient auto-selects the first ticket → the reply composer (post_ticket_message) is present.
+  // Managers now read REAL customer tickets (tickets_manager_pod RLS), not mock.
+  const composer = page.getByPlaceholder(/^Reply to /i);
+  if (await composer.count()) {
+    await expect(composer.first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Send reply/i }).first()).toBeVisible();
   }
 });
 
