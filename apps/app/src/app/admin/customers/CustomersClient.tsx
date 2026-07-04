@@ -10,7 +10,7 @@ import { PartnerHoverCard } from '@/components/admin/PartnerHoverCard';
 import { referrerOf } from '@/data/adminAffiliate';
 import { impersonateCustomer } from '@/lib/impersonation';
 import { TIER, type OrderStatus, type Tier } from '@/data/adminMock';
-import { useMoney, useShowMoney } from '@/lib/viewer';
+import { useMoney, useShowMoney, useAreaBase, useImpersonatePolicy } from '@/lib/viewer';
 
 export type Health = 'good' | 'ok' | 'risk';
 
@@ -82,6 +82,7 @@ function ReferrerTag({ customerId, className = '' }: { customerId: string; class
 export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const money = useMoney();
   const showMoney = useShowMoney();
+  const base = useAreaBase(); // /admin for admins, /manager for managers → links stay in-area
   const [query, setQuery] = useState('');
   const [seg, setSeg] = useState('all');
   const [sort, setSort] = useState<SortKey>(showMoney ? 'ltv' : 'orders');
@@ -147,7 +148,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const panelIdx = panelId ? filtered.findIndex((c) => c.id === panelId) : -1;
   const prevCust = panelIdx > 0 ? filtered[panelIdx - 1] : null;
   const nextCust = panelIdx >= 0 && panelIdx < filtered.length - 1 ? filtered[panelIdx + 1] : null;
-  const copyCustLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/customers?customer=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const copyCustLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}${base}/customers?customer=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
   useEffect(() => { const id = new URLSearchParams(window.location.search).get('customer'); if (id && rows.some((c) => c.id === id)) setPanelId(id); }, [rows]);
   useEffect(() => { const url = new URL(window.location.href); if (panelId) url.searchParams.set('customer', panelId); else url.searchParams.delete('customer'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [panelId]);
   useEffect(() => {
@@ -232,7 +233,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                   const t = TIER[c.tier];
                   return (
                     <li key={c.id}>
-                      <Link href={`/admin/customers/${c.id}`} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50">
+                      <Link href={`${base}/customers/${c.id}`} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50">
                         <span className="w-4 shrink-0 text-center text-xs font-bold text-muted-foreground">{i + 1}</span>
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">{initials(c.name)}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name} <span className="font-normal text-muted-foreground">· {c.company}</span></span>
@@ -253,7 +254,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                     <li key={c.id} className="flex items-center gap-2.5">
                       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/10 text-[11px] font-bold text-red-500">{initials(c.name)}</span>
                       <div className="min-w-0 flex-1">
-                        <Link href={`/admin/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
+                        <Link href={`${base}/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
                         <p className="text-[11px] text-muted-foreground">{ago(c.churnDays)} · {money(c.spend)} LTV</p>
                       </div>
                       <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden /></a>
@@ -432,6 +433,8 @@ const MIX_COLOR = ['#2563eb', '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#fb92
 
 function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: CustomerRow; notify: (m: string) => void; prev: CustomerRow | null; next: CustomerRow | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean }) {
   const money = useMoney();
+  const base = useAreaBase();
+  const canImpersonateCustomer = useImpersonatePolicy().canCustomer; // managers can't → hide the button
   const t = TIER[c.tier]; const h = HEALTH[c.health];
   const mixSum = c.mix.reduce((s, m) => s + m.value, 0) || 1;
   return (
@@ -458,13 +461,15 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
       </div>
 
       {/* actions */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid ${canImpersonateCustomer ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
         <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden />Email</a>
-        <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" aria-hidden />Impersonate</button>
+        {canImpersonateCustomer && (
+          <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" aria-hidden />Impersonate</button>
+        )}
       </div>
       <div className="flex items-center gap-2">
-        <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" aria-hidden />Open full profile</Link>
-        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
+        <Link href={`${base}/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" aria-hidden />Open full profile</Link>
+        <a href={`${base}/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
       </div>
 
       {/* KPI grid */}
@@ -507,7 +512,7 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
         {c.recentOrders.length ? (
           <div className="space-y-1.5">
             {c.recentOrders.map((o) => (
-              <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm hover:bg-muted/50">
+              <Link key={o.id} href={`${base}/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm hover:bg-muted/50">
                 <span className="min-w-0 flex-1 truncate"><span className="font-medium">{o.code}</span> <span className="text-muted-foreground">· {o.service}</span></span>
                 <StatusBadge status={o.status} />
                 <span className="shrink-0 font-semibold tabular-nums">{money(o.value)}</span>
@@ -574,12 +579,16 @@ function SortHead({ label, col, align, sort, dir, onSort }: { label: string; col
 }
 function RowMenu({ c, notify, onView }: { c: CustomerRow; notify: (m: string) => void; onView: () => void }) {
   const [open, setOpen] = useState(false);
+  const base = useAreaBase();
+  const showMoney = useShowMoney();
+  const canImpersonateCustomer = useImpersonatePolicy().canCustomer;
+  // Managers are money-blind and can't impersonate customers → hide 'Adjust credit' + 'Impersonate'.
   const items = [
     { icon: 'ph-sidebar', label: 'Quick view', fn: onView },
-    { icon: 'ph-arrow-square-out', label: 'Full profile', href: `/admin/customers/${c.id}` },
+    { icon: 'ph-arrow-square-out', label: 'Full profile', href: `${base}/customers/${c.id}` },
     { icon: 'ph-envelope-simple', label: 'Email', fn: () => notify(`Email · ${c.name}`) },
-    { icon: 'ph-user-switch', label: 'Impersonate', fn: () => impersonateCustomer(c.id) },
-    { icon: 'ph-wallet', label: 'Adjust credit', fn: () => notify(`Adjust credit · ${c.name}`) },
+    ...(canImpersonateCustomer ? [{ icon: 'ph-user-switch', label: 'Impersonate', fn: () => impersonateCustomer(c.id) }] : []),
+    ...(showMoney ? [{ icon: 'ph-wallet', label: 'Adjust credit', fn: () => notify(`Adjust credit · ${c.name}`) }] : []),
   ];
   return (
     <div className="relative">
