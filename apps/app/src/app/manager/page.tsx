@@ -3,44 +3,52 @@ import { RingStat } from '@/components/admin/RingStat';
 import { Donut } from '@/components/admin/Donut';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { AUDIT_CATEGORY } from '@/data/adminMock';
-import { managerScope, customersForPod, MANAGER_PERSONA } from '@/lib/managerScope';
+import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
 import {
   triageForPod, weekDeadlines, qaHealth, slaHealth, serviceMix,
-  rosterWithRebalance, recentActivity, overdueCount, POD_TODAY,
+  rosterWithRebalance, recentActivity, overdueCount, podToday,
   type WeekDay, type RosterRow,
 } from '@/lib/managerPulse';
 import { TriageQueue } from '@/components/manager/TriageQueue';
 import { buildManagerPerf } from '@/lib/managerPerf';
 import { MgrLeverStrip } from '@/components/manager/ManagerScorecard';
+import { getPodOrders } from '@/data/orders.server';
+import { getDeliverables } from '@/data/deliverables.server';
+import { getStaff } from '@/data/staff.server';
+import { getCustomers } from '@/data/customers.server';
+import { getAgentTicketsAction } from '@/app/admin/tickets/actions';
 
 export const metadata = { title: 'Overview' };
 
-// Manager Command Center — an action-first, money-blind snapshot of one pod.
-// Top: a single triage queue ("what needs me now") + capacity & the week ahead.
-// Middle: QA, SLA and workload-mix health. Bottom: the roster and what just happened.
-export default function ManagerOverview() {
-  const scope = managerScope(MANAGER_PERSONA);
-  const customers = customersForPod(scope);
-  const triage = triageForPod(scope);
-  const week = weekDeadlines(scope);
-  const qa = qaHealth(scope);
-  const sla = slaHealth(scope);
-  const mix = serviceMix(scope);
-  const { roster, rebalance } = rosterWithRebalance(scope);
-  const activity = recentActivity(scope);
+// Manager Command Center — an action-first, money-blind snapshot computed over REAL data (orders_mgr,
+// deliverables, tickets, staff — all RLS-scoped + money-blind). Top: a single triage queue + capacity &
+// the week ahead. Middle: QA, SLA and workload-mix health. Bottom: the roster and what just happened.
+export default async function ManagerOverview() {
+  const [orders, deliverables, staff, customers, tickets] = await Promise.all([
+    getPodOrders(), getDeliverables(), getStaff(), getCustomers(), getAgentTicketsAction(),
+  ]);
+  const today = podToday();
+  const triage = triageForPod(orders, deliverables, tickets, staff, today);
+  const week = weekDeadlines(orders, today);
+  const qa = qaHealth(deliverables);
+  const sla = slaHealth(tickets);
+  const mix = serviceMix(orders);
+  const { roster, rebalance } = rosterWithRebalance(staff, orders, today);
+  const activity = recentActivity([]); // no real audit-entry reader yet → shown empty rather than mock
 
   const active = roster.reduce((n, r) => n + r.load, 0);
   const totalCap = roster.reduce((n, r) => n + r.capacity, 0);
   const util = totalCap ? Math.round((active / totalCap) * 100) : 0;
-  const overdue = overdueCount(scope);
-  const perf = buildManagerPerf(MANAGER_PERSONA);
-  const dateLabel = new Date(`${POD_TODAY}T09:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const overdue = overdueCount(orders, staff, today);
+  const perf = buildManagerPerf(MANAGER_PERSONA); // the manager's own score (modeled; not cleared data)
+  const managerName = managerScope(MANAGER_PERSONA).manager?.name ?? 'My';
+  const dateLabel = new Date(`${today}T09:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <section className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="display text-2xl font-bold tracking-tight">{scope.manager?.name}’s pod</h1>
+          <h1 className="display text-2xl font-bold tracking-tight">{managerName}’s pod</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel} · {roster.length} people · {customers.length} customers</p>
         </div>
         <span className="pill pill-live"><span /> Live</span>
@@ -288,7 +296,7 @@ function RosterRowView({ row }: { row: RosterRow }) {
 /** "09:12" if today, else "Jun 23". Audit `at` is "YYYY-MM-DD HH:MM". */
 function shortTime(at: string): string {
   const [date, time] = at.split(' ');
-  if (date === POD_TODAY) return time ?? date;
+  if (date === podToday()) return time ?? date;
   const d = new Date(`${date}T00:00:00`);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

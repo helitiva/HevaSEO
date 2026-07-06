@@ -20,7 +20,7 @@ import {
   type AdminManager,
 } from '@/data/adminMock';
 import { myWorkStats } from '@/data/staffMock';
-import { managerScope, ordersForPod, type ManagerScope } from './managerScope';
+import { managerScope, ordersForPod, ticketsForPod, type ManagerScope } from './managerScope';
 import {
   qaHealth, slaHealth, rosterWithRebalance, ageDays,
 } from './managerPulse';
@@ -88,15 +88,16 @@ export interface ManagerStats {
 
 function computeStats(scope: ManagerScope): ManagerStats {
   const active = scope.staff.filter((s) => s.active);
-  const { roster } = rosterWithRebalance(scope);
+  const podOrders = ordersForPod(scope);
+  const podDeliverables = DELIVERABLES.filter((d) => scope.staffNames.has(d.staff));
+  const { roster } = rosterWithRebalance(scope.staff, podOrders); // mock pod data → modeled score
   const activeRoster = roster.filter((r) => r.active);
-  const qa = qaHealth(scope);
-  const sla = slaHealth(scope);
+  const qa = qaHealth(podDeliverables);
+  const sla = slaHealth(ticketsForPod(scope));
 
   const activeLoad = activeRoster.reduce((n, r) => n + r.load, 0);
   const cap = activeRoster.reduce((n, r) => n + r.capacity, 0);
   const overdue = activeRoster.reduce((n, r) => n + r.overdue, 0);
-  const podOrders = ordersForPod(scope);
 
   // Leave latency for this pod.
   const podLeaves = LEAVE_REQUESTS.filter((l) => scope.staffIds.has(l.staffId));
