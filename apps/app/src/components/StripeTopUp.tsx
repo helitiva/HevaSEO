@@ -7,6 +7,7 @@ import { loadStripe, type Stripe, type Appearance } from '@stripe/stripe-js';
 import { Elements, PaymentElement, LinkAuthenticationElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useToast } from './Toast';
 import { createTopUpIntentAction, confirmTopUpAction } from '@/app/(portal)/credit.actions';
+import type { BillingForm } from '@/app/(portal)/profile.actions';
 
 // Stripe Payment Element top-up (surfaces Link + card + Apple/Google Pay in one embedded widget). The PK
 // is a NEXT_PUBLIC var (safe in the bundle). loadStripe is memoised at module scope so it loads once.
@@ -65,8 +66,22 @@ const DARK_APPEARANCE: Appearance = {
   },
 };
 
+// Prefill the Payment Element's billing fields from the customer's saved billing (skip country — Stripe
+// wants an ISO-2 code and ours is free text, so let the widget's own picker handle it).
+function billingDefaults(b?: BillingForm | null) {
+  if (!b) return undefined;
+  return {
+    billingDetails: {
+      name: b.name || undefined,
+      email: b.email || undefined,
+      phone: b.phone || undefined,
+      address: { line1: b.line1 || undefined, line2: b.line2 || undefined, city: b.city || undefined, state: b.state || undefined, postal_code: b.postalCode || undefined },
+    },
+  };
+}
+
 // Inner form — has access to the Elements context, confirms in-browser, then credits server-side.
-function PayForm({ amount, piId, onDone }: { amount: number; piId: string; onDone?: () => void }) {
+function PayForm({ amount, piId, onDone, billing }: { amount: number; piId: string; onDone?: () => void; billing?: BillingForm | null }) {
   const stripe = useStripe();
   const elements = useElements();
   const toast = useToast();
@@ -91,8 +106,8 @@ function PayForm({ amount, piId, onDone }: { amount: number; piId: string; onDon
 
   return (
     <div className="space-y-4">
-      <LinkAuthenticationElement />
-      <PaymentElement options={{ layout: 'tabs' }} />
+      <LinkAuthenticationElement options={billing?.email ? { defaultValues: { email: billing.email } } : undefined} />
+      <PaymentElement options={{ layout: 'tabs', defaultValues: billingDefaults(billing) }} />
       <button type="button" disabled={!stripe || paying} onClick={pay}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60">
         <i className={`ph-bold ${paying ? 'ph-circle-notch animate-spin' : 'ph-lock-simple'}`} aria-hidden /> {paying ? 'Processing…' : `Pay $${amount}`}
@@ -103,7 +118,7 @@ function PayForm({ amount, piId, onDone }: { amount: number; piId: string; onDon
 
 // Creates a PaymentIntent for the amount, then mounts Elements with its clientSecret. Re-creates when the
 // amount changes (Elements is keyed by clientSecret).
-export function StripeTopUp({ amount, onDone }: { amount: number; onDone?: () => void }) {
+export function StripeTopUp({ amount, onDone, billing }: { amount: number; onDone?: () => void; billing?: BillingForm | null }) {
   const { resolvedTheme } = useTheme();
   const [state, setState] = useState<{ clientSecret: string; piId: string } | null>(null);
   const [error, setError] = useState('');
@@ -130,7 +145,7 @@ export function StripeTopUp({ amount, onDone }: { amount: number; onDone?: () =>
       {/* key by theme so a light/dark toggle re-mounts Elements with the new appearance (react-stripe-js
           doesn't always apply appearance updates live); same clientSecret → same PaymentIntent. */}
       <Elements key={resolvedTheme ?? 'light'} stripe={getStripe()} options={{ clientSecret: state.clientSecret, appearance }}>
-        <PayForm amount={amount} piId={state.piId} onDone={onDone} />
+        <PayForm amount={amount} piId={state.piId} onDone={onDone} billing={billing} />
       </Elements>
     </div>
   );

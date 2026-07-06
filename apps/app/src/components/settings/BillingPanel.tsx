@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useToast } from '../Toast';
 import { useCredit } from '../CreditStore';
 import { Modal } from '../Modal';
-import { updateBillingAction, type BillingForm } from '@/app/(portal)/profile.actions';
+import { updateBillingAction } from '@/app/(portal)/profile.actions';
+import { billingComplete, type BillingForm } from '@/lib/billing';
 import {
   setAutoTopupAction, requestPlanChangeAction, addPaymentMethodAction, removePaymentMethodAction,
   setDefaultPaymentMethodAction, type AutoTopup, type PaymentMethod,
@@ -28,6 +29,7 @@ export function BillingPanel({ plan, initialAutoTopup, initialPaymentMethods, in
   const [topup, setTopup] = useState<AutoTopup>(initialAutoTopup);
   const [pms, setPms] = useState<PaymentMethod[]>(initialPaymentMethods);
   const [billing, setBilling] = useState<BillingForm>(initialBilling);
+  const billingReady = billingComplete(billing);
   const planDesc = TIERS.find((t) => t.key === plan)?.desc ?? '';
 
   const saveTopup = async (next: AutoTopup) => {
@@ -106,11 +108,24 @@ export function BillingPanel({ plan, initialAutoTopup, initialPaymentMethods, in
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-        <h2 className="display text-base font-semibold tracking-tight">Billing information (VAT)</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="display text-base font-semibold tracking-tight">Billing information</h2>
+          {billingReady
+            ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-check-circle" aria-hidden />Complete</span>
+            : <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600"><i className="ph-bold ph-warning-circle" aria-hidden />Incomplete</span>}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">Used on your invoices and to charge credit top-ups. Name, address, city and country are required.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div><label className="lbl">Billing name<span className="text-primary"> *</span></label><input className="field" value={billing.name} onChange={(e) => setBilling((b) => ({ ...b, name: e.target.value }))} placeholder="Full name or contact" /></div>
           <div><label className="lbl">Company name</label><input className="field" value={billing.company} onChange={(e) => setBilling((b) => ({ ...b, company: e.target.value }))} /></div>
-          <div><label className="lbl">Tax ID</label><input className="field" value={billing.taxId} onChange={(e) => setBilling((b) => ({ ...b, taxId: e.target.value }))} /></div>
-          <div className="sm:col-span-2"><label className="lbl">Address</label><input className="field" value={billing.address} onChange={(e) => setBilling((b) => ({ ...b, address: e.target.value }))} /></div>
+          <div><label className="lbl">Billing email</label><input className="field" type="email" value={billing.email} onChange={(e) => setBilling((b) => ({ ...b, email: e.target.value }))} placeholder="invoices@company.com" /></div>
+          <div><label className="lbl">Tax ID / VAT</label><input className="field" value={billing.taxId} onChange={(e) => setBilling((b) => ({ ...b, taxId: e.target.value }))} /></div>
+          <div className="sm:col-span-2"><label className="lbl">Address line 1<span className="text-primary"> *</span></label><input className="field" value={billing.line1} onChange={(e) => setBilling((b) => ({ ...b, line1: e.target.value }))} placeholder="Street address" /></div>
+          <div className="sm:col-span-2"><label className="lbl">Address line 2</label><input className="field" value={billing.line2} onChange={(e) => setBilling((b) => ({ ...b, line2: e.target.value }))} placeholder="Apartment, suite, etc. (optional)" /></div>
+          <div><label className="lbl">City<span className="text-primary"> *</span></label><input className="field" value={billing.city} onChange={(e) => setBilling((b) => ({ ...b, city: e.target.value }))} /></div>
+          <div><label className="lbl">State / Province</label><input className="field" value={billing.state} onChange={(e) => setBilling((b) => ({ ...b, state: e.target.value }))} /></div>
+          <div><label className="lbl">Postal code</label><input className="field" value={billing.postalCode} onChange={(e) => setBilling((b) => ({ ...b, postalCode: e.target.value }))} /></div>
+          <div><label className="lbl">Country<span className="text-primary"> *</span></label><input className="field" value={billing.country} onChange={(e) => setBilling((b) => ({ ...b, country: e.target.value }))} placeholder="Vietnam" /></div>
         </div>
         <div className="mt-4 flex justify-end"><button onClick={saveBilling} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save details</button></div>
       </div>

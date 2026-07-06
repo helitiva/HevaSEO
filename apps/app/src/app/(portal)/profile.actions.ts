@@ -2,10 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/lib/supabase/database.types';
+import { billingComplete, type BillingForm } from '@/lib/billing';
 
 // Real profile + billing for the settings page (RLS-scoped read; safe-column write via a fn).
 export type ProfileForm = { name: string; email: string; phone: string; company: string; industry: string; website: string };
-export type BillingForm = { company: string; taxId: string; address: string };
+export type { BillingForm } from '@/lib/billing'; // re-export so existing importers keep working
 
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 
@@ -29,9 +30,36 @@ export async function getMyProfileAction(): Promise<{ profile: ProfileForm; bill
   for (const [k, v] of Object.entries(n)) notif[k] = Boolean(v);
   return {
     profile: { name: s(data.name), email: s(data.email), phone: s(data.phone), company: s(data.company), industry: s(data.industry), website: s(data.website) },
-    billing: { company: s(b.company) || s(data.company), taxId: s(b.taxId), address: s(b.address) },
+    billing: billingFromJson(b, data),
     notif,
   };
+}
+
+// Map the billing jsonb → BillingForm, filling blanks from the customer's base fields and migrating the
+// legacy single-line `address` into line1.
+function billingFromJson(b: Record<string, unknown>, data: { name?: string | null; email?: string | null; phone?: string | null; company?: string | null }): BillingForm {
+  return {
+    name: s(b.name) || s(data.name),
+    email: s(b.email) || s(data.email),
+    phone: s(b.phone) || s(data.phone),
+    company: s(b.company) || s(data.company),
+    taxId: s(b.taxId),
+    line1: s(b.line1) || s(b.address),
+    line2: s(b.line2),
+    city: s(b.city),
+    state: s(b.state),
+    postalCode: s(b.postalCode),
+    country: s(b.country),
+  };
+}
+
+// Lighter read for the top-up flow: the saved billing + whether it's complete enough to charge.
+export async function getMyBillingAction(): Promise<{ billing: BillingForm; complete: boolean }> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('customers').select('name, email, phone, company, billing').maybeSingle();
+  const b = (data?.billing && typeof data.billing === 'object' && !Array.isArray(data.billing) ? data.billing : {}) as Record<string, unknown>;
+  const billing = billingFromJson(b, data ?? {});
+  return { billing, complete: billingComplete(billing) };
 }
 
 // Real password change via Supabase Auth (the logged-in user's session).
@@ -60,7 +88,10 @@ export async function updateProfileAction(p: ProfileForm): Promise<SaveResult> {
 
 export async function updateBillingAction(b: BillingForm): Promise<SaveResult> {
   const supabase = await createClient();
-  const billing = { company: b.company, taxId: b.taxId, address: b.address } as unknown as Json;
+  const billing = {
+    name: b.name, email: b.email, phone: b.phone, company: b.company, taxId: b.taxId,
+    line1: b.line1, line2: b.line2, city: b.city, state: b.state, postalCode: b.postalCode, country: b.country,
+  } as unknown as Json;
   const { error } = await supabase.rpc('update_my_profile', { p_billing: billing });
   return error ? { ok: false, error: error.message } : { ok: true };
 }

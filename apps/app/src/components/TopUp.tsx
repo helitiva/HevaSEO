@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
 import { topUpAction } from '@/app/(portal)/credit.actions';
+import { getMyBillingAction, updateBillingAction } from '@/app/(portal)/profile.actions';
+import { billingComplete, type BillingForm } from '@/lib/billing';
 import { StripeTopUp, stripeConfigured } from './StripeTopUp';
 
 const PRESETS = [20, 80, 200, 400, 800];
@@ -41,6 +43,11 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
   const toast = useToast();
   const router = useRouter();
   const [paying, setPaying] = useState(false);
+  // Billing gate: a top-up needs complete billing (invoice + charge details). Load the saved billing; if
+  // it's incomplete the user fills it here first, otherwise we prefill the card widget from it.
+  const [billing, setBilling] = useState<BillingForm | null>(null);
+  useEffect(() => { getMyBillingAction().then((r) => setBilling(r.billing)); }, []);
+  const billingReady = billing ? billingComplete(billing) : false;
 
   const pick = (n: number) => { setAmount(n); setCustom(''); };
   const onCustom = (v: string) => {
@@ -89,6 +96,11 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
         {tooLow && <p className="mt-1 text-[11px] font-medium text-destructive">Minimum top-up is $5.</p>}
       </div>
 
+      {billing === null ? (
+        <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><i className="ph-bold ph-circle-notch animate-spin" aria-hidden /> Loading billing…</p>
+      ) : !billingReady ? (
+        <BillingGate initial={billing} onSaved={setBilling} />
+      ) : (<>
       {/* method switch */}
       <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
       <div className="grid grid-cols-2 gap-2">
@@ -111,7 +123,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       {method === 'card' ? (
         stripeConfigured() ? (
           // Stripe Payment Element — Link + card + Apple/Google Pay in one embedded widget
-          <StripeTopUp amount={amount} onDone={onDone} />
+          <StripeTopUp amount={amount} onDone={onDone} billing={billing} />
         ) : (
         <>
           {/* express wallets */}
@@ -160,6 +172,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           </button>
         </div>
       )}
+      </>)}
 
       {/* trust footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
@@ -180,6 +193,40 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       <h2 className="display text-lg font-semibold tracking-tight">Top up credits</h2>
       <p className="text-xs text-muted-foreground">Pay securely by card or PayPal. Credits are added to your balance instantly.</p>
       {body}
+    </div>
+  );
+}
+
+// Shown at top-up when the saved billing is incomplete: the user fills the required detail here (also
+// persisted to Settings), which unlocks the payment methods once saved.
+function BillingGate({ initial, onSaved }: { initial: BillingForm; onSaved: (b: BillingForm) => void }) {
+  const toast = useToast();
+  const [b, setB] = useState<BillingForm>(initial);
+  const [saving, setSaving] = useState(false);
+  const set = (k: keyof BillingForm, v: string) => setB((p) => ({ ...p, [k]: v }));
+  const save = async () => {
+    if (!billingComplete(b)) { toast('Fill in name, address, city and country.', 'error'); return; }
+    setSaving(true);
+    const r = await updateBillingAction(b);
+    setSaving(false);
+    if (!r.ok) { toast(r.error ?? 'Save failed', 'error'); return; }
+    toast('Billing details saved', 'success');
+    onSaved(b);
+  };
+  return (
+    <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+      <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400"><i className="ph-bold ph-warning-circle" aria-hidden /> Complete your billing details to continue</p>
+      <p className="mt-1 text-xs text-muted-foreground">Required for your invoice before we charge. Saved to your <a href="/settings" className="text-primary hover:underline">Settings</a> too, so you only do this once.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div><label className="lbl">Billing name<span className="text-primary"> *</span></label><input className="field" value={b.name} onChange={(e) => set('name', e.target.value)} placeholder="Full name or contact" /></div>
+        <div><label className="lbl">Company</label><input className="field" value={b.company} onChange={(e) => set('company', e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className="lbl">Address line 1<span className="text-primary"> *</span></label><input className="field" value={b.line1} onChange={(e) => set('line1', e.target.value)} placeholder="Street address" /></div>
+        <div><label className="lbl">City<span className="text-primary"> *</span></label><input className="field" value={b.city} onChange={(e) => set('city', e.target.value)} /></div>
+        <div><label className="lbl">Country<span className="text-primary"> *</span></label><input className="field" value={b.country} onChange={(e) => set('country', e.target.value)} placeholder="Vietnam" /></div>
+        <div><label className="lbl">Postal code</label><input className="field" value={b.postalCode} onChange={(e) => set('postalCode', e.target.value)} /></div>
+        <div><label className="lbl">Tax ID / VAT</label><input className="field" value={b.taxId} onChange={(e) => set('taxId', e.target.value)} /></div>
+      </div>
+      <div className="mt-3 flex justify-end"><button type="button" disabled={saving} onClick={save} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60">{saving ? 'Saving…' : 'Save & continue'}</button></div>
     </div>
   );
 }
