@@ -4,33 +4,24 @@ import { Sparkline } from '@/components/staff/Sparkline';
 import {
   MgrScoreBar, MgrLeverRows, WeakestCallout,
 } from '@/components/manager/ManagerScorecard';
-import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
-import { allManagerPerf, companyBenchmark } from '@/lib/managerPerf';
+import { buildManagerPerfReal, selfBenchmark } from '@/lib/managerPerf';
+import { getPodOrders } from '@/data/orders.server';
+import { getDeliverables } from '@/data/deliverables.server';
+import { getStaff } from '@/data/staff.server';
+import { getAgentTicketsAction } from '@/app/admin/tickets/actions';
 
 export const metadata = { title: 'Performance' };
 
-// Manager self-view — "how is my pod scoring, and what do I improve next?".
-// Money-blind like the rest of /manager, and private-coaching by design: the
-// manager sees their own score against the ANONYMIZED average of OTHER pods,
-// never a public leaderboard (admins get the ranked view on /admin/managers).
-export default function ManagerPerformancePage() {
-  const all = allManagerPerf();
-  const perf = all.find((p) => p.id === MANAGER_PERSONA) ?? null;
-  const scope = managerScope(MANAGER_PERSONA);
-
-  if (!perf) {
-    return (
-      <section className="space-y-4">
-        <PageHeader title="My performance" subtitle="Your pod's score and where to improve" />
-        <p className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">No pod assigned yet.</p>
-      </section>
-    );
-  }
-
-  // Benchmark against PEERS (other pods), not self — at the current pod count this
-  // is a true peer comparison; with one pod it falls back to the pod itself.
-  const peers = all.filter((p) => p.id !== perf.id);
-  const bench = companyBenchmark(peers.length ? peers : all);
+// Manager self-view — "how is my pod scoring, and what do I improve next?". Money-blind, computed over
+// REAL ops data (orders_mgr, deliverables, tickets, staff). Delivery/quality/responsiveness/team-health
+// are real; ratings/leave/assign-lag have no source yet (neutral); there's no score history so the trend
+// is flat; and with one real pod the peer benchmark compares against self (neutral).
+export default async function ManagerPerformancePage() {
+  const [orders, deliverables, staff, tickets] = await Promise.all([
+    getPodOrders(), getDeliverables(), getStaff(), getAgentTicketsAction(),
+  ]);
+  const perf = buildManagerPerfReal(orders, deliverables, tickets, staff);
+  const bench = selfBenchmark(perf);
   const s = perf.stats;
   const last = perf.trend[perf.trend.length - 1];
   const prev = perf.trend[perf.trend.length - 2] ?? last;
@@ -43,7 +34,7 @@ export default function ManagerPerformancePage() {
         : 'Momentum is building. Focus the team on your weakest lever this week.';
 
   // Team development: each pod member's trajectory (improving / slipping under your coaching).
-  const team = [...scope.staff].sort((a, b) => b.composite - a.composite);
+  const team = [...staff].sort((a, b) => b.composite - a.composite);
 
   return (
     <section className="space-y-4">

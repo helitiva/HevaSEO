@@ -10,7 +10,7 @@ import {
   type WeekDay, type RosterRow,
 } from '@/lib/managerPulse';
 import { TriageQueue } from '@/components/manager/TriageQueue';
-import { buildManagerPerf } from '@/lib/managerPerf';
+import { buildManagerPerfReal } from '@/lib/managerPerf';
 import { MgrLeverStrip } from '@/components/manager/ManagerScorecard';
 import { getPodOrders } from '@/data/orders.server';
 import { getDeliverables } from '@/data/deliverables.server';
@@ -40,7 +40,7 @@ export default async function ManagerOverview() {
   const totalCap = roster.reduce((n, r) => n + r.capacity, 0);
   const util = totalCap ? Math.round((active / totalCap) * 100) : 0;
   const overdue = overdueCount(orders, staff, today);
-  const perf = buildManagerPerf(MANAGER_PERSONA); // the manager's own score (modeled; not cleared data)
+  const perf = buildManagerPerfReal(orders, deliverables, tickets, staff, today); // real score → matches the KPIs
   const managerName = managerScope(MANAGER_PERSONA).manager?.name ?? 'My';
   const dateLabel = new Date(`${today}T09:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 

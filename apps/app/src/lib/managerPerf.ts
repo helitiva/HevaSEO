@@ -17,12 +17,12 @@
  */
 import {
   MANAGERS, LEAVE_REQUESTS, ORDER_ASSIGNED_AT, SKILL_META, DELIVERABLES,
-  type AdminManager,
+  type AdminManager, type AdminOrder, type AdminDeliverable, type AdminTicket, type AdminStaff,
 } from '@/data/adminMock';
 import { myWorkStats } from '@/data/staffMock';
-import { managerScope, ordersForPod, ticketsForPod, type ManagerScope } from './managerScope';
+import { managerScope, ordersForPod, ticketsForPod, MANAGER_PERSONA, type ManagerScope } from './managerScope';
 import {
-  qaHealth, slaHealth, rosterWithRebalance, ageDays,
+  qaHealth, slaHealth, rosterWithRebalance, ageDays, podToday,
 } from './managerPulse';
 import { rankByComposite, type TeamRank } from './staff';
 
@@ -276,18 +276,14 @@ export interface ManagerPerf {
   stats: ManagerStats;
 }
 
-/** One manager's full performance picture (rank/benchmark resolved across the org). */
-function perfInputs(m: AdminManager): { meta: AdminManager; composite: number; levers: ManagerLever[]; weakest: ManagerLever | null; stats: ManagerStats } {
-  const scope = managerScope(m.id);
-  const stats = computeStats(scope);
+/** Turn a stats object into composite + reconciled levers + the weakest lever. Shared by mock + real. */
+function assemblePerf(stats: ManagerStats): { composite: number; levers: ManagerLever[]; weakest: ManagerLever | null } {
   const raw = leverScores(stats);
-
   // Weighted contributions, reconciled to sum exactly to the composite (as scoreBreakdown does).
   const contributions = MGR_SCORE_MODEL.map((t) => ({ t, score: raw[t.key], contribution: t.weight * raw[t.key] }));
   const composite = round(contributions.reduce((sum, c) => sum + c.contribution, 0));
   const rawTotal = contributions.reduce((sum, c) => sum + c.contribution, 0);
   const scale = rawTotal > 0 ? composite / rawTotal : 0;
-
   const levers: ManagerLever[] = contributions.map(({ t, score, contribution }) => ({
     key: t.key, label: t.label, icon: t.icon,
     score: round(score), weight: t.weight, goal: t.goal,
@@ -295,12 +291,14 @@ function perfInputs(m: AdminManager): { meta: AdminManager; composite: number; l
     headroom: Math.round(Math.max(0, (t.goal - score) * t.weight) * 10) / 10,
     action: actionFor(t.key, stats),
   }));
+  const weakest = levers.filter((l) => l.headroom > 0).sort((a, b) => b.headroom - a.headroom)[0] ?? null;
+  return { composite, levers, weakest };
+}
 
-  const weakest = levers
-    .filter((l) => l.headroom > 0)
-    .sort((a, b) => b.headroom - a.headroom)[0] ?? null;
-
-  return { meta: m, composite, levers, weakest, stats };
+/** One manager's full performance picture (rank/benchmark resolved across the org). */
+function perfInputs(m: AdminManager): { meta: AdminManager; composite: number; levers: ManagerLever[]; weakest: ManagerLever | null; stats: ManagerStats } {
+  const stats = computeStats(managerScope(m.id));
+  return { meta: m, ...assemblePerf(stats), stats };
 }
 
 /** A deterministic 8-point score history ending at the current composite. */
@@ -333,6 +331,72 @@ export function allManagerPerf(): ManagerPerf[] {
 /** One manager (rank/benchmark resolved across the org). Null for an unknown id. */
 export function buildManagerPerf(managerId: string): ManagerPerf | null {
   return allManagerPerf().find((p) => p.id === managerId) ?? null;
+}
+
+// ---- Real-where-exists: the manager's live score from real ops data ----------
+// Delivery/quality/responsiveness/team-health come from real orders, deliverables, tickets and staff.
+// Fields with no real source yet (customer ratings, leave latency, assign-lag) default to neutral, and
+// there's no score history so the trend is flat. Peer benchmarking needs OTHER real pods, so callers
+// compare against self (see selfBenchmark) — honest for a single real pod.
+function oldestSubmittedWait(deliverables: AdminDeliverable[], today: string): number {
+  const latest = new Map<string, { version: number; submittedAt: string; status: string }>();
+  for (const d of deliverables) {
+    const cur = latest.get(d.orderId);
+    if (!cur || d.version > cur.version) latest.set(d.orderId, { version: d.version, submittedAt: d.submittedAt, status: d.status });
+  }
+  let max = 0;
+  for (const d of latest.values()) if (d.status === 'submitted') max = Math.max(max, Math.max(0, ageDays(d.submittedAt, today)));
+  return max;
+}
+
+function computeStatsReal(orders: AdminOrder[], deliverables: AdminDeliverable[], tickets: AdminTicket[], staff: AdminStaff[], today: string): ManagerStats {
+  const active = staff.filter((s) => s.active);
+  const { roster } = rosterWithRebalance(staff, orders, today);
+  const activeRoster = roster.filter((r) => r.active);
+  const qa = qaHealth(deliverables);
+  const sla = slaHealth(tickets);
+  const activeLoad = activeRoster.reduce((n, r) => n + r.load, 0);
+  const cap = activeRoster.reduce((n, r) => n + r.capacity, 0);
+  const overdue = activeRoster.reduce((n, r) => n + r.overdue, 0);
+  const utils = activeRoster.map((r) => r.util);
+  const loadFairness = utils.length <= 1 ? 100 : clamp(100 - (Math.max(...utils) - Math.min(...utils)));
+  const allSkills = Object.keys(SKILL_META);
+  const skillGaps = allSkills.filter((k) => !active.some((s) => s.skills.includes(k)));
+  const skillCoverage = allSkills.length ? round(((allSkills.length - skillGaps.length) / allSkills.length) * 100) : 100;
+  const slopes = active.map((s) => (s.trend.length >= 2 ? s.trend[s.trend.length - 1] - s.trend[0] : 0));
+  return {
+    teamSize: staff.length, activeCount: active.length,
+    onTimeAvg: active.length ? round(avg(active.map((s) => s.onTime))) : 0,
+    overdue, activeLoad, util: cap ? round((activeLoad / cap) * 100) : 0,
+    firstPassRate: qa.firstPassRate, changesRate: qa.changesRate, avgRating: null,
+    reviewTurnaroundDays: qa.avgTurnaroundDays, awaitingReview: qa.awaiting, oldestReviewWaitDays: oldestSubmittedWait(deliverables, today),
+    openTickets: sla.open, urgentTickets: sla.urgent, breachedTickets: sla.breached,
+    pendingLeave: 0, avgLeaveDecisionDays: 0, avgAssignLagDays: 0,
+    loadFairness, skillCoverage, skillGaps: skillGaps.map((k) => SKILL_META[k]?.label ?? k),
+    growthSlope: +avg(slopes).toFixed(1),
+    improving: active.filter((s) => s.trend.length >= 2 && s.trend[s.trend.length - 1] > s.trend[0]).length,
+    slipping: active.filter((s) => s.trend.length >= 2 && s.trend[s.trend.length - 1] < s.trend[0]).length,
+  };
+}
+
+/** The signed-in manager's live score, computed over the real data the page fetched. */
+export function buildManagerPerfReal(orders: AdminOrder[], deliverables: AdminDeliverable[], tickets: AdminTicket[], staff: AdminStaff[], today: string = podToday()): ManagerPerf {
+  const stats = computeStatsReal(orders, deliverables, tickets, staff, today);
+  const meta = MANAGERS.find((m) => m.id === MANAGER_PERSONA);
+  const { composite, levers, weakest } = assemblePerf(stats);
+  return {
+    id: meta?.id ?? MANAGER_PERSONA, name: meta?.name ?? 'Manager', title: meta?.title ?? 'Pod manager', email: meta?.email ?? '',
+    composite, levers, weakest, rank: null, trend: [composite], stats,
+  };
+}
+
+/** Neutral self-benchmark for the single real pod (no other real pods to compare against). */
+export function selfBenchmark(perf: ManagerPerf): CompanyBenchmark {
+  return {
+    avgComposite: perf.composite,
+    avgByLever: Object.fromEntries(perf.levers.map((l) => [l.key, l.score])) as Record<MgrLeverKey, number>,
+    pods: 1,
+  };
 }
 
 export interface CompanyBenchmark { avgComposite: number; avgByLever: Record<MgrLeverKey, number>; pods: number; }
