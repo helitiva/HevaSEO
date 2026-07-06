@@ -33,11 +33,18 @@ function hslTripleToHex(h: number, s: number, l: number): string {
 const LIGHT_APPEARANCE: Appearance = {
   theme: 'stripe',
   variables: {
-    colorPrimary: hslTripleToHex(213, 90, 50),
-    colorBackground: '#ffffff',
-    colorText: hslTripleToHex(222, 47, 9),
+    colorPrimary: hslTripleToHex(213, 90, 50),     // --primary
+    colorBackground: '#ffffff',                    // --card
+    colorText: hslTripleToHex(222, 47, 9),         // --foreground (input values, readable)
+    colorTextSecondary: hslTripleToHex(215, 18, 42), // --muted-foreground (grey labels)
     colorDanger: hslTripleToHex(0, 72, 51),
     borderRadius: '0.6rem',
+  },
+  rules: {
+    '.Label': { color: hslTripleToHex(215, 18, 42) },                       // grey labels, like the app
+    '.Input': { border: `1px solid ${hslTripleToHex(214, 30, 86)}`, boxShadow: 'none' }, // --border
+    '.Input:focus': { border: `1px solid ${hslTripleToHex(213, 90, 50)}`, boxShadow: `0 0 0 3px ${hslTripleToHex(213, 90, 50)}26` },
+    '.Tab': { border: `1px solid ${hslTripleToHex(214, 30, 86)}` },
   },
 };
 const DARK_APPEARANCE: Appearance = {
@@ -50,7 +57,12 @@ const DARK_APPEARANCE: Appearance = {
     colorDanger: hslTripleToHex(0, 70, 55),
     borderRadius: '0.6rem',
   },
-  rules: { '.Input': { border: `1px solid ${hslTripleToHex(240, 6, 23)}` } }, // --border (dark)
+  rules: {
+    '.Label': { color: hslTripleToHex(240, 6, 72) },
+    '.Input': { border: `1px solid ${hslTripleToHex(240, 6, 23)}` },        // --border (dark)
+    '.Input:focus': { border: `1px solid ${hslTripleToHex(213, 92, 64)}`, boxShadow: `0 0 0 3px ${hslTripleToHex(213, 92, 64)}33` },
+    '.Tab': { border: `1px solid ${hslTripleToHex(240, 6, 23)}` },
+  },
 };
 
 // Inner form — has access to the Elements context, confirms in-browser, then credits server-side.
