@@ -127,6 +127,23 @@ export async function getOrderDetailsByIds(ids: string[]): Promise<Map<string, O
   return map;
 }
 
+/** The signed-in customer's orders that belong to a given project (via order_details.project_id FK). Powers
+ *  the project detail page so it lists the project's REAL orders instead of matching mock rows by domain. */
+export async function getMyOrdersByProject(projectId: string): Promise<Order[]> {
+  if (!UUID_RE.test(projectId)) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details!inner(project, folder, project_id)')
+    .eq('order_details.project_id', projectId)
+    .neq('state', 'canceled')
+    .order('created_at', { ascending: false })
+    .returns<MyOrderRow[]>();
+
+  if (error) throw new Error(`getMyOrdersByProject: ${error.message}`);
+  return (data ?? []).map(toCustomerOrder);
+}
+
 /** The signed-in customer's own orders, shaped for the dashboard board (excludes canceled). */
 export async function getMyOrders(): Promise<Order[]> {
   const supabase = await createClient();

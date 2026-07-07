@@ -1513,33 +1513,46 @@ export type Database = {
           brief: Json
           created_at: string
           folder: string | null
+          folder_id: string | null
           id: string
           included: string[]
           order_id: string
           project: string | null
+          project_id: string | null
           tenant_id: string
         }
         Insert: {
           brief?: Json
           created_at?: string
           folder?: string | null
+          folder_id?: string | null
           id?: string
           included?: string[]
           order_id: string
           project?: string | null
+          project_id?: string | null
           tenant_id: string
         }
         Update: {
           brief?: Json
           created_at?: string
           folder?: string | null
+          folder_id?: string | null
           id?: string
           included?: string[]
           order_id?: string
           project?: string | null
+          project_id?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "order_details_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_details_order_id_fkey"
             columns: ["order_id"]
@@ -1552,6 +1565,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: true
             referencedRelation: "orders_mgr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_details_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {

@@ -7,7 +7,8 @@ import { BulkKeywordList } from './BulkKeywordList';
 import { UsageLinkList } from './UsageLinkList';
 import { useProjects } from './ProjectsStore';
 import { useToast } from './Toast';
-import { MEMBERSHIP_DISCOUNT, type IntakeField, type Project } from '@/data/mock';
+import { MEMBERSHIP_DISCOUNT, type IntakeField } from '@/data/mock';
+import { UUID_RE } from '@/lib/orderMap';
 import type { SvcCatalog, SvcField, SvcPackage } from '@/data/services';
 import { placeOrderAction } from '@/app/(portal)/order.actions';
 
@@ -105,7 +106,7 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
 
 export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain, isVip = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string; isVip?: boolean }) {
   const router = useRouter();
-  const { projects: allStoreProjects, folders: storeFolders, addProject } = useProjects();
+  const { projects: allStoreProjects, folders: storeFolders } = useProjects();
   // The brief's Project picker only offers ACTIVE projects — deleted ones are already gone from the DB,
   // and archived ones (moved to Archive) must not resurface here either.
   const storeProjects = allStoreProjects.filter((p) => !p.archived);
@@ -213,15 +214,13 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
     setPlacing(true);
     const res = await placeOrderAction({
       serviceKey: catalog.key, packageId: planId, qty, addonPicks: picks,
-      project: asg.projectName, folder: asg.folderName, brief: intake,
+      project: asg.projectName, folder: asg.folderName,
+      // the server find-or-creates the REAL project/folder rows and FKs the order to them (inc — project wiring)
+      projectDomain: asg.domain, folderId: UUID_RE.test(asg.folderId) ? asg.folderId : null,
+      brief: intake,
     });
     setPlacing(false);
     if (!res.ok) { toast(res.error, 'error'); return; }
-    // Persist the project this order created so it shows up in /projects (not just as order metadata).
-    if (asg.isNew || asg.auto) {
-      const proj: Project = { id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `p-${Date.now()}`), name: asg.projectName, domain: asg.domain, label: asg.folderName, folder: asg.folderId, status: 'planned', note: '', updated: 'Just now', tags: {} };
-      void addProject(proj);
-    }
     toast(`Order ${res.code} placed — credit charged`, 'success');
     if (onPlaced) onPlaced();
     else router.push('/orders');

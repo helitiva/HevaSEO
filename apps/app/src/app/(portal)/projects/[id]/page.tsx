@@ -1,12 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ORDERS, STATUSES, folderPathForDomain, type Order, type OrderStatus } from '@/data/mock';
+import { STATUSES, folderPathForDomain, type Order, type OrderStatus } from '@/data/mock';
 import { OrdersBoard } from '@/components/OrdersBoard';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
 import { useOrdersStore } from '@/components/OrdersStore';
 import { useProjects } from '@/components/ProjectsStore';
+import { getProjectOrdersAction } from '@/app/(portal)/order.actions';
 
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 function favColor(s: string) {
@@ -28,9 +30,17 @@ const STATUS_PILL: Record<'planned' | 'progress' | 'completed', { label: string;
 
 export default function ProjectDetailPage() {
   const id = useParams().id as string;
-  const { addedOrders, statusOverrides } = useOrdersStore();
+  const { statusOverrides } = useOrdersStore();
   const { projects } = useProjects();
   const project = projects.find((p) => p.id === id);
+
+  // Real orders linked to THIS project (order_details.project_id), not a mock domain match.
+  const [linkedOrders, setLinkedOrders] = useState<Order[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void getProjectOrdersAction(id).then((rows) => { if (alive) setLinkedOrders(rows); });
+    return () => { alive = false; };
+  }, [id]);
 
   if (!project) {
     return (
@@ -43,7 +53,7 @@ export default function ProjectDetailPage() {
   }
 
   const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
-  const orders = [...addedOrders, ...ORDERS].filter((o) => o.domain === project.domain);
+  const orders = linkedOrders;
   const count = (s: OrderStatus) => orders.filter((o) => effStatus(o) === s).length;
   const totalCost = orders.reduce((a, o) => a + o.cost, 0);
   const path = folderPathForDomain(project.domain);
@@ -106,9 +116,10 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* orders for this project — reuses the board (List / Kanban / card design) */}
+      {/* orders for this project — reuses the board (List / Kanban / card design), fed the project's REAL
+          linked orders (order_details.project_id), not a mock domain match. */}
       <section className="mt-5">
-        <OrdersBoard domain={project.domain} />
+        <OrdersBoard orders={orders} />
       </section>
     </>
   );

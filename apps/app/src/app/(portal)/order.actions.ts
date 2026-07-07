@@ -7,7 +7,8 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { computeOrderPrice } from '@/lib/orderPricing';
 import { deadlineFromSla } from '@/lib/orderSla';
 import { SERVICE_CATALOG } from '@/data/services';
-import { SERVICES, type ServiceKey } from '@/data/mock';
+import { SERVICES, type ServiceKey, type Order } from '@/data/mock';
+import { getMyOrdersByProject } from '@/data/orders.server';
 import { UUID_RE } from '@/lib/orderMap';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -18,8 +19,49 @@ export type PlaceOrderInput = {
   addonPicks: Record<string, string>;
   project: string;
   folder: string;
+  projectDomain?: string;    // the project's website; used to find-or-create the real projects row
+  folderId?: string | null;  // a real folders.id when the customer picked one (else resolved by name)
   brief: { label: string; value: string; full?: boolean }[];
 };
+
+/** Resolve (find-or-create) the customer's real project + folder rows for an order, returning their ids so
+ *  order_details can FK to them. Runs on the customer's RLS client (they own these rows). Best-effort:
+ *  a failure here never blocks the order — the text project/folder still records the intent. */
+async function resolveProjectLink(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string, customerId: string,
+  input: PlaceOrderInput,
+): Promise<{ projectId: string | null; folderId: string | null }> {
+  let folderId: string | null = input.folderId && UUID_RE.test(input.folderId) ? input.folderId : null;
+  const folderName = input.folder?.trim();
+  if (!folderId && folderName) {
+    const { data: f } = await supabase.from('folders').select('id').eq('name', folderName).limit(1);
+    folderId = f?.[0]?.id ?? null;
+    if (!folderId) {
+      const { data: nf } = await supabase.from('folders')
+        .insert({ tenant_id: tenantId, customer_id: customerId, name: folderName }).select('id').single();
+      folderId = nf?.id ?? null;
+    }
+  }
+
+  let projectId: string | null = null;
+  const projectName = input.project?.trim();
+  const domain = input.projectDomain?.trim() || null;
+  if (domain || projectName) {
+    if (domain) { const { data } = await supabase.from('projects').select('id').eq('domain', domain).limit(1); projectId = data?.[0]?.id ?? null; }
+    if (!projectId && projectName) { const { data } = await supabase.from('projects').select('id').ilike('name', projectName).limit(1); projectId = data?.[0]?.id ?? null; }
+    if (!projectId) {
+      const { data: np } = await supabase.from('projects')
+        .insert({ tenant_id: tenantId, customer_id: customerId, name: projectName || domain || 'Project', domain, folder_id: folderId, status: 'planned' })
+        .select('id').single();
+      projectId = np?.id ?? null;
+    } else if (folderId) {
+      // keep an existing project's folder in sync when the order targets a folder and it has none yet
+      await supabase.from('projects').update({ folder_id: folderId }).eq('id', projectId).is('folder_id', null);
+    }
+  }
+  return { projectId, folderId };
+}
 export type PlaceOrderResult = { ok: true; code: string } | { ok: false; error: string };
 
 // Lane B inc-B3 — create a customer order from the dashboard, MONEY (gác③). The price is computed
@@ -58,10 +100,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     return { ok: false, error: msg };
   }
 
+  // link the order to REAL project/folder rows (find-or-create) so it shows up under its project, not just
+  // as free text. Best-effort — never blocks the order.
+  const { projectId, folderId } = await resolveProjectLink(supabase, cust.tenant_id, cust.id, input);
+
   // persist the brief + paid add-ons (service role bypasses RLS; these belong to the order just made)
   await svc.from('order_details').insert({
     tenant_id: cust.tenant_id, order_id: order.id, project: input.project, folder: input.folder,
-    brief: input.brief, included: [],
+    project_id: projectId, folder_id: folderId, brief: input.brief, included: [],
   });
   const addonRows = resolveAddOns(catalog.addons ?? [])
     .filter((a) => a.id in input.addonPicks)
@@ -162,6 +208,11 @@ export async function markDeliverableViewedAction(orderId: string): Promise<void
   if (!UUID_RE.test(orderId)) return;
   const supabase = await createClient();
   await supabase.rpc('mark_deliverable_viewed', { p_order: orderId });
+}
+
+/** Real orders linked to a project (order_details.project_id) — for the project detail page. */
+export async function getProjectOrdersAction(projectId: string): Promise<Order[]> {
+  return getMyOrdersByProject(projectId);
 }
 
 // The customer's post-delivery decision on a DELIVERED order: approve it (delivered → approved) or send
