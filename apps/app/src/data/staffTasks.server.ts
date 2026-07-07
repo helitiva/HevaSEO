@@ -1,6 +1,6 @@
 import 'server-only';
-import { getPodOrders, getPodOrderById, getOrderDetail } from '@/data/orders.server';
-import type { OrderDetailExtra } from '@/lib/orderDetail';
+import { getPodOrders, getPodOrderById, getOrderDetail, getOrderDetailsByIds } from '@/data/orders.server';
+import { domainFromBrief, type OrderDetailExtra } from '@/lib/orderDetail';
 import type { StaffTask } from '@/data/staffMock';
 import { SERVICE_SKILL, qaCriteriaFor, type AdminOrder } from '@/data/adminMock';
 
@@ -10,7 +10,7 @@ import { SERVICE_SKILL, qaCriteriaFor, type AdminOrder } from '@/data/adminMock'
 // pulled from order_details when we have it (task detail) — the board cards don't need it.
 function toStaffTask(o: AdminOrder, detail?: OrderDetailExtra | null): StaffTask {
   const brief = detail?.brief?.map((b) => ({ label: b.label, value: b.value })) ?? [];
-  const siteEntry = brief.find((b) => /website|site|url|domain/i.test(b.label));
+  const site = domainFromBrief(brief); // real domain from the brief (incl. the Project field's URL)
   const kwEntry = brief.find((b) => /keyword/i.test(b.label));
   return {
     id: o.id,
@@ -23,7 +23,7 @@ function toStaffTask(o: AdminOrder, detail?: OrderDetailExtra | null): StaffTask
     skill: SERVICE_SKILL[o.service] ?? null,
     deadline: o.deadline,
     created: o.created,
-    site: siteEntry?.value ?? null,
+    site,
     keywords: kwEntry ? kwEntry.value.split(/[,\n]/).map((k) => k.trim()).filter(Boolean) : [],
     note: detail?.project ? `Project: ${detail.project}${detail.folder ? ` · ${detail.folder}` : ''}` : null,
     qa: qaCriteriaFor(o.service),
@@ -33,7 +33,9 @@ function toStaffTask(o: AdminOrder, detail?: OrderDetailExtra | null): StaffTask
 
 export async function getMyTasks(): Promise<StaffTask[]> {
   const orders = await getPodOrders(); // staff session → own assigned orders via orders_mgr (money-stripped)
-  return orders.map((o) => toStaffTask(o)); // board cards don't need the full brief
+  // one batched read of the intake so both the board card and its quick-view panel show real brief/site.
+  const details = await getOrderDetailsByIds(orders.map((o) => o.id));
+  return orders.map((o) => toStaffTask(o, details.get(o.id)));
 }
 
 // A single assigned task (money-blind); null when it isn't the staffer's (the view WHERE is the gate).

@@ -2610,7 +2610,9 @@ export type Database = {
           assignee_id: string | null
           code: string | null
           created_at: string | null
+          customer_company: string | null
           customer_id: string | null
+          customer_name: string | null
           deadline: string | null
           id: string | null
           pkg: string | null
@@ -2619,34 +2621,6 @@ export type Database = {
           source: Database["public"]["Enums"]["order_source"] | null
           state: Database["public"]["Enums"]["order_state"] | null
           tenant_id: string | null
-        }
-        Insert: {
-          assignee_id?: string | null
-          code?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          deadline?: string | null
-          id?: string | null
-          pkg?: string | null
-          priority?: Database["public"]["Enums"]["order_priority"] | null
-          service?: string | null
-          source?: Database["public"]["Enums"]["order_source"] | null
-          state?: Database["public"]["Enums"]["order_state"] | null
-          tenant_id?: string | null
-        }
-        Update: {
-          assignee_id?: string | null
-          code?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          deadline?: string | null
-          id?: string | null
-          pkg?: string | null
-          priority?: Database["public"]["Enums"]["order_priority"] | null
-          service?: string | null
-          source?: Database["public"]["Enums"]["order_source"] | null
-          state?: Database["public"]["Enums"]["order_state"] | null
-          tenant_id?: string | null
         }
         Relationships: [
           {

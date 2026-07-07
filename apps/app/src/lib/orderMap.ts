@@ -41,8 +41,11 @@ export function toAdminOrder(r: OrderRow): AdminOrder {
 }
 
 // ── money-blind (orders_mgr view omits value → map to 0) ────────────────────────
-export type MgrOrderRow = Omit<OrderRow, 'value'>;
-export const toMgrOrder = (r: MgrOrderRow): AdminOrder => toAdminOrder({ ...r, value: 0 });
+// orders_mgr exposes the customer name/company as columns (not an embed), so money-blind roles read the
+// client without needing customers-RLS. Reshape them into the OrderRow.customers shape toAdminOrder expects.
+export type MgrOrderRow = Omit<OrderRow, 'value' | 'customers'> & { customer_name: string | null; customer_company: string | null };
+export const toMgrOrder = (r: MgrOrderRow): AdminOrder =>
+  toAdminOrder({ ...r, value: 0, customers: r.customer_company || r.customer_name ? { name: r.customer_name ?? '', company: r.customer_company } : null });
 
 // ── customer dashboard model (data/mock.ts Order) — derived (no schema for these) ──
 export const SERVICE_KEY: Record<string, ServiceKey> = {

@@ -5,7 +5,7 @@ import { PriorityBadge, StatusBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { TaskDetailPanel, type PanelTask } from '@/components/staff/TaskDetailPanel';
-import { BOARD_COLUMNS, serviceMeta, type StaffTask } from '@/data/staffMock';
+import { BOARD_COLUMNS, serviceMeta, type StaffTask, type ClientSummary } from '@/data/staffMock';
 import { daysToDue, TODAY } from '@/lib/staff';
 
 type View = 'board' | 'table';
@@ -18,6 +18,16 @@ const toPanelTask = (t: StaffTask): PanelTask => ({
   id: t.id, code: t.code, service: t.service, pkg: t.pkg, customer: t.customer,
   status: t.status, priority: t.priority, deadline: t.deadline, start: t.created, brief: t.brief,
 });
+
+// Real client dossier for the panel, built from the staffer's own visible tasks (they can't read the
+// customers CRM table) — the order count + service mix for that client, money-blind.
+const panelClient = (customer: string, board: StaffTask[]): ClientSummary => {
+  const mine = board.filter((t) => t.customer === customer);
+  const counts = new Map<string, number>();
+  mine.forEach((t) => counts.set(t.service, (counts.get(t.service) ?? 0) + 1));
+  const byService = [...counts.entries()].map(([service, count]) => ({ service, count })).sort((a, b) => b.count - a.count);
+  return { company: customer, tier: null, since: null, tags: [], orders: mine.length, byService, topService: byService[0]?.service ?? null, staff: [], note: null };
+};
 
 export function TasksClient({ board }: { board: StaffTask[] }) {
   const [view, setView] = useState<View>('board');
@@ -43,7 +53,7 @@ export function TasksClient({ board }: { board: StaffTask[] }) {
       {view === 'board' ? <BoardView board={board} onOpen={setSel} /> : <TableView board={board} onOpen={setSel} />}
 
       <SlideOver open={!!sel} onClose={() => setSel(null)} title={sel ? sel.code : ''}>
-        {sel && <TaskDetailPanel task={toPanelTask(sel)} today={TODAY} />}
+        {sel && <TaskDetailPanel task={toPanelTask(sel)} today={TODAY} client={panelClient(sel.customer, board)} />}
       </SlideOver>
     </div>
   );
@@ -98,6 +108,7 @@ function BoardView({ board, onOpen }: { board: StaffTask[]; onOpen: (t: StaffTas
 
 function TaskCard({ task, onOpen }: { task: StaffTask; onOpen: (t: StaffTask) => void }) {
   const m = serviceMeta(task.service);
+  const project = task.note?.replace(/^Project:\s*/i, '') ?? null;
   return (
     <button type="button" onClick={() => onOpen(task)} className="kcard kcard-anim block w-full text-left transition hover:border-primary/50">
       <div className="flex items-center justify-between gap-2">
@@ -108,9 +119,15 @@ function TaskCard({ task, onOpen }: { task: StaffTask; onOpen: (t: StaffTask) =>
         <PriorityBadge priority={task.priority} />
       </div>
       <p className="mt-1 truncate text-xs text-muted-foreground">{task.service} · {task.pkg}</p>
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5"><i className="ph-bold ph-buildings shrink-0 text-muted-foreground/70" aria-hidden /><span className="truncate">{task.customer}</span></p>
+        {task.site && <p className="flex items-center gap-1.5"><i className="ph-bold ph-globe-simple shrink-0 text-muted-foreground/70" aria-hidden /><span className="truncate">{task.site.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span></p>}
+        {project && <p className="flex items-center gap-1.5"><i className="ph-bold ph-folder shrink-0 text-muted-foreground/70" aria-hidden /><span className="truncate">{project}</span></p>}
+        {task.keywords.length > 0 && <p className="flex items-center gap-1.5"><i className="ph-bold ph-tag shrink-0 text-muted-foreground/70" aria-hidden /><span className="truncate">{task.keywords.slice(0, 3).join(', ')}{task.keywords.length > 3 ? ` +${task.keywords.length - 3}` : ''}</span></p>}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/50 pt-2">
         <SlaChip daysToDue={daysToDue(task.deadline)} />
-        <span className="truncate text-xs text-muted-foreground">{task.customer}</span>
+        {task.deadline && <span className="text-[11px] tabular-nums text-muted-foreground">{fmtDeadline(task.deadline)}</span>}
       </div>
     </button>
   );
