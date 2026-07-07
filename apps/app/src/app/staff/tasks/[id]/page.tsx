@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { myTasks, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor } from '@/data/staffMock';
+import { myTasks, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor, type ClientSummary, type StaffTask } from '@/data/staffMock';
 import { getMyTasks, getMyTaskById } from '@/data/staffTasks.server';
 import { getOrderMessages } from '@/data/orderMessages.server';
 import { STAFF } from '@/data/adminMock';
@@ -8,6 +8,20 @@ import { daysToDue } from '@/lib/staff';
 import { TaskDetailClient } from './TaskDetailClient';
 
 export const metadata = { title: 'Task detail' };
+
+// The client card for a REAL task, built from the staffer's own visible orders (orders_mgr) for this
+// customer — a staffer can't read the customers CRM table (RLS), so tier/since/tags stay blank; what they
+// legitimately see is how many orders for this client are on their board and the service mix.
+function realClientSummary(customer: string, board: StaffTask[]): ClientSummary {
+  const mine = board.filter((t) => t.customer === customer);
+  const counts = new Map<string, number>();
+  mine.forEach((t) => counts.set(t.service, (counts.get(t.service) ?? 0) + 1));
+  const byService = [...counts.entries()].map(([service, count]) => ({ service, count })).sort((a, b) => b.count - a.count);
+  return {
+    company: customer, tier: null, since: null, tags: [],
+    orders: mine.length, byService, topService: byService[0]?.service ?? null, staff: [], note: null,
+  };
+}
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,7 +52,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       days={daysToDue(task.deadline)}
       prevId={prev}
       nextId={next}
-      client={clientSummary(task.customer)}
+      client={real ? realClientSummary(task.customer, board) : clientSummary(task.customer)}
       manager={manager}
       managerMessages={managerThread(manager.id)}
       selfNotes={selfNotesFor(id)}
