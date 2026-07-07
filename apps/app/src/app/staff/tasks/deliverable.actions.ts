@@ -21,3 +21,19 @@ export async function submitDeliverableAction(orderId: string, summary: string, 
   revalidatePath('/admin/review');
   return { ok: true };
 }
+
+// Correct a delivered deliverable IN PLACE (same version) — only while the customer hasn't viewed it.
+// The fn raises ALREADY_VIEWED once they have; the caller then submits a revision (new version) instead.
+export async function editDeliverableAction(orderId: string, deliverableId: string, summary: string, files: DeliverableFile[] = []): Promise<SubmitDeliverableResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('edit_deliverable', { p_deliverable: deliverableId, p_summary: summary, p_files: files });
+  if (error) {
+    if (error.message.includes('ALREADY_VIEWED')) return { ok: false, error: 'The customer already opened this — submit it as a revision instead.' };
+    if (error.message.includes('NOT_STAFF')) return { ok: false, error: 'Only staff can edit work.' };
+    if (error.message.includes('NOT_YOUR_DELIVERABLE')) return { ok: false, error: 'This deliverable isn’t yours to edit.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/staff/tasks/${orderId}`);
+  revalidatePath('/admin/review');
+  return { ok: true };
+}

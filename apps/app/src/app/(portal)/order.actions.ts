@@ -8,6 +8,7 @@ import { computeOrderPrice } from '@/lib/orderPricing';
 import { deadlineFromSla } from '@/lib/orderSla';
 import { SERVICE_CATALOG } from '@/data/services';
 import { SERVICES, type ServiceKey } from '@/data/mock';
+import { UUID_RE } from '@/lib/orderMap';
 import type { Json } from '@/lib/supabase/database.types';
 
 export type PlaceOrderInput = {
@@ -79,15 +80,16 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 // (order_details), the delivered work they may read (deliverables — approved versions per RLS), and a
 // small derived activity timeline. Resolved by order code (the customer Order model keys on code).
 type BriefField = { label: string; value: string; full?: boolean };
+type DelivStatus = 'approved' | 'delivered' | 'review' | 'rejected';
 type DelivFile = { kind: 'file' | 'link'; name: string; meta?: string; url?: string };
-type DelivRevision = { version: string; date: string; status: 'approved' | 'review' | 'rejected'; note?: string; files?: DelivFile[]; feedback?: string };
-type Deliverable = { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DelivRevision[] };
+type DelivRevision = { version: string; date: string; status: DelivStatus; note?: string; files?: DelivFile[]; feedback?: string };
+type Deliverable = { name: string; status: DelivStatus; date: string; revisions: DelivRevision[] };
 export type CustomerOrderDetail = {
   id: string; state: string; project: string | null; folder: string | null;
   brief: BriefField[]; deliverables: Deliverable[]; activity: { label: string; date: string }[];
 };
 
-const DELIV_STATUS: Record<string, 'approved' | 'review' | 'rejected'> = {
+const DELIV_STATUS: Record<string, DelivStatus> = {
   approved: 'approved', submitted: 'review', changes_requested: 'rejected',
 };
 const shortDate = (ts: string | null): string => (ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
@@ -126,13 +128,21 @@ export async function getCustomerOrderDetailAction(code: string): Promise<Custom
     const url = typeof f === 'string' ? f : undefined;
     return { kind: 'link', name: url ?? `Attachment ${i + 1}`, meta: hostOf(url), url };
   });
+  // Customer-facing status: manager-approving the work does NOT read as "Approved" to the customer — it's
+  // "Ready for your review" until THEY approve. Only an order the customer accepted (approved/completed)
+  // shows the Approved badge.
+  const customerApproved = ['approved', 'completed'].includes(ord.state);
+  const custStatus = (s: string): DelivStatus => {
+    const base = DELIV_STATUS[s] ?? 'review';
+    return base === 'approved' && !customerApproved ? 'delivered' : base;
+  };
   const deliverables: Deliverable[] = delivRows.length
     ? [{
         name: 'Delivered work',
-        status: DELIV_STATUS[delivRows[0].status] ?? 'review',
+        status: custStatus(delivRows[0].status),
         date: shortDate(delivRows[0].submitted_at),
         revisions: delivRows.map((d) => ({
-          version: `v${d.version}`, date: shortDate(d.submitted_at), status: DELIV_STATUS[d.status] ?? 'review',
+          version: `v${d.version}`, date: shortDate(d.submitted_at), status: custStatus(d.status),
           note: d.summary ?? undefined, files: toFiles(d.files),
         })),
       }]
@@ -144,6 +154,14 @@ export async function getCustomerOrderDetailAction(code: string): Promise<Custom
   activity.push({ label: 'Order created', date: shortDate(ord.created_at) });
 
   return { id: ord.id, state: ord.state, project: detailRes.data?.project ?? null, folder: detailRes.data?.folder ?? null, brief, deliverables, activity };
+}
+
+// The customer opened the delivered work → stamp viewed_at (own order only; idempotent server-side). After
+// this the staffer can no longer edit the delivery in place — further changes become a new revision.
+export async function markDeliverableViewedAction(orderId: string): Promise<void> {
+  if (!UUID_RE.test(orderId)) return;
+  const supabase = await createClient();
+  await supabase.rpc('mark_deliverable_viewed', { p_order: orderId });
 }
 
 // The customer's post-delivery decision on a DELIVERED order: approve it (delivered → approved) or send

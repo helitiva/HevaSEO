@@ -6,13 +6,15 @@ import { MessageAttachments } from '@/components/MessageAttachments';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
 import { DeliverableSubmit, type DeliverableFile } from '@/components/staff/DeliverableSubmit';
+import { DeliveryManager } from '@/components/staff/DeliveryManager';
 import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
 import { advanceOrderAction } from '@/app/admin/orders/actions';
-import { submitDeliverableAction } from '@/app/staff/tasks/deliverable.actions';
+import { submitDeliverableAction, editDeliverableAction } from '@/app/staff/tasks/deliverable.actions';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
+import { deliverableAssets } from '@/data/adminMock';
 import type { OrderStatus, StaffTask, StaffDeliverable, StaffMessage, ClientSummary, ManagerInfo, SelfNote } from '@/data/staffMock';
 import { useStaffViewOnly } from '@/lib/staffView';
 
@@ -37,6 +39,8 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
   // The latest review that bounced the work back — drives the prominent banner.
   const changeRequest = deliverables.filter((d) => d.status === 'changes_requested').sort((a, b) => b.version - a.version)[0] ?? null;
+  // The latest submitted version — post-delivery it can be corrected in place (until viewed) or revised.
+  const latestDeliverable = [...deliverables].sort((a, b) => b.version - a.version)[0] ?? null;
 
   // Interactive self-QA. Seed checked once the work has already passed into review.
   const reviewed = ['internal_review', 'delivered', 'approved', 'completed'].includes(task.status);
@@ -90,6 +94,25 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
     setLog((l) => [{ icon: 'ph-paper-plane-tilt', color: 'text-primary', title: 'Submitted for review', detail: note, at: 'just now' }, ...l]);
     flash(`Submitted for review — ${note.slice(0, 40)}${note.length > 40 ? '…' : ''}`);
     if (real) router.refresh();
+  }
+
+  // Post-delivery: correct the delivered work in place (customer hasn't opened it) …
+  async function editDelivery(note: string, files: DeliverableFile[]) {
+    if (!latestDeliverable) return { ok: false as const, error: 'No delivery to edit.' };
+    const res = await editDeliverableAction(task.id, latestDeliverable.id, note, files);
+    if (res.ok) { flash('Delivery updated'); router.refresh(); }
+    return res;
+  }
+  // … or, once viewed, submit a revision (new version) that re-enters review.
+  async function reviseDelivery(note: string, files: DeliverableFile[]) {
+    const sub = await submitDeliverableAction(task.id, note, files);
+    if (!sub.ok) return sub;
+    const adv = await advanceOrderAction(task.id, 'internal_review');
+    if (!adv.ok) return adv;
+    setStatus('internal_review');
+    flash('Revision submitted — back in review');
+    router.refresh();
+    return { ok: true as const };
   }
 
   function copyLink() {
@@ -184,14 +207,24 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
             {task.note && <p className="mt-3 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400"><i className="ph-bold ph-note" aria-hidden /> {task.note}</p>}
           </div>
 
-          <DeliverableSubmit
-            history={deliverables}
-            onSubmit={submit}
-            qaDone={qaDone}
-            qaTotal={task.qa.length}
-            lockReason={viewOnly ? 'View only — deliverable submission is disabled in manager view.' : lockReason}
-            status={status}
-          />
+          {real && status === 'delivered' && latestDeliverable ? (
+            <DeliveryManager
+              latest={latestDeliverable}
+              nextVersion={latestDeliverable.version + 1}
+              viewOnly={viewOnly}
+              onEdit={editDelivery}
+              onRevise={reviseDelivery}
+            />
+          ) : (
+            <DeliverableSubmit
+              history={deliverables}
+              onSubmit={submit}
+              qaDone={qaDone}
+              qaTotal={task.qa.length}
+              lockReason={viewOnly ? 'View only — deliverable submission is disabled in manager view.' : lockReason}
+              status={status}
+            />
+          )}
 
           <SelfNoteLog seed={selfNotes} author={authorName} />
         </div>
@@ -216,7 +249,8 @@ const ini = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).to
 interface RevEvent {
   side: 'you' | 'them'; who: string; role?: 'manager' | 'customer'; v?: number; at: string;
   status?: string; rating?: number; body?: string; // feedback (manager/customer)
-  note?: string; customerMsg?: string; files?: string[]; links?: string[]; // submission (you)
+  note?: string; customerMsg?: string; // submission (you)
+  files?: { name: string; url?: string }[]; links?: string[];
 }
 
 // Fiverr-style revision conversation: each delivered version + the manager review and/or
@@ -225,8 +259,12 @@ function RevisionThread({ deliverables, sessionLog, fallbackReviewer, created, c
   const events: RevEvent[] = [];
   [...deliverables].sort((a, b) => a.version - b.version).forEach((d) => {
     const ex = extraFor(d.id);
-    const files = [d.kind === 'file' ? d.fileName : null, ex.file ?? null].filter((x): x is string => Boolean(x));
-    const links = [d.kind === 'link' ? d.url : null, ex.link ?? null].filter((x): x is string => Boolean(x));
+    const assets = deliverableAssets(d);
+    const files = [
+      ...assets.filter((a) => a.kind === 'file').map((a) => ({ name: a.fileName ?? 'file', url: a.url ?? undefined })),
+      ...(ex.file ? [{ name: ex.file }] : []),
+    ];
+    const links = [...assets.filter((a) => a.kind === 'link').map((a) => a.url), ex.link ?? null].filter((x): x is string => Boolean(x));
     events.push({ side: 'you', who: 'You', v: d.version, at: d.submittedAt, note: d.note || undefined, customerMsg: ex.staffMessage, files, links });
     const fb = feedbackFor(d.id);
     if (d.reviewedAt) events.push({ side: 'them', who: fb.reviewer ?? fallbackReviewer, role: 'manager', v: d.version, at: d.reviewedAt, status: d.status, rating: fb.managerRating, body: fb.managerNote ?? d.reviewNote ?? undefined });
@@ -272,8 +310,10 @@ function RevBubble({ e }: { e: RevEvent }) {
               {e.customerMsg && <p><span className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">To customer · </span>{e.customerMsg}</p>}
               {((e.files?.length ?? 0) + (e.links?.length ?? 0) > 0) && (
                 <div className="flex flex-wrap gap-1.5">
-                  {e.files?.map((f) => <span key={f} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px]"><i className="ph-bold ph-file-text text-muted-foreground" aria-hidden /><span className="max-w-[11rem] truncate">{f}</span></span>)}
-                  {e.links?.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden />Open link<i className="ph-bold ph-arrow-square-out" aria-hidden /></a>)}
+                  {e.files?.map((f, fi) => f.url
+                    ? <a key={fi} href={f.url} target="_blank" rel="noopener noreferrer" download={f.name} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] hover:text-primary"><i className="ph-bold ph-file-arrow-down text-muted-foreground" aria-hidden /><span className="max-w-[11rem] truncate">{f.name}</span></a>
+                    : <span key={fi} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px]"><i className="ph-bold ph-file-text text-muted-foreground" aria-hidden /><span className="max-w-[11rem] truncate">{f.name}</span></span>)}
+                  {e.links?.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden /><span className="max-w-[11rem] truncate">{(() => { try { return new URL(l).hostname.replace(/^www\./, ''); } catch { return 'Open link'; } })()}</span><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>)}
                 </div>
               )}
             </>

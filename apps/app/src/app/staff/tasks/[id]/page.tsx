@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { myTasks, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor, type ClientSummary, type StaffTask } from '@/data/staffMock';
 import { getMyTasks, getMyTaskById } from '@/data/staffTasks.server';
+import { getOrderDeliverables } from '@/data/deliverables.server';
 import { getOrderMessages } from '@/data/orderMessages.server';
 import { getMyManagerThread } from '@/data/staffThread.server';
 import { postManagerChatAction } from './managerChat.actions';
@@ -42,6 +43,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   const next = idx >= 0 && idx < board.length - 1 ? board[idx + 1].id : null;
 
   const manager = myManager(sid);
+  // Real deliverable versions for this order (RLS-scoped to the assignee) — was mock (empty for real ids),
+  // so staff saw no file/link. Mock fallback for impersonation/demo tasks.
+  const deliverables = real ? await getOrderDeliverables(id) : deliverablesFor(id);
   // inc-E29 — real order thread when this is a real assigned order; mock otherwise.
   const messages = real ? await getOrderMessages(id) : messagesFor(id);
   // real private manager↔staff thread (staff_manager_messages) for a real task; mock otherwise
@@ -51,7 +55,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     <TaskDetailClient
       task={task}
       real={real}
-      deliverables={deliverablesFor(id)}
+      deliverables={deliverables}
       messages={messages}
       days={daysToDue(task.deadline)}
       prevId={prev}

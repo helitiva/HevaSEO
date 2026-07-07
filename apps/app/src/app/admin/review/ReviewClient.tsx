@@ -271,6 +271,7 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                         <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">v{v.version}</span>
                         <button onClick={() => setPreviewId((p) => (p === v.id ? null : v.id))} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-eye mr-1" aria-hidden />{previewId === v.id ? 'Hide' : 'Preview'}</button>
                         <span className="ml-auto text-xs text-muted-foreground">{v.submittedAt}</span>
+                        {v.viewedAt && <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-600 dark:text-sky-400" title={`Customer opened this on ${v.viewedAt}`}><i className="ph-bold ph-eye" aria-hidden />seen</span>}
                         <StatusChip status={v.status} />
                       </div>
                       {/* Every attached asset — files (download) AND links (open). */}

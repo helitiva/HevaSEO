@@ -1034,6 +1034,7 @@ export type Database = {
           task_id: string | null
           tenant_id: string
           version: number
+          viewed_at: string | null
         }
         Insert: {
           files?: Json
@@ -1048,6 +1049,7 @@ export type Database = {
           task_id?: string | null
           tenant_id: string
           version?: number
+          viewed_at?: string | null
         }
         Update: {
           files?: Json
@@ -1062,6 +1064,7 @@ export type Database = {
           task_id?: string | null
           tenant_id?: string
           version?: number
+          viewed_at?: string | null
         }
         Relationships: [
           {
@@ -3112,6 +3115,30 @@ export type Database = {
       do_tap:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
+      edit_deliverable: {
+        Args: { p_deliverable: string; p_files?: Json; p_summary: string }
+        Returns: {
+          files: Json
+          id: string
+          order_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["deliverable_status"]
+          submitted_at: string
+          submitter_id: string
+          summary: string | null
+          task_id: string | null
+          tenant_id: string
+          version: number
+          viewed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deliverables"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fail:
         | { Args: never; Returns: string }
         | { Args: { "": string }; Returns: string }
@@ -3134,6 +3161,7 @@ export type Database = {
         Returns: undefined
       }
       mark_broadcast_read: { Args: { p_broadcast: string }; Returns: undefined }
+      mark_deliverable_viewed: { Args: { p_order: string }; Returns: undefined }
       materialize_order: {
         Args: {
           p_actor: string
@@ -3340,6 +3368,7 @@ export type Database = {
           task_id: string | null
           tenant_id: string
           version: number
+          viewed_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3447,6 +3476,7 @@ export type Database = {
           task_id: string | null
           tenant_id: string
           version: number
+          viewed_at: string | null
         }
         SetofOptions: {
           from: "*"

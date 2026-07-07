@@ -13,14 +13,17 @@ import { useOrdersStore, useComments } from './OrdersStore';
 import { useToast } from './Toast';
 import { Modal } from './Modal';
 import { UUID_RE } from '@/lib/orderMap';
-import { getCustomerOrderDetailAction, reviewDeliveryAction, requestOrderChangesAction, type CustomerOrderDetail, type RevisionAttachment } from '@/app/(portal)/order.actions';
+import { getCustomerOrderDetailAction, reviewDeliveryAction, requestOrderChangesAction, markDeliverableViewedAction, type CustomerOrderDetail, type RevisionAttachment } from '@/app/(portal)/order.actions';
 import { RevisionComposer } from './RevisionComposer';
 import { MessageAttachments } from './MessageAttachments';
 import { useOrderMessages } from '@/lib/useOrderMessages';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 
-const DELIV_PILL: Record<'approved' | 'review' | 'rejected', { label: string; bg: string; fg: string }> = {
+// 'delivered' = the team finished & the manager approved it, but the CUSTOMER hasn't accepted yet. It reads
+// as "Ready for your review", NOT "Approved" — Approved only appears once the customer themselves approves.
+const DELIV_PILL: Record<'approved' | 'delivered' | 'review' | 'rejected', { label: string; bg: string; fg: string }> = {
   approved: { label: 'Approved', bg: 'rgba(16,185,129,.15)', fg: '#059669' },
+  delivered: { label: 'Ready for your review', bg: 'rgba(59,130,246,.15)', fg: '#2563eb' },
   review: { label: 'In review', bg: 'rgba(245,158,11,.18)', fg: '#b45309' },
   rejected: { label: 'Changes requested', bg: 'rgba(244,63,94,.15)', fg: '#e11d48' },
 };
@@ -105,6 +108,13 @@ function Panel({ order }: { order: Order }) {
   const [draft, setDraft] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [expandedDeliv, setExpandedDeliv] = useState<number | null>(null);
+  // Expanding the delivered work = the customer has "opened" it → stamp viewed_at (real orders only). This
+  // is what flips the staffer's edit-in-place window closed; fire-and-forget, idempotent server-side.
+  const [viewedMarked, setViewedMarked] = useState(false);
+  const openDeliv = (i: number, open: boolean) => {
+    setExpandedDeliv(open ? null : i);
+    if (!open && !viewedMarked && orderUuid) { setViewedMarked(true); void markDeliverableViewedAction(orderUuid); }
+  };
   const [closing, setClosing] = useState(false);
   const [modal, setModal] = useState<null | 'message' | 'review' | 'revise'>(null);
   const [msg, setMsg] = useState('');
@@ -287,7 +297,7 @@ function Panel({ order }: { order: Order }) {
                     <div key={i} className="overflow-hidden rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] shadow-[0_1px_0_0_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/10">
                       <button
                         type="button"
-                        onClick={() => setExpandedDeliv(open ? null : i)}
+                        onClick={() => openDeliv(i, open)}
                         aria-expanded={open}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-medium transition hover:bg-emerald-500/10"
                       >
