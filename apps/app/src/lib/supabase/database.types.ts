@@ -2063,6 +2063,58 @@ export type Database = {
           },
         ]
       }
+      staff_manager_messages: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          staff_id: string
+          tenant_id: string
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          id?: string
+          staff_id: string
+          tenant_id: string
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          staff_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_manager_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_manager_messages_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_manager_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_payout_methods: {
         Row: {
           created_at: string
@@ -3181,6 +3233,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      post_staff_manager_message: {
+        Args: { p_body: string; p_staff: string }
+        Returns: undefined
       }
       post_staff_pay: {
         Args: {

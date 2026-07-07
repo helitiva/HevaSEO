@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { myTasks, taskById, deliverablesFor, messagesFor, clientSummary, myManager, managerThread, selfNotesFor, type ClientSummary, type StaffTask } from '@/data/staffMock';
 import { getMyTasks, getMyTaskById } from '@/data/staffTasks.server';
 import { getOrderMessages } from '@/data/orderMessages.server';
+import { getMyManagerThread } from '@/data/staffThread.server';
+import { postManagerChatAction } from './managerChat.actions';
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { daysToDue } from '@/lib/staff';
@@ -42,6 +44,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   const manager = myManager(sid);
   // inc-E29 — real order thread when this is a real assigned order; mock otherwise.
   const messages = real ? await getOrderMessages(id) : messagesFor(id);
+  // real private manager↔staff thread (staff_manager_messages) for a real task; mock otherwise
+  const managerMessages = real ? await getMyManagerThread() : managerThread(manager.id);
 
   return (
     <TaskDetailClient
@@ -54,7 +58,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       nextId={next}
       client={real ? realClientSummary(task.customer, board) : clientSummary(task.customer)}
       manager={manager}
-      managerMessages={managerThread(manager.id)}
+      managerMessages={managerMessages}
+      onManagerSend={real ? postManagerChatAction : undefined}
       selfNotes={selfNotesFor(id)}
       authorName={STAFF.find((x) => x.id === sid)?.name}
     />

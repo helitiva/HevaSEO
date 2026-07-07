@@ -20,6 +20,7 @@ interface Props {
   task: StaffTask; deliverables: StaffDeliverable[]; messages: StaffMessage[];
   days: number | null; prevId: string | null; nextId: string | null;
   client: ClientSummary; manager: ManagerInfo; managerMessages: StaffMessage[];
+  onManagerSend?: (body: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   selfNotes: SelfNote[]; authorName?: string;
   /** Lane A cleanup: real assigned order → transitions call advance_order (else mock local-state). */
   real?: boolean;
@@ -27,7 +28,7 @@ interface Props {
 
 interface Activity { icon: string; color: string; title: string; detail?: string; at: string }
 
-export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, selfNotes, authorName = CURRENT_STAFF.name, real = false }: Props) {
+export function TaskDetailClient({ task, deliverables, messages, days, prevId, nextId, client, manager, managerMessages, onManagerSend, selfNotes, authorName = CURRENT_STAFF.name, real = false }: Props) {
   const router = useRouter();
   const viewOnly = useStaffViewOnly();
   const [status, setStatus] = useState<OrderStatus>(task.status);
@@ -118,7 +119,7 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
 
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <ClientCard c={client} />
-        <ManagerPanel m={manager} seed={managerMessages} />
+        <ManagerPanel m={manager} seed={managerMessages} onSend={onManagerSend} />
       </div>
 
       {actions.length > 0 && (
@@ -333,15 +334,22 @@ function ClientCard({ c }: { c: ClientSummary }) {
 }
 
 // Manager context: the ops lead who reviews this work — profile, note, and a chat box.
-function ManagerPanel({ m, seed }: { m: ManagerInfo; seed: StaffMessage[] }) {
+function ManagerPanel({ m, seed, onSend }: { m: ManagerInfo; seed: StaffMessage[]; onSend?: (body: string) => Promise<{ ok: true } | { ok: false; error: string }> }) {
   const [msgs, setMsgs] = useState<StaffMessage[]>(seed);
   const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
   const first = m.name.split(' ')[0];
-  function send() {
+  async function send() {
     const body = draft.trim();
-    if (!body) return;
-    setMsgs((x) => [...x, { who: 'You', body, internal: true, at: 'now' }]);
+    if (!body || sending) return;
     setDraft('');
+    setMsgs((x) => [...x, { who: 'You', body, internal: true, at: 'now' }]); // optimistic
+    if (onSend) { // real thread → persist (staff posts to their own manager thread)
+      setSending(true);
+      const r = await onSend(body);
+      setSending(false);
+      if (!r.ok) setMsgs((x) => x.filter((mm) => !(mm.who === 'You' && mm.body === body && mm.at === 'now')));
+    }
   }
   return (
     <div className="kcard flex flex-col">
