@@ -309,8 +309,15 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
       {headline}
       {o.awaitingReview && (
         <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review</span>
-          {autoApproveLabel(o.deliveredAt) && <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"><i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}</span>}
+          {/* the auto-approve countdown is now revealed on hover, not shown inline */}
+          <span className="group relative inline-flex shrink-0 cursor-default items-center gap-1 whitespace-nowrap rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            <i className="ph-bold ph-hourglass-medium" aria-hidden />Awaiting review
+            {autoApproveLabel(o.deliveredAt) && (
+              <span className="pointer-events-none absolute left-0 top-full z-10 mt-1 hidden items-center gap-1 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-md group-hover:inline-flex">
+                <i className="ph-bold ph-clock-countdown" aria-hidden />{autoApproveLabel(o.deliveredAt)}
+              </span>
+            )}
+          </span>
         </div>
       )}
       {/* staff + manager share one line: given name shown, full name · role on hover */}
