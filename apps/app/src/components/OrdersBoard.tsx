@@ -75,6 +75,30 @@ function firstName(name: string) {
   return name.split(/\s+/)[0] || name;
 }
 
+/** US date "MM/DD/YYYY" → "DD/MM/YY". Leaves anything else untouched. */
+function toDMY(usDate: string): string {
+  const m = usDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[2]}/${m[1]}/${m[3].slice(2)}` : usDate;
+}
+
+/** Compact ETA: "2 days" → "2d". Falls back to the original string when there's no number. */
+function etaShort(eta: string): string {
+  const m = eta.match(/(\d+)/);
+  return m ? `${m[1]}d` : eta;
+}
+
+/** ETA shown compactly ("2d") with the full phrase revealed on hover. */
+function EtaTag({ eta }: { eta: string }) {
+  return (
+    <span className="group/eta relative inline-flex items-center gap-1">
+      <i className="ph-bold ph-timer" aria-hidden /> ETA {etaShort(eta)}
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/eta:opacity-100">
+        Estimated Time of Arrival: {eta}
+      </span>
+    </span>
+  );
+}
+
 /** What the specialist actually does on this order — surfaced in the hover card. */
 const STAFF_DUTY: Record<ServiceKey, string> = {
   backlink: 'Builds and places your backlinks & citations, keeping a safe anchor ratio.',
@@ -88,14 +112,14 @@ const STAFF_DUTY: Record<ServiceKey, string> = {
 const MANAGER_DUTY = 'Oversees the pod and reviews & approves the specialist’s work before it reaches you.';
 
 /** Rich hover card for a person on an order: avatar, full name, title, and what they do here. */
-function PersonTag({ name, title, duty, tone, reviewing = false, className = '' }: { name: string; title: string; duty: string; tone: 'staff' | 'manager'; reviewing?: boolean; className?: string }) {
+function PersonTag({ name, title, duty, tone, reviewing = false, avatarOnly = false, className = '' }: { name: string; title: string; duty: string; tone: 'staff' | 'manager'; reviewing?: boolean; avatarOnly?: boolean; className?: string }) {
   const unassigned = name === 'Unassigned';
   const avatar = tone === 'manager' ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/15 text-primary';
   return (
     <span className={`group/person relative inline-flex min-w-0 items-center gap-1.5 ${className}`}>
-      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatar}`}>{initials(name)}</span>
-      <span className="min-w-0 truncate">{firstName(name)}</span>
-      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
+      <span className={`grid ${avatarOnly ? 'h-6 w-6 text-[10px]' : 'h-5 w-5 text-[9px]'} shrink-0 place-items-center rounded-full font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatar} ${reviewing ? 'ring-2 ring-amber-500/40' : avatarOnly ? 'ring-2 ring-card' : ''}`}>{initials(name)}</span>
+      {!avatarOnly && <span className="min-w-0 truncate">{firstName(name)}</span>}
+      {!avatarOnly && reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
       {!unassigned && (
         <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-60 origin-top-left scale-95 rounded-xl border border-border bg-card p-3 text-left opacity-0 shadow-xl transition-all duration-150 group-hover/person:scale-100 group-hover/person:opacity-100">
           <span className="flex items-center gap-2.5">
@@ -114,13 +138,13 @@ function PersonTag({ name, title, duty, tone, reviewing = false, className = '' 
 }
 
 /** Assigned staff — initials + given name; hover shows full name, title & duty. Shared by cards + list. */
-function StaffTag({ name, role, duty, className = '' }: { name: string; role?: string; duty?: string; className?: string }) {
-  return <PersonTag name={name} title={role ?? 'Specialist'} duty={duty ?? 'Handles the day-to-day work on this order.'} tone="staff" className={className} />;
+function StaffTag({ name, role, duty, avatarOnly, className = '' }: { name: string; role?: string; duty?: string; avatarOnly?: boolean; className?: string }) {
+  return <PersonTag name={name} title={role ?? 'Specialist'} duty={duty ?? 'Handles the day-to-day work on this order.'} tone="staff" avatarOnly={avatarOnly} className={className} />;
 }
 
 /** Manager in charge — amber avatar; hover shows full name, title & duty (+ Reviewing in review). */
-function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
-  return <PersonTag name={name} title="Account Manager" duty={MANAGER_DUTY} tone="manager" reviewing={reviewing} className={className} />;
+function ManagerTag({ name, reviewing, avatarOnly, className = '' }: { name: string; reviewing: boolean; avatarOnly?: boolean; className?: string }) {
+  return <PersonTag name={name} title="Account Manager" duty={MANAGER_DUTY} tone="manager" reviewing={reviewing} avatarOnly={avatarOnly} className={className} />;
 }
 
 /** Per-column <td> classes for the list table (used with the column manager). */
@@ -145,7 +169,7 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
     case 'code': return (
       <>
         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#{o.id}</span>
-        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" aria-hidden /> {o.date}</span>
+        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" aria-hidden /> {toDMY(o.date)}</span>
       </>
     );
     case 'service': return (
@@ -240,23 +264,32 @@ function FolderPath({ o }: { o: Order }) {
   );
 }
 
-/** Progress bar + footer: start date · ETA on one row (left), percent (right). */
-function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order; done: boolean; p: number; showPct?: boolean; showDate?: boolean }) {
+/** Progress bar with the percent pulled up onto the bar's own row (right end). */
+function ProgressRow({ done, p, showPct = true }: { done: boolean; p: number; showPct?: boolean }) {
   return (
-    <>
-      <div className="bar mt-2"><i style={{ width: `${p}%` }} /></div>
-      {(showDate || showPct) && (
-        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          {showDate ? (
-            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span>
-              {o.eta && o.eta !== '—' && <span className="inline-flex items-center gap-1"><i className="ph-bold ph-timer" aria-hidden /> ETA {o.eta}</span>}
-            </span>
-          ) : <span />}
-          {showPct && <b className={done ? 'text-emerald-600' : 'text-primary'}>{p}%</b>}
-        </div>
+    <div className="mt-2 flex items-center gap-2">
+      <span className="bar flex-1"><i style={{ width: `${p}%` }} /></span>
+      {showPct && <b className={`shrink-0 text-xs font-bold tabular-nums ${done ? 'text-emerald-600' : 'text-primary'}`}>{p}%</b>}
+    </div>
+  );
+}
+
+/** People + schedule row: staff & manager avatars, start date (DD/MM/YY), and ETA. One line, a size up
+ *  and bolder so it reads as the card's key at-a-glance meta. Avatars carry the rich hover card. */
+function PeopleMetaRow({ o, planned, reviewing, showSchedule }: { o: Order; planned: boolean; reviewing: boolean; showSchedule: boolean }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-semibold text-foreground/80">
+      <span className="flex items-center -space-x-1.5">
+        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} avatarOnly />
+        {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} avatarOnly />}
+      </span>
+      {showSchedule && (
+        <span className="flex items-center gap-x-2 text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}</span>
+          {o.eta && o.eta !== '—' && <EtaTag eta={o.eta} />}
+        </span>
       )}
-    </>
+    </div>
   );
 }
 
@@ -320,13 +353,10 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
           </span>
         </div>
       )}
-      {/* staff + manager share one line: given name shown, full name · role on hover */}
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium">
-        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} className="text-foreground/80" />
-        {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="text-foreground/70" />}
-      </div>
       {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
-      <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
+      <ProgressRow done={done} p={p} showPct={template !== 'progress'} />
+      {/* staff + manager avatars · date · ETA, consolidated onto one line */}
+      <PeopleMetaRow o={o} planned={planned} reviewing={reviewing} showSchedule={!compact} />
       {!compact && <FolderPath o={o} />}
     </>
   );
@@ -688,7 +718,7 @@ export function OrdersBoard({ initialService = 'all', domain, orders }: { initia
                   {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" aria-hidden /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
                   {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" aria-hidden /> {folderLeaf.name}</span>}
                   {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" aria-hidden /> {o.owner}</span>}
-                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" aria-hidden /> {o.date}</span>}
+                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}</span>}
                 </div>
                 {show('progress') && (
                   <div className="mt-2 flex items-center gap-2">
