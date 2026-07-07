@@ -24,22 +24,37 @@ export type OrderDetailExtra = {
  * included fall back to mock ORDER_EXTRA then derived defaults. addons/bundle stay mock (deferred —
  * addons carry money). Returns null when a string id is unknown.
  */
+// Pull the first real domain the customer submitted from their brief — prefer an explicit
+// website/URL/target/domain/project field, else scan any field's value for a domain token.
+function domainFromBrief(brief: { label: string; value: string }[]): string | null {
+  const preferred = brief.filter((b) => /website|url|target|site|domain|project/i.test(b.label));
+  for (const b of [...preferred, ...brief]) {
+    const m = b.value.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
+    if (m && /\.[a-z]{2,}$/i.test(m[1])) return m[1].toLowerCase();
+  }
+  return null;
+}
+
 export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: OrderDetailExtra | null): OrderDetailProps | null {
   const order = typeof orderOrId === 'string' ? ORDERS.find((o) => o.id === orderOrId) : orderOrId;
   if (!order) return null;
 
   const seq = seqMap.get(order.id) ?? 0;
   const c = customerByCompany(order.customer);
-  const site = c?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const extra = ORDER_EXTRA[order.id];
+  const emailSite = c?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const project = detail?.project ?? extra?.project ?? `${order.customer} — SEO program`;
   const folder = detail?.folder ?? extra?.folder ?? 'General';
   const included = (detail?.included?.length ? detail.included : undefined) ?? extra?.included ?? SERVICE_INCLUDED[order.service] ?? [];
   const brief = (detail?.brief?.length ? detail.brief : undefined) ?? extra?.brief ?? [
-    { label: 'Website', value: `https://${site}` },
+    { label: 'Website', value: `https://${emailSite}` },
     { label: 'Goal', value: 'Improve organic visibility' },
     { label: 'Market', value: 'US · English' },
   ];
+  // The site/target-URL come from what the CUSTOMER actually submitted (their website / target URL /
+  // project domain in the brief), not their email domain — only fall back to the email host if the brief
+  // carries no domain.
+  const site = domainFromBrief(brief) ?? emailSite;
   // Real addons when the detail was fetched (admin/customer; empty for money-blind via RLS); else mock.
   const addons = detail ? detail.addons : (extra?.addons ?? []);
   const addonsTotal = addons.reduce((s, a) => s + a.price, 0);

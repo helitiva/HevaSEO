@@ -191,7 +191,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
 
           <Card icon="ph-package" title="Scope">
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <Field label="Project" value={`${o.customer} — SEO program`} />
+              <Field label="Project" value={p.project} />
               <Field label="Service" value={`${o.service} · ${o.pkg}`} />
               <Field label="Site" value={p.site} />
               <Field label="Target URL" value={<a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{p.site}</a>} />
