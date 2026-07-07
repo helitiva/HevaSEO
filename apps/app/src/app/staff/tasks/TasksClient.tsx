@@ -85,9 +85,9 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
 
 function BoardView({ board, onOpen }: { board: StaffTask[]; onOpen: (t: StaffTask) => void }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
       {BOARD_COLUMNS.map((col) => {
-        const tasks = board.filter((t) => t.status === col.status);
+        const tasks = board.filter((t) => t.status === col.status || col.also?.includes(t.status));
         return (
           <div key={col.status} className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
@@ -135,7 +135,7 @@ function TaskCard({ task, onOpen }: { task: StaffTask; onOpen: (t: StaffTask) =>
 
 function TableView({ board, onOpen }: { board: StaffTask[]; onOpen: (t: StaffTask) => void }) {
   // Group order follows the board stages so the table reads in the same workflow sequence.
-  const order = new Map(BOARD_COLUMNS.map((c, i) => [c.status, i]));
+  const order = new Map(BOARD_COLUMNS.flatMap((c, i) => [c.status, ...(c.also ?? [])].map((s) => [s, i] as const)));
   const rows = [...board].sort((a, b) => (order.get(a.status) ?? 99) - (order.get(b.status) ?? 99));
 
   return (

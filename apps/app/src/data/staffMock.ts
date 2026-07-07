@@ -253,12 +253,15 @@ export const statusLabel: Record<OrderStatus, string> = {
 };
 
 // Columns staff actually work through (no New/Confirmed — that's admin intake).
-export const BOARD_COLUMNS: { status: OrderStatus; label: string }[] = [
+// `also` folds extra statuses into a column so no task silently disappears from the board (e.g. an
+// approved/completed order has no dedicated column — it belongs under Done).
+export const BOARD_COLUMNS: { status: OrderStatus; label: string; also?: OrderStatus[] }[] = [
   { status: 'assigned', label: 'Assigned' },
   { status: 'in_progress', label: 'In progress' },
   { status: 'internal_review', label: 'In review' },
   { status: 'changes_requested', label: 'Changes requested' },
   { status: 'delivered', label: 'Delivered' },
+  { status: 'approved', label: 'Done', also: ['completed'] },
 ];
 
 // ---- Availability: working hours, time off, and the away-handoff policy ----
