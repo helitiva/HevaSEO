@@ -85,7 +85,7 @@ export function DeliveryManager({ latest, nextVersion, viewOnly, onEdit, onRevis
           <p className={`flex items-center gap-1.5 text-[11px] font-medium ${viewed ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400'}`}>
             <i className={`ph-bold ${viewed ? 'ph-info' : 'ph-lightbulb'}`} aria-hidden />
             {viewed
-              ? `The customer has seen v${latest.version}, so this creates revision v${nextVersion} and goes back through review.`
+              ? `The customer has already opened v${latest.version}, so this is logged as revision v${nextVersion} and re-delivered to them right away.`
               : 'The customer hasn’t opened this yet — your changes replace the current delivery in place.'}
           </p>
 

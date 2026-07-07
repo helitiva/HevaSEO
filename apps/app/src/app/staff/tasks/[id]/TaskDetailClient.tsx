@@ -11,7 +11,7 @@ import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
 import { advanceOrderAction } from '@/app/admin/orders/actions';
-import { submitDeliverableAction, editDeliverableAction } from '@/app/staff/tasks/deliverable.actions';
+import { submitDeliverableAction, editDeliverableAction, reviseDeliveredAction } from '@/app/staff/tasks/deliverable.actions';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 import { SKILL_META, feedbackFor, extraFor, CURRENT_STAFF } from '@/data/staffMock';
 import { deliverableAssets } from '@/data/adminMock';
@@ -103,14 +103,12 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
     if (res.ok) { flash('Delivery updated'); router.refresh(); }
     return res;
   }
-  // … or, once viewed, submit a revision (new version) that re-enters review.
+  // … or, once viewed, submit a revision — a new version re-delivered to the customer straight away
+  // (the order stays 'delivered'; the customer's review window restarts).
   async function reviseDelivery(note: string, files: DeliverableFile[]) {
-    const sub = await submitDeliverableAction(task.id, note, files);
-    if (!sub.ok) return sub;
-    const adv = await advanceOrderAction(task.id, 'internal_review');
-    if (!adv.ok) return adv;
-    setStatus('internal_review');
-    flash('Revision submitted — back in review');
+    const res = await reviseDeliveredAction(task.id, note, files);
+    if (!res.ok) return res;
+    flash('Revision delivered to the customer');
     router.refresh();
     return { ok: true as const };
   }

@@ -3377,6 +3377,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revise_delivered: {
+        Args: { p_files?: Json; p_order: string; p_summary: string }
+        Returns: {
+          files: Json
+          id: string
+          order_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["deliverable_status"]
+          submitted_at: string
+          submitter_id: string
+          summary: string | null
+          task_id: string | null
+          tenant_id: string
+          version: number
+          viewed_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deliverables"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       run_payroll: {
         Args: {

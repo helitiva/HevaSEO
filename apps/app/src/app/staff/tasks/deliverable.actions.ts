@@ -37,3 +37,19 @@ export async function editDeliverableAction(orderId: string, deliverableId: stri
   revalidatePath('/admin/review');
   return { ok: true };
 }
+
+// Submit a post-delivery REVISION — a new version that is re-delivered to the customer immediately (used
+// once the customer has already viewed the current version). Order stays 'delivered'; review clock resets.
+export async function reviseDeliveredAction(orderId: string, summary: string, files: DeliverableFile[] = []): Promise<SubmitDeliverableResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('revise_delivered', { p_order: orderId, p_summary: summary, p_files: files });
+  if (error) {
+    if (error.message.includes('NOT_STAFF')) return { ok: false, error: 'Only staff can revise work.' };
+    if (error.message.includes('NOT_REVISABLE')) return { ok: false, error: 'This order can’t be revised right now.' };
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/staff/tasks/${orderId}`);
+  revalidatePath('/admin/review');
+  revalidatePath('/dashboard');
+  return { ok: true };
+}
