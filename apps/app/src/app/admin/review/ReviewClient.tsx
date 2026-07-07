@@ -270,7 +270,9 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">v{v.version}</span>
                         {v.kind === 'file'
-                          ? <a href="#" onClick={(e) => e.preventDefault()} className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-file-arrow-down" aria-hidden />{v.fileName}</a>
+                          ? (v.url
+                            ? <a href={v.url} target="_blank" rel="noopener noreferrer" download={v.fileName ?? undefined} className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-file-arrow-down" aria-hidden />{v.fileName ?? 'Download file'}</a>
+                            : <span className="inline-flex items-center gap-1 font-medium text-muted-foreground"><i className="ph-bold ph-file-x" aria-hidden />{v.fileName ?? 'No file attached'}</span>)
                           : <a href={v.url ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden />Open link</a>}
                         <button onClick={() => setPreviewId((p) => (p === v.id ? null : v.id))} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-eye mr-1" aria-hidden />{previewId === v.id ? 'Hide' : 'Preview'}</button>
                         <span className="ml-auto text-xs text-muted-foreground">{v.submittedAt}</span>

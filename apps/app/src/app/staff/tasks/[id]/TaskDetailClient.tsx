@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MessageAttachments } from '@/components/MessageAttachments';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { SlaChip } from '@/components/staff/SlaChip';
-import { DeliverableSubmit } from '@/components/staff/DeliverableSubmit';
+import { DeliverableSubmit, type DeliverableFile } from '@/components/staff/DeliverableSubmit';
 import { SelfNoteLog } from '@/components/staff/SelfNoteLog';
 import { MessageThread } from '@/components/shared/MessageThread';
 import { nextStaffActions } from '@/lib/staff';
@@ -78,10 +78,10 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
     flash(`${task.code} → ${label}`);
     if (real) router.refresh();
   }
-  async function submit(note: string) {
+  async function submit(note: string, _customerNote?: string, files: DeliverableFile[] = []) {
     if (real) {
-      // record the real deliverable version, THEN move the order to review (both real, inc-E27)
-      const sub = await submitDeliverableAction(task.id, note, []);
+      // record the real deliverable version (with the uploaded file/link), THEN move to review (inc-E27)
+      const sub = await submitDeliverableAction(task.id, note, files);
       if (!sub.ok) { flash(sub.error); return; }
       const res = await advanceOrderAction(task.id, 'internal_review');
       if (!res.ok) { flash(res.error); return; }
