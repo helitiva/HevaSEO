@@ -20,6 +20,7 @@ export function DeliveryManager({ latest, nextVersion, viewOnly, onEdit, onRevis
   onRevise: (note: string, files: DeliverableFile[]) => Promise<ActionResult>;
 }) {
   const viewed = Boolean(latest.viewedAt);
+  const editCount = latest.editCount ?? 0; // in-place corrections the customer never saw as separate versions
   const assets = deliverableAssets(latest);
   const currentFile = assets.find((a) => a.kind === 'file') ?? null;
   const currentLink = assets.find((a) => a.kind === 'link') ?? null;
@@ -55,14 +56,24 @@ export function DeliveryManager({ latest, nextVersion, viewOnly, onEdit, onRevis
     <div className="kcard">
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-paper-plane-tilt text-emerald-600 dark:text-emerald-400" aria-hidden /> Delivered work</p>
-        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">v{latest.version} delivered</span>
+        <span className="flex items-center gap-1.5">
+          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">v{latest.version} delivered</span>
+          {editCount > 0 && !viewed && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground" title="Your internal in-place edits — the customer never saw these as separate versions"><i className="ph-bold ph-pencil-simple" aria-hidden />pass #{editCount + 1}</span>}
+        </span>
       </div>
 
       {/* Seen-by-customer indicator */}
-      <div className={`mb-3 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${viewed ? 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>
+      <div className={`mb-2 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${viewed ? 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>
         <i className={`ph-bold ${viewed ? 'ph-eye' : 'ph-eye-slash'}`} aria-hidden />
         {viewed ? `Viewed by the customer${latest.viewedAt ? ` · ${latest.viewedAt}` : ''}` : 'Not viewed by the customer yet'}
       </div>
+
+      {/* Internal-edit note — the customer only ever sees the single v{version}; earlier in-place edits are invisible to them. */}
+      {editCount > 0 && !viewed && (
+        <p className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <i className="ph-bold ph-info" aria-hidden /> You&apos;ve reworked this {editCount === 1 ? 'once' : `${editCount}×`} in place — the customer still sees a single v{latest.version} and doesn&apos;t know about earlier edits.
+        </p>
+      )}
 
       {/* current assets */}
       <div className="mb-3 space-y-1.5">

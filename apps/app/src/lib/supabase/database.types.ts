@@ -1022,6 +1022,7 @@ export type Database = {
       }
       deliverables: {
         Row: {
+          edit_count: number
           files: Json
           id: string
           order_id: string
@@ -1037,6 +1038,7 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          edit_count?: number
           files?: Json
           id?: string
           order_id: string
@@ -1052,6 +1054,7 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          edit_count?: number
           files?: Json
           id?: string
           order_id?: string
@@ -3118,6 +3121,7 @@ export type Database = {
       edit_deliverable: {
         Args: { p_deliverable: string; p_files?: Json; p_summary: string }
         Returns: {
+          edit_count: number
           files: Json
           id: string
           order_id: string
@@ -3356,6 +3360,7 @@ export type Database = {
       review_deliverable: {
         Args: { p_action: string; p_deliverable: string; p_note?: string }
         Returns: {
+          edit_count: number
           files: Json
           id: string
           order_id: string
@@ -3380,6 +3385,7 @@ export type Database = {
       revise_delivered: {
         Args: { p_files?: Json; p_order: string; p_summary: string }
         Returns: {
+          edit_count: number
           files: Json
           id: string
           order_id: string
@@ -3488,6 +3494,7 @@ export type Database = {
       submit_deliverable: {
         Args: { p_files?: Json; p_order: string; p_summary: string }
         Returns: {
+          edit_count: number
           files: Json
           id: string
           order_id: string

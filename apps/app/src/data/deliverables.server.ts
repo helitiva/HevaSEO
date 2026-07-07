@@ -11,12 +11,12 @@ type DelivRow = {
   status: AdminDeliverable['status']; summary: string | null;
   files: { kind?: string; fileName?: string | null; url?: string | null }[] | null;
   submitted_at: string; reviewed_at: string | null; review_note: string | null;
-  viewed_at: string | null;
+  viewed_at: string | null; edit_count: number | null;
   submitter: { name: string | null } | null;
 };
 const day = (ts: string | null): string | null => (ts ? ts.slice(0, 10) : null);
 const DELIV_SELECT =
-  'id, order_id, version, status, summary, files, submitted_at, reviewed_at, review_note, viewed_at, submitter:profiles!deliverables_submitter_id_fkey(name)';
+  'id, order_id, version, status, summary, files, submitted_at, reviewed_at, review_note, viewed_at, edit_count, submitter:profiles!deliverables_submitter_id_fkey(name)';
 
 function toAdminDeliverable(r: DelivRow): AdminDeliverable {
   const files: DeliverableAsset[] = (Array.isArray(r.files) ? r.files : []).map((f) => ({
@@ -40,6 +40,7 @@ function toAdminDeliverable(r: DelivRow): AdminDeliverable {
     reviewedAt: day(r.reviewed_at),
     reviewNote: r.review_note,
     viewedAt: day(r.viewed_at),
+    editCount: r.edit_count ?? 0,
   } satisfies AdminDeliverable;
 }
 

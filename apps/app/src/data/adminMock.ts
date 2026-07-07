@@ -131,6 +131,7 @@ export interface AdminDeliverable {
   submittedAt: string; reviewedAt: string | null; reviewNote: string | null;
   files?: DeliverableAsset[]; // all attached assets (file(s) + link(s)); kind/fileName/url mirror files[0]. Optional on legacy mock rows.
   viewedAt?: string | null; // when the customer first opened the delivered work (null = not yet viewed)
+  editCount?: number; // staff-only: how many times this version was corrected in place before the customer viewed it
 }
 
 /** All assets on a deliverable — real rows carry `files`; legacy/mock rows synthesize one from kind/fileName/url. */
