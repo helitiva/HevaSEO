@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { AdminDeliverable } from '@/data/adminMock';
+import type { AdminDeliverable, DeliverableAsset } from '@/data/adminMock';
 
 // Step 2 inc-5e — real (RLS-scoped) deliverables for the admin Review board. Replaces the DELIVERABLES
 // mock. Maps the DB row to AdminDeliverable: staff name via submitter join; kind/fileName/url from the
@@ -23,14 +23,20 @@ export async function getDeliverables(): Promise<AdminDeliverable[]> {
     .returns<DelivRow[]>();
   if (error) throw new Error(`getDeliverables: ${error.message}`);
   return (data ?? []).map((r) => {
-    const f = (Array.isArray(r.files) && r.files[0]) || {};
+    const files: DeliverableAsset[] = (Array.isArray(r.files) ? r.files : []).map((f) => ({
+      kind: f.kind === 'link' ? 'link' : 'file',
+      fileName: f.fileName ?? null,
+      url: f.url ?? null,
+    }));
+    const first = files[0] ?? { kind: 'file' as const, fileName: null, url: null };
     return {
       id: r.id,
       orderId: r.order_id,
       version: r.version,
-      kind: (f.kind === 'link' ? 'link' : 'file'),
-      fileName: f.fileName ?? null,
-      url: f.url ?? null,
+      kind: first.kind,
+      fileName: first.fileName,
+      url: first.url,
+      files,
       note: r.summary ?? '',
       staff: r.submitter?.name ?? '',
       status: r.status,

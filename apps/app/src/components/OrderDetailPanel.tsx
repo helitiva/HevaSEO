@@ -269,11 +269,14 @@ function Panel({ order }: { order: Order }) {
             </section>
           )}
 
-          {/* deliverables */}
+          {/* deliverables — the payoff of the order; given a distinct emerald treatment so it reads as
+              "your finished work is here", not just another metadata row. */}
           <section>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Deliverables</p>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              <i className="ph-fill ph-package" aria-hidden />Deliverables
+            </p>
             {deliverables.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">No deliverables yet</p>
+              <p className="rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/[0.03] px-3 py-4 text-center text-[11px] text-muted-foreground">No deliverables yet — your finished work will appear here.</p>
             ) : (
               <div className="space-y-1.5">
                 {deliverables.map((d, i) => {
@@ -281,21 +284,21 @@ function Panel({ order }: { order: Order }) {
                   const open = expandedDeliv === i;
                   const revs = [...d.revisions].reverse(); // newest first
                   return (
-                    <div key={i} className="overflow-hidden rounded-lg border border-border">
+                    <div key={i} className="overflow-hidden rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] shadow-[0_1px_0_0_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/10">
                       <button
                         type="button"
                         onClick={() => setExpandedDeliv(open ? null : i)}
                         aria-expanded={open}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] transition hover:bg-muted/40"
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-medium transition hover:bg-emerald-500/10"
                       >
-                        <i className={`ph-bold ph-caret-right shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden />
-                        <i className="ph-bold ph-file-text shrink-0 text-muted-foreground" aria-hidden />
+                        <i className={`ph-bold ph-caret-right shrink-0 text-emerald-600/70 transition-transform dark:text-emerald-400/70 ${open ? 'rotate-90' : ''}`} aria-hidden />
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i className="ph-fill ph-package text-[13px]" aria-hidden /></span>
                         <span className="min-w-0 truncate">{d.name}</span>
                         <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{d.revisions.length} version{d.revisions.length > 1 ? 's' : ''}</span>
                         <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: dp.bg, color: dp.fg }}>{dp.label}</span>
                       </button>
                       {open && (
-                        <ol className="space-y-3 border-t border-border bg-muted/20 px-3 py-3">
+                        <ol className="space-y-3 border-t border-emerald-500/20 bg-emerald-500/[0.03] px-3 py-3">
                           {revs.map((r, ri) => {
                             const rp = DELIV_PILL[r.status];
                             return (
@@ -309,13 +312,13 @@ function Panel({ order }: { order: Order }) {
                                 {r.files && r.files.length > 0 && (
                                   <div className="mt-1.5 space-y-1">
                                     {r.files.map((f, fi) => {
-                                      const cls = 'flex w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-primary/50';
+                                      const cls = 'flex w-full items-center gap-1.5 rounded-md border border-emerald-500/25 bg-card px-2 py-1.5 text-left text-[12px] transition hover:border-emerald-500/60 hover:bg-emerald-500/[0.06]';
                                       const inner = (
                                         <>
-                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file'} shrink-0 text-primary`} aria-hidden />
+                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-link-simple' : 'ph-file-arrow-down'} shrink-0 text-emerald-600 dark:text-emerald-400`} aria-hidden />
                                           <span className="min-w-0 truncate">{f.name}</span>
-                                          {f.meta && <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{f.meta}</span>}
-                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} shrink-0 text-muted-foreground`} aria-hidden />
+                                          {f.meta && <span className="shrink-0 rounded bg-emerald-500/10 px-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">{f.meta}</span>}
+                                          <i className={`ph-bold ${f.kind === 'link' ? 'ph-arrow-up-right' : 'ph-download-simple'} ml-auto shrink-0 text-emerald-600/70 dark:text-emerald-400/70`} aria-hidden />
                                         </>
                                       );
                                       return f.url

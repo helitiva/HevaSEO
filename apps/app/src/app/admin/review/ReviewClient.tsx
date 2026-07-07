@@ -8,7 +8,7 @@ import { advanceOrderAction } from '@/app/admin/orders/actions';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { SnippetPicker } from '@/components/staff/SnippetPicker';
-import { type OrderStatus, type Priority, type Tier, type AdminDeliverable } from '@/data/adminMock';
+import { deliverableAssets, type OrderStatus, type Priority, type Tier, type AdminDeliverable, type DeliverableAsset } from '@/data/adminMock';
 import { useMoney, useShowMoney } from '@/lib/viewer';
 
 interface CustSummary { id: string; name: string; company: string; email: string; tier: Tier; spend: number; orders: number; balance: number }
@@ -269,14 +269,14 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
                     <div key={v.id} className="rounded-xl border border-border bg-background/40 p-3">
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">v{v.version}</span>
-                        {v.kind === 'file'
-                          ? (v.url
-                            ? <a href={v.url} target="_blank" rel="noopener noreferrer" download={v.fileName ?? undefined} className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-file-arrow-down" aria-hidden />{v.fileName ?? 'Download file'}</a>
-                            : <span className="inline-flex items-center gap-1 font-medium text-muted-foreground"><i className="ph-bold ph-file-x" aria-hidden />{v.fileName ?? 'No file attached'}</span>)
-                          : <a href={v.url ?? '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline"><i className="ph-bold ph-link" aria-hidden />Open link</a>}
                         <button onClick={() => setPreviewId((p) => (p === v.id ? null : v.id))} className="rounded-md border border-border px-2 py-0.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-eye mr-1" aria-hidden />{previewId === v.id ? 'Hide' : 'Preview'}</button>
                         <span className="ml-auto text-xs text-muted-foreground">{v.submittedAt}</span>
                         <StatusChip status={v.status} />
+                      </div>
+                      {/* Every attached asset — files (download) AND links (open). */}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {deliverableAssets(v).map((a, i) => <AssetChip key={i} a={a} />)}
+                        {deliverableAssets(v).length === 0 && <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><i className="ph-bold ph-file-x" aria-hidden />No attachment</span>}
                       </div>
                       {v.note && <p className="mt-1.5 text-sm text-muted-foreground"><i className="ph-bold ph-chat-text mr-1" aria-hidden />{v.note}</p>}
                       {v.reviewNote && <p className="mt-1.5 rounded-lg bg-amber-500/5 px-2 py-1.5 text-xs text-amber-700"><i className="ph-bold ph-warning mr-1" aria-hidden />Sent back: {v.reviewNote}</p>}
@@ -401,15 +401,33 @@ export function ReviewClient({ queue, sentBack, staffQuality, stats, tierMeta }:
   );
 }
 
+// A single deliverable asset as a clickable chip: file → download, link → open in new tab (URL shown).
+function AssetChip({ a }: { a: DeliverableAsset }) {
+  if (a.kind === 'link') {
+    const host = (() => { try { return a.url ? new URL(a.url).hostname.replace(/^www\./, '') : 'link'; } catch { return a.url ?? 'link'; } })();
+    return (
+      <a href={a.url ?? '#'} target="_blank" rel="noopener noreferrer" title={a.url ?? undefined} className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary transition hover:bg-primary/10">
+        <i className="ph-bold ph-link shrink-0" aria-hidden /><span className="truncate">{host}</span><i className="ph-bold ph-arrow-up-right shrink-0 opacity-60" aria-hidden />
+      </a>
+    );
+  }
+  return a.url
+    ? <a href={a.url} target="_blank" rel="noopener noreferrer" download={a.fileName ?? undefined} className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium transition hover:border-primary/40 hover:text-primary"><i className="ph-bold ph-file-arrow-down shrink-0" aria-hidden /><span className="truncate">{a.fileName ?? 'Download file'}</span></a>
+    : <span className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground"><i className="ph-bold ph-file-x shrink-0" aria-hidden />{a.fileName ?? 'No file'}</span>;
+}
+
 function PreviewBox({ v }: { v: AdminDeliverable }) {
+  const assets = deliverableAssets(v);
+  const link = assets.find((a) => a.kind === 'link');
+  const file = assets.find((a) => a.kind === 'file');
   return (
     <div className="mt-2 overflow-hidden rounded-xl border border-border">
       <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-1.5 text-xs">
-        <span className="inline-flex items-center gap-1 font-medium"><i className={`ph-bold ${v.kind === 'file' ? 'ph-file-text' : 'ph-globe'}`} />{v.fileName ?? v.url}</span>
-        <span className="text-muted-foreground">inline preview</span>
+        <span className="inline-flex min-w-0 items-center gap-1 font-medium"><i className={`ph-bold ${link ? 'ph-globe' : 'ph-file-text'}`} /><span className="truncate">{link?.url ?? file?.fileName ?? '—'}</span></span>
+        <span className="shrink-0 text-muted-foreground">inline preview</span>
       </div>
-      {v.kind === 'link'
-        ? <iframe src={v.url ?? ''} title={`preview-${v.id}`} className="h-80 w-full bg-white" sandbox="" referrerPolicy="no-referrer" />
+      {link
+        ? <iframe src={link.url ?? ''} title={`preview-${v.id}`} className="h-80 w-full bg-white" sandbox="" referrerPolicy="no-referrer" />
         : (
           <div className="space-y-2 bg-white p-4 dark:bg-zinc-900">
             <div className="h-3 w-2/5 rounded bg-muted" />

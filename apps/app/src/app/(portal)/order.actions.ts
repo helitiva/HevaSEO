@@ -109,16 +109,22 @@ export async function getCustomerOrderDetailAction(code: string): Promise<Custom
     .filter((b) => b.label);
 
   const delivRows = delivRes.data ?? [];
+  const hostOf = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return undefined; }
+  };
+  // Preserve each asset's real kind: a 'file' renders as a downloadable/previewable file, a 'link' shows
+  // the URL the staffer included. (Previously everything was forced to 'link' and the filename was dropped.)
   const toFiles = (files: unknown): DelivFile[] => (Array.isArray(files) ? files : []).map((f, i) => {
     if (f && typeof f === 'object') {
       const o = f as Record<string, unknown>;
       const url = o.url ? String(o.url) : undefined;
-      let host: string | undefined;
-      if (url) { try { host = new URL(url).hostname; } catch { host = undefined; } }
-      return { kind: 'link', name: String(o.label ?? url ?? `Attachment ${i + 1}`), meta: host, url };
+      const kind: DelivFile['kind'] = o.kind === 'file' ? 'file' : 'link';
+      const name = String(o.fileName ?? o.name ?? o.label ?? url ?? `Attachment ${i + 1}`);
+      return { kind, name, meta: kind === 'link' ? hostOf(url) : undefined, url };
     }
     const url = typeof f === 'string' ? f : undefined;
-    return { kind: 'link', name: url ?? `Attachment ${i + 1}`, url };
+    return { kind: 'link', name: url ?? `Attachment ${i + 1}`, meta: hostOf(url), url };
   });
   const deliverables: Deliverable[] = delivRows.length
     ? [{

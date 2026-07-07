@@ -123,11 +123,20 @@ export const ORDER_ASSIGNED_AT: Record<string, string> = Object.fromEntries(
 );
 
 // ---- Deliverable Review (module 4): versioned submissions per order ----
+export interface DeliverableAsset { kind: 'file' | 'link'; fileName: string | null; url: string | null }
 export interface AdminDeliverable {
   id: string; orderId: string; version: number; kind: 'file' | 'link';
   fileName: string | null; url: string | null; note: string; staff: string;
   status: 'submitted' | 'approved' | 'changes_requested';
   submittedAt: string; reviewedAt: string | null; reviewNote: string | null;
+  files?: DeliverableAsset[]; // all attached assets (file(s) + link(s)); kind/fileName/url mirror files[0]. Optional on legacy mock rows.
+}
+
+/** All assets on a deliverable — real rows carry `files`; legacy/mock rows synthesize one from kind/fileName/url. */
+export function deliverableAssets(d: AdminDeliverable): DeliverableAsset[] {
+  if (d.files && d.files.length) return d.files;
+  if (d.url || d.fileName) return [{ kind: d.kind, fileName: d.fileName, url: d.url }];
+  return [];
 }
 export const DELIVERABLES: AdminDeliverable[] = [
   // CNT-1004 — re-submission (v1 was sent back, v2 awaiting review)
