@@ -115,9 +115,11 @@ const MANAGER_DUTY = 'Oversees the pod and reviews & approves the specialist’s
 function PersonTag({ name, title, duty, tone, reviewing = false, avatarOnly = false, className = '' }: { name: string; title: string; duty: string; tone: 'staff' | 'manager'; reviewing?: boolean; avatarOnly?: boolean; className?: string }) {
   const unassigned = name === 'Unassigned';
   const avatar = tone === 'manager' ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/15 text-primary';
+  // Solid fill for the compact card avatars so they read clearly (not the washed-out translucent tint).
+  const avatarSolid = tone === 'manager' ? 'bg-amber-500 text-white' : 'bg-primary text-primary-foreground';
   return (
     <span className={`group/person relative inline-flex min-w-0 items-center gap-1.5 ${className}`}>
-      <span className={`grid ${avatarOnly ? 'h-6 w-6 text-[10px]' : 'h-5 w-5 text-[9px]'} shrink-0 place-items-center rounded-full font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatar} ${reviewing ? 'ring-2 ring-amber-500/40' : avatarOnly ? 'ring-2 ring-card' : ''}`}>{initials(name)}</span>
+      <span className={`grid ${avatarOnly ? 'h-6 w-6 text-[10px]' : 'h-5 w-5 text-[9px]'} shrink-0 place-items-center rounded-full font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatarOnly ? avatarSolid : avatar} ${reviewing ? 'ring-2 ring-amber-500/60' : avatarOnly ? 'ring-2 ring-card' : ''}`}>{initials(name)}</span>
       {!avatarOnly && <span className="min-w-0 truncate">{firstName(name)}</span>}
       {!avatarOnly && reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
       {!unassigned && (
@@ -278,14 +280,19 @@ function ProgressRow({ done, p, showPct = true }: { done: boolean; p: number; sh
  *  and bolder so it reads as the card's key at-a-glance meta. Avatars carry the rich hover card. */
 function PeopleMetaRow({ o, planned, reviewing, showSchedule }: { o: Order; planned: boolean; reviewing: boolean; showSchedule: boolean }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-semibold text-foreground/80">
+    <div className="mt-2 flex items-center justify-between gap-x-2 text-[12px] font-semibold text-foreground/80">
       <span className="flex items-center -space-x-1.5">
         <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} avatarOnly />
         {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} avatarOnly />}
       </span>
       {showSchedule && (
         <span className="flex items-center gap-x-2 text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}</span>
+          <span className="group/date relative inline-flex items-center gap-1">
+            <i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/date:opacity-100">
+              Start date: {toDMY(o.date)}
+            </span>
+          </span>
           {o.eta && o.eta !== '—' && <EtaTag eta={o.eta} />}
         </span>
       )}
