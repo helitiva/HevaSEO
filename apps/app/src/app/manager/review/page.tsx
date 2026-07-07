@@ -2,7 +2,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { ReviewClient } from '@/app/admin/review/ReviewClient';
 import { buildReviewProps } from '@/app/admin/review/build';
 import { TIER } from '@/data/adminMock';
-import { getPodOrders } from '@/data/orders.server';
+import { getPodOrders, getOrderDetailsByIds } from '@/data/orders.server';
 import { getDeliverables } from '@/data/deliverables.server';
 import { getStaff } from '@/data/staff.server';
 
@@ -13,7 +13,8 @@ export const metadata = { title: 'Review' };
 // permit pod-scoped manager review. (Previously this rendered mock data.)
 export default async function ManagerReviewPage() {
   const [orders, deliverables, staff] = await Promise.all([getPodOrders(), getDeliverables(), getStaff()]);
-  const p = buildReviewProps(null, orders, deliverables, staff);
+  const details = await getOrderDetailsByIds(orders.map((o) => o.id));
+  const p = buildReviewProps(null, orders, deliverables, staff, details);
   return (
     <section className="space-y-4">
       <PageHeader title="Review" subtitle="Deliverables awaiting QA in your pod" />

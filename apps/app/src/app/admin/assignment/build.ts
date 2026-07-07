@@ -1,10 +1,15 @@
 import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, MOCK_TODAY, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff, type AdminOrder, type AdminRule } from '@/data/adminMock';
+import { domainFromBrief, type OrderDetailExtra } from '@/lib/orderDetail';
 
-const factsOf = (o: AdminOrder) => {
+// Site/targetUrl/project come from the customer's REAL intake (order_details brief) when available; the
+// email-host/mock defaults are only the fallback for orders with no submitted detail.
+const factsOf = (o: AdminOrder, detail?: OrderDetailExtra | null) => {
   const c = customerByCompany(o.customer);
-  const site = c?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
   const ex = ORDER_EXTRA[o.id];
-  return { source: o.source, site, targetUrl: `https://${site}`, project: ex?.project ?? `${o.customer} — SEO program`, folder: ex?.folder ?? 'General' };
+  const emailSite = c?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
+  const brief = (detail?.brief.length ? detail.brief : undefined) ?? ex?.brief ?? [];
+  const site = domainFromBrief(brief) ?? emailSite;
+  return { source: o.source, site, targetUrl: `https://${site}`, project: detail?.project ?? ex?.project ?? `${o.customer} — SEO program`, folder: detail?.folder ?? ex?.folder ?? 'General' };
 };
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
@@ -37,6 +42,7 @@ export function buildAssignmentProps(
   roster: readonly AdminStaff[] = STAFF,
   orders: readonly AdminOrder[] = ORDERS,
   rules: readonly AdminRule[] = RULES,
+  detailsById?: ReadonlyMap<string, OrderDetailExtra>,
 ) {
   const seqMap = new Map([...orders].sort((a, b) => a.created.localeCompare(b.created)).map((o, i) => [o.id, i + 1] as const));
   const rosterNames = new Set(roster.map((s) => s.name));
@@ -50,7 +56,7 @@ export function buildAssignmentProps(
       id: o.id, seq: seqMap.get(o.id) ?? 0, code: o.code, customer: o.customer, tier,
       service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, value: o.value,
       deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((TODAY.getTime() - new Date(o.created).getTime()) / 86400000),
-      ...factsOf(o), cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
+      ...factsOf(o, detailsById?.get(o.id)), cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
 
@@ -59,7 +65,7 @@ export function buildAssignmentProps(
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
     const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
-    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, ...factsOf(o), cust: custOf(o.customer), home: o.staff as string };
+    return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, ...factsOf(o, detailsById?.get(o.id)), cust: custOf(o.customer), home: o.staff as string };
   });
 
   const staff = roster.filter((s) => s.active).map((s) => ({ id: s.id, name: s.name, skills: s.skills, capacity: s.capacity, openLoad: assigned.filter((a) => a.home === s.name).length, composite: s.composite, quality: s.quality, onTime: s.onTime, throughput: s.throughput }));

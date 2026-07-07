@@ -1,5 +1,6 @@
 import { ORDERS, DELIVERABLES, STAFF, tierOf, customerByCompany, qaCriteriaFor, SERVICE_INCLUDED, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier, type AdminOrder, type AdminDeliverable, type AdminStaff } from '@/data/adminMock';
 import { mockTodayDate } from '@/lib/today';
+import type { OrderDetailExtra } from '@/lib/orderDetail';
 
 const REVIEW_SLA_DAYS = 2;
 const TODAY = mockTodayDate();
@@ -19,6 +20,7 @@ export function buildReviewProps(
   orders: readonly AdminOrder[] = ORDERS,
   deliverables: readonly AdminDeliverable[] = DELIVERABLES,
   staff: readonly AdminStaff[] = STAFF,
+  detailsById?: ReadonlyMap<string, OrderDetailExtra>,
 ) {
   const versionsOf = (orderId: string) => deliverables.filter((d) => d.orderId === orderId).sort((a, b) => b.version - a.version);
   const inScope = (s: string | null) => staffNames === null || (s !== null && staffNames.has(s));
@@ -32,14 +34,16 @@ export function buildReviewProps(
       const cust = customerByCompany(o.customer);
       const tier: Tier = cust ? cust.tier : tierOf(o.value);
       const extra = ORDER_EXTRA[o.id];
-      const site = cust?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
-      const brief = extra?.brief ?? [
-        { label: 'Website', value: `https://${site}` },
-        { label: 'Target URL', value: `https://${site}/` },
+      const detail = detailsById?.get(o.id);
+      const emailSite = cust?.email.split('@')[1] ?? `${o.customer.toLowerCase().replace(/\s+/g, '')}.com`;
+      // real submitted brief > mock extra > synthesized fallback; site derived from the brief's real domain
+      const brief = (detail?.brief.length ? detail.brief : undefined) ?? extra?.brief ?? [
+        { label: 'Website', value: `https://${emailSite}` },
+        { label: 'Target URL', value: `https://${emailSite}/` },
         { label: 'Primary goal', value: 'Improve organic visibility' },
         { label: 'Target market', value: 'US · English' },
       ];
-      const customerNote = ORDER_NOTE[o.id] ?? extra?.brief.find((b) => /note/i.test(b.label))?.value ?? null;
+      const customerNote = ORDER_NOTE[o.id] ?? brief.find((b) => /note/i.test(b.label))?.value ?? null;
       return {
         id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status,
         value: o.value, deadline: o.deadline, customer: o.customer, tier, cust: custOf(o.customer), staff: o.staff,
@@ -52,7 +56,7 @@ export function buildReviewProps(
         ],
         priorNote: versions.find((v) => v.status === 'changes_requested')?.reviewNote ?? null,
         brief: brief.filter((b) => !/note/i.test(b.label)), customerNote,
-        project: extra?.project ?? `${o.customer} — SEO program`, folder: extra?.folder ?? 'General',
+        project: detail?.project ?? extra?.project ?? `${o.customer} — SEO program`, folder: detail?.folder ?? extra?.folder ?? 'General',
         source: o.source, created: o.created, memberSince: cust ? CUSTOMER_EXTRA[cust.id]?.memberSince ?? null : null,
       };
     })

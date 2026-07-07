@@ -97,6 +97,36 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetailExtra 
   };
 }
 
+/** Order details for many orders in one round-trip (RLS-scoped) → keyed by order id. Used by the review
+ *  board + assignment queue so their site/project/brief reflect the customer's real intake, not defaults. */
+export async function getOrderDetailsByIds(ids: string[]): Promise<Map<string, OrderDetailExtra>> {
+  const map = new Map<string, OrderDetailExtra>();
+  const valid = ids.filter((id) => UUID_RE.test(id));
+  if (!valid.length) return map;
+  const supabase = await createClient();
+  const [det, add] = await Promise.all([
+    supabase.from('order_details').select('order_id, project, folder, brief, included').in('order_id', valid),
+    supabase.from('order_addons').select('order_id, name, tier, price').in('order_id', valid),
+  ]);
+  if (det.error) throw new Error(`getOrderDetailsByIds: ${det.error.message}`);
+  const addByOrder = new Map<string, OrderDetailExtra['addons']>();
+  for (const a of add.data ?? []) {
+    const arr = addByOrder.get(a.order_id) ?? [];
+    arr.push({ name: a.name, tier: a.tier ?? '', price: Number(a.price) });
+    addByOrder.set(a.order_id, arr);
+  }
+  for (const d of det.data ?? []) {
+    map.set(d.order_id, {
+      project: d.project,
+      folder: d.folder,
+      brief: Array.isArray(d.brief) ? (d.brief as OrderDetailExtra['brief']) : [],
+      included: d.included ?? [],
+      addons: addByOrder.get(d.order_id) ?? [],
+    });
+  }
+  return map;
+}
+
 /** The signed-in customer's own orders, shaped for the dashboard board (excludes canceled). */
 export async function getMyOrders(): Promise<Order[]> {
   const supabase = await createClient();

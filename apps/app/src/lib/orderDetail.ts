@@ -25,8 +25,9 @@ export type OrderDetailExtra = {
  * addons carry money). Returns null when a string id is unknown.
  */
 // Pull the first real domain the customer submitted from their brief — prefer an explicit
-// website/URL/target/domain/project field, else scan any field's value for a domain token.
-function domainFromBrief(brief: { label: string; value: string }[]): string | null {
+// website/URL/target/domain/project field, else scan any field's value for a domain token. Shared so the
+// review board + assignment queue derive the same real site (not the customer's email host).
+export function domainFromBrief(brief: { label: string; value: string }[]): string | null {
   const preferred = brief.filter((b) => /website|url|target|site|domain|project/i.test(b.label));
   for (const b of [...preferred, ...brief]) {
     const m = b.value.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
