@@ -84,6 +84,13 @@ export function TaskDetailClient({ task, deliverables, messages, days, prevId, n
   }
   async function submit(note: string, _customerNote?: string, files: DeliverableFile[] = []) {
     if (real) {
+      // A resubmission starts from changes_requested, from which internal_review isn't reachable directly
+      // (only cr → in_progress). Reopen the work first so the new version lands back in review correctly —
+      // otherwise the order stays stuck in changes_requested and the manager's approve can't deliver it.
+      if (status === 'changes_requested') {
+        const reopen = await advanceOrderAction(task.id, 'in_progress');
+        if (!reopen.ok) { flash(reopen.error); return; }
+      }
       // record the real deliverable version (with the uploaded file/link), THEN move to review (inc-E27)
       const sub = await submitDeliverableAction(task.id, note, files);
       if (!sub.ok) { flash(sub.error); return; }
