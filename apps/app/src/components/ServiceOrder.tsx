@@ -16,6 +16,7 @@ type ProjectOption = { name: string; domain: string };
 
 const AUTO = '__auto';
 const NEW_PROJECT = '__new';
+const NEW_FOLDER = '__newfolder';
 const RAND_ADJ = ['Lumen', 'Apex', 'Nova', 'Vertex', 'Quartz', 'Cobalt', 'Harbor', 'Summit', 'Atlas', 'Cedar', 'Orbit', 'Pioneer'];
 const RAND_NOUN = ['Labs', 'Media', 'Group', 'Studio', 'Works', 'Digital', 'Collective', 'Ventures'];
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
@@ -126,8 +127,8 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   // can rename / move it later. They can also target an existing project or a new one.
   const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
   const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.id === presetProj.folder)?.id ?? AUTO) : AUTO);
-  const [newDomain, setNewDomain] = useState('');
   const [newName, setNewName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);
   // Usage pricing: rate from the highest tier whose `min` the count meets.
   const usageRate = (() => {
@@ -170,28 +171,33 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   const subtotalText = isUsage ? `$${total.toFixed(2)}` : `$${total}`;
   const totalText = isUsage ? `$${finalTotal.toFixed(2)}` : (plan?.priceLabel ?? `$${finalTotal}`);
 
-  /** Resolve the order's project + folder from the picker, auto-generating when left on "Auto". */
-  function resolveAssignment() {
-    const randFolder = () => (storeFolders.length ? pick(storeFolders).id : '');
-    let domain: string, projectName: string, fid: string, auto = false, isNew = false;
+  /** Resolve the order's project + folder from the picker. The project is named after the website domain
+   *  (from the Website URL field) unless the customer set a custom name; the folder is a brand-new one
+   *  (created by name on submit), the picked one, or an auto default bucket. */
+  function resolveAssignment(websiteUrl: string) {
+    const urlDomain = cleanDomain(websiteUrl || '');
+    const folder = folderId === NEW_FOLDER
+      ? { id: '', name: newFolderName.trim() || 'New folder' }
+      : folderId !== AUTO
+        ? { id: folderId, name: storeFolders.find((f) => f.id === folderId)?.name ?? 'Uncategorized' }
+        : { id: '', name: 'Uncategorized' }; // auto → default bucket (find-or-created server-side)
+
+    let domain: string, projectName: string, auto = false, isNew = false;
     if (proj === NEW_PROJECT) {
       isNew = true;
-      const d = cleanDomain(newDomain);
-      projectName = newName.trim() || d || randomProjectName();
-      domain = d || `${slug(projectName)}.com`;
-      fid = folderId !== AUTO ? folderId : randFolder();
+      // Prefer the customer's custom name; otherwise name the project after their website domain.
+      domain = urlDomain || `${slug(newName.trim() || randomProjectName())}.com`;
+      projectName = newName.trim() || domain;
     } else if (proj !== AUTO && proj !== '') {
       const ep = storeProjects.find((p) => p.domain === proj);
       domain = proj;
       projectName = ep?.name ?? proj;
-      fid = folderId !== AUTO ? folderId : randFolder();
     } else {
       auto = true;
-      projectName = randomProjectName();
-      domain = `${slug(projectName)}.com`;
-      fid = folderId !== AUTO ? folderId : randFolder();
+      domain = urlDomain || `${slug(randomProjectName())}.com`;
+      projectName = urlDomain || randomProjectName();
     }
-    return { domain, projectName, folderId: fid, folderName: storeFolders.find((f) => f.id === fid)?.name ?? 'Uncategorized', auto, isNew };
+    return { domain, projectName, folderId: folder.id, folderName: folder.name, auto, isNew, newFolder: folderId === NEW_FOLDER };
   }
 
   const [placing, setPlacing] = useState(false);
@@ -200,7 +206,8 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
     const form = e.currentTarget;
     if (!form.reportValidity()) return;
     const fd = new FormData(form);
-    const asg = resolveAssignment();
+    // The project domain comes from the Website URL the customer entered (single source, no duplicate field).
+    const asg = resolveAssignment(String(fd.get('website') ?? ''));
     // Capture the brief the customer just filled in — assignment, plan, service fields, add-on fields.
     const intake: IntakeField[] = [
       { label: 'Project', value: asg.projectName === asg.domain ? asg.domain : `${asg.projectName} · ${asg.domain}`, full: true },
@@ -362,19 +369,22 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
                   <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className={ctrlCls}>
                     <option value={AUTO}>🎲 Auto</option>
                     {storeFolders.map((f) => <option key={f.id} value={f.id}>{f.parentId ? '— ' : ''}{f.name}</option>)}
+                    <option value={NEW_FOLDER}>＋ New folder…</option>
                   </select>
                 </div>
               </div>
               {proj === NEW_PROJECT && (
-                <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">Website domain</label>
-                    <input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="example.com" className={ctrlCls} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">Project name<span className="ml-1 font-normal text-muted-foreground">(optional)</span></label>
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Defaults to the domain" className={ctrlCls} />
-                  </div>
+                <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-3">
+                  <label className="text-xs font-semibold">Project name<span className="ml-1 font-normal text-muted-foreground">(optional)</span></label>
+                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Defaults to your website domain" className={ctrlCls} />
+                  <p className="text-[11px] text-muted-foreground">Leave blank and we&apos;ll name it after your website domain (from the URL below).</p>
+                </div>
+              )}
+              {folderId === NEW_FOLDER && (
+                <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-3">
+                  <label className="text-xs font-semibold">New folder name</label>
+                  <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="e.g. Client work, Q3 campaigns" className={ctrlCls} />
+                  <p className="text-[11px] text-muted-foreground">The project will be filed straight into this folder.</p>
                 </div>
               )}
               {proj === AUTO && (
