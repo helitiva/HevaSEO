@@ -57,10 +57,11 @@ function teamCanServe(skills: ReadonlySet<string>, service: string): boolean {
 /** Late work needing attention: assigned active slippage + unrouted work the team could take. */
 export function overdueCount(orders: AdminOrder[], staff: AdminStaff[], today: string = podToday()): number {
   const assigned = activeOrders(orders).filter((o) => o.deadline && o.deadline < today).length;
-  const skills = teamSkillSet(staff);
+  // Any unrouted order past due counts — the manager can still route it (skill is a suggestion, not a gate),
+  // so this must match what the Assignment queue shows.
   const unrouted = orders.filter((o) =>
     o.staff === null && o.status !== 'canceled' &&
-    o.deadline !== null && o.deadline < today && teamCanServe(skills, o.service),
+    o.deadline !== null && o.deadline < today,
   ).length;
   return assigned + unrouted;
 }
@@ -144,7 +145,9 @@ export function triageForPod(
   const PRIO_BUMP: Record<string, number> = { high: 8, med: 3, low: 0 };
   for (const o of orders) {
     if (o.staff !== null || o.status === 'canceled') continue;
-    if (!teamCanServe(skills, o.service)) continue;
+    // Show ALL unassigned pod orders (matches the Assignment queue). Skill is a suggestion, not a gate — a
+    // service no pod staffer has the skill for is still surfaced, just flagged so the manager can decide.
+    const canServe = teamCanServe(skills, o.service);
     const bump = PRIO_BUMP[o.priority] ?? 0;
     const dtd = o.deadline ? -ageDays(o.deadline, today) : null;
     let weight: number; let tone: TriageItem['tone']; let meta: string;
@@ -154,6 +157,7 @@ export function triageForPod(
     else if (dtd === 1) { weight = 58 + bump; tone = 'warn'; meta = 'due tomorrow · unrouted'; }
     else if (dtd <= 3) { weight = 46 + bump; tone = 'info'; meta = `due in ${dtd}d`; }
     else { weight = 34 + bump - Math.min(dtd, 12) * 0.4; tone = 'info'; meta = `due in ${dtd}d`; }
+    if (!canServe) meta += ' · no pod skill';
     items.push({
       id: `as-${o.id}`, kind: 'assign', icon: 'ph-user-plus', tone,
       title: `Route ${o.code}`, subtitle: `${o.service} · ${o.pkg} for ${o.customer}`,
