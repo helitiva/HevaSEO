@@ -222,18 +222,11 @@ function folderColorByName(name: string): string {
   return FOLDER_HUES[h % FOLDER_HUES.length];
 }
 
-/** Compact meta block: project + website·URLs on two lines. */
-function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean }) {
-  const projName = o.project ?? projectForDomain(o.domain)?.name ?? null;
+/** Compact meta block: website · URLs. (Project moved down to the folder row.) */
+function MetaRows({ o }: { o: Order }) {
   const website = o.multiWeb ? 'Multi-site' : o.domain;
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      {!hideProject && projName && (
-        <p className="flex items-center gap-1.5">
-          <i className="ph-bold ph-stack shrink-0" aria-hidden />
-          <span className="min-w-0 truncate">Project: <span className="font-semibold text-foreground">{projName}</span></span>
-        </p>
-      )}
       <p className="flex items-center gap-1.5">
         <i className="ph-bold ph-globe-simple shrink-0" aria-hidden />
         <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
@@ -243,25 +236,30 @@ function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean 
   );
 }
 
-/** Folder breadcrumb (parent › child) — its own row at the bottom of the card. */
-function FolderPath({ o }: { o: Order }) {
-  // Real orders carry a single folder name; mock orders resolve a breadcrumb from the domain.
-  const path = o.folder
-    ? [{ id: o.folder, name: o.folder, color: folderColorByName(o.folder) }]
-    : folderPathForDomain(o.domain);
-  if (!path.length) return null;
-  const leaf = path[path.length - 1];
+/** Bottom row: project name › folder. Either can be long, so each truncates independently (…) and shows
+ *  its full value on hover (native title). `showProject` is off when the project is already the headline. */
+function FolderPath({ o, showProject = true }: { o: Order; showProject?: boolean }) {
+  const projName = showProject ? (o.project ?? projectForDomain(o.domain)?.name ?? null) : null;
+  // Real orders carry a single folder name; mock orders resolve the leaf folder from the domain.
+  const leaf = o.folder
+    ? { name: o.folder, color: folderColorByName(o.folder) }
+    : folderPathForDomain(o.domain).at(-1) ?? null;
+  if (!projName && !leaf) return null;
   return (
-    <div className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
-      <i className="ph-bold ph-folder-simple shrink-0" aria-hidden style={{ color: leaf.color }} />
-      <span className="min-w-0 truncate">
-        {path.map((f, i) => (
-          <span key={f.id} className={i === path.length - 1 ? 'font-semibold' : ''} style={i === path.length - 1 ? { color: leaf.color } : undefined}>
-            {i > 0 && <span className="text-muted-foreground/50"> › </span>}
-            {f.name}
-          </span>
-        ))}
-      </span>
+    <div className="mt-2 flex min-w-0 items-center gap-1.5 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
+      {projName && (
+        <span className="inline-flex min-w-0 items-center gap-1" title={projName}>
+          <i className="ph-bold ph-stack shrink-0" aria-hidden />
+          <span className="truncate font-semibold text-foreground">{projName}</span>
+        </span>
+      )}
+      {projName && leaf && <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground/40" aria-hidden />}
+      {leaf && (
+        <span className="inline-flex min-w-0 items-center gap-1 font-semibold" style={{ color: leaf.color }} title={leaf.name}>
+          <i className="ph-bold ph-folder-simple shrink-0" aria-hidden />
+          <span className="truncate">{leaf.name}</span>
+        </span>
+      )}
     </div>
   );
 }
@@ -360,11 +358,11 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
           </span>
         </div>
       )}
-      {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
+      {!compact && <div className="mt-1.5"><MetaRows o={o} /></div>}
       <ProgressRow done={done} p={p} showPct={template !== 'progress'} />
       {/* staff + manager avatars · date · ETA, consolidated onto one line */}
       <PeopleMetaRow o={o} planned={planned} reviewing={reviewing} showSchedule={!compact} />
-      {!compact && <FolderPath o={o} />}
+      {!compact && <FolderPath o={o} showProject={template !== 'project'} />}
     </>
   );
 }
