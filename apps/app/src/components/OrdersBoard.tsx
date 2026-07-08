@@ -247,17 +247,17 @@ function FolderPath({ o, showProject = true }: { o: Order; showProject?: boolean
   if (!projName && !leaf) return null;
   return (
     <div className="mt-2 flex min-w-0 items-center gap-1.5 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
-      {projName && (
-        <span className="inline-flex min-w-0 items-center gap-1" title={projName}>
-          <i className="ph-bold ph-stack shrink-0" aria-hidden />
-          <span className="truncate font-semibold text-foreground">{projName}</span>
-        </span>
-      )}
-      {projName && leaf && <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground/40" aria-hidden />}
       {leaf && (
         <span className="inline-flex min-w-0 items-center gap-1 font-semibold" style={{ color: leaf.color }} title={leaf.name}>
           <i className="ph-bold ph-folder-simple shrink-0" aria-hidden />
           <span className="truncate">{leaf.name}</span>
+        </span>
+      )}
+      {projName && leaf && <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground/40" aria-hidden />}
+      {projName && (
+        <span className="inline-flex min-w-0 items-center gap-1" title={projName}>
+          <i className="ph-bold ph-stack shrink-0" aria-hidden />
+          <span className="truncate font-semibold text-foreground">{projName}</span>
         </span>
       )}
     </div>

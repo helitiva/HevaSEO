@@ -202,9 +202,9 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
               <i className="ph-bold ph-folders text-primary" aria-hidden />
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
-              <span className="font-semibold">{p.project}</span>
-              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
               <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{p.folder}</span>
+              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{p.project}</span>
             </div>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <Field label="Project" value={p.project} />
