@@ -12,6 +12,10 @@ import { useOrderMessages } from '@/lib/useOrderMessages';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
 import { Checklist } from './Checklist';
 
+// Intake labels already surfaced by the Scope block (Project/Folder/Site) — filtered out of the customer
+// submission list so the merged card doesn't show them twice.
+const SCOPE_DUP_LABELS = new Set(['project', 'folder', 'site', 'website']);
+
 interface StaffLite { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skills: string[] }
 interface CustLite { id: string; name: string; email: string; status: string; tier: keyof typeof TIER; spend: number; orders: number; balance: number }
 interface OrderLite { id: string; seq: number; code: string; customer: string; service: string; pkg: string; status: OrderStatus; priority: Priority; source: string; value: number; staff: string | null; deadline: string | null; created: string }
@@ -91,6 +95,9 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [staffNote, setStaffNote] = useState('');
 
   const o = p.order;
+  // Intake fields NOT already shown in the merged Scope block (Project / Folder / Site) — avoids repeating
+  // the same values twice now that Scope + Customer intake are one card.
+  const extraBrief = p.brief.filter((f) => !SCOPE_DUP_LABELS.has(f.label.trim().toLowerCase()));
   const nowStamp = `${p.today} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   function notify(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
   function log(action: string, change: string) { setActivity((a) => [{ id: `${Date.now()}`, at: nowStamp, action, change }, ...a]); }
@@ -189,7 +196,16 @@ export function OrderDetailClient(p: OrderDetailProps) {
           </div>
           </div>
 
-          <Card icon="ph-package" title="Scope">
+          {/* Scope + the customer's full intake, merged — the two used to repeat Project / Site / Target URL /
+              Folder / plan. Scope essentials (editable) up top, the customer's non-duplicate fields below. */}
+          <Card icon="ph-package" title="Scope & customer intake">
+            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
+              <i className="ph-bold ph-folders text-primary" aria-hidden />
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
+              <span className="font-semibold">{p.project}</span>
+              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{p.folder}</span>
+            </div>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <Field label="Project" value={p.project} />
               <Field label="Service" value={`${o.service} · ${o.pkg}`} />
@@ -212,17 +228,12 @@ export function OrderDetailClient(p: OrderDetailProps) {
               <p className="mt-0.5 text-sm font-semibold">{o.service} · {o.pkg}</p>
               <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden />{x}</li>)}</ul>
             </div>
-          </Card>
-
-          <Card icon="ph-note-pencil" title="Customer intake — full submission">
-            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
-              <i className="ph-bold ph-folders text-primary" aria-hidden />
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
-              <span className="font-semibold">{p.project}</span>
-              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
-              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{p.folder}</span>
-            </div>
-            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{p.brief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
+            {extraBrief.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-note-pencil text-primary" aria-hidden /> Customer submission</p>
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{extraBrief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
+              </div>
+            )}
             {p.addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" aria-hidden /> Upsells added at checkout</p>
