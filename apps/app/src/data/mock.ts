@@ -71,6 +71,10 @@ export interface Order {
   /** project + folder name captured at order time (real orders carry these; mock orders resolve by domain) */
   project?: string;
   folder?: string;
+  /** optional campaign / order title (defaults to "Nth {service} order for {domain}"); shown as the card headline */
+  campaign?: string;
+  /** the exact website URL the customer submitted in the brief (shown on the card) */
+  site?: string;
   status: OrderStatus;
   priority: Priority;
   progress: number | null;

@@ -21,6 +21,8 @@ export type PlaceOrderInput = {
   folder: string;
   projectDomain?: string;    // the project's website; used to find-or-create the real projects row
   folderId?: string | null;  // a real folders.id when the customer picked one (else resolved by name)
+  title?: string;            // optional campaign/order title; blank → "Nth {service} order for {domain}"
+  site?: string;             // the website URL the customer entered (shown on the card)
   brief: { label: string; value: string; full?: boolean }[];
 };
 
@@ -64,6 +66,12 @@ async function resolveProjectLink(
 }
 export type PlaceOrderResult = { ok: true; code: string } | { ok: false; error: string };
 
+/** English ordinal: 1→"1st", 2→"2nd", 3→"3rd", 11→"11th", 21→"21st"… */
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
 // Lane B inc-B3 — create a customer order from the dashboard, MONEY (gác③). The price is computed
 // SERVER-SIDE (never trusted from the client) via computeOrderPrice using the real catalog + the
 // customer's real tier; create_order (service-role-only) atomically debits credit (INSUFFICIENT_CREDIT
@@ -75,7 +83,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   // own customer row (RLS-scoped) → id + tenant + tier
   const supabase = await createClient();
   const { data: cust, error: cErr } = await supabase
-    .from('customers').select('id, tenant_id, tier').maybeSingle();
+    .from('customers').select('id, tenant_id, tier, company').maybeSingle();
   if (cErr) return { ok: false, error: cErr.message };
   if (!cust) return { ok: false, error: 'No customer profile found.' };
 
@@ -104,10 +112,31 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   // as free text. Best-effort — never blocks the order.
   const { projectId, folderId } = await resolveProjectLink(supabase, cust.tenant_id, cust.id, input);
 
+  // Campaign/order title: use the customer's, else auto "Nth {service} order for {domain}" where N counts
+  // prior orders of this service in the same project.
+  let title = input.title?.trim() || null;
+  if (!title) {
+    let prior = 0;
+    if (projectId) {
+      // prior orders of THIS service already filed in THIS project (the new order's details aren't inserted
+      // yet). Read via the CUSTOMER client — service_role has no SELECT grant on order_details; the customer's
+      // own-row RLS is exactly the scope we want here.
+      const { data: dets } = await supabase.from('order_details').select('order_id').eq('project_id', projectId);
+      const ids = (dets ?? []).map((d) => d.order_id);
+      if (ids.length) {
+        const { data: os } = await supabase.from('orders').select('id').in('id', ids).eq('service', serviceLabel);
+        prior = (os ?? []).length;
+      }
+    }
+    const forSite = input.projectDomain?.trim() || cust.company || 'your site';
+    title = `${ordinal(prior + 1)} ${serviceLabel} order for ${forSite}`;
+  }
+
   // persist the brief + paid add-ons (service role bypasses RLS; these belong to the order just made)
   await svc.from('order_details').insert({
     tenant_id: cust.tenant_id, order_id: order.id, project: input.project, folder: input.folder,
-    project_id: projectId, folder_id: folderId, brief: input.brief, included: [],
+    project_id: projectId, folder_id: folderId, title, site: input.site?.trim() || null,
+    brief: input.brief, included: [],
   });
   const addonRows = resolveAddOns(catalog.addons ?? [])
     .filter((a) => a.id in input.addonPicks)

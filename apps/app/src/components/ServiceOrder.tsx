@@ -128,7 +128,9 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
   const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.id === presetProj.folder)?.id ?? AUTO) : AUTO);
   const [newName, setNewName] = useState('');
+  const [autoName, setAutoName] = useState(true); // name the project after the website domain
   const [newFolderName, setNewFolderName] = useState('');
+  const [orderTitle, setOrderTitle] = useState(''); // optional campaign / order title
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);
   // Usage pricing: rate from the highest tier whose `min` the count meets.
   const usageRate = (() => {
@@ -185,9 +187,9 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
     let domain: string, projectName: string, auto = false, isNew = false;
     if (proj === NEW_PROJECT) {
       isNew = true;
-      // Prefer the customer's custom name; otherwise name the project after their website domain.
+      // Auto → name the project after the website domain; otherwise use the custom name (domain fallback).
       domain = urlDomain || `${slug(newName.trim() || randomProjectName())}.com`;
-      projectName = newName.trim() || domain;
+      projectName = autoName ? domain : (newName.trim() || domain);
     } else if (proj !== AUTO && proj !== '') {
       const ep = storeProjects.find((p) => p.domain === proj);
       domain = proj;
@@ -224,6 +226,8 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
       project: asg.projectName, folder: asg.folderName,
       // the server find-or-creates the REAL project/folder rows and FKs the order to them (inc — project wiring)
       projectDomain: asg.domain, folderId: UUID_RE.test(asg.folderId) ? asg.folderId : null,
+      // campaign title (blank → server auto "Nth {service} order for {domain}") + the submitted site URL
+      title: orderTitle.trim() || undefined, site: String(fd.get('website') ?? '').trim() || undefined,
       brief: intake,
     });
     setPlacing(false);
@@ -374,10 +378,19 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
                 </div>
               </div>
               {proj === NEW_PROJECT && (
-                <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-3">
-                  <label className="text-xs font-semibold">Project name<span className="ml-1 font-normal text-muted-foreground">(optional)</span></label>
-                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Defaults to your website domain" className={ctrlCls} />
-                  <p className="text-[11px] text-muted-foreground">Leave blank and we&apos;ll name it after your website domain (from the URL below).</p>
+                <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
+                  <label className="flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={autoName} onChange={(e) => setAutoName(e.target.checked)} className="accent-primary" />
+                    Auto — name the project after my website domain
+                  </label>
+                  {autoName ? (
+                    <p className="text-[11px] text-muted-foreground">We&apos;ll use the domain from your Website URL below (e.g. dantri.com).</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold">Project name</label>
+                      <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Acme rebrand" className={ctrlCls} />
+                    </div>
+                  )}
                 </div>
               )}
               {folderId === NEW_FOLDER && (
@@ -393,6 +406,10 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
                   We&apos;ll create a project{folderId === AUTO ? ' in a folder' : ''} for this order — rename or move it anytime in Projects.
                 </p>
               )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold">Campaign / order title <span className="font-normal text-muted-foreground">(optional)</span></label>
+                <input value={orderTitle} onChange={(e) => setOrderTitle(e.target.value)} placeholder="Leave blank — we'll title it e.g. “1st Backlink order for yoursite.com”" className={ctrlCls} />
+              </div>
             </div>
             {catalog.fields.map(field)}
           </div>

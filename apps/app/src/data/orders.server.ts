@@ -134,7 +134,7 @@ export async function getMyOrdersByProject(projectId: string): Promise<Order[]> 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details!inner(project, folder, project_id)')
+    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details!inner(project, folder, title, site, project_id)')
     .eq('order_details.project_id', projectId)
     .neq('state', 'canceled')
     .order('created_at', { ascending: false })
@@ -149,7 +149,7 @@ export async function getMyOrders(): Promise<Order[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details(project, folder)')
+    .select('code, service, pkg, state, priority, value, deadline, created_at, delivered_at, customers(company, name), assignee:profiles!orders_assignee_id_fkey(name), order_details(project, folder, title, site)')
     .neq('state', 'canceled')
     .order('created_at', { ascending: false })
     .returns<MyOrderRow[]>();

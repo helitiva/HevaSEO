@@ -1519,7 +1519,9 @@ export type Database = {
           order_id: string
           project: string | null
           project_id: string | null
+          site: string | null
           tenant_id: string
+          title: string | null
         }
         Insert: {
           brief?: Json
@@ -1531,7 +1533,9 @@ export type Database = {
           order_id: string
           project?: string | null
           project_id?: string | null
+          site?: string | null
           tenant_id: string
+          title?: string | null
         }
         Update: {
           brief?: Json
@@ -1543,7 +1547,9 @@ export type Database = {
           order_id?: string
           project?: string | null
           project_id?: string | null
+          site?: string | null
           tenant_id?: string
+          title?: string | null
         }
         Relationships: [
           {

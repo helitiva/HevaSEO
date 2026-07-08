@@ -48,9 +48,11 @@ export const toMgrOrder = (r: MgrOrderRow): AdminOrder =>
   toAdminOrder({ ...r, value: 0, customers: r.customer_company || r.customer_name ? { name: r.customer_name ?? '', company: r.customer_company } : null });
 
 // ── customer dashboard model (data/mock.ts Order) — derived (no schema for these) ──
+// Maps the stored service label (SERVICES[key].label) → ServiceKey. Both spellings kept so a "Keywords"
+// or legacy "Keyword" (and "Design" / "Web Design") order still resolves the right icon/tag.
 export const SERVICE_KEY: Record<string, ServiceKey> = {
-  Audit: 'audit', Content: 'content', Keyword: 'keyword', Backlink: 'backlink',
-  Optimization: 'optimize', 'Web Design': 'design', Indexer: 'indexer',
+  Audit: 'audit', Content: 'content', Keyword: 'keyword', Keywords: 'keyword', Backlink: 'backlink',
+  Optimization: 'optimize', Design: 'design', 'Web Design': 'design', Indexer: 'indexer',
 };
 export const CUST_STATUS: Record<string, CustStatus> = {
   new: 'planned', confirmed: 'planned', assigned: 'planned',
@@ -59,7 +61,7 @@ export const CUST_STATUS: Record<string, CustStatus> = {
   internal_review: 'review', delivered: 'completed',
   approved: 'completed', completed: 'completed',
 };
-type OrderDetailLite = { project: string | null; folder: string | null };
+type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null };
 export type MyOrderRow = {
   code: string; service: string; pkg: string | null;
   state: string; priority: Priority; value: number | string;
@@ -91,6 +93,8 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     sub: r.pkg ?? '',
     project: det?.project ?? undefined,
     folder: det?.folder ?? undefined,
+    campaign: det?.title ?? undefined,     // card headline (falls back to the service name in the UI)
+    site: det?.site ?? undefined,          // the URL the customer submitted (shown on the card)
     status,
     priority: r.priority,
     progress: null,

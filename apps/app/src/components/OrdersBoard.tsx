@@ -224,7 +224,8 @@ function folderColorByName(name: string): string {
 
 /** Compact meta block: website · URLs. (Project moved down to the folder row.) */
 function MetaRows({ o }: { o: Order }) {
-  const website = o.multiWeb ? 'Multi-site' : o.domain;
+  // Show the exact URL the customer submitted (site), protocol stripped; fall back to the domain.
+  const website = o.multiWeb ? 'Multi-site' : (o.site ?? o.domain).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
       <p className="flex items-center gap-1.5">
@@ -318,27 +319,30 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     </div>
   );
 
+  // The card headline is the campaign / order title the customer set (or the auto "Nth {service} order for
+  // …"); falls back to the service name for legacy/mock orders. Clamped to 2 lines on the balanced card.
+  const headlineText = o.campaign ?? o.title;
   let headline: ReactNode;
   if (template === 'project') {
     const projName = o.project ?? projectForDomain(o.domain)?.name;
     headline = (
       <>
         <h4 className="mt-1.5 truncate text-[15px] font-bold tracking-tight">{projName ?? o.domain}</h4>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.title}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{headlineText}</p>
       </>
     );
   } else if (template === 'progress') {
     headline = (
       <div className="mt-1.5 flex items-end justify-between gap-2">
-        <h4 className="min-w-0 flex-1 truncate text-sm font-semibold">{o.title}</h4>
+        <h4 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold">{headlineText}</h4>
         <span className={`display shrink-0 text-2xl font-bold leading-none ${done ? 'text-emerald-600' : 'text-primary'}`}>
           {p}<span className="text-xs">%</span>
         </span>
       </div>
     );
   } else {
-    // balanced — service name (title) is the headline.
-    headline = <h4 className="mt-1.5 truncate text-sm font-semibold">{o.title}</h4>;
+    // balanced — the campaign / order title is the headline (max 2 lines, ellipsis).
+    headline = <h4 className="mt-1.5 line-clamp-2 text-sm font-semibold">{headlineText}</h4>;
   }
 
   return (
