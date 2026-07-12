@@ -225,12 +225,14 @@ function folderColorByName(name: string): string {
 /** Compact meta block: website · URLs. (Project moved down to the folder row.) */
 function MetaRows({ o }: { o: Order }) {
   // Show the exact URL the customer submitted (site), protocol stripped; fall back to the domain.
-  const website = o.multiWeb ? 'Multi-site' : (o.site ?? o.domain).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  const full = o.site ?? o.domain;
+  const website = o.multiWeb ? 'Multi-site' : full.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
       <p className="flex items-center gap-1.5">
         <i className="ph-bold ph-globe-simple shrink-0" aria-hidden />
-        <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
+        {/* truncated on the card; full URL revealed on hover */}
+        <span className="min-w-0 truncate font-semibold text-foreground" title={o.multiWeb ? undefined : full}>{website}</span>
         {o.urls != null && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
       </p>
     </div>
@@ -381,7 +383,9 @@ function OrderCard({ o, template, density = 'standard', preview = false, tint, i
   const children = cardInner(o, template, density, done, p, eff === 'review', eff === 'planned');
 
   if (preview) return <div className={cls} style={style}>{children}</div>;
-  return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} w-full text-left`} style={style}>{children}</button>;
+  // relative + hover:z lifts the hovered card (and its person hover-cards) above sibling cards, so the
+  // popover isn't painted over by the next card in the column.
+  return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} relative z-0 w-full text-left hover:z-30`} style={style}>{children}</button>;
 }
 
 const SAMPLE: Order = ORDERS.find((o) => o.progress != null) ?? ORDERS[0];
