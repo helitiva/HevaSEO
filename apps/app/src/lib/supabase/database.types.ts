@@ -3292,6 +3292,10 @@ export type Database = {
         Args: { p_note?: string; p_rating: number; p_ticket: string }
         Returns: undefined
       }
+      reassign_project_orders: {
+        Args: { p_from: string; p_to: string }
+        Returns: number
+      }
       record_affiliate_click: { Args: { p_code: string }; Returns: undefined }
       remove_affiliate_payout_method: {
         Args: { p_id: string }

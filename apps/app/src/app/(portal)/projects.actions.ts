@@ -97,6 +97,31 @@ export async function archiveFolderAction(id: string): Promise<MutResult> {
 export async function deleteProjectAction(id: string): Promise<MutResult> {
   const o = await owner();
   if (!o) return { ok: false, error: 'No customer profile.' };
+  // Confirm ownership (RLS-scoped) before any service-role writes below.
+  const { data: own } = await o.supabase.from('projects').select('id').eq('id', id).maybeSingle();
+  if (!own) return { ok: false, error: 'Project not found.' };
+
+  // The order_details.project_id FK is ON DELETE SET NULL, so deleting would orphan this project's orders
+  // off /projects (they'd keep the text name but no live link). Reassign them to an "Uncategorized" catch-all
+  // project first so the customer never loses sight of them. Empty projects delete straight through.
+  // order_details is update-locked for both authenticated and service_role, so the move goes through the
+  // ownership-checked SECURITY DEFINER fn reassign_project_orders.
+  const { data: linked } = await o.supabase.from('order_details').select('id').eq('project_id', id).limit(1);
+  if (linked?.length) {
+    const { data: ex } = await o.supabase.from('projects').select('id').eq('name', 'Uncategorized').neq('id', id).limit(1);
+    let uncatId = ex?.[0]?.id ?? null;
+    if (!uncatId) {
+      const { data: np } = await o.supabase.from('projects')
+        .insert({ tenant_id: o.tenantId, customer_id: o.customerId, name: 'Uncategorized', status: 'planned' })
+        .select('id').single();
+      uncatId = np?.id ?? null;
+    }
+    if (uncatId) {
+      const { error: reErr } = await o.supabase.rpc('reassign_project_orders', { p_from: id, p_to: uncatId });
+      if (reErr) return { ok: false, error: reErr.message };
+    }
+  }
+
   const { error } = await o.supabase.from('projects').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   revalidate();
