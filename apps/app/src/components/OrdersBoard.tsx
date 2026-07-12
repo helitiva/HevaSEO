@@ -315,7 +315,16 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
         <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden />
         <span className="truncate">{SERVICES[o.service].label}</span>
       </span>
-      <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#{o.id}</span>
+      {/* delivered-awaiting-review: icon-only hourglass on the top row; label + auto-approve on hover */}
+      {o.awaitingReview && (
+        <span className="group relative ml-auto inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-amber-500/15 p-1 text-amber-600" aria-label="Awaiting review">
+          <i className="ph-bold ph-hourglass-medium text-[12px]" aria-hidden />
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-full z-20 mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+            <i className="ph-bold ph-hourglass-medium text-amber-600" aria-hidden />Awaiting review{autoApproveLabel(o.deliveredAt) ? ` · ${autoApproveLabel(o.deliveredAt)}` : ''}
+          </span>
+        </span>
+      )}
+      <span className={`${o.awaitingReview ? '' : 'ml-auto'} shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70`}>#{o.id}</span>
     </div>
   );
 
@@ -349,17 +358,6 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
     <>
       {topRow}
       {headline}
-      {o.awaitingReview && (
-        <div className="mt-1.5 flex items-center gap-1.5">
-          {/* icon-only hourglass; "Awaiting review" (+ auto-approve countdown) shown on hover */}
-          <span className="group relative inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-amber-500/15 p-1 text-amber-600" aria-label="Awaiting review">
-            <i className="ph-bold ph-hourglass-medium text-[12px]" aria-hidden />
-            <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-20 mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
-              <i className="ph-bold ph-hourglass-medium text-amber-600" aria-hidden />Awaiting review{autoApproveLabel(o.deliveredAt) ? ` · ${autoApproveLabel(o.deliveredAt)}` : ''}
-            </span>
-          </span>
-        </div>
-      )}
       {!compact && <div className="mt-1.5"><MetaRows o={o} /></div>}
       <ProgressRow done={done} p={p} showPct={template !== 'progress'} />
       {/* staff + manager avatars · date · ETA, consolidated onto one line */}
