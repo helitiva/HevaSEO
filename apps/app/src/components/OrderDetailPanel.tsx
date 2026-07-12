@@ -177,6 +177,10 @@ function Panel({ order }: { order: Order }) {
   const pid = projectIdForDomain(order.domain);
   const proj = projectForDomain(order.domain);
   const path = folderPathForDomain(order.domain);
+  // The site the customer entered (URL) → host for display + href; falls back to the order's domain.
+  const siteFull = order.site ?? order.domain;
+  const siteHost = (() => { try { return new URL(/^https?:\/\//i.test(siteFull) ? siteFull : `https://${siteFull}`).hostname.replace(/^www\./i, ''); } catch { return siteFull.replace(/^https?:\/\//i, '').replace(/\/.*$/, ''); } })();
+  const siteHref = /^https?:\/\//i.test(siteFull) ? siteFull : `https://${siteFull}`;
   const p = order.progress ?? (status === 'completed' ? 100 : status === 'review' ? 95 : 8);
   const deliverables = isReal ? detail!.deliverables : deliverablesFor(order.id);
   const activity = isReal ? detail!.activity : activityFor(order);
@@ -227,10 +231,12 @@ function Panel({ order }: { order: Order }) {
                 <span className="inline-flex items-center gap-1.5"><i className={`ph-bold ${SERVICES[order.service].icon} text-muted-foreground`} aria-hidden /><span className="font-medium">{SERVICES[order.service].label}</span><span className="text-muted-foreground">· {order.sub}</span></span>
               </Cell>
               <Cell icon="ph-stack" label="Project">
-                {pid ? <Link href={`/projects/${pid}`} className="font-semibold text-primary hover:underline">{proj?.name} <i className="ph-bold ph-arrow-up-right text-[11px]" aria-hidden /></Link> : <span>{proj?.name ?? '—'}</span>}
+                {pid ? <Link href={`/projects/${pid}`} className="font-semibold text-primary hover:underline">{proj?.name} <i className="ph-bold ph-arrow-up-right text-[11px]" aria-hidden /></Link> : <span className="font-medium">{order.project ?? proj?.name ?? '—'}</span>}
               </Cell>
               <Cell icon="ph-globe-simple" label="Website">
-                <span className="font-medium">{order.multiWeb ? 'Multi-site' : order.domain}</span>{order.multiWeb && <span className="ml-1 rounded bg-muted px-1 text-[9px] font-bold uppercase text-foreground/60">multi</span>}
+                {order.multiWeb
+                  ? <span className="font-medium">Multi-site <span className="ml-1 rounded bg-muted px-1 text-[9px] font-bold uppercase text-foreground/60">multi</span></span>
+                  : <a href={siteHref} target="_blank" rel="noopener noreferrer" title={siteFull} className="truncate font-medium text-primary hover:underline">{siteHost}</a>}
               </Cell>
               <Cell icon="ph-user" label="Assignee">
                 <span className="inline-flex items-center gap-1.5"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground">{order.owner.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>{order.owner}</span>
@@ -249,7 +255,11 @@ function Panel({ order }: { order: Order }) {
                   <Cell icon="ph-calendar-blank" label="Created">{order.date}</Cell>
                   {order.urls != null && <Cell icon="ph-link" label="URLs">{order.urls.toLocaleString('en-US')}</Cell>}
                   <Cell icon="ph-folder-simple" label="Folder">
-                    {path.map((f, i) => <span key={f.id} style={i === path.length - 1 ? { color: f.color, fontWeight: 600 } : undefined}>{i > 0 && <span className="text-muted-foreground/50"> › </span>}{f.name}</span>)}
+                    {order.folder
+                      ? <span className="font-medium">{order.folder}</span>
+                      : path.length
+                        ? path.map((f, i) => <span key={f.id} style={i === path.length - 1 ? { color: f.color, fontWeight: 600 } : undefined}>{i > 0 && <span className="text-muted-foreground/50"> › </span>}{f.name}</span>)
+                        : <span className="text-muted-foreground">—</span>}
                   </Cell>
                   <Cell icon="ph-wallet" label="Cost">${order.cost.toLocaleString('en-US')} · <span className={order.pay === 'paid' ? 'text-emerald-600' : 'text-amber-600'}>{order.pay === 'paid' ? 'Paid' : 'Pending'}</span></Cell>
                   {order.invoice && <Cell icon="ph-receipt" label="Invoice">{order.invoice}</Cell>}
