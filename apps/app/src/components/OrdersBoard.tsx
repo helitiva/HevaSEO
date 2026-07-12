@@ -229,11 +229,16 @@ function MetaRows({ o }: { o: Order }) {
   const website = o.multiWeb ? 'Multi-site' : full.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      <p className="flex items-center gap-1.5">
+      <p className="group/url relative flex items-center gap-1.5">
         <i className="ph-bold ph-globe-simple shrink-0" aria-hidden />
-        {/* truncated on the card; full URL revealed on hover */}
-        <span className="min-w-0 truncate font-semibold text-foreground" title={o.multiWeb ? undefined : full}>{website}</span>
+        <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
         {o.urls != null && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
+        {/* truncated on the card; the full URL is revealed on hover */}
+        {!o.multiWeb && (
+          <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-30 mt-1 max-w-[17rem] break-all rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium leading-snug text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/url:opacity-100">
+            {full}
+          </span>
+        )}
       </p>
     </div>
   );
