@@ -62,7 +62,8 @@ export const CUST_STATUS: Record<string, CustStatus> = {
   approved: 'completed', completed: 'completed',
 };
 type ProjLite = { domain: string | null };
-type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null; proj: ProjLite | ProjLite[] | null };
+type BriefLite = { label?: string | null; value?: string | null };
+type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null; brief: BriefLite[] | null; proj: ProjLite | ProjLite[] | null };
 export type MyOrderRow = {
   code: string; service: string; pkg: string | null;
   state: string; priority: Priority; value: number | string;
@@ -88,13 +89,26 @@ const hostOf = (raw: string | null | undefined): string | null => {
   try { return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname.replace(/^www\./i, ''); }
   catch { return raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '') || null; }
 };
+
+/** The site URL the customer entered — the site column, else the first URL-ish field in the brief (older
+ *  orders predate the site column, so their URL lives in "Website URL" / "Target URL(s)" / similar). */
+const URL_LABEL = /website|url|site|target|domain|link/i;
+function siteFromDetail(det: OrderDetailLite | null | undefined): string | null {
+  if (det?.site) return det.site;
+  const brief = Array.isArray(det?.brief) ? det!.brief : [];
+  const firstUrl = (v: string): string => v.trim().split(/[\s\n,]+/).find((x) => /^https?:\/\//i.test(x) || /\.\w{2,}/.test(x)) ?? v.trim();
+  const labelled = brief.find((f) => URL_LABEL.test(String(f?.label ?? '')) && String(f?.value ?? '').trim());
+  if (labelled?.value) return firstUrl(String(labelled.value));
+  const anyUrl = brief.find((f) => /^https?:\/\//i.test(String(f?.value ?? '').trim()));
+  return anyUrl?.value ? firstUrl(String(anyUrl.value)) : null;
+}
 export function toCustomerOrder(r: MyOrderRow): Order {
   const status = CUST_STATUS[r.state] ?? 'planned';
   const det = Array.isArray(r.order_details) ? r.order_details[0] : r.order_details;
   const projDomain = det ? (Array.isArray(det.proj) ? det.proj[0]?.domain : det.proj?.domain) ?? null : null;
-  // The site column holds the URL the customer entered; domain is the project's domain (or the URL host).
-  // NEVER the company name — that must not surface as the order's "website".
-  const site = det?.site ?? null;
+  // The site URL the customer entered (site column, else pulled from the brief); domain is the project's
+  // domain / URL host. NEVER the company name — that must not surface as the order's "website".
+  const site = siteFromDetail(det);
   return {
     id: r.code,
     date: usDate(r.created_at),
