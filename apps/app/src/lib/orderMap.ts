@@ -61,7 +61,8 @@ export const CUST_STATUS: Record<string, CustStatus> = {
   internal_review: 'review', delivered: 'completed',
   approved: 'completed', completed: 'completed',
 };
-type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null };
+type ProjLite = { domain: string | null };
+type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null; proj: ProjLite | ProjLite[] | null };
 export type MyOrderRow = {
   code: string; service: string; pkg: string | null;
   state: string; priority: Priority; value: number | string;
@@ -81,20 +82,30 @@ const etaLabel = (created: string, deadline: string | null): string => {
   const n = Math.max(1, Math.round((new Date(deadline).getTime() - new Date(created).getTime()) / 86_400_000));
   return `${n} day${n === 1 ? '' : 's'}`;
 };
+/** Bare hostname from a URL-or-domain string: "https://www.dantri.com/x" → "dantri.com". */
+const hostOf = (raw: string | null | undefined): string | null => {
+  if (!raw) return null;
+  try { return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname.replace(/^www\./i, ''); }
+  catch { return raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '') || null; }
+};
 export function toCustomerOrder(r: MyOrderRow): Order {
   const status = CUST_STATUS[r.state] ?? 'planned';
   const det = Array.isArray(r.order_details) ? r.order_details[0] : r.order_details;
+  const projDomain = det ? (Array.isArray(det.proj) ? det.proj[0]?.domain : det.proj?.domain) ?? null : null;
+  // The site column holds the URL the customer entered; domain is the project's domain (or the URL host).
+  // NEVER the company name — that must not surface as the order's "website".
+  const site = det?.site ?? null;
   return {
     id: r.code,
     date: usDate(r.created_at),
     title: r.service,
     service: SERVICE_KEY[r.service] ?? 'optimize',
-    domain: r.customers?.company ?? r.customers?.name ?? 'My site',
+    domain: projDomain ?? hostOf(site) ?? 'My site',
+    site: site ?? undefined,
     sub: r.pkg ?? '',
     project: det?.project ?? undefined,
     folder: det?.folder ?? undefined,
     campaign: det?.title ?? undefined,     // card headline (falls back to the service name in the UI)
-    site: det?.site ?? undefined,          // the URL the customer submitted (shown on the card)
     status,
     priority: r.priority,
     progress: null,
