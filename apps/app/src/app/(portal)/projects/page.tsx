@@ -11,7 +11,7 @@ import { NewProjectModal, type ProjectInput } from '@/components/NewProjectModal
 import { NewFolderModal, type FolderInput } from '@/components/NewFolderModal';
 
 /** Gear menu on each project card — edit / open / delete. */
-function ProjectMenu({ project, onEdit, onDelete, onRestore, onArchive }: { project: Project; onEdit: () => void; onDelete: () => void; onRestore?: () => void; onArchive?: () => void }) {
+function ProjectMenu({ project, onEdit, onDelete, onRestore }: { project: Project; onEdit: () => void; onDelete: () => void; onRestore?: () => void }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const stop = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
@@ -28,8 +28,10 @@ function ProjectMenu({ project, onEdit, onDelete, onRestore, onArchive }: { proj
             {onRestore && <button type="button" onClick={(e) => { stop(e); setOpen(false); onRestore(); }} className={item}><i className="ph-bold ph-arrow-counter-clockwise text-muted-foreground" aria-hidden /> Restore</button>}
             <button type="button" onClick={(e) => { stop(e); setOpen(false); onEdit(); }} className={item}><i className="ph-bold ph-pencil-simple text-muted-foreground" aria-hidden /> Edit project</button>
             <button type="button" onClick={(e) => { stop(e); setOpen(false); router.push(`/projects/${project.id}`); }} className={item}><i className="ph-bold ph-arrow-square-out text-muted-foreground" aria-hidden /> Open</button>
-            {onArchive && <button type="button" onClick={(e) => { stop(e); setOpen(false); onArchive(); }} className={item}><i className="ph-bold ph-archive-box text-muted-foreground" aria-hidden /> Move to Archive</button>}
-            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} text-destructive hover:bg-destructive/10`}><i className="ph-bold ph-trash" aria-hidden /> Delete</button>
+            {/* Active project → "Delete" archives it (soft); an already-archived one → permanent delete. */}
+            <button type="button" onClick={(e) => { stop(e); setOpen(false); onDelete(); }} className={`${item} ${project.archived ? 'text-destructive hover:bg-destructive/10' : ''}`}>
+              <i className={`ph-bold ${project.archived ? 'ph-trash' : 'ph-archive-box'} ${project.archived ? '' : 'text-muted-foreground'}`} aria-hidden /> {project.archived ? 'Delete permanently' : 'Delete (to Archive)'}
+            </button>
           </span>
         </>
       )}
@@ -131,7 +133,7 @@ function ProjectsInner() {
   const [svc, setSvc] = useState<string>('all');
 
   // Shared store — edits/creates/deletes here also show on the project detail page & order form.
-  const { projects: allProjects, folders: allFolders, addProject, updateProject, removeProject, addFolder, updateFolder, archiveFolder } = useProjects();
+  const { projects: allProjects, folders: allFolders, addProject, updateProject, removeProject, addFolder, updateFolder, archiveFolder, removeFolder } = useProjects();
   const [modal, setModal] = useState<null | 'project' | 'folder'>(null);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
@@ -161,9 +163,19 @@ function ProjectsInner() {
     const r = await updateProject(editTarget.id, { name: p.name, domain: p.domain, label: folderName(p.folderId) ?? 'Uncategorized', folder: p.folderId, status: p.status, note: p.note, updated: 'Just now' });
     toast(r.ok ? `Project ${p.domain} updated` : r.error, r.ok ? undefined : 'error');
   };
+  // "Delete" an active project = move it to Archive (undoable). Only an already-archived project is deleted
+  // permanently (its orders are reassigned to Uncategorized server-side so they aren't orphaned).
   const deleteProject = async (p: Project) => {
+    if (!p.archived) { await archiveProject(p); return; }
     const r = await removeProject(p.id);
-    toast(r.ok ? `Project ${p.domain} deleted` : r.error, r.ok ? 'info' : 'error');
+    toast(r.ok ? `Project ${p.domain || p.name} deleted permanently` : r.error, r.ok ? 'info' : 'error');
+  };
+  // Delete a folder, keeping its projects active but folder-less ("Uncategorized").
+  const deleteFolderKeep = async (f: Folder) => {
+    const childIds = allFolders.filter((c) => c.parentId === f.id).map((c) => c.id);
+    if (folder === f.id || childIds.includes(folder)) setFolder('all');
+    const r = await removeFolder(f.id);
+    toast(r.ok ? `Folder “${f.name}” deleted — its projects moved to Uncategorized` : r.error, r.ok ? 'info' : 'error');
   };
   const saveFolderEdit = async (f: FolderInput) => {
     if (!editFolderTarget) return;
@@ -247,9 +259,8 @@ function ProjectsInner() {
   const folderMenu = (id: string, name: string) => (
     <FolderMenu
       label={name}
-      actionLabel="Move to Archive"
-      actionIcon="ph-archive-box"
-      destructive={false}
+      actionLabel="Delete folder"
+      actionIcon="ph-trash"
       onEdit={() => { const f = allFolders.find((x) => x.id === id); if (f) setEditFolderTarget(f); }}
       onDelete={() => { const f = allFolders.find((x) => x.id === id); if (f) setDeleteFolderTarget(f); }}
     />
@@ -352,7 +363,7 @@ function ProjectsInner() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <h3 className="truncate text-sm font-semibold">{p.domain || p.name}</h3>
-                          <ProjectMenu project={p} onEdit={() => setEditTarget(p)} onDelete={() => setDeleteTarget(p)} onRestore={p.archived ? () => restoreProject(p) : undefined} onArchive={!p.archived ? () => archiveProject(p) : undefined} />
+                          <ProjectMenu project={p} onEdit={() => setEditTarget(p)} onDelete={() => setDeleteTarget(p)} onRestore={p.archived ? () => restoreProject(p) : undefined} />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">
                           {p.archived
@@ -423,13 +434,19 @@ function ProjectsInner() {
       )}
 
       {deleteTarget && (
-        <Modal onClose={() => setDeleteTarget(null)} title="Delete project" subtitle={deleteTarget.domain} icon="ph-trash">
+        <Modal onClose={() => setDeleteTarget(null)} title={deleteTarget.archived ? 'Delete permanently' : 'Move project to Archive'} subtitle={deleteTarget.domain || deleteTarget.name} icon={deleteTarget.archived ? 'ph-trash' : 'ph-archive-box'}>
           {({ close }) => (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Remove <b className="text-foreground">{deleteTarget.domain}</b> and stop tracking its campaigns? This can&apos;t be undone.</p>
+              <p className="text-sm text-muted-foreground">
+                {deleteTarget.archived
+                  ? <>Permanently delete <b className="text-foreground">{deleteTarget.domain || deleteTarget.name}</b>? This can&apos;t be undone — its orders move to Uncategorized.</>
+                  : <>Move <b className="text-foreground">{deleteTarget.domain || deleteTarget.name}</b> to Archive? Its orders stay linked and you can restore it anytime.</>}
+              </p>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                <button type="button" onClick={() => { deleteProject(deleteTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" aria-hidden /> Delete project</button>
+                {deleteTarget.archived
+                  ? <button type="button" onClick={() => { deleteProject(deleteTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3.5 py-2 text-sm font-bold text-white transition hover:bg-destructive/90"><i className="ph-bold ph-trash" aria-hidden /> Delete permanently</button>
+                  : <button type="button" onClick={() => { deleteProject(deleteTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-archive-box" aria-hidden /> Move to Archive</button>}
               </div>
             </div>
           )}
@@ -450,20 +467,29 @@ function ProjectsInner() {
       )}
 
       {deleteFolderTarget && (
-        <Modal onClose={() => setDeleteFolderTarget(null)} title="Move folder to Archive" subtitle={deleteFolderTarget.name} icon="ph-archive-box">
+        <Modal onClose={() => setDeleteFolderTarget(null)} title="Delete folder" subtitle={deleteFolderTarget.name} icon="ph-trash">
           {({ close }) => {
             const childCount = allFolders.filter((f) => f.parentId === deleteFolderTarget.id).length;
             const projCount = allProjects.filter((p) => p.folder === deleteFolderTarget.id && !p.archived).length;
             return (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Move <b className="text-foreground">{deleteFolderTarget.name}</b>
-                  {childCount > 0 && <> and its {childCount} subfolder{childCount > 1 ? 's' : ''}</>} to Archive?
-                  {' '}Its {projCount} project{projCount === 1 ? '' : 's'} will be archived (not deleted) — you can restore them anytime from the Archive.
+                  Delete <b className="text-foreground">{deleteFolderTarget.name}</b>
+                  {childCount > 0 && <> and its {childCount} subfolder{childCount > 1 ? 's' : ''}</>}?
+                  {projCount > 0 ? <> Choose what happens to its {projCount} project{projCount === 1 ? '' : 's'}:</> : ' The folder is empty.'}
                 </p>
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-col gap-2">
+                  <button type="button" onClick={() => { deleteFolderKeep(deleteFolderTarget); close(); }} className="flex items-start gap-2.5 rounded-xl border border-border p-3 text-left transition hover:border-primary/50 hover:bg-accent">
+                    <i className="ph-bold ph-folder-open mt-0.5 text-primary" aria-hidden />
+                    <span><span className="block text-sm font-semibold">Keep projects (Uncategorized)</span><span className="block text-[11px] text-muted-foreground">Projects stay active, just without a folder.</span></span>
+                  </button>
+                  <button type="button" onClick={() => { archiveFolderNow(deleteFolderTarget); close(); }} className="flex items-start gap-2.5 rounded-xl border border-border p-3 text-left transition hover:border-primary/50 hover:bg-accent">
+                    <i className="ph-bold ph-archive-box mt-0.5 text-muted-foreground" aria-hidden />
+                    <span><span className="block text-sm font-semibold">Archive projects</span><span className="block text-[11px] text-muted-foreground">Projects are archived — restore anytime from the Archive.</span></span>
+                  </button>
+                </div>
+                <div className="flex justify-end">
                   <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                  <button type="button" onClick={() => { archiveFolderNow(deleteFolderTarget); close(); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-archive-box" aria-hidden /> Move to Archive</button>
                 </div>
               </div>
             );
