@@ -146,8 +146,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     });
   if (addonRows.length) await svc.from('order_addons').insert(addonRows);
 
+  // If a manager is "away", route this fresh order to the least-loaded suitable staffer in their pod
+  // automatically (skill + load aware, server-side). Best-effort — never blocks the order; a no-op when no
+  // manager is away or the pod can't serve this skill.
+  await svc.rpc('auto_assign_order', { p_order: order.id });
+
   revalidatePath('/orders');
   revalidatePath('/dashboard');
+  revalidatePath('/manager/assignment');
   return { ok: true, code };
 }
 

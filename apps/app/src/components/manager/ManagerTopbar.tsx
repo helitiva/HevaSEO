@@ -1,13 +1,14 @@
 import { ThemeToggle } from '../ThemeToggle';
 import { BroadcastBell } from '../broadcast/BroadcastBell';
 import { AccountMenu } from '../auth/AccountMenu';
+import { AwayToggle } from './AwayToggle';
 import { MANAGERS } from '@/data/adminMock';
 import { MANAGER_PERSONA } from '@/lib/managerScope';
 
 const me = MANAGERS.find((m) => m.id === MANAGER_PERSONA) ?? null;
 const initials = me ? me.name.split(' ').map((p) => p[0]).slice(0, 2).join('') : 'MG';
 
-export function ManagerTopbar({ onMenu }: { onMenu?: () => void }) {
+export function ManagerTopbar({ onMenu, awayOn = false }: { onMenu?: () => void; awayOn?: boolean }) {
   return (
     <header className="sticky top-0 z-40 flex h-[68px] shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl lg:px-7">
       <button onClick={onMenu} aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-lg border border-border lg:hidden">
@@ -24,6 +25,7 @@ export function ManagerTopbar({ onMenu }: { onMenu?: () => void }) {
           <i className="ph-bold ph-users-three" aria-hidden /> {me.name}’s pod
         </span>
       )}
+      <AwayToggle initialOn={awayOn} />
       <ThemeToggle />
       <BroadcastBell />
       <AccountMenu initials={initials} accentClass="bg-gradient-to-br from-emerald-500 to-emerald-700" />
