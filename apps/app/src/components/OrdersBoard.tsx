@@ -224,15 +224,17 @@ function folderColorByName(name: string): string {
 
 /** Compact meta block: website · URLs. (Project moved down to the folder row.) */
 function MetaRows({ o }: { o: Order }) {
-  // Show the exact URL the customer submitted (site), protocol stripped; fall back to the domain.
+  // Service-aware headline (e.g. "10 articles for site.com") when present; else the exact URL the customer
+  // submitted (site), protocol stripped, falling back to the domain.
   const full = o.site ?? o.domain;
-  const website = o.multiWeb ? 'Multi-site' : full.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  const website = o.siteLabel ?? (o.multiWeb ? 'Multi-site' : full.replace(/^https?:\/\//i, '').replace(/\/+$/, ''));
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
       <p className="group/url relative flex items-center gap-1.5">
         <i className="ph-bold ph-globe-simple shrink-0" aria-hidden />
         <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
-        {o.urls != null && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
+        {/* the siteLabel already encodes the URL count for indexer, so only append it for plain URLs */}
+        {o.urls != null && !o.siteLabel && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
         {/* truncated on the card; the full URL is revealed on hover */}
         {!o.multiWeb && (
           <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-30 mt-1 max-w-[17rem] break-all rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium leading-snug text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/url:opacity-100">

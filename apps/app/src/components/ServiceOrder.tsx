@@ -218,6 +218,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
       ...captureFields(catalog.fields, fd),
       ...chosen.flatMap(({ addon, tier }) => captureFields(tier.fields ?? [], fd, addon.name)),
     ];
+    // Usage services (Indexer) collect their URLs via UsageLinkList, not catalog.fields — persist them so the
+    // card can show "N URLs from [domain] / M domains". Prefer the pasted list, else the sheet link.
+    if (isUsage) {
+      const submitted = String(fd.get('links') ?? '').trim() || String(fd.get('links_sheet') ?? '').trim();
+      if (submitted) intake.push({ label: 'Submitted URLs', value: submitted, full: true });
+    }
     // Real placement: the server reprices + debits credit via create_order (the client price is only
     // an estimate). The order then shows up on the board via the real RLS-scoped read.
     setPlacing(true);

@@ -102,6 +102,84 @@ function siteFromDetail(det: OrderDetailLite | null | undefined): string | null 
   const anyUrl = brief.find((f) => /^https?:\/\//i.test(String(f?.value ?? '').trim()));
   return anyUrl?.value ? firstUrl(String(anyUrl.value)) : null;
 }
+const stripProto = (s: string): string => s.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+/** first URL-ish token from a blob ("a.com b.com" → "a.com"). */
+const firstUrlToken = (v: string): string =>
+  v.trim().split(/[\s\n,]+/).find((x) => /^https?:\/\//i.test(x) || /\.\w{2,}/.test(x)) ?? v.trim();
+/** distinct hostnames across a URL/domain blob. */
+function hostsIn(text: string): string[] {
+  const hosts = new Set<string>();
+  for (const t of text.split(/[\s\n,]+/).map((x) => x.trim()).filter(Boolean)) {
+    const h = hostOf(t);
+    if (h && /\.\w{2,}/.test(h)) hosts.add(h);
+  }
+  return [...hosts];
+}
+/** brief field value whose label matches `re` (first non-empty). */
+function briefVal(brief: BriefLite[], re: RegExp): string | null {
+  const f = brief.find((b) => re.test(String(b?.label ?? '')) && String(b?.value ?? '').trim());
+  return f?.value ? String(f.value).trim() : null;
+}
+/** integer immediately preceding a unit word ("A2000 · 3 articles" → 3, "1,000 links" → 1000). Anchoring on
+ *  the unit avoids grabbing a plan code's digits (the "2000" in "A2000"). */
+function numBeforeUnit(v: string | null, unit: RegExp): number | null {
+  const m = v?.match(new RegExp(String.raw`(\d[\d,]*)\s*(?:${unit.source})`, 'i'));
+  return m ? Number(m[1].replace(/,/g, '')) : null;
+}
+const clip = (s: string, n = 42): string => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+type LabelCtx = { site: string | null; projDomain: string | null; brief: BriefLite[]; company: string | null };
+/**
+ * The website line shown on the order card, tailored per service (see the customer-facing spec):
+ *  backlink → target URL/domain · content → "N articles for [site]" · indexer → "N URLs from [site]" or
+ *  "N URLs from M domains" · audit/optimize → domain/subdomain · keyword → site, else "Keyword research for
+ *  [topic]" · design → domain, else business/company name. Falls back to site/domain when unknown.
+ */
+function cardSiteLabel(service: ServiceKey, ctx: LabelCtx): string | null {
+  const { site, projDomain, brief, company } = ctx;
+  const domain = projDomain ?? hostOf(site);
+  const siteText = site ? stripProto(site) : null;
+  const planLine = briefVal(brief, /selected plan|service|package/i);
+
+  switch (service) {
+    case 'backlink': {
+      const target = briefVal(brief, /target|url|website|domain|link/i);
+      return (target ? stripProto(firstUrlToken(target)) : null) ?? siteText ?? domain ?? null;
+    }
+    case 'content': {
+      const n = numBeforeUnit(planLine, /articles?|posts?/) ?? (briefVal(brief, /keyword|article/i)?.split(/\n+/).filter(Boolean).length || null);
+      const where = domain ?? siteText ?? company ?? 'your site';
+      return n ? `${n} ${n === 1 ? 'article' : 'articles'} for ${where}` : `Articles for ${where}`;
+    }
+    case 'indexer': {
+      const urlBlob = briefVal(brief, /submitted url|url|link/i) ?? '';
+      const hosts = hostsIn(urlBlob);
+      const n = numBeforeUnit(planLine, /links?|urls?/) ?? (hosts.length ? urlBlob.split(/[\s\n,]+/).filter(Boolean).length : null);
+      const nTxt = n ? n.toLocaleString('en-US') : '';
+      if (hosts.length > 1) return `${nTxt || hosts.length} URLs from ${hosts.length} domains`.trim();
+      const where = hosts[0] ?? domain ?? siteText;
+      if (where) return `${nTxt ? `${nTxt} ` : ''}URLs from ${where}`.trim();
+      return nTxt ? `${nTxt} URLs` : null;
+    }
+    case 'audit':
+    case 'optimize':
+      // domain/subdomain of the site under audit/optimization — the host, not a deep article path.
+      return hostOf(site) ?? domain ?? siteText ?? null;
+    case 'keyword': {
+      // website is optional for keyword research: show it only when the customer actually entered one — a
+      // project's auto-generated domain must NOT masquerade as a site. Otherwise research is by topic.
+      if (siteText) return siteText;
+      const topic = briefVal(brief, /offer|niche|topic|market|field|industry/i);
+      return topic ? `Keyword research for ${clip(topic)}` : 'Keyword research';
+    }
+    case 'design':
+      // domain if the customer entered one, else the business/company name (never the auto project domain).
+      return siteText ?? company ?? domain ?? null;
+    default:
+      return siteText ?? domain ?? null;
+  }
+}
+
 export function toCustomerOrder(r: MyOrderRow): Order {
   const status = CUST_STATUS[r.state] ?? 'planned';
   const det = Array.isArray(r.order_details) ? r.order_details[0] : r.order_details;
@@ -109,13 +187,17 @@ export function toCustomerOrder(r: MyOrderRow): Order {
   // The site URL the customer entered (site column, else pulled from the brief); domain is the project's
   // domain / URL host. NEVER the company name — that must not surface as the order's "website".
   const site = siteFromDetail(det);
+  const service = SERVICE_KEY[r.service] ?? 'optimize';
+  const brief = Array.isArray(det?.brief) ? det!.brief : [];
+  const siteLabel = cardSiteLabel(service, { site, projDomain, brief, company: r.customers?.company ?? null });
   return {
     id: r.code,
     date: usDate(r.created_at),
     title: r.service,
-    service: SERVICE_KEY[r.service] ?? 'optimize',
+    service,
     domain: projDomain ?? hostOf(site) ?? 'My site',
     site: site ?? undefined,
+    siteLabel: siteLabel ?? undefined,
     sub: r.pkg ?? '',
     project: det?.project ?? undefined,
     folder: det?.folder ?? undefined,

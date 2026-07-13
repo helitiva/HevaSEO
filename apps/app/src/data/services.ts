@@ -305,7 +305,7 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { id: 'pro', name: 'Pro', price: 79, sla: '3 days', summary: 'For large or in-depth sites', features: ['Unlimited clusters · ~300+ keywords', 'SWOT + 5-competitor benchmark', '3–6 month SEO roadmap', 'Priority — skips the extra questions'] },
     ],
     fields: [
-      { label: 'Website URL', name: 'website', type: 'url', required: true, colSpan: 2, placeholder: 'https://yoursite.com' },
+      { label: 'Website URL', name: 'website', type: 'url', colSpan: 2, placeholder: 'https://yoursite.com (optional — we can research by topic)' },
       { label: 'What does your site offer?', name: 'offering', as: 'textarea', required: true, colSpan: 2, placeholder: 'Products, services or topics you want to be found for — and who your ideal customer is.' },
       { label: 'Target market / language', name: 'market', placeholder: 'e.g. United States · English' },
       { label: 'Primary goal', name: 'goal', as: 'select', options: [
