@@ -93,14 +93,20 @@ const hostOf = (raw: string | null | undefined): string | null => {
 /** The site URL the customer entered — the site column, else the first URL-ish field in the brief (older
  *  orders predate the site column, so their URL lives in "Website URL" / "Target URL(s)" / similar). */
 const URL_LABEL = /website|url|site|target|domain|link/i;
+/** First real URL/domain token in a blob, or null. Requires an http(s) prefix or a dotted host with a 2+
+ *  char TLD — so prose like "What does your site offer?" answers ("Dental clinics…") are NOT mistaken for a
+ *  site just because the field's LABEL contains the word "site". */
+const urlTokenOf = (v: string): string | null =>
+  v.trim().split(/[\s\n,]+/).find((x) => /^https?:\/\//i.test(x) || /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?:[/:?#]|$)/i.test(x)) ?? null;
 function siteFromDetail(det: OrderDetailLite | null | undefined): string | null {
   if (det?.site) return det.site;
   const brief = Array.isArray(det?.brief) ? det!.brief : [];
-  const firstUrl = (v: string): string => v.trim().split(/[\s\n,]+/).find((x) => /^https?:\/\//i.test(x) || /\.\w{2,}/.test(x)) ?? v.trim();
-  const labelled = brief.find((f) => URL_LABEL.test(String(f?.label ?? '')) && String(f?.value ?? '').trim());
-  if (labelled?.value) return firstUrl(String(labelled.value));
-  const anyUrl = brief.find((f) => /^https?:\/\//i.test(String(f?.value ?? '').trim()));
-  return anyUrl?.value ? firstUrl(String(anyUrl.value)) : null;
+  // prefer a URL-labelled field whose VALUE actually holds a URL/domain, else any field with an http URL.
+  for (const f of brief) {
+    if (URL_LABEL.test(String(f?.label ?? ''))) { const u = urlTokenOf(String(f?.value ?? '')); if (u) return u; }
+  }
+  for (const f of brief) { const u = urlTokenOf(String(f?.value ?? '')); if (u && /^https?:/i.test(u)) return u; }
+  return null;
 }
 const stripProto = (s: string): string => s.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
 /** first URL-ish token from a blob ("a.com b.com" → "a.com"). */

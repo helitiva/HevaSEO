@@ -180,7 +180,7 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
         <div className="min-w-0"><p className="truncate font-semibold leading-tight">{o.title}</p><p className="truncate text-[11px] text-muted-foreground">{o.sub}</p></div>
       </div>
     );
-    case 'domain': return o.domain;
+    case 'domain': return o.siteLabel ?? o.domain;
     case 'project': {
       const projName = o.project ?? projectForDomain(o.domain)?.name;
       return projName

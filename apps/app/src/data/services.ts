@@ -143,6 +143,7 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       },
     ],
     fields: [
+      { label: 'Website / domain to audit', name: 'website', type: 'url', required: true, colSpan: 2, placeholder: 'https://yoursite.com' },
       { label: 'What should the audit focus on?', name: 'focus', as: 'textarea', required: true, colSpan: 2, placeholder: 'Rankings, page speed, a recent traffic drop, a migration, AI visibility…', hint: "We'll check everything, but we'll lead with this." },
       { label: 'Share GSC / Analytics access?', name: 'access', as: 'select', options: [
         { value: '', label: 'Select…' },
