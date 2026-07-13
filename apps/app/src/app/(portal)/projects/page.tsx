@@ -348,10 +348,10 @@ function ProjectsInner() {
                 return (
                   <Link key={p.id} href={`/projects/${p.id}`} draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', p.id)} className="pcard block" title="Drag to a folder to move it">
                     <div className="flex items-start gap-2.5">
-                      <span className="fav" style={{ background: favColor(p.domain) }}>{initials(p.domain)}</span>
+                      <span className="fav" style={{ background: favColor(p.domain || p.name) }}>{initials(p.domain || p.name)}</span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <h3 className="truncate text-sm font-semibold">{p.domain}</h3>
+                          <h3 className="truncate text-sm font-semibold">{p.domain || p.name}</h3>
                           <ProjectMenu project={p} onEdit={() => setEditTarget(p)} onDelete={() => setDeleteTarget(p)} onRestore={p.archived ? () => restoreProject(p) : undefined} onArchive={!p.archived ? () => archiveProject(p) : undefined} />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1">

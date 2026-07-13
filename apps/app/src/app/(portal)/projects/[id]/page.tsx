@@ -58,6 +58,9 @@ export default function ProjectDetailPage() {
   const totalCost = orders.reduce((a, o) => a + o.cost, 0);
   const path = folderPathForDomain(project.domain);
   const sp = STATUS_PILL[project.status];
+  // Projects are titled by domain, but domain is optional (e.g. the "Uncategorized" catch-all) — fall back
+  // to the name so a project is never shown blank.
+  const label = project.domain || project.name;
 
   const Stat = ({ label, value, color }: { label: string; value: number; color?: string }) => (
     <span className="inline-flex items-center gap-1.5 text-sm">
@@ -83,16 +86,16 @@ export default function ProjectDetailPage() {
             </span>
           ))}
           <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" aria-hidden />
-          <span className="font-semibold text-foreground">{project.domain}</span>
+          <span className="font-semibold text-foreground">{label}</span>
         </nav>
       </div>
 
       {/* project header */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(project.domain) }}>{initials(project.domain)}</span>
-          <h1 className="display text-xl font-semibold tracking-tight">{project.domain}</h1>
-          <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" aria-label="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(label) }}>{initials(label)}</span>
+          <h1 className="display text-xl font-semibold tracking-tight">{label}</h1>
+          {project.domain && <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" aria-label="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>}
           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
           <QuickOrderButton label="Order a service" projectDomain={project.domain} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
         </div>
