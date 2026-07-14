@@ -20,7 +20,6 @@ const NEW_FOLDER = '__newfolder';
 const RAND_ADJ = ['Lumen', 'Apex', 'Nova', 'Vertex', 'Quartz', 'Cobalt', 'Harbor', 'Summit', 'Atlas', 'Cedar', 'Orbit', 'Pioneer'];
 const RAND_NOUN = ['Labs', 'Media', 'Group', 'Studio', 'Works', 'Digital', 'Collective', 'Ventures'];
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const cleanDomain = (raw: string) => raw.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase();
 const randomProjectName = () => `${pick(RAND_ADJ)} ${pick(RAND_NOUN)}`;
 
@@ -184,19 +183,21 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
         ? { id: folderId, name: storeFolders.find((f) => f.id === folderId)?.name ?? 'Uncategorized' }
         : { id: '', name: 'Uncategorized' }; // auto → default bucket (find-or-created server-side)
 
+    // A project's domain is ONLY ever a real website the customer typed — never fabricated. When no website is
+    // given the project has no domain and is titled by name/topic instead, so no fake domain leaks into the
+    // card, its headline, or the tooltip.
     let domain: string, projectName: string, auto = false, isNew = false;
     if (proj === NEW_PROJECT) {
       isNew = true;
-      // Auto → name the project after the website domain; otherwise use the custom name (domain fallback).
-      domain = urlDomain || `${slug(newName.trim() || randomProjectName())}.com`;
-      projectName = autoName ? domain : (newName.trim() || domain);
+      domain = urlDomain; // '' when no website entered
+      projectName = (autoName && urlDomain) ? urlDomain : (newName.trim() || urlDomain || randomProjectName());
     } else if (proj !== AUTO && proj !== '') {
       const ep = storeProjects.find((p) => p.domain === proj);
       domain = proj;
       projectName = ep?.name ?? proj;
     } else {
       auto = true;
-      domain = urlDomain || `${slug(randomProjectName())}.com`;
+      domain = urlDomain; // '' when no website entered
       projectName = urlDomain || randomProjectName();
     }
     return { domain, projectName, folderId: folder.id, folderName: folder.name, auto, isNew, newFolder: folderId === NEW_FOLDER };

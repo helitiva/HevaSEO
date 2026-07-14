@@ -135,13 +135,17 @@ function numBeforeUnit(v: string | null, unit: RegExp): number | null {
 const clip = (s: string, n = 42): string => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
 type LabelCtx = { site: string | null; projDomain: string | null; brief: BriefLite[]; company: string | null };
+/** `label` is what the website line shows; optional `hover` is the untruncated full text (only when it adds
+ *  info — a long backlink URL, a clipped keyword topic). No `hover` ⇒ the card shows no tooltip. */
+export type SiteInfo = { label: string; hover?: string };
 /**
  * The website line shown on the order card, tailored per service (see the customer-facing spec):
- *  backlink → target URL/domain · content → "N articles for [site]" · indexer → "N URLs from [site]" or
- *  "N URLs from M domains" · audit/optimize → domain/subdomain · keyword → site, else "Keyword research for
- *  [topic]" · design → domain, else business/company name. Falls back to site/domain when unknown.
+ *  backlink → target URL/domain (hover: full URL) · content → "N articles for [site]" · indexer → "N URLs
+ *  from [site]" or "N URLs from M domains" (no hover — many URLs) · audit/optimize → domain/subdomain (host,
+ *  no deep-URL hover) · keyword → "KR for [site]", else "KR for [topic]" (hover: full topic) · design → the
+ *  entered domain, else business/company name. A project's auto-generated domain never masquerades as a site.
  */
-function cardSiteLabel(service: ServiceKey, ctx: LabelCtx): string | null {
+function cardSiteLabel(service: ServiceKey, ctx: LabelCtx): SiteInfo | null {
   const { site, projDomain, brief, company } = ctx;
   const domain = projDomain ?? hostOf(site);
   const siteText = site ? stripProto(site) : null;
@@ -150,39 +154,48 @@ function cardSiteLabel(service: ServiceKey, ctx: LabelCtx): string | null {
   switch (service) {
     case 'backlink': {
       const target = briefVal(brief, /target|url|website|domain|link/i);
-      return (target ? stripProto(firstUrlToken(target)) : null) ?? siteText ?? domain ?? null;
+      const full = (target ? stripProto(firstUrlToken(target)) : null) ?? siteText ?? domain ?? null;
+      // a backlink target is a specific page — often long, so reveal the full URL on hover.
+      return full ? { label: full, hover: full } : null;
     }
     case 'content': {
       const n = numBeforeUnit(planLine, /articles?|posts?/) ?? (briefVal(brief, /keyword|article/i)?.split(/\n+/).filter(Boolean).length || null);
       const where = domain ?? siteText ?? company ?? 'your site';
-      return n ? `${n} ${n === 1 ? 'article' : 'articles'} for ${where}` : `Articles for ${where}`;
+      return { label: n ? `${n} ${n === 1 ? 'article' : 'articles'} for ${where}` : `Articles for ${where}` };
     }
     case 'indexer': {
       const urlBlob = briefVal(brief, /submitted url|url|link/i) ?? '';
       const hosts = hostsIn(urlBlob);
       const n = numBeforeUnit(planLine, /links?|urls?/) ?? (hosts.length ? urlBlob.split(/[\s\n,]+/).filter(Boolean).length : null);
       const nTxt = n ? n.toLocaleString('en-US') : '';
-      if (hosts.length > 1) return `${nTxt || hosts.length} URLs from ${hosts.length} domains`.trim();
+      // many URLs, possibly across many domains — never surface a single one on hover.
+      if (hosts.length > 1) return { label: `${nTxt || hosts.length} URLs from ${hosts.length} domains`.trim() };
       const where = hosts[0] ?? domain ?? siteText;
-      if (where) return `${nTxt ? `${nTxt} ` : ''}URLs from ${where}`.trim();
-      return nTxt ? `${nTxt} URLs` : null;
+      if (where) return { label: `${nTxt ? `${nTxt} ` : ''}URLs from ${where}`.trim() };
+      return nTxt ? { label: `${nTxt} URLs` } : null;
     }
     case 'audit':
-    case 'optimize':
-      // domain/subdomain of the site under audit/optimization — the host, not a deep article path.
-      return hostOf(site) ?? domain ?? siteText ?? null;
-    case 'keyword': {
-      // website is optional for keyword research: show it only when the customer actually entered one — a
-      // project's auto-generated domain must NOT masquerade as a site. Otherwise research is by topic.
-      if (siteText) return siteText;
-      const topic = briefVal(brief, /offer|niche|topic|market|field|industry/i);
-      return topic ? `Keyword research for ${clip(topic)}` : 'Keyword research';
+    case 'optimize': {
+      // domain/subdomain of the site under audit/optimization — the host, not a deep article path, no hover.
+      const host = hostOf(site) ?? domain ?? siteText ?? null;
+      return host ? { label: host } : null;
     }
-    case 'design':
-      // domain if the customer entered one, else the business/company name (never the auto project domain).
-      return siteText ?? company ?? domain ?? null;
-    default:
-      return siteText ?? domain ?? null;
+    case 'keyword': {
+      // website is optional for keyword research: use its host only when the customer actually entered one —
+      // a project's auto-generated domain must NOT masquerade as a site. Otherwise research is by topic.
+      if (siteText) return { label: `KR for ${hostOf(site) ?? siteText}` };
+      const topic = briefVal(brief, /offer|niche|topic|market|field|industry/i);
+      return topic ? { label: `KR for ${clip(topic)}`, hover: `Keyword research for ${topic}` } : { label: 'Keyword research' };
+    }
+    case 'design': {
+      // the entered domain, else the business/company name (never the auto project domain).
+      const d = siteText ?? company ?? domain ?? null;
+      return d ? { label: d } : null;
+    }
+    default: {
+      const d = siteText ?? domain ?? null;
+      return d ? { label: d } : null;
+    }
   }
 }
 
@@ -195,7 +208,7 @@ export function toCustomerOrder(r: MyOrderRow): Order {
   const site = siteFromDetail(det);
   const service = SERVICE_KEY[r.service] ?? 'optimize';
   const brief = Array.isArray(det?.brief) ? det!.brief : [];
-  const siteLabel = cardSiteLabel(service, { site, projDomain, brief, company: r.customers?.company ?? null });
+  const siteInfo = cardSiteLabel(service, { site, projDomain, brief, company: r.customers?.company ?? null });
   return {
     id: r.code,
     date: usDate(r.created_at),
@@ -203,7 +216,8 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     service,
     domain: projDomain ?? hostOf(site) ?? 'My site',
     site: site ?? undefined,
-    siteLabel: siteLabel ?? undefined,
+    siteLabel: siteInfo?.label,
+    siteHover: siteInfo?.hover,
     sub: r.pkg ?? '',
     project: det?.project ?? undefined,
     folder: det?.folder ?? undefined,

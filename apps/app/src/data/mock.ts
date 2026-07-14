@@ -76,8 +76,11 @@ export interface Order {
   /** the exact website URL the customer submitted in the brief (shown on the card) */
   site?: string;
   /** service-aware card headline for the website line (e.g. "10 articles for site.com", "1,000 URLs from
-   *  3 domains", "Keyword research for dental clinics"). Derived per service; falls back to site/domain. */
+   *  3 domains", "KR for dental clinics"). Derived per service; falls back to site/domain. */
   siteLabel?: string;
+  /** full text revealed on hover for the website line — only set where the label is a truncated real value
+   *  worth expanding (a long backlink target URL, a clipped keyword topic). Absent ⇒ no tooltip. */
+  siteHover?: string;
   status: OrderStatus;
   priority: Priority;
   progress: number | null;
