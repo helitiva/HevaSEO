@@ -153,10 +153,12 @@ function Panel({ order }: { order: Order }) {
 
   const close = useCallback(() => {
     setClosing((c) => {
-      if (!c) setTimeout(() => router.push(pathname, { scroll: false }), 230);
+      // Drop ?order= client-side (history.pushState) — a router.push here re-runs the server page (loading
+      // flash + scroll reset). useSearchParams still updates, so the panel unmounts cleanly.
+      if (!c) setTimeout(() => window.history.pushState(null, '', pathname), 230);
       return true;
     });
-  }, [pathname, router]);
+  }, [pathname]);
 
   // Close this panel and open the quick-order slide-over preset to the same service.
   const orderAgain = useCallback(() => {
@@ -178,9 +180,12 @@ function Panel({ order }: { order: Order }) {
   const proj = projectForDomain(order.domain);
   const path = folderPathForDomain(order.domain);
   // The site the customer entered (URL) → host for display + href; falls back to the order's domain.
-  const siteFull = order.site ?? order.domain;
-  const siteHost = (() => { try { return new URL(/^https?:\/\//i.test(siteFull) ? siteFull : `https://${siteFull}`).hostname.replace(/^www\./i, ''); } catch { return siteFull.replace(/^https?:\/\//i, '').replace(/\/.*$/, ''); } })();
-  const siteHref = /^https?:\/\//i.test(siteFull) ? siteFull : `https://${siteFull}`;
+  // Only build a real link when the customer actually gave a site URL — otherwise the "My site" placeholder
+  // (order.domain fallback) would render as an ugly "my%20site" href. No site ⇒ show the service label.
+  const siteHref = order.site ? (/^https?:\/\//i.test(order.site) ? order.site : `https://${order.site}`) : null;
+  const siteHost = order.site
+    ? (() => { try { return new URL(siteHref!).hostname.replace(/^www\./i, ''); } catch { return order.site!.replace(/^https?:\/\//i, '').replace(/\/.*$/, ''); } })()
+    : null;
   const p = order.progress ?? (status === 'completed' ? 100 : status === 'review' ? 95 : 8);
   const deliverables = isReal ? detail!.deliverables : deliverablesFor(order.id);
   const activity = isReal ? detail!.activity : activityFor(order);
@@ -236,7 +241,9 @@ function Panel({ order }: { order: Order }) {
               <Cell icon="ph-globe-simple" label="Website">
                 {order.multiWeb
                   ? <span className="font-medium">Multi-site <span className="ml-1 rounded bg-muted px-1 text-[9px] font-bold uppercase text-foreground/60">multi</span></span>
-                  : <a href={siteHref} target="_blank" rel="noopener noreferrer" title={siteFull} className="truncate font-medium text-primary hover:underline">{siteHost}</a>}
+                  : siteHref
+                    ? <a href={siteHref} target="_blank" rel="noopener noreferrer" title={order.site} className="truncate font-medium text-primary hover:underline">{siteHost}</a>
+                    : <span className="truncate font-medium">{order.siteLabel ?? '—'}</span>}
               </Cell>
               <Cell icon="ph-user" label="Assignee">
                 <span className="inline-flex items-center gap-1.5"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground">{order.owner.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>{order.owner}</span>

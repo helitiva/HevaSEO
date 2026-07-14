@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   ORDERS, SERVICES, STATUSES, FOLDERS, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
   type Order, type OrderStatus, type ServiceKey,
@@ -328,6 +328,12 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
         <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden />
         <span className="truncate">{SERVICES[o.service].label}</span>
       </span>
+      {/* the chosen package/plan (e.g. "Standard", "A2000") — the service has several to pick from */}
+      {o.sub && (
+        <span className="shrink-0 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title={o.sub}>
+          {o.sub.split('·')[0].trim()}
+        </span>
+      )}
       {/* delivered-awaiting-review: icon-only hourglass on the top row; label + auto-approve on hover */}
       {o.awaitingReview && (
         <span className="group relative ml-auto inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-amber-500/15 p-1 text-amber-600" aria-label="Awaiting review">
@@ -411,11 +417,13 @@ function autoApproveLabel(deliveredAt?: string | null): string | null {
 }
 
 export function OrdersBoard({ initialService = 'all', domain, orders }: { initialService?: ServiceKey | 'all'; domain?: string; orders?: Order[] }) {
-  const router = useRouter();
   const pathname = usePathname();
   const { statusOverrides, addedOrders } = useOrdersStore();
   const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
-  const openOrder = (id: string) => router.push(`${pathname}?order=${id}`, { scroll: false });
+  // Open the detail panel by syncing the URL CLIENT-SIDE (history.pushState) rather than router.push: a
+  // router navigation re-runs the server page (re-fetch + loading.tsx flash + remount), which lost scroll
+  // position and swallowed the next click. pushState updates useSearchParams without a server round-trip.
+  const openOrder = (id: string) => window.history.pushState(null, '', `${pathname}?order=${id}`);
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [svc, setSvc] = useState<ServiceKey | 'all'>(initialService);

@@ -218,7 +218,9 @@ export function toCustomerOrder(r: MyOrderRow): Order {
     site: site ?? undefined,
     siteLabel: siteInfo?.label,
     siteHover: siteInfo?.hover,
-    sub: r.pkg ?? '',
+    // The chosen package/plan. create_order doesn't persist it to orders.pkg, so fall back to the brief's
+    // "Selected plan"/"Service" line (e.g. "Standard", "A2000 · 3 articles", "1,000 links").
+    sub: r.pkg ?? briefVal(brief, /selected plan|service|package/i) ?? '',
     project: det?.project ?? undefined,
     folder: det?.folder ?? undefined,
     campaign: det?.title ?? undefined,     // card headline (falls back to the service name in the UI)
