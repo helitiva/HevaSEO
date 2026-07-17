@@ -5,7 +5,6 @@ import { ORDERS, PROJECTS, SERVICES, type Order, type OrderStatus, type ServiceK
 import { useOrdersStore } from './OrdersStore';
 import { CountUp } from './CountUp';
 import { QuickOrderButton } from './QuickOrderButton';
-import { mockTodayDate } from '@/lib/today';
 
 // TODAY is intentionally derived at call time (inside the component via useMemo) to avoid
 // a module-scope frozen date. This const is kept only for the range filter memo dep.
@@ -27,14 +26,28 @@ const parseUS = (d: string): Date | null => {
 
 // `orders` is the real RLS-scoped read (customer's own, inc-3e); falls back to the mock seed where
 // not wired. PROJECTS (activeProjects) + tier stay mock until those entities migrate.
-export function DashboardTop({ realOrders }: { realOrders?: Order[] }) {
+export function DashboardTop({ realOrders, today: todayIso }: {
+  realOrders?: Order[];
+  /**
+   * Real today (ISO), computed on the SERVER and passed in.
+   *
+   * It was `mockTodayDate()` — 2026-06-24 — filtering orders that are real and dated now. `(today - d)`
+   * came out NEGATIVE, so `<= range` was true for everything: the 7d / 30d / 90d switcher looked like it
+   * worked and showed the same full list at every setting.
+   *
+   * A prop rather than `new Date()` here because this is a client component that Next also
+   * server-renders: computing it on both sides can land the two renders on opposite sides of a range
+   * boundary and produce different HTML.
+   */
+  today: string;
+}) {
   const { addedOrders, statusOverrides } = useOrdersStore();
   const [range, setRange] = useState(90);
   const [open, setOpen] = useState(false);
   const statusOf = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
 
   // Compute the current date inside the render cycle so the filter window advances correctly.
-  const today = useMemo(() => mockTodayDate(), []);
+  const today = useMemo(() => new Date(todayIso), [todayIso]);
 
   const orders = useMemo(() => {
     const all = [...addedOrders, ...(realOrders ?? ORDERS)];

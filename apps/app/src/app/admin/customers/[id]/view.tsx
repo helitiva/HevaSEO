@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money, type AdminCustomer, type OrderStatus } from '@/data/adminMock';
-import { mockTodayDate } from '@/lib/today';
 import { getCustomers } from '@/data/customers.server';
 import { getOrders } from '@/data/orders.server';
 import { CustomerProfileClient } from './CustomerProfileClient';
@@ -28,7 +27,9 @@ export async function CustomerDetailView({ id, showMoney = true }: { id: string;
   const orders = realOrders ?? ORDERS.filter((o) => o.customer === c!.company)
     .map((o) => ({ id: o.id, code: o.code, service: o.service, pkg: o.pkg, status: o.status, value: o.value, created: o.created }));
   const extra = CUSTOMER_EXTRA[id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
-  const today = mockTodayDate();
+  // Real clock. Was mockTodayDate() (2026-06-24) against a real last_active_at dated now, and unclamped
+  // — so the "Last order" KPI rendered a NEGATIVE age: "-13d ago".
+  const today = new Date();
   const churnDays = Math.round((today.getTime() - new Date(c.lastActive).getTime()) / 86400000);
   const aov = c.orders ? Math.round(c.spend / c.orders) : 0;
   const active = orders.filter((o) => !['completed', 'canceled'].includes(o.status)).length;

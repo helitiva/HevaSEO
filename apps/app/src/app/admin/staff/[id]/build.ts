@@ -1,11 +1,14 @@
 import { ORDERS, STAFF, customerByCompany, type OrderStatus, type Priority, type Tier, type AdminOrder, type AdminStaff } from '@/data/adminMock';
 import { buildStaffInsight, buildStaffInsightReal } from '@/data/adminStaffInsight';
 import type { ProfileOrder, Workload, TeamAvg } from './StaffProfileClient';
-import { mockTodayDate } from '@/lib/today';
 
-const TODAY = mockTodayDate();
+/**
+ * Real clock — same bug as the roster builder: dueIn measured real deadlines against 2026-06-24.
+ * Server-only (staff/[id]/page.tsx is a server page).
+ */
+const todayMs = () => Date.now();
 const ACTIVE = new Set<OrderStatus>(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
-const dueIn = (d: string | null) => (d ? Math.round((new Date(d).getTime() - TODAY.getTime()) / 86400000) : null);
+const dueIn = (d: string | null) => (d ? Math.round((new Date(d).getTime() - todayMs()) / 86400000) : null);
 
 function toProfileOrder(o: (typeof ORDERS)[number]): ProfileOrder {
   const cust = customerByCompany(o.customer);

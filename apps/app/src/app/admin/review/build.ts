@@ -1,9 +1,19 @@
 import { ORDERS, DELIVERABLES, STAFF, tierOf, customerByCompany, qaCriteriaFor, SERVICE_INCLUDED, ORDER_EXTRA, ORDER_NOTE, CUSTOMER_EXTRA, type Tier, type AdminOrder, type AdminDeliverable, type AdminStaff } from '@/data/adminMock';
-import { mockTodayDate } from '@/lib/today';
 import type { OrderDetailExtra } from '@/lib/orderDetail';
 
 const REVIEW_SLA_DAYS = 2;
-const TODAY = mockTodayDate();
+/**
+ * Real clock. This was `mockTodayDate()` — 2026-06-24 — evaluated once at module load, while the
+ * deliverables it measures are real and dated now. Every `ageDays` came out NEGATIVE, so `overdue`
+ * (>= 2) was ALWAYS false: the "Overdue (>2d SLA)" KPI was pinned at 0 and the Overdue filter matched
+ * nothing. It looked fine only because no deliverable is currently 'submitted' — it would have fired
+ * silently on the first real submission, which is the entire purpose of this page.
+ *
+ * Server-only (both callers are server pages), so a real Date here can't cause a hydration mismatch.
+ * Evaluated per call, not at module scope: a long-lived server process would otherwise freeze "today"
+ * at boot and drift a day at a time.
+ */
+const todayDate = () => new Date();
 const days = (a: string, b: Date) => Math.round((b.getTime() - new Date(a).getTime()) / 86400000);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
@@ -48,7 +58,7 @@ export function buildReviewProps(
         id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status,
         value: o.value, deadline: o.deadline, customer: o.customer, tier, cust: custOf(o.customer), staff: o.staff,
         versions, latest, isResubmission: versions.length > 1 || versions.some((v) => v.status === 'changes_requested'),
-        ageDays: days(latest.submittedAt, TODAY), overdue: days(latest.submittedAt, TODAY) >= 2,
+        ageDays: days(latest.submittedAt, todayDate()), overdue: days(latest.submittedAt, todayDate()) >= 2,
         included: SERVICE_INCLUDED[o.service] ?? [],
         checklist: [
           ...(SERVICE_INCLUDED[o.service] ?? []).map((text) => ({ group: 'Completeness', text })),
@@ -65,7 +75,7 @@ export function buildReviewProps(
   // Sent back — awaiting staff re-submission (read-only context).
   const sentBack = orders.filter((o) => inScope(o.staff)).map((o) => ({ o, v: versionsOf(o.id)[0] }))
     .filter(({ v }) => v?.status === 'changes_requested')
-    .map(({ o, v }) => ({ id: o.id, code: o.code, service: o.service, staff: o.staff, reviewNote: v.reviewNote, ageDays: days(v.reviewedAt ?? v.submittedAt, TODAY) }));
+    .map(({ o, v }) => ({ id: o.id, code: o.code, service: o.service, staff: o.staff, reviewNote: v.reviewNote, ageDays: days(v.reviewedAt ?? v.submittedAt, todayDate()) }));
 
   // Quality signal per staff: change-request rate across all their reviewed deliverables.
   const reviewed = deliverables.filter((d) => d.status !== 'submitted');

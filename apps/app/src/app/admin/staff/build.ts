@@ -1,14 +1,19 @@
 import { ORDERS, STAFF, SERVICE_SKILL, customerByCompany, STAFF_MANAGER, managerOf, type AdminStaff, type AdminOrder } from '@/data/adminMock';
 import { rosterSignals } from '@/data/adminStaffInsight';
 import type { StaffVM, ActiveOrder, ManagerVM } from './StaffClient';
-import { mockTodayDate } from '@/lib/today';
 
-const TODAY = mockTodayDate();
+/**
+ * Real clock. Was mockTodayDate() (2026-06-24) against REAL order deadlines dated now, so daysToDue
+ * came out ~26 days too high: `overdue` (< 0) could never fire and `dueSoon` (<= 1) never matched — the
+ * roster showed a team with nothing late and nothing due, whatever the real deadlines said.
+ * Server-only (staff/page.tsx is a server page); per-call so a long-lived process doesn't freeze today.
+ */
+const todayMs = () => Date.now();
 // Orders that still sit on a staff member's plate (i.e. real current workload).
 const ACTIVE = new Set(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 
 function daysToDue(deadline: string | null): number {
-  return deadline ? Math.round((new Date(deadline).getTime() - TODAY.getTime()) / 86400000) : Number.POSITIVE_INFINITY;
+  return deadline ? Math.round((new Date(deadline).getTime() - todayMs()) / 86400000) : Number.POSITIVE_INFINITY;
 }
 
 // Shared by the admin Staff page and the manager (pod-scoped) one. `allOrders` defaults to the mock

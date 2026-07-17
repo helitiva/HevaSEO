@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <DashboardTop realOrders={orders} />
+      <DashboardTop realOrders={orders} today={new Date().toISOString()} />
 
       {delivered.length > 0 && (
         <section className="mt-5">

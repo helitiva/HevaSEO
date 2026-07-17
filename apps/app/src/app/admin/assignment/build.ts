@@ -1,4 +1,4 @@
-import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, MOCK_TODAY, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff, type AdminOrder, type AdminRule } from '@/data/adminMock';
+import { ORDERS, STAFF, RULES, tierOf, customerByCompany, ORDER_EXTRA, ACTIVE_ORDER_STATUS, type Tier, type AdminStaff, type AdminOrder, type AdminRule } from '@/data/adminMock';
 import { domainFromBrief, type OrderDetailExtra } from '@/lib/orderDetail';
 
 // Site/targetUrl/project come from the customer's REAL intake (order_details brief) when available; the
@@ -13,7 +13,16 @@ const factsOf = (o: AdminOrder, detail?: OrderDetailExtra | null) => {
 };
 
 const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize', Audit: 'optimize' };
-const TODAY = new Date(`${MOCK_TODAY}T00:00:00`);
+/**
+ * Real clock. Was `new Date(MOCK_TODAY)` — 2026-06-24 — measured against real orders dated now: an
+ * order due 2026-07-20 read "26d left" (muted) instead of "3d left" (amber), and every staff workload
+ * bucket (overdue / today / soon / week) sat at 0 because everything landed 26+ days out. `ageDays`
+ * went negative too ("-14d wait").
+ *
+ * Server-only (assignment/page.tsx is a server page). Per-call, not module scope, so a long-lived
+ * process doesn't freeze "today" at boot.
+ */
+const todayDate = () => new Date();
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 
 function rank(service: string, pkg: string, roster: readonly AdminStaff[], rules: readonly AdminRule[]) {
@@ -51,11 +60,11 @@ export function buildAssignmentProps(
     const r = rank(o.service, o.pkg, roster, rules);
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
-    const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : Number.POSITIVE_INFINITY;
+    const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - todayDate().getTime()) / 86400000) : Number.POSITIVE_INFINITY;
     return {
       id: o.id, seq: seqMap.get(o.id) ?? 0, code: o.code, customer: o.customer, tier,
       service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, value: o.value,
-      deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((TODAY.getTime() - new Date(o.created).getTime()) / 86400000),
+      deadline: o.deadline, daysToDue, created: o.created, ageDays: Math.round((todayDate().getTime() - new Date(o.created).getTime()) / 86400000),
       ...factsOf(o, detailsById?.get(o.id)), cust: custOf(o.customer), suggested: r.pinnedTo ?? r.candidates[0]?.name ?? null, pinnedTo: r.pinnedTo, candidates: r.candidates,
     };
   }).sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || a.daysToDue - b.daysToDue);
@@ -64,7 +73,7 @@ export function buildAssignmentProps(
   const assigned = orders.filter((o) => o.staff && rosterNames.has(o.staff) && ACTIVE_ORDER_STATUS.has(o.status)).map((o) => {
     const cust = customerByCompany(o.customer);
     const tier: Tier = cust ? cust.tier : tierOf(o.value);
-    const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - TODAY.getTime()) / 86400000) : 9999;
+    const daysToDue = o.deadline ? Math.round((new Date(o.deadline).getTime() - todayDate().getTime()) / 86400000) : 9999;
     return { id: o.id, code: o.code, service: o.service, pkg: o.pkg, priority: o.priority, status: o.status, customer: o.customer, tier, value: o.value, deadline: o.deadline, daysToDue, ...factsOf(o, detailsById?.get(o.id)), cust: custOf(o.customer), home: o.staff as string };
   });
 

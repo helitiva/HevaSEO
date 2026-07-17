@@ -1,8 +1,15 @@
 import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer, type AdminOrder } from '@/data/adminMock';
 import type { CustomerRow, Health } from './CustomersClient';
-import { mockTodayDate } from '@/lib/today';
 
-const TODAY = mockTodayDate();
+/**
+ * Real clock. Was `mockTodayDate()` — 2026-06-24 — against customers whose last_active_at is real and
+ * dated now: `churnDays` came out negative, `Math.max(0, …)` clamped it to 0, and `atRisk`
+ * (churnDays > 30) could therefore NEVER be true. The At-risk KPI, the At-risk segment and the whole
+ * Churn-watch panel were structurally empty — not "no one is at risk", but "we cannot detect risk".
+ *
+ * Server-only (both callers are server pages). Per-call so a long-lived process doesn't freeze today.
+ */
+const todayMs = () => Date.now();
 const CLOSED = ['completed', 'canceled'];
 
 // Derivation shared by the admin Customers page and the manager (pod-scoped) one. `allOrders`
@@ -16,7 +23,7 @@ export function buildCustomerRows(customers: readonly AdminCustomer[], allOrders
     const firstOrder = [...orders].sort((a, b) => a.created.localeCompare(b.created))[0];
     const source = firstOrder?.source ?? 'quick';
     const extra = CUSTOMER_EXTRA[c.id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
-    const churnDays = Math.max(0, Math.round((TODAY.getTime() - new Date(c.lastActive).getTime()) / 86400000));
+    const churnDays = Math.max(0, Math.round((todayMs() - new Date(c.lastActive).getTime()) / 86400000));
     const aov = c.orders ? Math.round(c.spend / c.orders) : 0;
     const atRisk = churnDays > 30;
     const health: Health = atRisk ? 'risk' : churnDays <= 7 && c.orders >= 5 ? 'good' : 'ok';
