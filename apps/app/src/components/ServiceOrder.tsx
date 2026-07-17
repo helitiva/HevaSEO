@@ -239,6 +239,14 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
     });
     setPlacing(false);
     if (!res.ok) { toast(res.error, 'error'); return; }
+    // A 'Consult' plan doesn't place an order — it asks for a quote, and nothing is charged. Saying
+    // "Order … placed — credit charged" here would be two lies in one line.
+    if ('quoteRequested' in res) {
+      toast(res.message, 'success');
+      if (onPlaced) onPlaced();
+      router.refresh();
+      return;
+    }
     toast(`Order ${res.code} placed — credit charged`, 'success');
     if (onPlaced) onPlaced();
     else router.push('/orders');

@@ -64,7 +64,15 @@ async function resolveProjectLink(
   }
   return { projectId, folderId };
 }
-export type PlaceOrderResult = { ok: true; code: string } | { ok: false; error: string };
+/**
+ * Placing a 'Consult' plan doesn't produce an order — it produces a quote request, and nothing is
+ * charged. The two outcomes are separate shapes so a caller can't accidentally treat "we'll price this
+ * and get back to you" as "your order is placed".
+ */
+export type PlaceOrderResult =
+  | { ok: true; code: string }
+  | { ok: true; quoteRequested: true; message: string; quoteId?: string }
+  | { ok: false; error: string };
 
 /** English ordinal: 1→"1st", 2→"2nd", 3→"3rd", 11→"11th", 21→"21st"… */
 function ordinal(n: number): string {
@@ -93,20 +101,33 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const priced = computeOrderPrice(catalog, {
     packageId: input.packageId, qty: input.qty, addonPicks: input.addonPicks, isVip: cust.tier === 'vip',
   });
-  // A zero-value order is a free order. The catalog has packages priced 0 — 'Ultra' and 'Custom' under
-  // Optimization carry price: 0 with priceLabel: 'Consult' (data/services.ts) — so a customer could pick
-  // one here and create a real, unpaid order that entered the pipeline like any other: create_order only
-  // rejects p_value < 0, and this action never checked. The public checkout has guarded exactly this
-  // since it was written (api/public/checkout/route.ts: !hasNumericTotal → 422, !(value > 0) → 400);
-  // the dashboard flow simply never got the same gate.
-  //
-  // Gate on the VALUE, not on hasNumericTotal. hasNumericTotal is also false for 'from $79'-style
-  // packages that do charge their starting price here today — refusing those would change working
-  // behaviour, and whether they should be quote-only is a product call, not a bug fix.
-  if (!(priced.value > 0)) {
-    return { ok: false, error: 'This plan needs a custom quote — talk to us and we’ll price it for you.' };
-  }
   const serviceLabel = SERVICES[input.serviceKey]?.label ?? input.serviceKey;
+
+  // A zero-value order would be a FREE order. 'Ultra' and 'Custom' under Optimization carry price: 0
+  // with priceLabel: 'Consult' (data/services.ts), and this action used to hand that 0 straight to
+  // create_order — which only rejected p_value < 0. Real work, real pipeline, nobody charged.
+  //
+  // These plans don't have a price to charge; they have a price to *decide*. So they become a QUOTE
+  // REQUEST: nothing is debited, no order exists, and a specialist prices the job and sends the
+  // customer a link. Gated on the VALUE rather than hasNumericTotal, because hasNumericTotal is also
+  // false for 'from $79'-style packages that legitimately charge their starting price here.
+  if (!(priced.value > 0)) {
+    const plan = catalog.packages?.find((p) => p.id === input.packageId);
+    const { data: q, error: qErr } = await createServiceClient().rpc('request_quote', {
+      p_tenant: cust.tenant_id, p_customer: cust.id,
+      p_service: serviceLabel, p_package_id: input.packageId,
+      p_package_name: plan?.name ?? input.packageId,
+      p_code_prefix: catalog.orderCode,
+      p_brief: input.brief, p_ask: briefText(input.brief),
+    });
+    if (qErr) return { ok: false, error: qErr.message };
+    return {
+      ok: true,
+      quoteRequested: true,
+      message: 'Thanks — a specialist will price this and send you a quote. Nothing has been charged.',
+      quoteId: (q as { id?: string } | null)?.id,
+    };
+  }
   const code = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
   const deadline = deadlineFromSla(priced.sla); // ETA from the chosen package's SLA
 
@@ -173,6 +194,12 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 // Real, RLS-scoped detail for the customer order slide-over: the brief they submitted at order time
 // (order_details), the delivered work they may read (deliverables — approved versions per RLS), and a
 // small derived activity timeline. Resolved by order code (the customer Order model keys on code).
+/** The customer's brief as one readable line, for the quote queue's summary column. */
+function briefText(brief: { label: string; value: string }[]): string | undefined {
+  const t = brief.map((b) => `${b.label}: ${b.value}`).join(' · ').trim();
+  return t.length ? t.slice(0, 500) : undefined;
+}
+
 type BriefField = { label: string; value: string; full?: boolean };
 type DelivStatus = 'approved' | 'delivered' | 'review' | 'rejected';
 type DelivFile = { kind: 'file' | 'link'; name: string; meta?: string; url?: string };

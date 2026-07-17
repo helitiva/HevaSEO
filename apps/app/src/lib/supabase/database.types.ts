@@ -2007,6 +2007,105 @@ export type Database = {
           },
         ]
       }
+      quotes: {
+        Row: {
+          amount: number | null
+          ask: string | null
+          brief: Json
+          code_prefix: string
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          order_id: string | null
+          package_id: string
+          package_name: string
+          quote_note: string | null
+          quoted_at: string | null
+          quoted_by: string | null
+          service: string
+          status: string
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          amount?: number | null
+          ask?: string | null
+          brief?: Json
+          code_prefix: string
+          created_at?: string
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          order_id?: string | null
+          package_id: string
+          package_name: string
+          quote_note?: string | null
+          quoted_at?: string | null
+          quoted_by?: string | null
+          service: string
+          status?: string
+          tenant_id: string
+          token: string
+        }
+        Update: {
+          amount?: number | null
+          ask?: string | null
+          brief?: Json
+          code_prefix?: string
+          created_at?: string
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          order_id?: string | null
+          package_id?: string
+          package_name?: string
+          quote_note?: string | null
+          quoted_at?: string | null
+          quoted_by?: string | null
+          service?: string
+          status?: string
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_mgr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_quoted_by_fkey"
+            columns: ["quoted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           bucket: string
@@ -2786,6 +2885,32 @@ export type Database = {
       _table_privs: { Args: never; Returns: unknown[] }
       _temptypes: { Args: { "": string }; Returns: string }
       _todo: { Args: never; Returns: string }
+      accept_quote: {
+        Args: { p_token: string }
+        Returns: {
+          assignee_id: string | null
+          checkout_ref: string | null
+          code: string
+          created_at: string
+          customer_id: string
+          deadline: string | null
+          delivered_at: string | null
+          id: string
+          pkg: string | null
+          priority: Database["public"]["Enums"]["order_priority"]
+          service: string
+          source: Database["public"]["Enums"]["order_source"]
+          state: Database["public"]["Enums"]["order_state"]
+          tenant_id: string
+          value: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_affiliate_payout_method: {
         Args: { p_detail: string; p_kind: string; p_make_default: boolean }
         Returns: {
@@ -3090,6 +3215,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_quote: {
+        Args: {
+          p_amount: number
+          p_note?: string
+          p_quote: string
+          p_valid_days?: number
+        }
+        Returns: {
+          amount: number | null
+          ask: string | null
+          brief: Json
+          code_prefix: string
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          order_id: string | null
+          package_id: string
+          package_name: string
+          quote_note: string | null
+          quoted_at: string | null
+          quoted_by: string | null
+          service: string
+          status: string
+          tenant_id: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quotes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_staff_member: {
         Args: {
           p_capacity: number
@@ -3159,6 +3318,7 @@ export type Database = {
       current_skills: { Args: never; Returns: string[] }
       current_tenant_id: { Args: never; Returns: string }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      decline_quote: { Args: { p_token: string }; Returns: undefined }
       delete_broadcast: { Args: { p_id: string }; Returns: undefined }
       delete_doc: { Args: { p_id: string }; Returns: undefined }
       delete_note: { Args: { p_id: string }; Returns: undefined }
@@ -3400,6 +3560,44 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_quote: {
+        Args: {
+          p_ask?: string
+          p_brief?: Json
+          p_code_prefix: string
+          p_customer: string
+          p_package_id: string
+          p_package_name: string
+          p_service: string
+          p_tenant: string
+        }
+        Returns: {
+          amount: number | null
+          ask: string | null
+          brief: Json
+          code_prefix: string
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          order_id: string | null
+          package_id: string
+          package_name: string
+          quote_note: string | null
+          quoted_at: string | null
+          quoted_by: string | null
+          service: string
+          status: string
+          tenant_id: string
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quotes"
           isOneToOne: true
           isSetofReturn: false
         }

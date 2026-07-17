@@ -43,6 +43,12 @@ export type Capability =
   | 'managers.manage'
   | 'catalog.manage'
   | 'catalog.view' // read the service menu (managers see it; editing is admin-only)
+  // Price a custom job. A NARROW, DELIBERATE exception to manager money-blindness, agreed with the
+  // product owner: quoting IS pricing, so a manager must be able to name one number on one quote. It
+  // grants nothing else — no wallet, no LTV, no revenue, and not even the value of the order their own
+  // quote becomes (orders_mgr still strips it). If you are tempted to widen this to pricing.view,
+  // that's a different decision and needs asking.
+  | 'quotes.manage'
   | 'docs.manage' // author docs and distribute them to customers/staff/managers (admin only)
   | 'audit.view'
   | 'org.settings' // org-wide admin settings (not personal settings)
@@ -81,6 +87,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   admin: [
     'admin.access',
     'manager.access',
+    'quotes.manage',
     'orders.manage',
     'assignment.manage',
     'review.manage',
@@ -102,6 +109,7 @@ export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
   ],
   manager: [
     'manager.access',
+    'quotes.manage',
     'orders.manage',
     'assignment.manage',
     'review.manage',
@@ -167,6 +175,7 @@ export const ROUTE_CAPABILITY: readonly { prefix: string; capability: Capability
   { prefix: '/manager/finance', capability: 'manager.access' }, // the manager's OWN pay only
   { prefix: '/manager/orders', capability: 'orders.manage' },
   { prefix: '/manager/assignment', capability: 'assignment.manage' },
+  { prefix: '/manager/quotes', capability: 'quotes.manage' },
   { prefix: '/manager/review', capability: 'review.manage' },
   { prefix: '/manager/tickets', capability: 'tickets.manage' },
   { prefix: '/manager/customers', capability: 'customers.manage' },
