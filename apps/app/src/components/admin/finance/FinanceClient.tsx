@@ -20,7 +20,7 @@ import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
-import type { FinanceKpis, RevenueBook, RevenueDay } from '@/data/adminRevenue.server';
+import type { FinanceKpis, RevenueBook, RevenueDay } from '@/data/adminRevenue';
 import type { CustomerWallet, LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
 import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';

@@ -4,7 +4,8 @@ import { getPayoutRequests } from '@/data/adminPayouts.server';
 import { getPenalties, getWalletStaff } from '@/data/adminPenalties.server';
 import { getPayrollRuns } from '@/data/adminPayroll.server';
 import { getPayrollPreview } from '@/data/adminComp.server';
-import { financeKpis, getRevenueBook } from '@/data/adminRevenue.server';
+import { getRevenueBook } from '@/data/adminRevenue.server';
+import { financeKpis } from '@/data/adminRevenue';
 import { getCustomerWallets, getLedger, getPayments } from '@/data/adminLedger.server';
 
 export const metadata = { title: 'Finance' };

@@ -2,7 +2,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { allRows } from '@/lib/supabase/allRows';
 import { money, GEO, type ServiceMixRow, type RevKpi, type GeoRow } from '@/data/adminMock';
-import { RECOGNIZED_STATES, isBookedState } from '@/data/adminRevenue.server';
+import { RECOGNIZED_STATES, isBookedState } from '@/data/adminRevenue';
 
 // inc-analytics — real revenue analytics (admin RLS = all tenant orders). Derives KPIs + a 90-day daily
 // series + service mix + revenue-by-source + top customers from real orders. Audience/geo panels stay

@@ -1,7 +1,7 @@
 'use client';
 
 import { money } from '@/data/adminMock';
-import type { RevenueDay } from '@/data/adminRevenue.server';
+import type { RevenueDay } from '@/data/adminRevenue';
 
 /**
  * The daily money split, on SaaS accounting rules — the chart that replaces a mock "cashflow in vs out".
