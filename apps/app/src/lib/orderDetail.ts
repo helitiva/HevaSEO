@@ -36,11 +36,31 @@ export function domainFromBrief(brief: { label: string; value: string }[]): stri
   return null;
 }
 
-export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: OrderDetailExtra | null): OrderDetailProps | null {
+/** Position of this order in the real, newest-first list — supplied by callers that have it. */
+export type OrderNav = { seq: number; prev?: { id: string; code: string }; next?: { id: string; code: string } };
+
+/** Build the real nav for `orderId` from the real order list. Callers with getOrders() should use this. */
+export function orderNavFrom(allOrders: readonly AdminOrder[], orderId: string): OrderNav | undefined {
+  const asc = [...allOrders].sort((a, b) => a.created.localeCompare(b.created));
+  const seq = asc.findIndex((o) => o.id === orderId) + 1; // 0 when absent
+  const desc = [...allOrders].sort((a, b) => b.created.localeCompare(a.created));
+  const i = desc.findIndex((o) => o.id === orderId);
+  if (i < 0) return undefined;
+  return {
+    seq,
+    prev: i > 0 ? { id: desc[i - 1].id, code: desc[i - 1].code } : undefined,
+    next: i < desc.length - 1 ? { id: desc[i + 1].id, code: desc[i + 1].code } : undefined,
+  };
+}
+
+export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: OrderDetailExtra | null, nav?: OrderNav): OrderDetailProps | null {
   const order = typeof orderOrId === 'string' ? ORDERS.find((o) => o.id === orderOrId) : orderOrId;
   if (!order) return null;
 
-  const seq = seqMap.get(order.id) ?? 0;
+  // Real seq when the caller supplied nav. seqMap is keyed by the adminMock order ids, so a real UUID
+  // always missed and every real order rendered as "#0" — while /admin/orders, which builds its own seq
+  // from the real list, showed the same order as "#5".
+  const seq = nav?.seq ?? seqMap.get(order.id) ?? 0;
   const c = customerByCompany(order.customer);
   const extra = ORDER_EXTRA[order.id];
   const emailSite = c?.email.split('@')[1] ?? `${order.customer.toLowerCase().replace(/\s+/g, '')}.com`;
@@ -77,10 +97,15 @@ export function buildOrderDetailProps(orderOrId: string | AdminOrder, detail?: O
     : [{ id: 'c', at: `${order.created} 00:00`, action: 'created', change: `${order.code} created` }];
 
   // Prev / next in the default (newest-first) list order.
+  //
+  // The mock fallback below is guarded on idx >= 0 now. It wasn't: findIndex on the adminMock ORDERS
+  // with a real UUID returns -1, and `-1 < ordered.length - 1` is TRUE — so `next` became ordered[0],
+  // the newest MOCK order, and the '›' caret on every real order linked to /admin/orders/o8, which the
+  // real getOrderById rejects → 404. Callers that can pass real nav (they have getOrders()) should.
   const ordered = [...ORDERS].sort((a, b) => b.created.localeCompare(a.created));
   const idx = ordered.findIndex((o) => o.id === order.id);
-  const prev = idx > 0 ? { id: ordered[idx - 1].id, code: ordered[idx - 1].code } : undefined;
-  const next = idx < ordered.length - 1 ? { id: ordered[idx + 1].id, code: ordered[idx + 1].code } : undefined;
+  const prev = nav ? nav.prev : idx > 0 ? { id: ordered[idx - 1].id, code: ordered[idx - 1].code } : undefined;
+  const next = nav ? nav.next : idx >= 0 && idx < ordered.length - 1 ? { id: ordered[idx + 1].id, code: ordered[idx + 1].code } : undefined;
 
   const cust = c ? { id: c.id, name: c.name, email: c.email, status: c.status, tier: c.tier, spend: c.spend, orders: c.orders, balance: c.balance } : undefined;
 
