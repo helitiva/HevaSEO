@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { allRows } from '@/lib/supabase/allRows';
 import { money, GEO, type ServiceMixRow, type RevKpi, type GeoRow } from '@/data/adminMock';
 import { RECOGNIZED_STATES, isBookedState } from '@/data/adminRevenue.server';
 
@@ -35,17 +36,19 @@ type CustRow = { id: string; name: string | null; company: string | null };
 
 export async function getAnalytics(): Promise<AnalyticsData> {
   const supabase = await createClient();
-  const [ordersRes, custRes] = await Promise.all([
-    supabase.from('orders').select('value, service, source, state, created_at, delivered_at, customer_id').returns<OrderRow[]>(),
-    supabase.from('customers').select('id, name, company').returns<CustRow[]>(),
+  const [orderRows, custRows] = await Promise.all([
+    allRows<OrderRow>('getAnalytics orders', supabase.from('orders')
+      .select('value, service, source, state, created_at, delivered_at, customer_id', { count: 'exact' })
+      .returns<OrderRow[]>()),
+    allRows<CustRow>('getAnalytics customers', supabase.from('customers')
+      .select('id, name, company', { count: 'exact' })
+      .returns<CustRow[]>()),
   ]);
-  if (ordersRes.error) throw new Error(`getAnalytics: ${ordersRes.error.message}`);
-  if (custRes.error) throw new Error(`getAnalytics customers: ${custRes.error.message}`);
 
   // was `!EXCLUDED.has(o.state)` with EXCLUDED = ['new','canceled'] — it silently dropped every
   // unconfirmed order, so this page's Bookings disagreed with the money book's. Same rule now.
-  const orders = (ordersRes.data ?? []).filter((o) => isBookedState(o.state));
-  const custById = new Map((custRes.data ?? []).map((c) => [c.id, c]));
+  const orders = orderRows.filter((o) => isBookedState(o.state));
+  const custById = new Map(custRows.map((c) => [c.id, c]));
   const isRecognized = (o: OrderRow) => !!o.delivered_at && (RECOGNIZED_STATES as readonly string[]).includes(o.state);
 
   const booked = orders.reduce((s, o) => s + Number(o.value), 0);
@@ -122,10 +125,10 @@ export type SupportStats = { open: number; pending: number; resolved: number; cl
 
 export async function getSupportStats(): Promise<SupportStats> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('tickets').select('status, created_at, last_reply_at')
-    .returns<{ status: string; created_at: string; last_reply_at: string | null }[]>();
-  if (error) throw new Error(`getSupportStats: ${error.message}`);
-  const rows = data ?? [];
+  type TicketRow = { status: string; created_at: string; last_reply_at: string | null };
+  const rows = await allRows<TicketRow>('getSupportStats', supabase.from('tickets')
+    .select('status, created_at, last_reply_at', { count: 'exact' })
+    .returns<TicketRow[]>());
   const by = (s: string) => rows.filter((t) => t.status === s).length;
   const replied = rows.filter((t) => t.last_reply_at);
   const today = new Date().toISOString().slice(0, 10);
@@ -140,11 +143,12 @@ export async function getSupportStats(): Promise<SupportStats> {
 // coords) from the GEO lookup; unknown ISOs fall back to a neutral marker.
 export async function getGeoStats(): Promise<GeoRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('customers').select('country_iso').returns<{ country_iso: string | null }[]>();
-  if (error) throw new Error(`getGeoStats: ${error.message}`);
+  const rows = await allRows<{ country_iso: string | null }>('getGeoStats', supabase.from('customers')
+    .select('country_iso', { count: 'exact' })
+    .returns<{ country_iso: string | null }[]>());
   const meta = new Map(GEO.map((g) => [g.isoNum, g]));
   const counts = new Map<string, number>();
-  for (const c of data ?? []) if (c.country_iso) counts.set(c.country_iso, (counts.get(c.country_iso) ?? 0) + 1);
+  for (const c of rows) if (c.country_iso) counts.set(c.country_iso, (counts.get(c.country_iso) ?? 0) + 1);
   return [...counts.entries()]
     .map(([iso, users]): GeoRow => { const m = meta.get(iso); return m ? { ...m, users } : { country: iso, flag: '🌐', users, x: 0.5, y: 0.5, isoNum: iso }; })
     .sort((a, b) => b.users - a.users);

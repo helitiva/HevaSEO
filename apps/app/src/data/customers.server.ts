@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { allRows } from '@/lib/supabase/allRows';
 import type { AdminCustomer } from '@/data/adminMock';
 
 // Lane A inc-3f — real (RLS-scoped) customer roster for the admin Customers page. Replaces the
@@ -15,27 +16,31 @@ type CustRow = {
 
 export async function getCustomers(): Promise<AdminCustomer[]> {
   const supabase = await createClient();
-  const [custs, bals, ords] = await Promise.all([
-    supabase.from('customers').select('id, name, company, email, status, tier, last_active_at, created_at').returns<CustRow[]>(),
-    supabase.from('customer_balances').select('customer_id, balance'),
-    supabase.from('orders').select('customer_id, value').neq('state', 'canceled'),
+  // Every read guarded, not just the first. An RLS denial on these two used to fall through `?? []` and
+  // render every customer with $0 balance and $0 LTV — indistinguishable from a customer who genuinely
+  // has neither. A truncated read does the same thing to whoever falls off the end. Silent zeroes on
+  // money are the failure this codebase keeps paying for.
+  type BalRow = { customer_id: string; balance: number | string };
+  type OrdRow = { customer_id: string; value: number | string };
+  const [custRows, balRows, ordRows] = await Promise.all([
+    allRows<CustRow>('getCustomers', supabase.from('customers')
+      .select('id, name, company, email, status, tier, last_active_at, created_at', { count: 'exact' })
+      .returns<CustRow[]>()),
+    allRows<BalRow>('getCustomers balances', supabase.from('customer_balances')
+      .select('customer_id, balance', { count: 'exact' }).returns<BalRow[]>()),
+    allRows<OrdRow>('getCustomers orders', supabase.from('orders')
+      .select('customer_id, value', { count: 'exact' }).neq('state', 'canceled').returns<OrdRow[]>()),
   ]);
-  if (custs.error) throw new Error(`getCustomers: ${custs.error.message}`);
-  // Every read, not just the first. An RLS denial on these two used to fall through `?? []` and render
-  // every customer with $0 balance and $0 LTV — indistinguishable from a customer who genuinely has
-  // neither. Silent zeroes on money are the failure this codebase keeps paying for.
-  if (bals.error) throw new Error(`getCustomers balances: ${bals.error.message}`);
-  if (ords.error) throw new Error(`getCustomers orders: ${ords.error.message}`);
 
-  const balByCust = new Map((bals.data ?? []).map((b) => [b.customer_id as string, Number(b.balance)]));
+  const balByCust = new Map(balRows.map((b) => [b.customer_id, Number(b.balance)]));
   const agg = new Map<string, { n: number; spend: number }>();
-  for (const o of ords.data ?? []) {
-    const a = agg.get(o.customer_id as string) ?? { n: 0, spend: 0 };
+  for (const o of ordRows) {
+    const a = agg.get(o.customer_id) ?? { n: 0, spend: 0 };
     a.n += 1; a.spend += Number(o.value);
-    agg.set(o.customer_id as string, a);
+    agg.set(o.customer_id, a);
   }
 
-  return (custs.data ?? []).map((c) => ({
+  return custRows.map((c) => ({
     id: c.id,
     name: c.name,
     company: c.company ?? c.name,
@@ -59,12 +64,12 @@ export async function getCustomers(): Promise<AdminCustomer[]> {
  */
 export async function getOpenTicketCounts(): Promise<Map<string, number>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  type TicketRow = { customer_id: string | null; status: string };
+  const data = await allRows<TicketRow>('getOpenTicketCounts', supabase
     .from('tickets')
-    .select('customer_id, status')
+    .select('customer_id, status', { count: 'exact' })
     .in('status', ['open', 'pending'])
-    .returns<{ customer_id: string | null; status: string }[]>();
-  if (error) throw new Error(`getOpenTicketCounts: ${error.message}`);
+    .returns<TicketRow[]>());
   const out = new Map<string, number>();
   for (const t of data ?? []) if (t.customer_id) out.set(t.customer_id, (out.get(t.customer_id) ?? 0) + 1);
   return out;

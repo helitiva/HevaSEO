@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { allRows } from '@/lib/supabase/allRows';
 
 /**
  * Payroll computed from REAL work, admin-side (RLS: admin sees the whole tenant).
@@ -59,34 +60,35 @@ export async function getPayrollPreview(period?: string): Promise<PayrollPreview
   const supabase = await createClient();
   const p = period ?? new Date().toISOString().slice(0, 7);
 
-  const [ordersRes, profRes, compRes, podRes, runsRes] = await Promise.all([
-    supabase.from('orders').select('value, state, delivered_at, assignee_id').returns<OrderRow[]>(),
-    supabase.from('profiles').select('id, name, role').in('role', ['staff', 'manager']).returns<ProfileRow[]>(),
-    supabase.from('staff_comp').select('profile_id, base_salary, commission_pct').returns<CompRow[]>(),
-    supabase.from('staff_details').select('profile_id, manager_id').returns<PodRow[]>(),
+  // allRows surfaces every read failure AND a truncated read. Swallowing the comp read is how a missing
+  // GRANT silently rendered every salary as "not set" instead of erroring; a truncated orders read would
+  // do the same thing to commission — under-pay every worker, with nothing in the logs.
+  const [orderRows, profRows, compRows, podRows, runRows] = await Promise.all([
+    allRows<OrderRow>('getPayrollPreview orders', supabase.from('orders')
+      .select('value, state, delivered_at, assignee_id', { count: 'exact' }).returns<OrderRow[]>()),
+    allRows<ProfileRow>('getPayrollPreview profiles', supabase.from('profiles')
+      .select('id, name, role', { count: 'exact' }).in('role', ['staff', 'manager']).returns<ProfileRow[]>()),
+    allRows<CompRow>('getPayrollPreview staff_comp', supabase.from('staff_comp')
+      .select('profile_id, base_salary, commission_pct', { count: 'exact' }).returns<CompRow[]>()),
+    allRows<PodRow>('getPayrollPreview staff_details', supabase.from('staff_details')
+      .select('profile_id, manager_id', { count: 'exact' }).returns<PodRow[]>()),
     // what has actually been PAID for this period. run_payroll is idempotent per (worker, period), so
     // at most one row each — but sum defensively rather than assume.
-    supabase.from('payroll_runs').select('staff_id, total').eq('period', p).returns<RunRow[]>(),
+    allRows<RunRow>('getPayrollPreview payroll_runs', supabase.from('payroll_runs')
+      .select('staff_id, total', { count: 'exact' }).eq('period', p).returns<RunRow[]>()),
   ]);
-  // Surface every read failure. Swallowing the comp read is how a missing GRANT silently rendered every
-  // salary as "not set" instead of erroring.
-  if (ordersRes.error) throw new Error(`getPayrollPreview orders: ${ordersRes.error.message}`);
-  if (profRes.error) throw new Error(`getPayrollPreview profiles: ${profRes.error.message}`);
-  if (compRes.error) throw new Error(`getPayrollPreview staff_comp: ${compRes.error.message}`);
-  if (podRes.error) throw new Error(`getPayrollPreview staff_details: ${podRes.error.message}`);
-  if (runsRes.error) throw new Error(`getPayrollPreview payroll_runs: ${runsRes.error.message}`);
 
   const paidBy = new Map<string, number>();
-  for (const r of runsRes.data ?? []) paidBy.set(r.staff_id, (paidBy.get(r.staff_id) ?? 0) + num(r.total));
+  for (const r of runRows) paidBy.set(r.staff_id, (paidBy.get(r.staff_id) ?? 0) + num(r.total));
 
   // only work actually earned in this period counts toward commission
-  const earned = (ordersRes.data ?? []).filter(
+  const earned = orderRows.filter(
     (o) => o.delivered_at && RECOGNIZED.includes(o.state) && o.delivered_at.slice(0, 7) === p,
   );
-  const comp = new Map((compRes.data ?? []).map((c) => [c.profile_id, c]));
-  const managerOf = new Map((podRes.data ?? []).map((r) => [r.profile_id, r.manager_id]));
+  const comp = new Map(compRows.map((c) => [c.profile_id, c]));
+  const managerOf = new Map(podRows.map((r) => [r.profile_id, r.manager_id]));
 
-  const lines: CompLine[] = (profRes.data ?? []).map((prof) => {
+  const lines: CompLine[] = profRows.map((prof) => {
     const mine = prof.role === 'manager'
       ? earned.filter((o) => o.assignee_id && managerOf.get(o.assignee_id) === prof.id)
       : earned.filter((o) => o.assignee_id === prof.id);

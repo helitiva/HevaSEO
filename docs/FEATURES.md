@@ -113,6 +113,19 @@ Plans the catalog gives a `priceLabel` to — `Consult`, `Custom quote`, and eve
 
 **Revenue.** An accepted quote is a *booking*, not revenue — the order starts at `new`, and revenue is recognized on delivery like any other (ASC 606). Deferred revenue is unchanged by the accept: the credit simply becomes undelivered work.
 
+#### Read integrity — why the money numbers can be trusted
+
+PostgREST caps every response at `max_rows` (1000, `supabase/config.toml`) and **does not error when it truncates**: it returns a short array with a 2xx. Code that sums the result is then quietly wrong, forever, with nothing in the logs. Measured against this database: a deliberately truncated 3-of-11 ledger read returned HTTP 206 and summed to `-78.02` instead of `17288.98`.
+
+Every money read is therefore one of two shapes, and `.limit(1000)` is neither — that only makes the truncation intentional.
+
+| Shape | Where | Why |
+|---|---|---|
+| **Aggregate in SQL** | `revenue_book(p_window_days)` RPC → `getRevenueBook` (`data/adminRevenue.server.ts`) | The whole book — totals, deferred, reconcile, daily series — comes back as one `jsonb`, so the row count stops mattering. Admin-gated (SECURITY DEFINER bypasses RLS). The old Node-side version also had no `ORDER BY`, so the surviving 1,000 rows were arbitrary: wrong *differently* on each load. |
+| **Row read + tripwire** | `allRows()` (`lib/supabase/allRows.ts`) — used by `getLedger`, `getCustomerWallets`, `getPayments`, `getAnalytics`, `getSupportStats`, `getGeoStats`, `getPayrollPreview`, `getCustomers`, `getOpenTicketCounts` | Asks for `count: 'exact'` and **throws** if the server holds more rows than it returned. Turns silent under-reporting into a loud failure. A page that crashes is recoverable; a page that quietly under-states revenue is not. |
+
+**The ASC 606 state rules now live in two places** — `RECOGNIZED_STATES`/`isBookedState` in `data/adminRevenue.server.ts` (still needed in TS for the per-service and per-customer breakdowns the RPC doesn't return) and the `recognized`/`unearned` CTEs in the RPC. `adminRevenue.test.ts` pins the TS side and `supabase/tests/0830_revenue_book_test.sql` pins the SQL side against the same documented rule, so drift fails a test instead of quietly making two pages disagree — which is exactly what happened when the catalog was duplicated.
+
 ### 2.6 Broadcasts / Messaging
 
 **Admin-to-everyone messaging system** — one-to-many announcements with per-message analytics.

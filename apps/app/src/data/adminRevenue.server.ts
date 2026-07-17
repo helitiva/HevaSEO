@@ -20,8 +20,14 @@ import { createClient } from '@/lib/supabase/server';
 // disagree about the top line (they did: analytics counted only state='completed' and reported $0 while
 // this book reported $296.02 for the same orders).
 export const RECOGNIZED_STATES = ['delivered', 'approved', 'completed'] as const;
-// Committed but not yet earned — the customer's credit is spoken for, we still owe the work.
-const UNEARNED_STATES = ['new', 'confirmed', 'assigned', 'in_progress', 'internal_review', 'changes_requested'] as const;
+// NOTE: the unearned-state list now lives in the revenue_book RPC (20260717160000), which is the only
+// thing that used it. The two lists below stay because /admin/analytics still needs them in TS — it
+// computes per-service and per-customer breakdowns the RPC doesn't return.
+//
+// That means the ASC 606 state rules exist in TWO places: here and in the SQL. adminRevenue.test.ts
+// pins the TS side and 0830_revenue_book_test.sql pins the SQL side against the same documented rule,
+// so a drift fails a test rather than quietly making two pages disagree — which is exactly what
+// happened when the catalog was duplicated.
 
 /**
  * Is this order ON the books at all? Only a cancellation takes it off — its credit is refunded, so it
@@ -47,8 +53,18 @@ export interface RevenueBook {
   days: RevenueDay[];
 }
 
-type LedgerRow = { kind: string; amount: number | string; created_at: string; order_id: string | null };
-type OrderRow = { value: number | string; state: string; created_at: string; delivered_at: string | null };
+/** What the revenue_book RPC returns. Numerics arrive as strings when large, hence `number | string`. */
+type Money = number | string;
+type RawSlice = { deposits: Money; bookings: Money; recognized: Money };
+type RawBook = {
+  today: RawSlice; mtd: RawSlice; total: RawSlice;
+  deferred: { unspentCredit: Money; unearnedOrders: Money; total: Money };
+  reconcile: {
+    deposits: Money; recognized: Money; nonOrderSpend: Money; cancelFees: Money;
+    deferred: Money; balances: Money; expected: Money; ok: boolean;
+  };
+  days: { date: string; deposits: Money; bookings: Money; recognized: Money }[];
+};
 
 /** The Finance page's KPI band. Same book, framed as "where the money sits and what's due". */
 export interface FinanceKpis {
@@ -65,80 +81,52 @@ const day = (ts: string): string => ts.slice(0, 10);
 const num = (v: number | string): number => Number(v) || 0;
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
+/**
+ * The money book — computed in SQL by the `revenue_book` RPC (20260717160000).
+ *
+ * It used to read credit_ledger, orders and customer_balances with unbounded select()s and sum them
+ * here. PostgREST caps every response at max_rows (1000, supabase/config.toml) and **does not error
+ * when it truncates** — it just returns fewer rows. At 1,001 ledger rows this would have started
+ * reporting wrong deposits, wrong recognized and wrong deferred, silently, forever; and since those
+ * reads had no ORDER BY, the surviving 1,000 rows were arbitrary, so it would have been wrong
+ * differently on each load. Summing 20k rows in Node was the wrong shape regardless — these are SUMs.
+ *
+ * Row count is now irrelevant: one JSON object comes back however large the ledger grows. The RPC is
+ * SECURITY DEFINER (so it bypasses RLS) and gates on current_app_role() = 'admin' internally.
+ */
 export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
   const supabase = await createClient();
-  const [ledgerRes, ordersRes, balRes] = await Promise.all([
-    supabase.from('credit_ledger').select('kind, amount, created_at, order_id').returns<LedgerRow[]>(),
-    supabase.from('orders').select('value, state, created_at, delivered_at').returns<OrderRow[]>(),
-    supabase.from('customer_balances').select('balance').returns<{ balance: number | string }[]>(),
-  ]);
-  if (ledgerRes.error) throw new Error(`getRevenueBook ledger: ${ledgerRes.error.message}`);
-  if (ordersRes.error) throw new Error(`getRevenueBook orders: ${ordersRes.error.message}`);
-  if (balRes.error) throw new Error(`getRevenueBook balances: ${balRes.error.message}`);
-
-  const ledger = ledgerRes.data ?? [];
-  const orders = (ordersRes.data ?? []).filter((o) => isBookedState(o.state));
-  // Filter on KIND, never on sign. A refund is also a positive amount (see the credit_ledger migration:
-  // "+ topup/refund, - debit"), so `amount > 0` silently swept refunds into deposits and reported credit
-  // handed back to a customer as "cash collected". Dormant only because nothing has been cancelled yet —
-  // cancel_order() is the only writer of refunds.
-  const topups = ledger.filter((l) => l.kind === 'topup');
-
-  // real clock: this book is real money, so it must not follow the Phase-0 mock "today"
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const monthStart = `${today.slice(0, 7)}-01`;
-
-  const isRecognized = (o: OrderRow) => !!o.delivered_at && (RECOGNIZED_STATES as readonly string[]).includes(o.state);
-  const isUnearned = (o: OrderRow) => (UNEARNED_STATES as readonly string[]).includes(o.state);
-
-  const sliceFor = (from: string, to: string): RevenueSlice => ({
-    deposits: round2(topups.filter((l) => day(l.created_at) >= from && day(l.created_at) <= to).reduce((s, l) => s + num(l.amount), 0)),
-    bookings: round2(orders.filter((o) => day(o.created_at) >= from && day(o.created_at) <= to).reduce((s, o) => s + num(o.value), 0)),
-    recognized: round2(orders.filter((o) => isRecognized(o) && day(o.delivered_at!) >= from && day(o.delivered_at!) <= to)
-      .reduce((s, o) => s + num(o.value), 0)),
+  const { data, error } = await supabase.rpc('revenue_book', { p_window_days: windowDays });
+  if (error) throw new Error(`getRevenueBook: ${error.message}`);
+  if (!data) throw new Error('getRevenueBook: no book returned');
+  // Postgres numerics arrive as strings once they outgrow a JS number's safe range, so every figure is
+  // coerced rather than trusted to already be a number.
+  const book = data as unknown as RawBook;
+  const slice = (s: RawSlice): RevenueSlice => ({
+    deposits: round2(num(s.deposits)), bookings: round2(num(s.bookings)), recognized: round2(num(s.recognized)),
   });
-
-  // daily series over the window, oldest → newest
-  const days: RevenueDay[] = [];
-  for (let i = windowDays - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 86_400_000).toISOString().slice(0, 10);
-    days.push({ date: d, ...sliceFor(d, d) });
-  }
-
-  const unspentCredit = round2((balRes.data ?? []).reduce((s, b) => s + num(b.balance), 0));
-  const unearnedOrders = round2(orders.filter(isUnearned).reduce((s, o) => s + num(o.value), 0));
-
-  const total = sliceFor('0000-01-01', '9999-12-31');
-  // credit spent on something other than an order (legacy/manual debits) — needed for the book to tie out
-  const nonOrderSpend = round2(ledger.filter((l) => l.kind === 'debit' && !l.order_id).reduce((s, l) => s + -num(l.amount), 0));
-  // Fees we keep when a customer cancels (cancel_order takes 5%). They leave the wallet WITHOUT
-  // becoming an order, so the identity has to account for them separately — and they can't ride along in
-  // nonOrderSpend, because cancel_order stamps them with the cancelled order's id.
-  const cancelFees = round2(ledger.filter((l) => l.kind === 'cancel_fee').reduce((s, l) => s + -num(l.amount), 0));
-  const deferredTotal = round2(unspentCredit + unearnedOrders);
-
-  // The identity, derived from the wallet:
-  //   balance = topups + refunds − debits − cancelFees
-  // and, since every cancelled order's debit is undone by a refund of the same value,
-  //   debits(with order) − refunds = recognized + unearnedOrders
-  // therefore
-  //   deferred = balance + unearnedOrders = topups − recognized − nonOrderSpend − cancelFees
-  // The earlier version omitted cancelFees and let refunds inflate `deposits`, so it overshot by exactly
-  // (refunds + cancelFees) — invisible today at zero cancellations, wrong the moment there is one.
-  const expected = round2(total.deposits - total.recognized - nonOrderSpend - cancelFees);
-
   return {
-    today: sliceFor(today, today),
-    mtd: sliceFor(monthStart, today),
-    total,
-    deferred: { unspentCredit, unearnedOrders, total: deferredTotal },
-    reconcile: {
-      deposits: total.deposits, recognized: total.recognized, nonOrderSpend, cancelFees,
-      deferred: deferredTotal, balances: unspentCredit, expected,
-      ok: Math.abs(expected - deferredTotal) < 0.01,
+    today: slice(book.today),
+    mtd: slice(book.mtd),
+    total: slice(book.total),
+    deferred: {
+      unspentCredit: round2(num(book.deferred.unspentCredit)),
+      unearnedOrders: round2(num(book.deferred.unearnedOrders)),
+      total: round2(num(book.deferred.total)),
     },
-    days,
+    reconcile: {
+      deposits: round2(num(book.reconcile.deposits)),
+      recognized: round2(num(book.reconcile.recognized)),
+      nonOrderSpend: round2(num(book.reconcile.nonOrderSpend)),
+      cancelFees: round2(num(book.reconcile.cancelFees)),
+      deferred: round2(num(book.reconcile.deferred)),
+      balances: round2(num(book.reconcile.balances)),
+      expected: round2(num(book.reconcile.expected)),
+      ok: Boolean(book.reconcile.ok),
+    },
+    days: book.days.map((d) => ({
+      date: d.date, deposits: round2(num(d.deposits)), bookings: round2(num(d.bookings)), recognized: round2(num(d.recognized)),
+    })),
   };
 }
 

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-28T06:50:14.148Z",
+  "generatedAt": "2026-07-17T12:39:51.592Z",
   "devUrl": "http://localhost:4400",
-  "total": 89,
+  "total": 97,
   "byRole": {
-    "customer": 17,
+    "customer": 22,
     "admin": 28,
-    "affiliate": 7,
-    "manager": 20,
+    "affiliate": 8,
+    "manager": 22,
     "staff": 17
   },
   "identityCookies": {
@@ -450,6 +450,30 @@
       "source": "apps/app/src/app/affiliate/join/page.tsx"
     },
     {
+      "url": "/affiliate/register",
+      "role": "affiliate",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/affiliate/register/page.tsx"
+    },
+    {
+      "url": "/forgot-password",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/forgot-password/page.tsx"
+    },
+    {
+      "url": "/login",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/login/page.tsx"
+    },
+    {
       "url": "/manager/assignment",
       "role": "manager",
       "isDynamic": false,
@@ -500,6 +524,14 @@
       "dynamicParams": [],
       "discoverFrom": null,
       "source": "apps/app/src/app/manager/docs/page.tsx"
+    },
+    {
+      "url": "/manager/finance",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/finance/page.tsx"
     },
     {
       "url": "/manager/inbox",
@@ -580,6 +612,14 @@
       "source": "apps/app/src/app/manager/performance/page.tsx"
     },
     {
+      "url": "/manager/quotes",
+      "role": "manager",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/manager/quotes/page.tsx"
+    },
+    {
       "url": "/manager/review",
       "role": "manager",
       "isDynamic": false,
@@ -629,6 +669,32 @@
       "discoverFrom": null,
       "source": "apps/app/src/app/page.tsx",
       "note": "redirects to /dashboard"
+    },
+    {
+      "url": "/quote/[token]",
+      "role": "customer",
+      "isDynamic": true,
+      "dynamicParams": [
+        "token"
+      ],
+      "discoverFrom": "/quote",
+      "source": "apps/app/src/app/quote/[token]/page.tsx"
+    },
+    {
+      "url": "/register",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/register/page.tsx"
+    },
+    {
+      "url": "/reset-password",
+      "role": "customer",
+      "isDynamic": false,
+      "dynamicParams": [],
+      "discoverFrom": null,
+      "source": "apps/app/src/app/reset-password/page.tsx"
     },
     {
       "url": "/staff/calendar",

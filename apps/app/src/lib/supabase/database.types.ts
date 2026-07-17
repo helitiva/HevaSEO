@@ -3640,6 +3640,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revenue_book: { Args: { p_window_days?: number }; Returns: Json }
       revert_affiliate_payout_by_transfer: {
         Args: { p_transfer_ref: string }
         Returns: undefined

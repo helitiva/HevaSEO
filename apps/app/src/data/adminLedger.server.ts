@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { allRows } from '@/lib/supabase/allRows';
 
 /**
  * Admin's real money movement: the customer credit ledger, plus the payment receipts behind it.
@@ -77,12 +78,13 @@ function assertStatus(s: string, number: string): PaymentReceipt['status'] {
 
 export async function getLedger(): Promise<LedgerEntry[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('credit_ledger')
-    .select('id, amount, kind, created_at, stripe_event_id, customers(id, name, company), orders(code)')
+  // Every figure on the Transactions tab is a sum of these rows, so a truncated read would under-report
+  // money with a 200 OK. allRows compares the server's exact count to what came back and throws instead.
+  const rows = await allRows<LedgerRow>('getLedger', supabase.from('credit_ledger')
+    .select('id, amount, kind, created_at, stripe_event_id, customers(id, name, company), orders(code)', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .returns<LedgerRow[]>();
-  if (error) throw new Error(`getLedger: ${error.message}`);
-  return (data ?? []).map((r) => ({
+    .returns<LedgerRow[]>());
+  return rows.map((r) => ({
     id: r.id,
     at: r.created_at,
     kind: r.kind,
@@ -105,25 +107,26 @@ export async function getLedger(): Promise<LedgerEntry[]> {
  */
 export async function getCustomerWallets(): Promise<CustomerWallet[]> {
   const supabase = await createClient();
-  const [balRes, ledRes] = await Promise.all([
-    supabase.from('customer_balances')
-      .select('balance, customers(id, name, company, tier, last_active_at)')
-      .returns<{ balance: number | string; customers: (CustomerRef & { tier: string | null; last_active_at: string | null }) | null }[]>(),
-    supabase.from('credit_ledger').select('customer_id, amount, kind')
-      .returns<{ customer_id: string; amount: number | string; kind: LedgerKind }[]>(),
+  type BalRow = { balance: number | string; customers: (CustomerRef & { tier: string | null; last_active_at: string | null }) | null };
+  type SpendRow = { customer_id: string; amount: number | string; kind: LedgerKind };
+  const [balData, ledData] = await Promise.all([
+    allRows<BalRow>('getCustomerWallets balances', supabase.from('customer_balances')
+      .select('balance, customers(id, name, company, tier, last_active_at)', { count: 'exact' })
+      .returns<BalRow[]>()),
+    allRows<SpendRow>('getCustomerWallets ledger', supabase.from('credit_ledger')
+      .select('customer_id, amount, kind', { count: 'exact' })
+      .returns<SpendRow[]>()),
   ]);
-  if (balRes.error) throw new Error(`getCustomerWallets balances: ${balRes.error.message}`);
-  if (ledRes.error) throw new Error(`getCustomerWallets ledger: ${ledRes.error.message}`);
 
   // lifetime spend = credit actually consumed by orders. Deliberately NOT "all negative rows": a
   // cancellation fee leaves the wallet too but isn't spend on work.
   const spendBy = new Map<string, number>();
-  for (const l of ledRes.data ?? []) {
+  for (const l of ledData) {
     if (l.kind !== 'debit') continue;
     spendBy.set(l.customer_id, (spendBy.get(l.customer_id) ?? 0) + Math.abs(Number(l.amount) || 0));
   }
 
-  return (balRes.data ?? [])
+  return balData
     .filter((b) => b.customers)
     .map((b) => ({
       id: b.customers!.id,
@@ -139,12 +142,11 @@ export async function getCustomerWallets(): Promise<CustomerWallet[]> {
 
 export async function getPayments(): Promise<PaymentReceipt[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('invoices')
-    .select('id, number, amount, status, provider, provider_ref, created_at, customers(id, name, company)')
+  const rows = await allRows<InvoiceRow>('getPayments', supabase.from('invoices')
+    .select('id, number, amount, status, provider, provider_ref, created_at, customers(id, name, company)', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .returns<InvoiceRow[]>();
-  if (error) throw new Error(`getPayments: ${error.message}`);
-  return (data ?? []).map((r) => ({
+    .returns<InvoiceRow[]>());
+  return rows.map((r) => ({
     id: r.id,
     number: r.number,
     at: r.created_at,
