@@ -11,7 +11,6 @@ import { advanceOrderAction, cancelOrderAction } from '@/app/admin/orders/action
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { money, type AdminOrder } from '@/data/adminMock';
-import { mockTodayDate } from '@/lib/today';
 
 type Tone = 'warn' | 'primary';
 
@@ -22,13 +21,25 @@ interface Column {
   tone: Tone;
 }
 
-export function NeedsAttention({ overdue, awaiting, unassigned }: {
+export function NeedsAttention({ overdue, awaiting, unassigned, today }: {
   overdue: AdminOrder[];
   awaiting: AdminOrder[];
   unassigned: AdminOrder[];
+  /**
+   * Real today (YYYY-MM-DD), computed on the SERVER and passed in.
+   *
+   * This used to call mockTodayDate() — the Phase-0 seed's 2026-06-24 — against orders that are real
+   * and dated now. An order due 2026-07-10 is genuinely late, but '2026-07-10' < '2026-06-24' is false,
+   * so it rendered as fine. The KPI tile above was fixed for exactly this and the per-card badge under
+   * it was missed.
+   *
+   * It's a prop rather than `new Date()` here because this is a client component that is also
+   * server-rendered: computing it on both sides would emit different HTML whenever the container's
+   * timezone differs from the viewer's.
+   */
+  today: string;
 }) {
   const [selected, setSelected] = useState<AdminOrder | null>(null);
-  const today = mockTodayDate().toISOString().slice(0, 10);
   const selectedDetail = useOrderDetail(selected?.id ?? null); // real brief/addons (RLS-scoped)
   const selectedProps = selected ? buildOrderDetailProps(selected, selectedDetail) : null;
 

@@ -104,7 +104,7 @@ export default async function CommandCenter() {
       {/* needs attention — the action core */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-bell-ringing text-primary" aria-hidden /> Needs attention</p>
-        <NeedsAttention overdue={overdue} awaiting={awaiting} unassigned={unassigned} />
+        <NeedsAttention overdue={overdue} awaiting={awaiting} unassigned={unassigned} today={today} />
       </div>
 
       {/* recent activity */}
