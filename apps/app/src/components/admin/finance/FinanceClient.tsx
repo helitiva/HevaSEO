@@ -20,7 +20,7 @@ import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
-import type { FinanceKpis, RevenueDay } from '@/data/adminRevenue.server';
+import type { FinanceKpis, RevenueBook, RevenueDay } from '@/data/adminRevenue.server';
 import type { LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
 import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
@@ -70,7 +70,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], ledger = [], payments = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; ledger?: LedgerEntry[]; payments?: PaymentReceipt[] }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], reconcile, ledger = [], payments = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; reconcile?: RevenueBook['reconcile']; ledger?: LedgerEntry[]; payments?: PaymentReceipt[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -118,7 +118,7 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
       </div>
 
       <div className="page-anim">
-        {tab === 'overview' && <OverviewTab k={k} days={days} ledger={ledger} />}
+        {tab === 'overview' && <OverviewTab k={k} days={days} ledger={ledger} reconcile={reconcile} />}
         {tab === 'transactions' && <TransactionsTab ledger={ledger} />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
@@ -129,7 +129,53 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
 }
 
 /* ---------------------------------------------------------------- Overview */
-function OverviewTab({ k, days, ledger }: { k: FinanceKpis; days: RevenueDay[]; ledger: LedgerEntry[] }) {
+/**
+ * The books, proving themselves. getRevenueBook() has always computed this identity and nothing ever
+ * rendered it — an accounting check that runs and is thrown away protects no one.
+ *
+ * It is also the tripwire for the failure mode this data layer is most exposed to: every finance query
+ * is an unbounded select against PostgREST's max_rows=1000, which TRUNCATES silently rather than
+ * erroring. If the ledger ever outgrows that, the totals go quietly wrong — and this line is what turns
+ * "quietly" into a red banner.
+ */
+function ReconcileStrip({ r }: { r: RevenueBook['reconcile'] }) {
+  const gap = round2(r.expected - r.deferred);
+  const Term = ({ label, value, sign }: { label: string; value: number; sign?: string }) => (
+    <span className="flex items-baseline gap-1">
+      {sign && <span className="text-muted-foreground/60">{sign}</span>}
+      <span className="tabular-nums font-semibold text-foreground">{money(value)}</span>
+      <span className="text-muted-foreground">{label}</span>
+    </span>
+  );
+  return (
+    <div className={`rounded-2xl border px-4 py-3 text-[11px] ${r.ok ? 'border-border bg-card' : 'border-rose-500/50 bg-rose-500/5'}`}>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <span className={`flex items-center gap-1.5 text-xs font-semibold ${r.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+          <i className={`ph-bold ${r.ok ? 'ph-check-circle' : 'ph-warning-octagon'}`} aria-hidden />
+          {r.ok ? 'Books tie out' : 'Books do NOT tie out'}
+        </span>
+        <span className="text-muted-foreground/50">·</span>
+        <Term label="deposited" value={r.deposits} />
+        <Term label="recognized" value={r.recognized} sign="−" />
+        {r.nonOrderSpend > 0 && <Term label="non-order spend" value={r.nonOrderSpend} sign="−" />}
+        {r.cancelFees > 0 && <Term label="cancellation fees" value={r.cancelFees} sign="−" />}
+        <span className="text-muted-foreground/60">=</span>
+        <Term label="deferred (owed as work)" value={r.deferred} />
+        {!r.ok && <span className="font-semibold text-rose-600">· off by {money(Math.abs(gap))}</span>}
+      </div>
+      {!r.ok && (
+        <p className="mt-1.5 text-rose-700">
+          Cash in doesn&apos;t reconcile to what we owe. Every figure on this page is suspect until this clears —
+          suspect truncated reads (PostgREST caps at 1,000 rows), or a ledger movement the book doesn&apos;t model yet.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+function OverviewTab({ k, days, ledger, reconcile }: { k: FinanceKpis; days: RevenueDay[]; ledger: LedgerEntry[]; reconcile?: RevenueBook['reconcile'] }) {
   const recent = ledger.slice(0, 6); // already newest-first from the server
   const winDeposits = days.reduce((s, d) => s + d.deposits, 0);
   const winRecognized = days.reduce((s, d) => s + d.recognized, 0);
@@ -155,6 +201,8 @@ function OverviewTab({ k, days, ledger }: { k: FinanceKpis; days: RevenueDay[]; 
           ))}
         </div>
       )}
+
+      {reconcile && <ReconcileStrip r={reconcile} />}
 
       {/* real: deposits (cash in, a liability) vs revenue recognized on delivery — replaces a generated
           "cashflow in vs out" that was pure adminMock */}
@@ -311,7 +359,8 @@ function TransactionsTab({ ledger }: { ledger: LedgerEntry[] }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Date</th><th className="p-3">Type</th><th className="p-3">Customer</th>
+              <th className="p-3">Date <span className="font-normal normal-case opacity-60" title="The ledger is kept and filtered in UTC">(UTC)</span></th>
+              <th className="p-3">Type</th><th className="p-3">Customer</th>
               <th className="p-3">Order</th><th className="p-3 text-right">Amount</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
@@ -1233,6 +1282,8 @@ const RECEIPT_STATUS: Record<PaymentReceipt['status'], { label: string; pill: st
 function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
   const [status, setStatus] = useState<PaymentReceipt['status'] | 'all'>('all');
   const rows = payments.filter((p) => status === 'all' || p.status === status);
+  const collected = rows.filter((p) => p.status === 'issued').reduce((s, p) => s + p.amount, 0);
+  const inFlight = rows.filter((p) => p.status === 'processing').reduce((s, p) => s + p.amount, 0);
   const counts = {
     all: payments.length,
     issued: payments.filter((p) => p.status === 'issued').length,
@@ -1265,7 +1316,8 @@ function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Receipt</th><th className="p-3">Customer</th><th className="p-3">Paid</th>
+              <th className="p-3">Receipt</th><th className="p-3">Customer</th>
+              <th className="p-3">Paid <span className="font-normal normal-case opacity-60" title="Kept in UTC">(UTC)</span></th>
               <th className="p-3">Provider</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
             </tr>
           </thead>
@@ -1289,8 +1341,15 @@ function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
             <tfoot>
               <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
                 <td className="p-3 text-muted-foreground">{rows.length} receipt{rows.length !== 1 ? 's' : ''}</td>
-                <td colSpan={4} className="p-3 text-muted-foreground">Collected</td>
-                <td className="p-3 text-right tabular-nums">{money(rows.filter((p) => p.status !== 'void').reduce((s, p) => s + p.amount, 0))}</td>
+                {/* 'Collected' means COLLECTED: only 'issued' is confirmed cash. An earlier cut summed
+                    status !== 'void', which quietly counted in-flight charges as money we hold — the same
+                    filter-doesn't-match-the-label bug as the "Outstanding AR" this page just lost. It
+                    read correctly only because no row is 'processing' today. */}
+                <td colSpan={4} className="p-3 text-muted-foreground">
+                  Collected
+                  {inFlight > 0 && <span className="ml-2 font-normal text-amber-600">· {money(inFlight)} in flight, not yet confirmed</span>}
+                </td>
+                <td className="p-3 text-right tabular-nums">{money(collected)}</td>
               </tr>
             </tfoot>
           )}
@@ -1307,11 +1366,24 @@ function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
 }
 
 /* ----------------------------------------------------------------- shared */
-/** ISO timestamp → 'YYYY-MM-DD HH:mm' in the viewer's zone. */
+/**
+ * ISO timestamp → 'YYYY-MM-DD HH:mm', in UTC, read straight off the string.
+ *
+ * It must NOT use Date's local getters, for two reasons:
+ *
+ *  1. HYDRATION. This is a 'use client' component, but Next still server-renders it. A deployed Node
+ *     container runs UTC while the admin's browser doesn't, so getHours() would emit different HTML on
+ *     each side and React would blow up on hydrate. It never shows in dev because the dev server and
+ *     the browser share a timezone — this bug is invisible locally by construction.
+ *  2. CONSISTENCY. Every date in this money code is UTC-keyed: the range filter compares
+ *     at.slice(0,10), the book's MTD window uses toISOString().slice(0,10), the charts bucket by UTC
+ *     day. Rendering local time would make a row *display* 2026-07-18 while every total and filter
+ *     counts it as 2026-07-17 — the ledger would disagree with itself.
+ *
+ * So: the ledger is kept in UTC and shown in UTC. The column header says so.
+ */
 function stamp(iso: string): string {
-  const d = new Date(iso);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
 }
 
 /** A signed ledger amount. Green = credit into the wallet, red = out of it. */

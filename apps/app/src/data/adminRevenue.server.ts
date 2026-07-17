@@ -1,6 +1,5 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { getPayrollPreview } from '@/data/adminComp.server';
 
 /**
  * The money book for admin — real, RLS-scoped (admin sees the whole tenant), on SaaS revenue-recognition
@@ -31,8 +30,8 @@ export interface RevenueBook {
   mtd: RevenueSlice;
   total: RevenueSlice;
   deferred: { unspentCredit: number; unearnedOrders: number; total: number };
-  /** deposits − recognized − nonOrderSpend should equal deferred.total; surfaced so the books can be shown to tie out. */
-  reconcile: { deposits: number; recognized: number; nonOrderSpend: number; deferred: number; balances: number; ok: boolean };
+  /** deposits − recognized − nonOrderSpend − cancelFees should equal deferred.total; surfaced so the books can be shown to tie out. */
+  reconcile: { deposits: number; recognized: number; nonOrderSpend: number; cancelFees: number; deferred: number; balances: number; expected: number; ok: boolean };
   days: RevenueDay[];
 }
 
@@ -67,7 +66,11 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
 
   const ledger = ledgerRes.data ?? [];
   const orders = (ordersRes.data ?? []).filter((o) => o.state !== 'canceled'); // a canceled order was never booked
-  const topups = ledger.filter((l) => num(l.amount) > 0);
+  // Filter on KIND, never on sign. A refund is also a positive amount (see the credit_ledger migration:
+  // "+ topup/refund, - debit"), so `amount > 0` silently swept refunds into deposits and reported credit
+  // handed back to a customer as "cash collected". Dormant only because nothing has been cancelled yet —
+  // cancel_order() is the only writer of refunds.
+  const topups = ledger.filter((l) => l.kind === 'topup');
 
   // real clock: this book is real money, so it must not follow the Phase-0 mock "today"
   const now = new Date();
@@ -96,9 +99,22 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
 
   const total = sliceFor('0000-01-01', '9999-12-31');
   // credit spent on something other than an order (legacy/manual debits) — needed for the book to tie out
-  const nonOrderSpend = round2(ledger.filter((l) => num(l.amount) < 0 && !l.order_id).reduce((s, l) => s + -num(l.amount), 0));
+  const nonOrderSpend = round2(ledger.filter((l) => l.kind === 'debit' && !l.order_id).reduce((s, l) => s + -num(l.amount), 0));
+  // Fees we keep when a customer cancels (cancel_order takes 5%). They leave the wallet WITHOUT
+  // becoming an order, so the identity has to account for them separately — and they can't ride along in
+  // nonOrderSpend, because cancel_order stamps them with the cancelled order's id.
+  const cancelFees = round2(ledger.filter((l) => l.kind === 'cancel_fee').reduce((s, l) => s + -num(l.amount), 0));
   const deferredTotal = round2(unspentCredit + unearnedOrders);
-  const expected = round2(total.deposits - total.recognized - nonOrderSpend);
+
+  // The identity, derived from the wallet:
+  //   balance = topups + refunds − debits − cancelFees
+  // and, since every cancelled order's debit is undone by a refund of the same value,
+  //   debits(with order) − refunds = recognized + unearnedOrders
+  // therefore
+  //   deferred = balance + unearnedOrders = topups − recognized − nonOrderSpend − cancelFees
+  // The earlier version omitted cancelFees and let refunds inflate `deposits`, so it overshot by exactly
+  // (refunds + cancelFees) — invisible today at zero cancellations, wrong the moment there is one.
+  const expected = round2(total.deposits - total.recognized - nonOrderSpend - cancelFees);
 
   return {
     today: sliceFor(today, today),
@@ -106,8 +122,8 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
     total,
     deferred: { unspentCredit, unearnedOrders, total: deferredTotal },
     reconcile: {
-      deposits: total.deposits, recognized: total.recognized, nonOrderSpend,
-      deferred: deferredTotal, balances: unspentCredit,
+      deposits: total.deposits, recognized: total.recognized, nonOrderSpend, cancelFees,
+      deferred: deferredTotal, balances: unspentCredit, expected,
       ok: Math.abs(expected - deferredTotal) < 0.01,
     },
     days,
@@ -129,28 +145,30 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
  * ['issued','processing','void'], so 'paid' was unreachable and every receipt counted as a debt. It
  * read $20,080 owed to us; the truth was $0 owed to us and $19,728.98 owed BY us. Cash collected
  * (depositsMtd) replaces it — the honest counterpart to gross.
+ *
+ * PURE — it derives the band from data the page has already fetched, and issues no queries of its own.
+ * It used to be async and re-fetch everything: the Finance page ended up running getRevenueBook twice
+ * (3 queries each) and getPayrollPreview twice, then getLedger/getPayments read credit_ledger and
+ * invoices *again* — credit_ledger three times per page load. The parameter types are structural, so
+ * adminLedger's LedgerEntry/PaymentReceipt satisfy them without this module depending on that one.
  */
-export async function getFinanceKpis(): Promise<FinanceKpis> {
-  const supabase = await createClient();
-  const [book, payroll, invRes, ledgerRes] = await Promise.all([
-    getRevenueBook(1),
-    getPayrollPreview(),
-    supabase.from('invoices').select('amount, status').returns<{ amount: number | string; status: string }[]>(),
-    supabase.from('credit_ledger').select('kind, amount, created_at').returns<Pick<LedgerRow, 'kind' | 'amount' | 'created_at'>[]>(),
-  ]);
-  if (invRes.error) throw new Error(`getFinanceKpis invoices: ${invRes.error.message}`);
-  if (ledgerRes.error) throw new Error(`getFinanceKpis ledger: ${ledgerRes.error.message}`);
-
+export function financeKpis(input: {
+  book: RevenueBook;
+  payrollDue: number;
+  ledger: readonly { kind: string; amount: number; at: string }[];
+  payments: readonly { status: string; amount: number }[];
+}): FinanceKpis {
+  const { book, payrollDue, ledger, payments } = input;
   const month = new Date().toISOString().slice(0, 7);
-  const refundsMtd = round2((ledgerRes.data ?? [])
-    .filter((l) => l.kind === 'refund' && l.created_at.slice(0, 7) === month)
-    .reduce((s, l) => s + Math.abs(num(l.amount)), 0));
+  const refundsMtd = round2(ledger
+    .filter((l) => l.kind === 'refund' && l.at.slice(0, 7) === month)
+    .reduce((s, l) => s + Math.abs(l.amount), 0));
 
   // 'processing' = the provider took the charge but hasn't confirmed it. The only money genuinely in
   // limbo; 'issued' receipts are settled cash and 'void' ones never happened.
-  const paymentsInFlight = round2((invRes.data ?? [])
-    .filter((i) => i.status === 'processing')
-    .reduce((s, i) => s + num(i.amount), 0));
+  const paymentsInFlight = round2(payments
+    .filter((p) => p.status === 'processing')
+    .reduce((s, p) => s + p.amount, 0));
 
   const grossMtd = book.mtd.recognized;
   return {
@@ -158,7 +176,7 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
     refundsMtd,
     netMtd: round2(grossMtd - refundsMtd),
     walletLiability: book.deferred.unspentCredit,
-    payoutsDue: payroll.totals.total,
+    payoutsDue: payrollDue,
     depositsMtd: book.mtd.deposits,
     paymentsInFlight,
   };

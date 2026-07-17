@@ -58,6 +58,12 @@ type InvoiceRow = {
 /** Admin lists by company — that's how the customer directory and order cards label them. */
 const nameOf = (c: CustomerRef): string => c?.company || c?.name || 'Unknown';
 
+const RECEIPT_STATUSES = ['issued', 'processing', 'void'] as const;
+function assertStatus(s: string, number: string): PaymentReceipt['status'] {
+  if ((RECEIPT_STATUSES as readonly string[]).includes(s)) return s as PaymentReceipt['status'];
+  throw new Error(`getPayments: receipt ${number} has unknown status '${s}' — refusing to guess whether this is settled cash. Teach adminLedger about it.`);
+}
+
 export async function getLedger(): Promise<LedgerEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from('credit_ledger')
@@ -89,7 +95,11 @@ export async function getPayments(): Promise<PaymentReceipt[]> {
     number: r.number,
     at: r.created_at,
     amount: Number(r.amount) || 0,
-    status: (r.status === 'processing' || r.status === 'void') ? r.status : 'issued',
+    // Fail loudly on an unknown status rather than defaulting. Defaulting to 'issued' would silently
+    // book an unrecognised row as settled cash — if someone widens the CHECK constraint to add, say,
+    // 'failed', every failed charge would start counting as money we hold. That is the exact shape of
+    // the AR bug this file exists to undo.
+    status: assertStatus(r.status, r.number),
     provider: r.provider,
     providerRef: r.provider_ref,
     customer: nameOf(r.customers),
