@@ -5,6 +5,7 @@
  */
 import type { ServiceKey } from './mock';
 import type { FieldDef } from '@heva/catalog';
+import { orderServices } from '@heva/catalog/orders';
 
 /** Form field — unified with the shared catalog so add-on + brief fields share one shape. */
 export type SvcField = FieldDef;
@@ -92,6 +93,27 @@ export const SERVICE_BLURBS: Record<ServiceKey, string> = {
   design: 'A website built to rank from day one — draft in 2 days.',
 };
 
+/**
+ * The dashboard's service catalog.
+ *
+ * PRICES AND PLANS ARE NOT DEFINED HERE. They come from `@heva/catalog/orders`, the shared package the
+ * marketing site also reads (apps/web/src/data/orders.ts re-exports it) — one price, one place.
+ *
+ * They used to be duplicated here, and the copies drifted exactly as duplicated money always does: five
+ * packages carried a `price: 0` next to a `priceLabel: 'from $79'` on one side and the real number on
+ * the other. Nobody noticed because both sides quote those plans, so the number was never charged — it
+ * was wrong in a place that happened not to be read. The next drift would not have been so lucky.
+ *
+ * What stays here is genuinely dashboard-only and has no business in a shared package: the order form
+ * (`fields`), `orderCode`, `hero`, `included`, `steps`, `faqs`. What stays over there is genuinely
+ * marketing-only: `servicePath`, `metaTitle`, `metaDescription`, `brief`. The two service shells serve
+ * different jobs; only the plans have to agree, so only the plans are shared. Add-ons already work this
+ * way (`resolveAddOns` from @heva/catalog).
+ *
+ * SvcPackage is a strict subset of the shared OrderPackage (which adds `icon`/`hue` for the marketing
+ * gradient cards), so these assignments are plain structural typing — no mapping, no adapter, nothing
+ * to keep in sync.
+ */
 export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
   audit: {
     key: 'audit',
@@ -115,33 +137,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-magnifying-glass', title: 'We crawl & analyze', desc: 'A full crawl across every dimension.' },
       { icon: 'ph-file-text', title: 'You receive', desc: 'A scored dashboard report + downloadable PDF.' },
     ],
-    packages: [
-      {
-        id: 'basic',
-        name: 'Basic',
-        price: 19,
-        sla: '~2 days',
-        summary: "A quick snapshot of your site's SEO health",
-        features: ['Technical SEO & basic on-page audit', 'Index coverage check', 'Overall SEO Health Score', 'Dashboard report + downloadable PDF'],
-      },
-      {
-        id: 'standard',
-        name: 'Standard',
-        price: 39,
-        sla: '~2–3 days',
-        popular: true,
-        summary: 'A deeper audit of content, schema & Core Web Vitals',
-        features: ['Everything in Basic', 'Content & on-page audit', 'Schema / structured data check', 'Core Web Vitals (LCP / INP / CLS)', 'A detailed, prioritized fix roadmap'],
-      },
-      {
-        id: 'pro',
-        name: 'Pro',
-        price: 69,
-        sla: '~3–4 days',
-        summary: 'A full audit before a major SEO campaign',
-        features: ['Everything in Standard', 'Deep Core Web Vitals analysis', 'Backlink profile + toxic-link analysis', 'Competitor benchmark + content gap', 'Prioritized fix list with impact estimate'],
-      },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    packages: orderServices['audit'].packages,
     fields: [
       { label: 'Website / domain to audit', name: 'website', type: 'url', required: true, colSpan: 2, placeholder: 'https://yoursite.com' },
       { label: 'What should the audit focus on?', name: 'focus', as: 'textarea', required: true, colSpan: 2, placeholder: 'Rankings, page speed, a recent traffic drop, a migration, AI visibility…', hint: "We'll check everything, but we'll lead with this." },
@@ -181,39 +178,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-share-network', title: 'We build & index', desc: 'Build + outreach, with the Indexer running alongside.' },
       { icon: 'ph-file-text', title: 'You receive', desc: 'A live report + Excel with every link and its index status.' },
     ],
-    groups: [
-      {
-        id: 'entity', title: 'Entity', subtitle: 'Brand trust — profiles, NAP & citations · index 80–95%', icon: 'ph-buildings',
-        packages: [
-          { id: 'entity-300', name: 'Entity 300', price: 52, sla: '7–10 days', summary: '300 authority links', features: ['300 authority links', 'Business profiles + NAP citations', 'Social profile citations', 'Safe, diversified anchors', '80–95% indexed · live report'] },
-          { id: 'entity-500', name: 'Entity 500', price: 79, popular: true, sla: '10–14 days', summary: '500 links + directory listings', features: ['500 authority links', 'Profiles · NAP · social citations', 'Trusted directory listings', 'White-hat, Google-safe placements', '80–95% indexed · live report'] },
-          { id: 'entity-1000', name: 'Entity 1000', price: 139, sla: '14–21 days', summary: '1,000 links + web 2.0', features: ['1,000 authority links', 'Profiles · NAP · social · directory', 'Web 2.0 / extended entity links', 'Widest brand footprint', '80–95% indexed · live report'] },
-        ],
-      },
-      {
-        id: 'pyramid', title: 'Pyramid', subtitle: 'Funnel power to one URL through tiered links · index ~70%', icon: 'ph-stack',
-        packages: [
-          { id: 'pyramid-starter', name: 'Pyramid Starter', price: 36, sla: '10 days', summary: 'Tier-1 → Tier-2', features: ['Tier-1 contextual links', 'Tier-2 support layer', 'Power funneled to 1 URL', '~70% indexed · live report'] },
-          { id: 'pyramid-growth', name: 'Pyramid Growth', price: 64, popular: true, sla: '14 days', summary: 'Denser Tier-1', features: ['Denser Tier-1 contextual links', 'Tier-2 support layer', 'Stronger power to your URL', '~70% indexed · live report'] },
-          { id: 'pyramid-power', name: 'Pyramid Power', price: 104, sla: '18 days', summary: '3 tiers (T1–T3)', features: ['3 tiers (T1 → T2 → T3)', 'Deeper power flow', 'For a competitive URL / category', '~70% indexed · live report'] },
-          { id: 'pyramid-max', name: 'Pyramid Max', price: 159, sla: '21 days', summary: 'Full 3 tiers + power', features: ['Full 3 tiers + extra strong links', 'Maximum power funnel', 'Advanced Indexer push', '~70%+ indexed · live report'] },
-        ],
-      },
-      {
-        id: 'guest', title: 'Guest Post', subtitle: 'Article written + placed on real blogs · index ~100%', icon: 'ph-newspaper-clipping',
-        packages: [
-          { id: 'guest-3', name: 'Guest 3', price: 104, sla: '2–3 weeks', summary: 'DR30+ blogs', features: ['3 guest posts on DR30+ blogs', 'SEO article written for each', 'Manual outreach + placement', '~100% indexed · live report'] },
-          { id: 'guest-5', name: 'Guest 5', price: 180, popular: true, sla: '~3 weeks', summary: 'DR40+ blogs', features: ['5 guest posts on DR40+ blogs', 'SEO article written for each', 'Higher-authority, real-traffic sites', '~100% indexed · live report'] },
-          { id: 'guest-5-pro', name: 'Guest 5 Pro', price: 280, sla: '3–4 weeks', summary: 'DR50+ + Pyramid', features: ['5 guest posts on DR50+ blogs', '+ Pyramid boost per post', 'Premium, high-traffic publications', '~100% indexed · live report'] },
-        ],
-      },
-      {
-        id: 'pr', title: 'PR — International press', subtitle: 'Published on news sites · quoted per outlet · index ~100%', icon: 'ph-megaphone',
-        packages: [
-          { id: 'pr', name: 'PR feature', price: 120, priceLabel: 'from $120', sla: 'By scope', summary: 'International press coverage', features: ['Published on international news sites', 'Outlets & cost proposed to your budget', '~100% indexed', 'Link to the published article'] },
-        ],
-      },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    groups: orderServices['backlink'].packageGroups,
     fields: [
       { label: 'Target URL(s) to boost', name: 'targets', as: 'textarea', colSpan: 2, placeholder: 'https://yoursite.com/page', hint: 'One per line — the pages you want to rank. Entity? Your homepage is fine.' },
       { label: 'Preferred anchors / keywords', name: 'anchors', as: 'textarea', colSpan: 2, placeholder: 'brand name, primary keyword, naked URL', hint: "We'll keep a safe, natural anchor ratio." },
@@ -248,24 +214,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-pen-nib', title: 'We write', desc: 'One optimized article per keyword.' },
       { icon: 'ph-file-text', title: 'You receive', desc: 'HTML preview · DOC · TXT · images + score report.' },
     ],
-    groups: [
-      {
-        id: 'ai', title: 'AI-powered', subtitle: 'AI ~70% + human editor · fast & cost-efficient', icon: 'ph-sparkle',
-        packages: [
-          { id: 'a1000', name: 'A1000', price: 12, sla: '2–3 days', summary: '~1,000 words · standard', features: ['~1,000-word SEO article + images', 'Full on-page optimization', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-          { id: 'a2000', name: 'A2000', price: 19, popular: true, sla: '~3 days', summary: '~2,000 words · in-depth', features: ['In-depth ~2,000-word article + images', 'Internal links + outbound citations', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-          { id: 'a3000', name: 'A3000', price: 28, sla: '3–4 days', summary: '~3,000 words · pillar', features: ['Pillar-length ~3,000-word article + images', 'Topic-cluster ready + internal linking', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-        ],
-      },
-      {
-        id: 'human', title: 'Human-written', subtitle: 'Human 70–80% + AI assist · deepest E-E-A-T', icon: 'ph-pen-nib',
-        packages: [
-          { id: 'h1000', name: 'H1000', price: 24, sla: '3–4 days', summary: '~1,000 words · human', features: ['Human-written ~1,000-word article + images', 'E-E-A-T — real expertise & cited sources', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-          { id: 'h2000', name: 'H2000', price: 39, popular: true, sla: '~4 days', summary: '~2,000 words · in-depth', features: ['In-depth ~2,000-word human article + images', 'Deep E-E-A-T, expert sourcing & references', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-          { id: 'h3000', name: 'H3000', price: 56, sla: '~5 days', summary: '~3,000 words · pillar', features: ['Pillar-length ~3,000-word human article + images', 'Deepest E-E-A-T & topical authority', 'Plagiarism & AI-detection checked', 'Content Score & Methodology report'] },
-        ],
-      },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    groups: orderServices['content'].packageGroups,
     bulk: { unit: 'article', unitPlural: 'articles', countNoun: 'keyword', minDiscountQty: 10, discountPct: 10, defaultQty: 10, sampleUrl: 'https://docs.google.com/spreadsheets/d/1HevaSEO-sample-keyword-sheet/edit?usp=sharing' },
     fields: [
       { label: 'Tone / brand voice', name: 'tone', colSpan: 1, icon: 'ph-microphone-stage', placeholder: 'e.g. friendly expert, formal, playful' },
@@ -300,11 +250,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-magnifying-glass', title: 'We research', desc: 'Clusters, competitors, intent & strategy.' },
       { icon: 'ph-file-text', title: 'You receive', desc: 'A report dashboard + downloadable sheet.' },
     ],
-    packages: [
-      { id: 'basic', name: 'Basic', price: 19, sla: '5 days', summary: 'For small or new sites', features: ['1 core keyword cluster', '~50 keywords', 'Search volume + difficulty'] },
-      { id: 'standard', name: 'Standard', price: 39, popular: true, sla: '4 days', summary: 'The right fit for most businesses', features: ['3–5 clusters · ~150 keywords', 'Volume + difficulty + search intent', 'Compare 3 competitors (spider chart)', 'SEO strategy suggestions'] },
-      { id: 'pro', name: 'Pro', price: 79, sla: '3 days', summary: 'For large or in-depth sites', features: ['Unlimited clusters · ~300+ keywords', 'SWOT + 5-competitor benchmark', '3–6 month SEO roadmap', 'Priority — skips the extra questions'] },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    packages: orderServices['keyword-research'].packages,
     fields: [
       { label: 'Website URL', name: 'website', type: 'url', colSpan: 2, placeholder: 'https://yoursite.com (optional — we can research by topic)' },
       { label: 'What does your site offer?', name: 'offering', as: 'textarea', required: true, colSpan: 2, placeholder: 'Products, services or topics you want to be found for — and who your ideal customer is.' },
@@ -344,12 +291,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-wrench', title: 'We optimize', desc: 'Backup → optimize speed/SEO/GEO.' },
       { icon: 'ph-rocket-launch', title: 'We deploy', desc: 'Before/after report + the new build live.' },
     ],
-    packages: [
-      { id: 'basic', name: 'Basic', price: 40, sla: '~3–5 days', summary: 'Make a slow site fast', features: ['Full website audit', 'Speed — compression, caching, minify, lazy-load', 'Mobile & responsive fixes', 'Source backup + deploy + before/after report'] },
-      { id: 'standard', name: 'Standard', price: 79, popular: true, sla: '~5–7 days', summary: 'Fast, clean & AI-ready', features: ['Everything in Basic', 'On-page SEO + schema markup', 'Core Web Vitals into the green', 'AI-ready / GEO optimization', '1 month of support'] },
-      { id: 'ultra', name: 'Ultra', price: 0, priceLabel: 'Consult', sla: '~7–10 days', summary: 'Deep technical + advanced GEO', features: ['Everything in Standard', 'Deep technical SEO', 'JS / render optimization', 'Internal linking architecture', 'Advanced GEO + 3 months support'] },
-      { id: 'custom', name: 'Custom', price: 0, priceLabel: 'Consult', sla: 'By scope', summary: 'Large or complex sites', features: ['Tailored to your codebase & scale', 'Large catalogs, headless & webapps', 'Phased rollout & staging', 'Dedicated specialist · SLA by agreement'] },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    packages: orderServices['website-optimization'].packages,
     fields: [
       { label: 'Website URL', name: 'website', type: 'url', required: true, colSpan: 2, placeholder: 'https://yoursite.com' },
       { label: 'Platform / CMS', name: 'platform', placeholder: 'WordPress, Shopify, custom, headless…' },
@@ -387,13 +330,8 @@ export const SERVICE_CATALOG: Partial<Record<ServiceKey, SvcCatalog>> = {
       { icon: 'ph-hammer', title: 'We build', desc: 'Build + revisions to the agreed scope.' },
       { icon: 'ph-rocket-launch', title: 'We deliver', desc: 'Finished site + audit metrics + domain guide.' },
     ],
-    packages: [
-      { id: 'landing', name: 'Landing page', price: 79, priceLabel: 'from $79', sla: '~1 week · draft in 2 days', summary: 'A single high-converting page', features: ['1 page', 'Responsive · on-page SEO', 'Basic speed optimization', 'Draft in 2 days, then a full quote'] },
-      { id: 'statistic', name: 'Statistic web', price: 119, priceLabel: 'from $119', sla: '~1–2 weeks', summary: 'A brochure / company site', features: ['5–7 pages', 'Responsive · on-page SEO', 'Schema & sitemap', 'Standard speed optimization'] },
-      { id: 'blog', name: 'Blog', price: 159, priceLabel: 'from $159', sla: '~2 weeks', summary: 'A content-first site', features: ['5–7+ pages', 'Blog / CMS included', 'Schema & sitemap', 'Standard speed optimization'] },
-      { id: 'ecommerce', name: 'E-commerce', price: 279, priceLabel: 'from $279', popular: true, sla: '~3–4 weeks', summary: 'A store built to sell', features: ['Unlimited pages', 'Sales / cart module', 'Advanced speed optimization', '3 months post-handover support'] },
-      { id: 'webapp', name: 'Webapp', price: 0, priceLabel: 'Custom quote', sla: 'By scope', summary: 'App logic & integrations', features: ['Custom features / CRO', 'App logic & integrations', '6 months support', 'Scoped & quoted to your needs'] },
-    ],
+    // Prices and plans come from the shared catalog — see the note at the top of this file.
+    packages: orderServices['seo-web-design'].packages,
     fields: [
       { label: 'Existing website / domain', name: 'website', type: 'url', placeholder: 'https://yoursite.com (optional)' },
       { label: 'Google Maps listing', name: 'maps', type: 'url', placeholder: 'Maps link — pulls info + photos' },

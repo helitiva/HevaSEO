@@ -15,7 +15,7 @@ const baseRow: OrderRow = {
   value: '39.00',
   deadline: '2026-06-26T00:00:00+00:00',
   created_at: '2026-06-24T10:00:00+00:00',
-  customers: { name: 'Jane Doe', company: 'Acme Co' },
+  customers: { id: 'c0000000-0000-4000-8000-000000000001', name: 'Jane Doe', company: 'Acme Co' },
   assignee: { name: 'Mai T.' },
 };
 
@@ -26,6 +26,9 @@ describe('toAdminOrder', () => {
       id: '11111111-1111-1111-1111-111111111111',
       code: 'AUD-1001',
       customer: 'Acme Co',
+      // carried so callers can join customer facts by id instead of by company NAME — matching on the
+      // name silently pulled a mock customer's tier/LTV onto a real order (see 5544d9f).
+      customerId: 'c0000000-0000-4000-8000-000000000001',
       service: 'Audit',
       pkg: 'Standard',
       status: 'in_progress',
@@ -41,7 +44,7 @@ describe('toAdminOrder', () => {
   it('falls back: company→name→"—", pkg→"—", staff→null, deadline→null', () => {
     const o = toAdminOrder({
       ...baseRow, pkg: null, deadline: null,
-      customers: { name: 'Solo', company: null }, assignee: null,
+      customers: { id: 'c0000000-0000-4000-8000-000000000009', name: 'Solo', company: null }, assignee: null,
     });
     expect(o.customer).toBe('Solo');
     expect(o.pkg).toBe('—');
@@ -60,13 +63,23 @@ describe('toAdminOrder', () => {
 });
 
 describe('toMgrOrder (money-blind)', () => {
+  // orders_mgr exposes the customer as flat columns (customer_id/_name/_company), not an embed — the
+  // view is the money-blind gate, so it hands back its own shape. Build a row that matches it.
+  const mgrRow = (() => {
+    const { value, customers, ...rest } = baseRow;
+    return {
+      ...rest,
+      customer_id: customers?.id ?? null,
+      customer_name: customers?.name ?? null,
+      customer_company: customers?.company ?? null,
+    };
+  })();
+
   it('forces value to 0 (the orders_mgr view omits it)', () => {
-    const { value, ...rest } = baseRow; // mgr row has no value
-    expect(toMgrOrder(rest).value).toBe(0);
+    expect(toMgrOrder(mgrRow).value).toBe(0);
   });
   it('keeps all non-money fields', () => {
-    const { value, ...rest } = baseRow;
-    const o = toMgrOrder(rest);
+    const o = toMgrOrder(mgrRow);
     expect(o.code).toBe('AUD-1001');
     expect(o.staff).toBe('Mai T.');
     expect(o.status).toBe('in_progress');
@@ -112,7 +125,7 @@ describe('toCustomerOrder (derive)', () => {
     expect(o.status).toBe('completed');
     expect(o.cost).toBe(39);
     expect(o.owner).toBe('Mai T.');
-    expect(o.domain).toBe('Acme Co');
+    expect(o.domain).toBe('My site'); // no project domain and no site URL — and NEVER the company name
     expect(o.sub).toBe('Standard');
     expect(o.progress).toBeNull();
     expect(o.invoice).toBeNull();
@@ -141,8 +154,15 @@ describe('toCustomerOrder (derive)', () => {
     expect(toCustomerOrder({ ...myRow, created_at: '2026-06-13T00:00:00+00:00', deadline: '2026-06-14T00:00:00+00:00' }).eta).toBe('1 day');
   });
 
-  it('domain falls back company→name→"My site"', () => {
-    expect(toCustomerOrder({ ...myRow, customers: { company: null, name: 'Solo' } }).domain).toBe('Solo');
+  it('domain is never the company name — project domain → site host → "My site"', () => {
+    // This test used to assert the opposite (company→name→"My site"). That fallback was removed on
+    // purpose: presenting "Acme Co" as an order's *website* is a fabricated domain, and a customer
+    // reading their own order saw a site they never gave us. Only a real project domain or a real URL
+    // the customer typed may fill this field.
+    const proj = (domain: string) => ({ project: 'p', folder: 'f', title: null, site: null, brief: null, proj: { domain } });
+    expect(toCustomerOrder({ ...myRow, order_details: proj('henro.co') }).domain).toBe('henro.co');
+    expect(toCustomerOrder({ ...myRow, customers: { company: 'Acme Co', name: 'Jane Doe' } }).domain).toBe('My site');
+    expect(toCustomerOrder({ ...myRow, customers: { company: null, name: 'Solo' } }).domain).toBe('My site');
     expect(toCustomerOrder({ ...myRow, customers: null }).domain).toBe('My site');
   });
 
@@ -158,10 +178,10 @@ describe('toCustomerOrder (derive)', () => {
   });
 
   it('carries the order-time project + folder (object or array embed)', () => {
-    const obj = toCustomerOrder({ ...myRow, order_details: { project: 'HevaShop Store', folder: 'E-commerce client' } });
+    const obj = toCustomerOrder({ ...myRow, order_details: { project: 'HevaShop Store', folder: 'E-commerce client', title: null, site: null, brief: null, proj: null } });
     expect(obj.project).toBe('HevaShop Store');
     expect(obj.folder).toBe('E-commerce client');
-    const arr = toCustomerOrder({ ...myRow, order_details: [{ project: 'An Phat', folder: 'Retail' }] });
+    const arr = toCustomerOrder({ ...myRow, order_details: [{ project: 'An Phat', folder: 'Retail', title: null, site: null, brief: null, proj: null }] });
     expect(arr.project).toBe('An Phat');
     expect(arr.folder).toBe('Retail');
   });
