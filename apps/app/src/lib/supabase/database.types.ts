@@ -519,6 +519,7 @@ export type Database = {
           entity_type: string
           id: string
           meta: Json
+          seq: number
           tenant_id: string
         }
         Insert: {
@@ -529,6 +530,7 @@ export type Database = {
           entity_type: string
           id?: string
           meta?: Json
+          seq?: number
           tenant_id: string
         }
         Update: {
@@ -539,6 +541,7 @@ export type Database = {
           entity_type?: string
           id?: string
           meta?: Json
+          seq?: number
           tenant_id?: string
         }
         Relationships: [

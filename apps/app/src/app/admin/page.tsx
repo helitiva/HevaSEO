@@ -2,23 +2,22 @@ import Link from 'next/link';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { NeedsAttention } from './NeedsAttention';
-import { AUDIT, PIPELINE_COLOR, money, type OpsKpi } from '@/data/adminMock';
+import { PIPELINE_COLOR, money, type OpsKpi } from '@/data/adminMock';
 import { getOrders } from '@/data/orders.server';
 import { getOpsSnapshot } from '@/data/adminOps.server';
 import { getRevenueBook } from '@/data/adminRevenue.server';
+import { getAuditFeed } from '@/data/adminAudit.server';
 
 export const metadata = { title: 'Command center' };
 
-const ACTION_ICON: Record<string, string> = {
-  transition: 'ph-arrows-left-right', assign: 'ph-user-plus', cancel: 'ph-x-circle', edit: 'ph-pencil-simple',
-};
-
 export default async function CommandCenter() {
-  // Everything here is REAL + RLS-scoped (admin → whole tenant): orders, the ops KPIs/pipeline, and the
-  // money book. It used to render adminMock constants, so the dashboard reported a fixed $18,650 MTD and
-  // 6 new orders regardless of the business. The clock is the real one too (the Phase-0 MOCK_TODAY anchor
-  // put "today" in June while live orders are dated now, which broke every overdue/today figure).
-  const [orders, ops, rev] = await Promise.all([getOrders(), getOpsSnapshot(), getRevenueBook()]);
+  // Everything here is REAL + RLS-scoped (admin → whole tenant): orders, the ops KPIs/pipeline, the
+  // money book, and the activity feed. It used to render adminMock constants, so the dashboard reported
+  // a fixed $18,650 MTD and 6 new orders regardless of the business — and an activity list frozen on
+  // 2026-06-24 that never moved no matter what anyone did. The clock is the real one too (the Phase-0
+  // MOCK_TODAY anchor put "today" in June while live orders are dated now, which broke every
+  // overdue/today figure).
+  const [orders, ops, rev, audit] = await Promise.all([getOrders(), getOpsSnapshot(), getRevenueBook(), getAuditFeed(8)]);
   const todayDate = new Date();
   const today = todayDate.toISOString().slice(0, 10);
   // Only work still IN FLIGHT can be overdue or unassigned — once it's delivered/approved/completed the
@@ -112,17 +111,32 @@ export default async function CommandCenter() {
       <div className="rounded-2xl border border-border bg-card p-5">
         <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scroll text-primary" aria-hidden /> Recent activity</p>
         <ul className="space-y-2.5">
-          {AUDIT.map((a) => (
+          {audit.map((a) => (
             <li key={a.id} className="flex items-center gap-3 text-sm">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${ACTION_ICON[a.action] ?? 'ph-dot'}`} aria-hidden /></span>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${a.icon}`} aria-hidden /></span>
               <span className="min-w-0 flex-1 truncate"><span className="font-medium">{a.change}</span> <span className="text-muted-foreground">· {a.actor}</span></span>
-              <span className="shrink-0 text-xs text-muted-foreground">{a.at.slice(11)}</span>
+              <span className="shrink-0 text-xs text-muted-foreground" title={a.at.slice(0, 10)}>{relTime(a.at)}</span>
             </li>
           ))}
+          {audit.length === 0 && <li className="py-4 text-center text-sm text-muted-foreground">Nothing has happened yet.</li>}
         </ul>
       </div>
     </section>
   );
+}
+
+/**
+ * "3h ago" / "5d ago". The mock printed a bare time-of-day (a.at.slice(11)) because every mock event
+ * was dated the mock today. Real events span days, so a naked "09:12" would read as this morning.
+ */
+function relTime(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}d ago` : new Date(iso).toISOString().slice(0, 10);
 }
 
 function SnapshotCard({ icon, title, rows, href, cta }: { icon: string; title: string; rows: [string, string][]; href: string; cta: string }) {
