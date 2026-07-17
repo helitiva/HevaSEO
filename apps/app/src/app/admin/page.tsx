@@ -2,13 +2,10 @@ import Link from 'next/link';
 import { RingStat } from '@/components/admin/RingStat';
 import { MiniBars } from '@/components/admin/MiniBars';
 import { NeedsAttention } from './NeedsAttention';
-import {
-  KPIS, AUDIT, PIPELINE, PIPELINE_COLOR, OPS_KPIS,
-  USER_STATS, TICKET_STATS, SLA_ON_TIME, CAPACITY_USED, REVENUE_GOAL, money,
-  type OpsKpi,
-} from '@/data/adminMock';
+import { AUDIT, PIPELINE_COLOR, money, type OpsKpi } from '@/data/adminMock';
 import { getOrders } from '@/data/orders.server';
-import { mockTodayDate } from '@/lib/today';
+import { getOpsSnapshot } from '@/data/adminOps.server';
+import { getRevenueBook } from '@/data/adminRevenue.server';
 
 export const metadata = { title: 'Command center' };
 
@@ -17,16 +14,23 @@ const ACTION_ICON: Record<string, string> = {
 };
 
 export default async function CommandCenter() {
-  const orders = await getOrders(); // RLS-scoped real read (admin → all tenant orders)
-  const todayDate = mockTodayDate();
+  // Everything here is REAL + RLS-scoped (admin → whole tenant): orders, the ops KPIs/pipeline, and the
+  // money book. It used to render adminMock constants, so the dashboard reported a fixed $18,650 MTD and
+  // 6 new orders regardless of the business. The clock is the real one too (the Phase-0 MOCK_TODAY anchor
+  // put "today" in June while live orders are dated now, which broke every overdue/today figure).
+  const [orders, ops, rev] = await Promise.all([getOrders(), getOpsSnapshot(), getRevenueBook()]);
+  const todayDate = new Date();
   const today = todayDate.toISOString().slice(0, 10);
-  const overdue = orders.filter((o) => o.deadline && o.deadline < today && o.status !== 'completed');
+  // Only work still IN FLIGHT can be overdue or unassigned — once it's delivered/approved/completed the
+  // deadline is moot. (This list used to count every non-completed order, so delivered work kept showing up
+  // as overdue and disagreed with the KPI tile above it.)
+  const inFlight = (s: string) => !['delivered', 'approved', 'completed', 'canceled'].includes(s);
+  const overdue = orders.filter((o) => o.deadline && o.deadline < today && inFlight(o.status));
   const awaiting = orders.filter((o) => o.status === 'delivered');
-  const unassigned = orders.filter((o) => !o.staff && o.status !== 'completed' && o.status !== 'canceled');
+  const unassigned = orders.filter((o) => !o.staff && inFlight(o.status));
   const dateLabel = todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const pipeTotal = PIPELINE.reduce((s, p) => s + p.count, 0);
-  const activeTotal = PIPELINE.filter((p) => p.status !== 'completed').reduce((s, p) => s + p.count, 0);
-  const goalPct = Math.min(100, Math.round((REVENUE_GOAL.mtd / REVENUE_GOAL.target) * 100));
+  const pipeTotal = ops.pipeline.reduce((s, p) => s + p.count, 0) || 1;
+  const activeTotal = ops.pipeline.filter((p) => p.status !== 'completed').reduce((s, p) => s + p.count, 0);
 
   return (
     <section className="space-y-5">
@@ -44,31 +48,35 @@ export default async function CommandCenter() {
 
       {/* ops KPI strip */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {OPS_KPIS.map((k) => <OpsTile key={k.key} kpi={k} />)}
+        {ops.kpis.map((k) => <OpsTile key={k.key} kpi={k} />)}
       </div>
 
-      {/* glance snapshot — each links to its detail surface */}
+      {/* glance snapshot — each links to its detail surface. Revenue and cash are deliberately SEPARATE
+          cards: a top-up is cash we owe back as work (a liability), not revenue. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SnapshotCard icon="ph-currency-dollar" title="Revenue" href="/admin/analytics" cta="Analytics"
-          rows={[['Today', money(KPIS.revenueToday)], ['Month to date', money(KPIS.revenueMtd)]]} />
-        <SnapshotCard icon="ph-users" title="Audience" href="/admin/analytics" cta="Analytics"
-          rows={[['New today', String(USER_STATS.newToday)], ['Active (DAU)', USER_STATS.dau.toLocaleString('en-US')]]} />
+        <SnapshotCard icon="ph-currency-dollar" title="Revenue · recognized" href="/admin/analytics" cta="Analytics"
+          rows={[['Today', money(rev.today.recognized)], ['Month to date', money(rev.mtd.recognized)]]} />
+        <SnapshotCard icon="ph-vault" title="Cash & deferred" href="/admin/finance" cta="Finance"
+          rows={[['Deposits MTD', money(rev.mtd.deposits)], ['Deferred (owed)', money(rev.deferred.total)]]} />
         <SnapshotCard icon="ph-lifebuoy" title="Support" href="/admin/tickets" cta="Inbox"
-          rows={[['Open', String(TICKET_STATS.open)], ['Pending', String(TICKET_STATS.pending)]]} />
+          rows={[['Open', String(ops.openTickets)], ['Pending', String(ops.pendingTickets)]]} />
 
         <div className="kpi">
           <span className="kpi-glow" />
           <p className="text-xs font-semibold text-muted-foreground">Operational health</p>
           <div className="mt-2 flex items-center gap-3">
-            <RingStat pct={SLA_ON_TIME} />
+            <RingStat pct={ops.onTimePct ?? 0} />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] text-muted-foreground">On-time · capacity {CAPACITY_USED}%</p>
-              <div className="bar mt-1"><i style={{ width: `${CAPACITY_USED}%` }} /></div>
+              <p className="text-[11px] text-muted-foreground">
+                {ops.onTimePct === null ? 'On-time — no delivered work yet' : 'On-time'}
+                {ops.capacityPct !== null && ` · capacity ${ops.capacityPct}%`}
+              </p>
+              <div className="bar mt-1"><i style={{ width: `${ops.capacityPct ?? 0}%` }} /></div>
             </div>
           </div>
           <div className="mt-auto pt-3">
-            <div className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Revenue goal</span><span className="font-semibold">{goalPct}%</span></div>
-            <div className="bar mt-1"><i style={{ width: `${goalPct}%` }} /></div>
+            <div className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Booked MTD</span><span className="font-semibold">{money(rev.mtd.bookings)}</span></div>
+            <div className="flex items-center justify-between text-[11px]"><span className="text-muted-foreground">Unearned (in flight)</span><span className="font-semibold">{money(rev.deferred.unearnedOrders)}</span></div>
           </div>
         </div>
       </div>
@@ -80,12 +88,12 @@ export default async function CommandCenter() {
           <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{activeTotal}</span> active · {pipeTotal} total</p>
         </div>
         <div className="seg" style={{ height: '0.75rem' }}>
-          {PIPELINE.map((p) => (
+          {ops.pipeline.map((p) => (
             <i key={p.status} style={{ width: `${(p.count / pipeTotal) * 100}%`, background: PIPELINE_COLOR[p.status] }} title={`${p.label}: ${p.count}`} />
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-          {PIPELINE.map((p) => (
+          {ops.pipeline.map((p) => (
             <span key={p.status} className="flex items-center gap-1.5 text-xs">
               <span className="legend-dot" style={{ background: PIPELINE_COLOR[p.status] }} />
               <span className="text-muted-foreground">{p.label}</span><span className="font-semibold">{p.count}</span>
@@ -151,7 +159,10 @@ function OpsTile({ kpi }: { kpi: OpsKpi }) {
       </div>
       <div className="mt-auto flex items-end justify-between gap-2 pt-3">
         <MiniBars data={kpi.trend} />
-        <span className={`pill ${kpi.deltaGood ? 'pill-live' : 'pill-warn'}`}>{kpi.delta > 0 ? '+' : ''}{kpi.delta}%</span>
+        {/* only shown when there's a real period-over-period baseline — never a fabricated 0% */}
+        {kpi.delta !== 0 && (
+          <span className={`pill ${kpi.deltaGood ? 'pill-live' : 'pill-warn'}`}>{kpi.delta > 0 ? '+' : ''}{kpi.delta}%</span>
+        )}
       </div>
     </div>
   );
