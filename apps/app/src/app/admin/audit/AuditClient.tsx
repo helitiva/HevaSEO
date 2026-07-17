@@ -9,14 +9,26 @@ import { MOCK_TODAY, mockTodayAt } from '@/lib/today';
 type CatMeta = Record<AuditCategory, { label: string; icon: string; color: string }>;
 type EntMeta = Record<AuditEntity, { label: string; icon: string; href: string | null }>;
 interface Kpis { total: number; today: number; actors: number; destructive: number; topEntity: string }
-interface Props { events: AuditEntry[]; categoryMeta: CatMeta; entityMeta: EntMeta; kpis: Kpis }
+interface Props {
+  events: AuditEntry[]; categoryMeta: CatMeta; entityMeta: EntMeta; kpis: Kpis;
+  /** 'today' on the caller's clock — real (UTC) for admin, MOCK_TODAY for the mock manager view. */
+  today: string;
+  /** true when these rows come from audit_log. Gates the controls real data can never satisfy. */
+  isReal: boolean;
+}
 
-const TODAY = MOCK_TODAY;
-const NOW = mockTodayAt('09:30:00');
-const dayLabel = (d: string) => (d === TODAY ? 'Today' : d === '2026-06-23' ? 'Yesterday' : new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+// The clock is a parameter now, not a module constant. It was `mockTodayAt('09:30')` — fine while every
+// row was mock and dated 2026-06-24, fatally wrong against real rows dated now: every `mins` came out
+// NEGATIVE, hit the `< 1` branch, and the whole log rendered "just now".
 const initials = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
-const rel = (at: string) => {
-  const mins = Math.round((NOW.getTime() - new Date(at.replace(' ', 'T')).getTime()) / 60000);
+const dayOf = (today: string) => (d: string) => {
+  if (d === today) return 'Today';
+  const y = new Date(`${today}T00:00:00Z`); y.setUTCDate(y.getUTCDate() - 1);
+  if (d === y.toISOString().slice(0, 10)) return 'Yesterday';
+  return new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+const relTo = (now: Date) => (at: string) => {
+  const mins = Math.round((now.getTime() - new Date(`${at.replace(' ', 'T')}:00Z`).getTime()) / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   const h = Math.floor(mins / 60); if (h < 24) return `${h}h ago`;
@@ -34,7 +46,19 @@ const isOffHours = (at: string) => { const hh = +at.slice(11, 13); return hh < 8
 // in the previous row's hash, and a server-side verifier that re-walks the chain. Until that exists,
 // the page says only what it can back up.
 
-export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
+export function AuditClient({ events, categoryMeta, entityMeta, kpis, today, isReal }: Props) {
+  const TODAY = today;
+  const dayLabel = dayOf(today);
+  // real rows carry a real timestamp; the mock view keeps its 09:30 vantage point so its ages read right
+  const rel = relTo(isReal ? new Date() : mockTodayAt('09:30:00'));
+  // Controls real data cannot satisfy, hidden rather than shipped broken: nothing emits field-level
+  // diffs, and no action we write maps to the destructive or auth categories — so "Field edits",
+  // "Destructive" and "Auth" would always return an empty list. A filter that can only ever say
+  // "no results" teaches the reader nothing except to distrust the page.
+  const PRESETS = ([['all', 'All', 'ph-tray'], ['today', 'Today', 'ph-calendar-dot'], ['flagged', 'Flagged', 'ph-flag'],
+    ['edits', 'Field edits', 'ph-git-diff'], ['destructive', 'Destructive', 'ph-warning-octagon'],
+    ['auth', 'Auth', 'ph-shield-check'], ['admin', 'Admin actions', 'ph-user-gear']] as const)
+    .filter(([k]) => !(isReal && (k === 'edits' || k === 'destructive' || k === 'auth')));
   const [fEntity, setFEntity] = useState(''); const [fActor, setFActor] = useState(''); const [fCat, setFCat] = useState('');
   const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [search, setSearch] = useState('');
   const [onlyDiff, setOnlyDiff] = useState(false);
@@ -142,14 +166,16 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         <Kpi icon="ph-calendar-check" label="Events today" value={String(kpis.today)} />
         <Kpi icon="ph-stack" label="Total events" value={String(kpis.total)} />
         <Kpi icon="ph-users" label="Active actors" value={String(kpis.actors)} />
-        <Kpi icon="ph-warning-octagon" label="Destructive" value={String(kpis.destructive)} tone={kpis.destructive ? 'warn' : undefined} />
+        {/* No real action maps to the destructive category, so against audit_log this tile is a
+            permanent 0 that reads as "nothing bad happened" rather than "we don't track that". */}
+        {!isReal && <Kpi icon="ph-warning-octagon" label="Destructive" value={String(kpis.destructive)} tone={kpis.destructive ? 'warn' : undefined} />}
         <Kpi icon="ph-trophy" label="Most-changed" value={kpis.topEntity} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
         <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          {([['all', 'All', 'ph-tray'], ['today', 'Today', 'ph-calendar-dot'], ['flagged', 'Flagged', 'ph-flag'], ['edits', 'Field edits', 'ph-git-diff'], ['destructive', 'Destructive', 'ph-warning-octagon'], ['auth', 'Auth', 'ph-shield-check'], ['admin', 'Admin actions', 'ph-user-gear']] as const).map(([k, label, icon]) => (
+          {PRESETS.map(([k, label, icon]) => (
             <button key={k} onClick={() => applyPreset(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${preset === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/50'}`}><i className={`ph-bold ${icon}`} />{label}</button>
           ))}
         </div>

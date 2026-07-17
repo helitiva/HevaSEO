@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import type { AuditCategory, AuditEntity, AuditEntry } from '@/data/adminMock';
 
 /**
  * The real activity feed, from audit_log — what actually happened in this tenant, newest first.
@@ -98,7 +99,8 @@ function describe(r: LogRow, subject_: string | null): string {
   }
 }
 
-export async function getAuditFeed(limit = 8): Promise<AuditEvent[]> {
+/** Fetch + resolve, shared by the dashboard feed and the full audit page — one definition of an event. */
+async function loadRows(limit: number) {
   const supabase = await createClient();
   const logRes = await supabase.from('audit_log')
     .select('id, action, entity_type, entity_id, meta, created_at, seq, profiles(name)')
@@ -134,7 +136,11 @@ export async function getAuditFeed(limit = 8): Promise<AuditEvent[]> {
   for (const o of ordRes?.data ?? []) label.set(o.id, o.code);
   for (const c of custRes?.data ?? []) label.set(c.id, c.company || c.name || 'Customer');
   for (const p of staffRes?.data ?? []) label.set(p.id, p.name ?? 'Staff');
+  return { rows, label };
+}
 
+export async function getAuditFeed(limit = 8): Promise<AuditEvent[]> {
+  const { rows, label } = await loadRows(limit);
   return rows.map((r) => ({
     id: r.id,
     at: r.created_at,
@@ -144,4 +150,61 @@ export async function getAuditFeed(limit = 8): Promise<AuditEvent[]> {
     change: describe(r, r.entity_id ? label.get(r.entity_id) ?? null : null),
     icon: ICONS[r.action] ?? 'ph-dot',
   }));
+}
+
+/**
+ * The same events, shaped for the full /admin/audit page (adminMock's AuditEntry).
+ *
+ * WHAT REAL DATA CANNOT FILL, and what the page does about it:
+ *  · `diff[]` — no emitter anywhere writes field-level from/to, so it stays undefined. The page's
+ *    "Field edits" preset and Field-changes panel would be permanently empty; they're gated off.
+ *  · categories `destructive` / `auth` — no action we emit maps to either. Their filters are gated off
+ *    too: a filter that always returns nothing is worse than an absent one.
+ *  · entities `rule` / `ticket` / `catalog` / `auth` — audit_log only ever carries order/customer/staff.
+ *    `deliverable.*` is stored with entity_type='order' and is surfaced as 'deliverable' here so the
+ *    entity filter matches what the sentence says.
+ */
+const CATEGORY_OF: Record<string, AuditCategory> = {
+  'order.created': 'create',
+  'order.advanced': 'transition',
+  'order.assign': 'assign',
+  'order.auto_assign': 'assign',
+  'order.message': 'update',
+  'deliverable.submitted': 'create',
+  'deliverable.approve': 'transition',
+  'deliverable.request_changes': 'transition',
+  'deliverable.edited': 'update',
+  'credit.topup': 'update',
+  'commission.posted': 'update',
+  'staff.comp_set': 'update',
+  'payroll.run': 'update',
+};
+
+const str2 = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+
+export async function getAuditEntries(limit = 500): Promise<AuditEntry[]> {
+  const { rows, label } = await loadRows(limit);
+  return rows.map((r) => {
+    const code = r.entity_id ? label.get(r.entity_id) ?? null : null;
+    const m = r.meta ?? {};
+    // deliverable.* rides on entity_type='order' in the DB; name it for what it is on screen
+    const entity: AuditEntity = r.action.startsWith('deliverable.') ? 'deliverable'
+      : (['order', 'customer', 'staff'] as const).includes(r.entity_type as 'order')
+        ? (r.entity_type as AuditEntity) : 'order';
+    return {
+      id: r.id,
+      // AuditEntry.at is a 'YYYY-MM-DD HH:mm' string the view sorts and slices — keep it UTC, like the
+      // rest of the money/ops code, so the page's date filter and its labels agree.
+      at: `${r.created_at.slice(0, 10)} ${r.created_at.slice(11, 16)}`,
+      actor: r.profiles?.name ?? 'System',
+      entity,
+      entityId: r.entity_id,
+      entityCode: code,
+      action: r.action,
+      from: str2(m.from),
+      to: str2(m.to),
+      category: CATEGORY_OF[r.action] ?? 'update',
+      change: describe(r, code),
+    };
+  });
 }
