@@ -105,7 +105,7 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
       </div>
 
       <div className="page-anim">
-        {tab === 'overview' && <OverviewTab />}
+        {tab === 'overview' && <OverviewTab k={k} />}
         {tab === 'transactions' && <TransactionsTab />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
@@ -116,19 +116,20 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
 }
 
 /* ---------------------------------------------------------------- Overview */
-function OverviewTab() {
+function OverviewTab({ k }: { k: FinanceKpis }) {
   const recent = [...TRANSACTIONS].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-  const overdue = INVOICES.filter((i) => i.status === 'overdue');
   const pending = TRANSACTIONS.filter((t) => t.status === 'pending');
   const totalIn = CASHFLOW.reduce((s, d) => s + d.in, 0);
   const totalOut = CASHFLOW.reduce((s, d) => s + d.out, 0);
   const net = totalIn - totalOut;
   const flowMax = Math.max(totalIn, totalOut, 1);
 
+  // The money figures come from the real book — these alerts sat next to the real KPI band claiming
+  // "$11,160 in staff payouts due" (adminMock) while the band above said $3,044.40.
   const alerts = [
-    overdue.length ? { icon: 'ph-warning-circle', tone: 'bad' as const, text: `${overdue.length} overdue invoice${overdue.length > 1 ? 's' : ''} · ${money(overdue.reduce((a, i) => a + i.amount, 0))}`, href: '?tab=invoices' } : null,
+    k.outstandingAr ? { icon: 'ph-warning-circle', tone: 'bad' as const, text: `${money(k.outstandingAr)} in unsettled invoices`, href: '?tab=invoices' } : null,
     pending.length ? { icon: 'ph-hourglass-medium', tone: 'warn' as const, text: `${pending.length} pending payment${pending.length > 1 ? 's' : ''} · ${money(pending.reduce((a, t) => a + t.amount, 0))}`, href: '?tab=transactions' } : null,
-    FINANCE.payoutsDue ? { icon: 'ph-hand-coins', tone: 'warn' as const, text: `${money(FINANCE.payoutsDue)} in staff payouts due`, href: '?tab=payouts' } : null,
+    k.payoutsDue ? { icon: 'ph-hand-coins', tone: 'warn' as const, text: `${money(k.payoutsDue)} in staff payouts due`, href: '?tab=payouts' } : null,
   ].filter(Boolean) as { icon: string; tone: 'bad' | 'warn'; text: string; href: string }[];
 
   return (
