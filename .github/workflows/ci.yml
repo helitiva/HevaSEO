@@ -21,10 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # `packageManager` in package.json is what pins pnpm — action-setup@v4 reads it and errors with
+      # "No pnpm version is specified" without it. Keeping the version there rather than here means
+      # corepack pins the same pnpm for every contributor, not just for CI.
       - uses: pnpm/action-setup@v4
+      # 22, not 20: package.json declares engines.node >=22, and installing under 20 warns
+      # "Unsupported engine" on every job. CI should run what the repo says it needs.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
@@ -58,8 +63,13 @@ jobs:
       # works against one laptop's accumulated state fails right here instead of on the next person's.
       # (Deliberately NOT `supabase db reset` — that command wipes a real dev database, and a CI file is
       # the first place someone copies a command from.)
-      - name: start supabase (applies all migrations from scratch)
-        run: supabase start
+      # Only the database. The first run of this job died starting `inbucket` — the local mail catcher —
+      # because port 54324 was already taken on the runner. pgTAP talks to Postgres over psql and needs
+      # none of it: not a mail server, not the Studio UI, not the edge runtime, not analytics. Excluding
+      # them removes the port conflict *and* the reason it existed, rather than retrying until the runner
+      # happens to have a free port.
+      - name: start supabase db (applies all migrations from scratch)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
 
       - name: pgTAP
         run: supabase test db
