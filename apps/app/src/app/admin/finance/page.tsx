@@ -19,7 +19,8 @@ export default async function FinancePage() {
   ]);
   // the KPI band is derived, not fetched — every input above is already in hand. Fetching it separately
   // (as getFinanceKpis() did) re-ran the whole money book and the payroll a second time per request.
-  const kpis = financeKpis({ book, payrollDue: compPreview.totals.total, ledger, payments });
+  // `outstanding`, not `total`: total is the gross accrual and never moves when payroll is paid.
+  const kpis = financeKpis({ book, payrollDue: compPreview.totals.outstanding, ledger, payments });
   return (
     <Suspense fallback={null}>
       <FinanceClient payoutRequests={payoutRequests} penalties={penalties} walletStaff={walletStaff}

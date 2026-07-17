@@ -1839,6 +1839,7 @@ export type Database = {
       payroll_runs: {
         Row: {
           bonus: number
+          commission: number
           created_at: string
           gig: number
           id: string
@@ -1851,6 +1852,7 @@ export type Database = {
         }
         Insert: {
           bonus?: number
+          commission?: number
           created_at?: string
           gig?: number
           id?: string
@@ -1863,6 +1865,7 @@ export type Database = {
         }
         Update: {
           bonus?: number
+          commission?: number
           created_at?: string
           gig?: number
           id?: string
@@ -3497,6 +3500,7 @@ export type Database = {
       run_payroll: {
         Args: {
           p_bonus: number
+          p_commission?: number
           p_gig: number
           p_period: string
           p_salary: number
@@ -3504,6 +3508,7 @@ export type Database = {
         }
         Returns: {
           bonus: number
+          commission: number
           created_at: string
           gig: number
           id: string
