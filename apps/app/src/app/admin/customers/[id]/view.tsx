@@ -1,4 +1,16 @@
 import { notFound } from 'next/navigation';
+import { getLedger, type LedgerEntry } from '@/data/adminLedger.server';
+import { UUID_RE } from '@/lib/orderMap';
+
+/** Name a movement by what it is — a debit with no order is an adjustment, not an order. */
+function ledgerReason(e: LedgerEntry): string {
+  switch (e.kind) {
+    case 'topup': return 'Top-up';
+    case 'refund': return e.orderCode ? `Refund · ${e.orderCode}` : 'Refund';
+    case 'cancel_fee': return e.orderCode ? `Cancellation fee · ${e.orderCode}` : 'Cancellation fee';
+    case 'debit': return e.orderCode ? `${e.orderCode} confirmed` : 'Credit adjustment';
+  }
+}
 import { CUSTOMERS, ORDERS, TICKETS, CUSTOMER_EXTRA, CUSTOMER_PROJECTS, CUSTOMER_LEDGER, TIER, money, type AdminCustomer, type OrderStatus } from '@/data/adminMock';
 import { getCustomers } from '@/data/customers.server';
 import { getOrders } from '@/data/orders.server';
@@ -43,10 +55,16 @@ export async function CustomerDetailView({ id, showMoney = true }: { id: string;
     a[o.service].count += 1; a[o.service].value += o.value; return a;
   }, {})).sort((a, b) => b.value - a.value);
 
-  const ledger = CUSTOMER_LEDGER[id] ?? [
-    { at: extra.memberSince, delta: c.spend + c.balance, reason: 'Top-up · Stripe' },
-    ...orders.map((o) => ({ at: o.created, delta: -o.value, reason: `${o.code} confirmed` })),
-  ];
+  // Real credit ledger for a real customer. The fallback below INVENTED a payment: a single
+  // "Top-up · Stripe" line for (spend + balance), dated memberSince — which itself falls back to
+  // 2025-01-01. It described a charge that never happened, on a date that never happened, and read
+  // exactly like a real receipt. credit_ledger has the truth (getLedger already resolves it).
+  const realLedger = UUID_RE.test(id)
+    ? (await getLedger())
+        .filter((e) => e.customerId === id)
+        .map((e) => ({ at: e.at.slice(0, 10), delta: e.amount, reason: ledgerReason(e) }))
+    : null;
+  const ledger = realLedger ?? CUSTOMER_LEDGER[id] ?? [];
   const tickets = TICKETS.filter((tk) => tk.customer === c.company).map((tk) => ({ id: tk.id, subject: tk.subject, status: tk.status, priority: tk.priority, age: tk.age }));
   const activity = [
     { id: 'login', at: c.lastActive, type: 'login', text: 'Logged into the dashboard' },

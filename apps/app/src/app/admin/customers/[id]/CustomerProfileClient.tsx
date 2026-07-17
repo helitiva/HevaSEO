@@ -42,13 +42,19 @@ export function CustomerProfileClient(p: Props) {
   const [note, setNote] = useState('');
   const [statusF, setStatusF] = useState('');
   const [toast, setToast] = useState<string | null>(null);
-  const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustAmt, setAdjustAmt] = useState('50');
   const [mixBy, setMixBy] = useState<'value' | 'orders'>('value');
 
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
   const addNote = () => { if (!note.trim()) return; setNotes((n) => [{ at: 'just now', body: note.trim() }, ...n]); setNote(''); notify('Internal note added'); };
-  const applyAdjust = () => { const amt = Number(adjustAmt) || 0; setBalance((b) => b + amt); setLedger((l) => [{ at: 'just now', delta: amt, reason: 'Manual adjustment' }, ...l]); notify(`Credit ${amt >= 0 ? '+' : ''}${money(amt)}`); setAdjustOpen(false); };
+  // "Adjust credit" was here. It ran setBalance + setLedger + a toast and NEVER touched
+  // customer_balances or credit_ledger: the balance rose on screen, a "Manual adjustment" line appeared
+  // in the ledger, and a refresh erased both. An admin could believe they had funded an account that
+  // had no money in it — the same shape as the fake wallet top-up already deleted from Finance.
+  //
+  // Granting credit for real needs a service-role action (topup() is the customer's own provider-backed
+  // path, and create_order/topup are revoked from `authenticated` on purpose). That's a feature to build
+  // deliberately, with an audit trail, not a button to leave lying.
 
   const filteredOrders = useMemo(() => (statusF ? p.orders.filter((o) => o.status === statusF) : p.orders), [p.orders, statusF]);
   const statuses = useMemo(() => [...new Set(p.orders.map((o) => o.status))], [p.orders]);
@@ -78,7 +84,6 @@ export function CustomerProfileClient(p: Props) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a href={`mailto:${c.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" aria-hidden />Email</a>
-            {showMoney && <button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent">Adjust credit</button>}
             {imp.canCustomer && <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>}
             <Menu items={[{ icon: 'ph-tag', label: 'Add tag', fn: () => notify('Tag added') }, { icon: 'ph-git-merge', label: 'Merge duplicate', fn: () => notify('Merge — pick a duplicate') }, { icon: 'ph-prohibit', label: 'Suspend', fn: () => notify('Customer suspended'), danger: true }]} />
           </div>
@@ -180,7 +185,7 @@ export function CustomerProfileClient(p: Props) {
 
           {/* Credit & ledger — customer money, hidden from money-blind viewers (managers) */}
           {showMoney && (
-          <Card icon="ph-wallet" title="Credit & ledger" right={<button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Adjust</button>}>
+          <Card icon="ph-wallet" title="Credit & ledger">
             <p className="display text-2xl font-bold">{money(balance)}<span className="ml-1 text-xs font-medium text-muted-foreground">balance</span></p>
             <div className="mt-3 space-y-1.5">
               {ledger.slice(0, 6).map((l, i) => (
@@ -204,18 +209,6 @@ export function CustomerProfileClient(p: Props) {
       </div>
 
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
-      {adjustOpen && (
-        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-          <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setAdjustOpen(false)} />
-          <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <p className="display mb-3 text-base font-bold">Adjust credit</p>
-            <label className="text-xs text-muted-foreground">Amount (negative to deduct)</label>
-            <input type="number" value={adjustAmt} onChange={(e) => setAdjustAmt(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            <p className="mt-2 text-xs text-muted-foreground">Balance {money(balance)} → <b className="text-foreground">{money(balance + (Number(adjustAmt) || 0))}</b></p>
-            <button onClick={applyAdjust} className="mt-3 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground">Apply</button>
-          </div>
-        </div>
-      )}
     </section>
   );
 }
