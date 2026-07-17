@@ -11,6 +11,13 @@ export const ACTIVE_ORDER_STATUS: ReadonlySet<OrderStatus> = new Set([
 
 export interface AdminOrder {
   id: string; code: string; customer: string; service: string; pkg: string;
+  /**
+   * The customer's real id. Optional because the mock ORDERS below have none — and that absence is the
+   * point: joining a real order to customer facts by COMPANY NAME (customerByCompany) silently matched
+   * real "Nova"/"Vértice"/"Peak Digital"/"Lumen" against the mock customers of the same name. Join on
+   * this instead.
+   */
+  customerId?: string | null;
   status: OrderStatus; priority: Priority; source: 'quick'|'dashboard';
   value: number; staff: string | null; deadline: string | null; created: string;
 }

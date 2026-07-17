@@ -17,7 +17,7 @@ export type OrderRow = {
   value: number | string;
   deadline: string | null;
   created_at: string;
-  customers: { name: string; company: string | null } | null;
+  customers: { id: string; name: string; company: string | null } | null;
   assignee: { name: string | null } | null;
 };
 
@@ -28,6 +28,7 @@ export function toAdminOrder(r: OrderRow): AdminOrder {
     id: r.id,
     code: r.code,
     customer: r.customers?.company ?? r.customers?.name ?? '—',
+    customerId: r.customers?.id ?? null,
     service: r.service,
     pkg: r.pkg ?? '—',
     status: r.state,
@@ -43,9 +44,16 @@ export function toAdminOrder(r: OrderRow): AdminOrder {
 // ── money-blind (orders_mgr view omits value → map to 0) ────────────────────────
 // orders_mgr exposes the customer name/company as columns (not an embed), so money-blind roles read the
 // client without needing customers-RLS. Reshape them into the OrderRow.customers shape toAdminOrder expects.
-export type MgrOrderRow = Omit<OrderRow, 'value' | 'customers'> & { customer_name: string | null; customer_company: string | null };
+export type MgrOrderRow = Omit<OrderRow, 'value' | 'customers'> & { customer_id: string | null; customer_name: string | null; customer_company: string | null };
 export const toMgrOrder = (r: MgrOrderRow): AdminOrder =>
-  toAdminOrder({ ...r, value: 0, customers: r.customer_company || r.customer_name ? { name: r.customer_name ?? '', company: r.customer_company } : null });
+  // orders_mgr carries customer_id as a column — pass it through so a manager's orders can be joined to
+  // customer facts by id like everywhere else, rather than by company name.
+  toAdminOrder({
+    ...r, value: 0,
+    customers: r.customer_company || r.customer_name
+      ? { id: r.customer_id ?? '', name: r.customer_name ?? '', company: r.customer_company }
+      : null,
+  });
 
 // ── customer dashboard model (data/mock.ts Order) — derived (no schema for these) ──
 // Maps the stored service label (SERVICES[key].label) → ServiceKey. Both spellings kept so a "Keywords"

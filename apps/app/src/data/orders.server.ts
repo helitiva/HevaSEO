@@ -14,7 +14,7 @@ import {
 // Pure row→model mapping lives in lib/orderMap.ts (unit-tested there); this file is just I/O.
 
 const ORDER_SELECT =
-  'id, code, service, pkg, state, priority, source, value, deadline, created_at, customers(name, company), assignee:profiles!orders_assignee_id_fkey(name)';
+  'id, code, service, pkg, state, priority, source, value, deadline, created_at, customers(id, name, company), assignee:profiles!orders_assignee_id_fkey(name)';
 
 export async function getOrders(): Promise<AdminOrder[]> {
   const supabase = await createClient();
@@ -45,7 +45,7 @@ export async function getOrderById(id: string): Promise<AdminOrder | null> {
 
 // Money-blind reads via the orders_mgr view (omits value; its WHERE is the access gate).
 const MGR_ORDER_SELECT =
-  'id, code, service, pkg, state, priority, source, deadline, created_at, customer_name, customer_company, assignee:profiles!orders_assignee_id_fkey(name)';
+  'id, code, service, pkg, state, priority, source, deadline, created_at, customer_id, customer_name, customer_company, assignee:profiles!orders_assignee_id_fkey(name)';
 
 /** Pod/own orders via the money-stripped view (manager → tenant; staff → own assigned). */
 export async function getPodOrders(): Promise<AdminOrder[]> {
