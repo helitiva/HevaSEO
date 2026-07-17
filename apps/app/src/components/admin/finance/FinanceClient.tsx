@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlideOver } from '@/components/shared/SlideOver';
-import { CashflowChart } from '@/components/admin/finance/CashflowChart';
 import { WithdrawalRequests } from '@/components/admin/finance/WithdrawalRequests';
 import { AdminPenalties } from '@/components/admin/finance/AdminPenalties';
 import { AdminPayroll } from '@/components/admin/finance/AdminPayroll';
@@ -12,7 +11,7 @@ import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
 import type { AdminPenalty, WalletStaff } from '@/data/adminPenalties.server';
 import type { PayrollRun } from '@/data/adminPayroll.server';
 import {
-  FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CASHFLOW, CUSTOMERS, ORDERS,
+  FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CUSTOMERS, ORDERS,
   TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
   type Transaction, type TxKind, type Invoice, type InvoiceStatus, type Payout, type ManagerPayout,
   type AdminOrder, type AdminCustomer,
@@ -22,7 +21,8 @@ import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
-import type { FinanceKpis } from '@/data/adminRevenue.server';
+import type { FinanceKpis, RevenueDay } from '@/data/adminRevenue.server';
+import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META } from '@/lib/staffFinance';
@@ -60,7 +60,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -105,7 +105,7 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
       </div>
 
       <div className="page-anim">
-        {tab === 'overview' && <OverviewTab k={k} />}
+        {tab === 'overview' && <OverviewTab k={k} days={days} />}
         {tab === 'transactions' && <TransactionsTab />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
@@ -116,13 +116,12 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
 }
 
 /* ---------------------------------------------------------------- Overview */
-function OverviewTab({ k }: { k: FinanceKpis }) {
+function OverviewTab({ k, days }: { k: FinanceKpis; days: RevenueDay[] }) {
   const recent = [...TRANSACTIONS].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
   const pending = TRANSACTIONS.filter((t) => t.status === 'pending');
-  const totalIn = CASHFLOW.reduce((s, d) => s + d.in, 0);
-  const totalOut = CASHFLOW.reduce((s, d) => s + d.out, 0);
-  const net = totalIn - totalOut;
-  const flowMax = Math.max(totalIn, totalOut, 1);
+  const winDeposits = days.reduce((s, d) => s + d.deposits, 0);
+  const winRecognized = days.reduce((s, d) => s + d.recognized, 0);
+  const winMax = Math.max(winDeposits, winRecognized, 1);
 
   // The money figures come from the real book — these alerts sat next to the real KPI band claiming
   // "$11,160 in staff payouts due" (adminMock) while the band above said $3,044.40.
@@ -145,34 +144,38 @@ function OverviewTab({ k }: { k: FinanceKpis }) {
         </div>
       )}
 
-      <CashflowChart data={CASHFLOW} />
+      {/* real: deposits (cash in, a liability) vs revenue recognized on delivery — replaces a generated
+          "cashflow in vs out" that was pure adminMock */}
+      <RevenueSplitChart days={days} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" aria-hidden /> Net flow · 30d</p>
+          {/* Was "Net flow · 30d" off a generated CASHFLOW mock. There is no real cash-OUT ledger to draw
+              from, so this shows the split that IS real and matters: cash taken in vs revenue actually earned. */}
+          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" aria-hidden /> Cash vs earned · {days.length}d</p>
           <div className="space-y-3">
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Money in</span>
-                <span className="font-semibold tabular-nums text-emerald-600">+{money(totalIn)}</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-sky-500" />Deposits in</span>
+                <span className="font-semibold tabular-nums text-sky-600">+{money(winDeposits)}</span>
               </div>
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(totalIn / flowMax) * 100}%` }} />
+                <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${(winDeposits / winMax) * 100}%` }} />
               </div>
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />Money out</span>
-                <span className="font-semibold tabular-nums text-rose-500">−{money(totalOut)}</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Revenue earned</span>
+                <span className="font-semibold tabular-nums text-emerald-600">{money(winRecognized)}</span>
               </div>
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-rose-500 transition-all" style={{ width: `${(totalOut / flowMax) * 100}%` }} />
+                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(winRecognized / winMax) * 100}%` }} />
               </div>
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-sm">
-            <span className="text-muted-foreground">Net</span>
-            <span className={`font-bold tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{net >= 0 ? '+' : '−'}{money(Math.abs(net))}</span>
+            <span className="text-muted-foreground">Held against work owed</span>
+            <span className="font-bold tabular-nums text-foreground">{money(winDeposits - winRecognized)}</span>
           </div>
         </div>
 
