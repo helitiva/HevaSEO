@@ -4,19 +4,21 @@ import { getPayoutRequests } from '@/data/adminPayouts.server';
 import { getPenalties, getWalletStaff } from '@/data/adminPenalties.server';
 import { getPayrollRuns } from '@/data/adminPayroll.server';
 import { getPayrollPreview } from '@/data/adminComp.server';
+import { getFinanceKpis } from '@/data/adminRevenue.server';
 
 export const metadata = { title: 'Finance' };
 
 export default async function FinancePage() {
   // real staff money-ops (Lane D inc-D4/D5/D7): withdrawals + penalties + payroll runs + wallet-holders,
-  // plus the real comp config + what this period owes (commission on ASC 606 delivered value).
-  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview] = await Promise.all([
-    getPayoutRequests(), getPenalties(), getWalletStaff(), getPayrollRuns(), getPayrollPreview(),
+  // plus the real comp config + what this period owes (commission on ASC 606 delivered value) and the
+  // KPI band (was adminMock's fixed $18,650 gross / "3% of gross" refunds).
+  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview, kpis] = await Promise.all([
+    getPayoutRequests(), getPenalties(), getWalletStaff(), getPayrollRuns(), getPayrollPreview(), getFinanceKpis(),
   ]);
   return (
     <Suspense fallback={null}>
       <FinanceClient payoutRequests={payoutRequests} penalties={penalties} walletStaff={walletStaff}
-        payrollRuns={payrollRuns} compPreview={compPreview} />
+        payrollRuns={payrollRuns} compPreview={compPreview} kpis={kpis} />
     </Suspense>
   );
 }

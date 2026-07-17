@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { getPayrollPreview } from '@/data/adminComp.server';
 
 /**
  * The money book for admin — real, RLS-scoped (admin sees the whole tenant), on SaaS revenue-recognition
@@ -34,6 +35,16 @@ export interface RevenueBook {
 
 type LedgerRow = { kind: string; amount: number | string; created_at: string; order_id: string | null };
 type OrderRow = { value: number | string; state: string; created_at: string; delivered_at: string | null };
+
+/** The Finance page's KPI band. Same book, framed as "where the money sits and what's due". */
+export interface FinanceKpis {
+  grossMtd: number;        // recognized revenue this month, before refunds
+  refundsMtd: number;
+  netMtd: number;          // gross − refunds
+  walletLiability: number; // prepaid customer credit we still owe as work
+  payoutsDue: number;      // what this period owes staff + managers
+  outstandingAr: number;   // invoices issued but not settled
+}
 
 const day = (ts: string): string => ts.slice(0, 10);
 const num = (v: number | string): number => Number(v) || 0;
@@ -96,5 +107,46 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
       ok: Math.abs(expected - deferredTotal) < 0.01,
     },
     days,
+  };
+}
+
+/**
+ * The Finance KPI band, real. It used to render adminMock's FIN_KPIS ($18,650 gross, a "3% of gross"
+ * refunds figure, $2,460 wallet liability) — none of it connected to the business.
+ *
+ * The two that people get backwards:
+ *  · "Gross" is RECOGNIZED revenue (work delivered this month) — not cash in, not orders placed.
+ *  · "Wallet liability" is prepaid credit the customer hasn't spent: cash we hold but still owe as work.
+ */
+export async function getFinanceKpis(): Promise<FinanceKpis> {
+  const supabase = await createClient();
+  const [book, payroll, invRes, ledgerRes] = await Promise.all([
+    getRevenueBook(1),
+    getPayrollPreview(),
+    supabase.from('invoices').select('amount, status').returns<{ amount: number | string; status: string }[]>(),
+    supabase.from('credit_ledger').select('kind, amount, created_at').returns<Pick<LedgerRow, 'kind' | 'amount' | 'created_at'>[]>(),
+  ]);
+  if (invRes.error) throw new Error(`getFinanceKpis invoices: ${invRes.error.message}`);
+  if (ledgerRes.error) throw new Error(`getFinanceKpis ledger: ${ledgerRes.error.message}`);
+
+  const month = new Date().toISOString().slice(0, 7);
+  const refundsMtd = round2((ledgerRes.data ?? [])
+    .filter((l) => l.kind === 'refund' && l.created_at.slice(0, 7) === month)
+    .reduce((s, l) => s + Math.abs(num(l.amount)), 0));
+
+  // AR = what customers still owe us: anything invoiced that hasn't settled.
+  const SETTLED = ['paid', 'void', 'refunded'];
+  const outstandingAr = round2((invRes.data ?? [])
+    .filter((i) => !SETTLED.includes(i.status))
+    .reduce((s, i) => s + num(i.amount), 0));
+
+  const grossMtd = book.mtd.recognized;
+  return {
+    grossMtd,
+    refundsMtd,
+    netMtd: round2(grossMtd - refundsMtd),
+    walletLiability: book.deferred.unspentCredit,
+    payoutsDue: payroll.totals.total,
+    outstandingAr,
   };
 }

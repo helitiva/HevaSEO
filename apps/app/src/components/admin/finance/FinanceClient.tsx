@@ -22,6 +22,7 @@ import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
+import type { FinanceKpis } from '@/data/adminRevenue.server';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META } from '@/lib/staffFinance';
@@ -59,11 +60,13 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const tab = (params.get('tab') as TabKey) ?? 'overview';
+  // the KPI band is server-computed from the real book; zeros (not mock figures) if it's ever absent
+  const k: FinanceKpis = kpis ?? { grossMtd: 0, refundsMtd: 0, netMtd: 0, walletLiability: 0, payoutsDue: 0, outstandingAr: 0 };
   const setTab = (k: TabKey) => {
     const next = new URLSearchParams(params.toString());
     if (k === 'overview') next.delete('tab'); else next.set('tab', k);
@@ -81,12 +84,14 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
 
       {/* KPI band */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi icon="ph-currency-dollar" label="Gross · MTD" value={money(f.grossMtd)} tone="good" hint="before refunds" />
-        <Kpi icon="ph-chart-line-up" label="Net · MTD" value={money(f.netMtd)} tone="good" hint="after refunds" />
-        <Kpi icon="ph-wallet" label="Wallet liability" value={money(f.walletLiability)} hint="prepaid customer credit" />
-        <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(f.refundsMtd)} hint="3% of gross" />
-        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(f.payoutsDue)} tone="warn" hint="staff + managers" />
-        <Kpi icon="ph-receipt" label="Outstanding AR" value={money(f.outstandingAr)} tone="warn" hint="unpaid invoices" />
+        {/* Real, from the ASC 606 book. "Gross" is RECOGNIZED revenue (work delivered this month) — not cash
+            in and not orders placed; "Wallet liability" is prepaid credit we still owe as work. */}
+        <Kpi icon="ph-currency-dollar" label="Gross · MTD" value={money(k.grossMtd)} tone="good" hint="revenue recognized on delivery" />
+        <Kpi icon="ph-chart-line-up" label="Net · MTD" value={money(k.netMtd)} tone="good" hint="after refunds" />
+        <Kpi icon="ph-wallet" label="Wallet liability" value={money(k.walletLiability)} hint="prepaid customer credit" />
+        <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(k.refundsMtd)} hint="credit refunded" />
+        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(k.payoutsDue)} tone="warn" hint="staff + managers" />
+        <Kpi icon="ph-receipt" label="Outstanding AR" value={money(k.outstandingAr)} tone="warn" hint="unsettled invoices" />
       </div>
 
       {/* Tabs */}
