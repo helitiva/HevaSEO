@@ -48,3 +48,24 @@ export async function getCustomers(): Promise<AdminCustomer[]> {
     tier: c.tier,
   }));
 }
+
+/**
+ * Open tickets per customer id — real, from the tickets table.
+ *
+ * The customers roster used to count these by filtering the adminMock TICKETS array on
+ * `t.customer === c.company`. Real customers Nova / Vértice / Peak Digital / Lumen share names with mock
+ * ones, so they'd have inherited fabricated ticket counts; every other real customer got 0 by accident
+ * rather than by fact. Keyed by id, so a name collision can't reach it.
+ */
+export async function getOpenTicketCounts(): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('tickets')
+    .select('customer_id, status')
+    .in('status', ['open', 'pending'])
+    .returns<{ customer_id: string | null; status: string }[]>();
+  if (error) throw new Error(`getOpenTicketCounts: ${error.message}`);
+  const out = new Map<string, number>();
+  for (const t of data ?? []) if (t.customer_id) out.set(t.customer_id, (out.get(t.customer_id) ?? 0) + 1);
+  return out;
+}

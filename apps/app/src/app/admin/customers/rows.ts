@@ -14,12 +14,24 @@ const CLOSED = ['completed', 'canceled'];
 
 // Derivation shared by the admin Customers page and the manager (pod-scoped) one. `allOrders`
 // defaults to the mock ORDERS (manager surface, still mock); the admin page passes real orders.
-export function buildCustomerRows(customers: readonly AdminCustomer[], allOrders: readonly AdminOrder[] = ORDERS): CustomerRow[] {
+export function buildCustomerRows(
+  customers: readonly AdminCustomer[],
+  allOrders: readonly AdminOrder[] = ORDERS,
+  /**
+   * Real open-ticket count per customer id. Absent → the mock TICKETS join below, which is only correct
+   * for the mock manager surface. For real customers it matched on COMPANY NAME, so Nova / Vértice /
+   * Peak Digital / Lumen — who exist in both the real table and the mock array — would have shown
+   * fabricated ticket counts.
+   */
+  openTicketsById?: ReadonlyMap<string, number>,
+): CustomerRow[] {
   return customers.map((c) => {
     const orders = allOrders.filter((o) => o.customer === c.company);
     const activeOrders = orders.filter((o) => !CLOSED.includes(o.status)).length;
-    const ticketRows = TICKETS.filter((t) => t.customer === c.company);
-    const openTickets = ticketRows.filter((t) => t.status === 'open' || t.status === 'pending').length;
+    const ticketRows = openTicketsById ? [] : TICKETS.filter((t) => t.customer === c.company);
+    const openTickets = openTicketsById
+      ? openTicketsById.get(c.id) ?? 0
+      : ticketRows.filter((t) => t.status === 'open' || t.status === 'pending').length;
     const firstOrder = [...orders].sort((a, b) => a.created.localeCompare(b.created))[0];
     const source = firstOrder?.source ?? 'quick';
     const extra = CUSTOMER_EXTRA[c.id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
