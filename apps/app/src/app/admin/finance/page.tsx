@@ -5,6 +5,7 @@ import { getPenalties, getWalletStaff } from '@/data/adminPenalties.server';
 import { getPayrollRuns } from '@/data/adminPayroll.server';
 import { getPayrollPreview } from '@/data/adminComp.server';
 import { getFinanceKpis, getRevenueBook } from '@/data/adminRevenue.server';
+import { getLedger, getPayments } from '@/data/adminLedger.server';
 
 export const metadata = { title: 'Finance' };
 
@@ -12,14 +13,15 @@ export default async function FinancePage() {
   // real staff money-ops (Lane D inc-D4/D5/D7): withdrawals + penalties + payroll runs + wallet-holders,
   // plus the real comp config + what this period owes (commission on ASC 606 delivered value) and the
   // KPI band (was adminMock's fixed $18,650 gross / "3% of gross" refunds).
-  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview, kpis, book] = await Promise.all([
+  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview, kpis, book, ledger, payments] = await Promise.all([
     getPayoutRequests(), getPenalties(), getWalletStaff(), getPayrollRuns(), getPayrollPreview(), getFinanceKpis(),
-    getRevenueBook(30),
+    getRevenueBook(30), getLedger(), getPayments(),
   ]);
   return (
     <Suspense fallback={null}>
       <FinanceClient payoutRequests={payoutRequests} penalties={penalties} walletStaff={walletStaff}
-        payrollRuns={payrollRuns} compPreview={compPreview} kpis={kpis} days={book.days} />
+        payrollRuns={payrollRuns} compPreview={compPreview} kpis={kpis} days={book.days}
+        ledger={ledger} payments={payments} />
     </Suspense>
   );
 }

@@ -38,12 +38,13 @@ type OrderRow = { value: number | string; state: string; created_at: string; del
 
 /** The Finance page's KPI band. Same book, framed as "where the money sits and what's due". */
 export interface FinanceKpis {
-  grossMtd: number;        // recognized revenue this month, before refunds
+  grossMtd: number;         // recognized revenue this month, before refunds
   refundsMtd: number;
-  netMtd: number;          // gross − refunds
-  walletLiability: number; // prepaid customer credit we still owe as work
-  payoutsDue: number;      // what this period owes staff + managers
-  outstandingAr: number;   // invoices issued but not settled
+  netMtd: number;           // gross − refunds
+  walletLiability: number;  // prepaid customer credit we still owe as work
+  payoutsDue: number;       // what this period owes staff + managers
+  depositsMtd: number;      // cash collected this month — the cash counterpart to grossMtd
+  paymentsInFlight: number; // charges the provider hasn't confirmed yet
 }
 
 const day = (ts: string): string => ts.slice(0, 10);
@@ -117,6 +118,14 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
  * The two that people get backwards:
  *  · "Gross" is RECOGNIZED revenue (work delivered this month) — not cash in, not orders placed.
  *  · "Wallet liability" is prepaid credit the customer hasn't spent: cash we hold but still owe as work.
+ *
+ * There is deliberately no accounts-receivable figure. This business is prepaid: nobody can owe us,
+ * because no work starts before the credit is in. An earlier version of this function reported
+ * "outstanding AR" by counting every invoice whose status wasn't in ['paid','void','refunded'] — but
+ * `invoices` is a RECEIPT per settled top-up and its CHECK constraint only permits
+ * ['issued','processing','void'], so 'paid' was unreachable and every receipt counted as a debt. It
+ * read $20,080 owed to us; the truth was $0 owed to us and $19,728.98 owed BY us. Cash collected
+ * (depositsMtd) replaces it — the honest counterpart to gross.
  */
 export async function getFinanceKpis(): Promise<FinanceKpis> {
   const supabase = await createClient();
@@ -134,10 +143,10 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
     .filter((l) => l.kind === 'refund' && l.created_at.slice(0, 7) === month)
     .reduce((s, l) => s + Math.abs(num(l.amount)), 0));
 
-  // AR = what customers still owe us: anything invoiced that hasn't settled.
-  const SETTLED = ['paid', 'void', 'refunded'];
-  const outstandingAr = round2((invRes.data ?? [])
-    .filter((i) => !SETTLED.includes(i.status))
+  // 'processing' = the provider took the charge but hasn't confirmed it. The only money genuinely in
+  // limbo; 'issued' receipts are settled cash and 'void' ones never happened.
+  const paymentsInFlight = round2((invRes.data ?? [])
+    .filter((i) => i.status === 'processing')
     .reduce((s, i) => s + num(i.amount), 0));
 
   const grossMtd = book.mtd.recognized;
@@ -147,6 +156,7 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
     netMtd: round2(grossMtd - refundsMtd),
     walletLiability: book.deferred.unspentCredit,
     payoutsDue: payroll.totals.total,
-    outstandingAr,
+    depositsMtd: book.mtd.deposits,
+    paymentsInFlight,
   };
 }

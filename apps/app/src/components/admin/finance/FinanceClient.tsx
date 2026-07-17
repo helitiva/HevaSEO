@@ -11,10 +11,9 @@ import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
 import type { AdminPenalty, WalletStaff } from '@/data/adminPenalties.server';
 import type { PayrollRun } from '@/data/adminPayroll.server';
 import {
-  FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CUSTOMERS, ORDERS,
-  TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
-  type Transaction, type TxKind, type Invoice, type InvoiceStatus, type Payout, type ManagerPayout,
-  type AdminOrder, type AdminCustomer,
+  FINANCE, TRANSACTIONS, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CUSTOMERS, ORDERS,
+  TX_KIND, TX_METHOD, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
+  type Transaction, type Payout, type ManagerPayout, type AdminOrder, type AdminCustomer,
 } from '@/data/adminMock';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { gigPay } from '@/lib/payOverrides';
@@ -22,6 +21,7 @@ import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
 import type { FinanceKpis, RevenueDay } from '@/data/adminRevenue.server';
+import type { LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
 import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
@@ -33,8 +33,18 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'transactions', label: 'Transactions', icon: 'ph-arrows-left-right' },
   { key: 'wallets', label: 'Wallets', icon: 'ph-wallet' },
   { key: 'payouts', label: 'Payouts', icon: 'ph-hand-coins' },
-  { key: 'invoices', label: 'Invoices', icon: 'ph-file-text' },
+  // 'invoices' is the URL key (kept — it's linkable), but these rows are RECEIPTS for money already
+  // taken, not bills we're chasing. Prepaid business: nobody can owe us.
+  { key: 'invoices', label: 'Payments', icon: 'ph-receipt' },
 ];
+
+/** How each real ledger movement reads to a finance admin. `flow` is in/out of the customer WALLET. */
+const LEDGER_KIND: Record<LedgerKind, { label: string; icon: string; flow: 'in' | 'out'; hint: string }> = {
+  topup:      { label: 'Top-up',       icon: 'ph-arrow-circle-down',  flow: 'in',  hint: 'Cash in — becomes credit we owe as work' },
+  debit:      { label: 'Order placed',  icon: 'ph-receipt',            flow: 'out', hint: 'Credit spent on an order — not new cash, not yet revenue' },
+  refund:     { label: 'Refund',        icon: 'ph-arrow-u-down-left',  flow: 'in',  hint: 'Credit returned to the wallet' },
+  cancel_fee: { label: 'Cancellation fee', icon: 'ph-prohibit',        flow: 'out', hint: 'Fee charged against credit on cancellation' },
+};
 
 // localStorage-backed state for the admin's in-session finance actions
 // (mark-paid, payroll overrides, invoice actions, wallet top-ups). No backend
@@ -60,13 +70,13 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[] }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], ledger = [], payments = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; ledger?: LedgerEntry[]; payments?: PaymentReceipt[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const tab = (params.get('tab') as TabKey) ?? 'overview';
   // the KPI band is server-computed from the real book; zeros (not mock figures) if it's ever absent
-  const k: FinanceKpis = kpis ?? { grossMtd: 0, refundsMtd: 0, netMtd: 0, walletLiability: 0, payoutsDue: 0, outstandingAr: 0 };
+  const k: FinanceKpis = kpis ?? { grossMtd: 0, refundsMtd: 0, netMtd: 0, walletLiability: 0, payoutsDue: 0, depositsMtd: 0, paymentsInFlight: 0 };
   const setTab = (k: TabKey) => {
     const next = new URLSearchParams(params.toString());
     if (k === 'overview') next.delete('tab'); else next.set('tab', k);
@@ -91,7 +101,10 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
         <Kpi icon="ph-wallet" label="Wallet liability" value={money(k.walletLiability)} hint="prepaid customer credit" />
         <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(k.refundsMtd)} hint="credit refunded" />
         <Kpi icon="ph-hand-coins" label="Payouts due" value={money(k.payoutsDue)} tone="warn" hint="staff + managers" />
-        <Kpi icon="ph-receipt" label="Outstanding AR" value={money(k.outstandingAr)} tone="warn" hint="unsettled invoices" />
+        {/* Was "Outstanding AR", which counted every top-up receipt as a customer debt — in a prepaid
+            business AR is structurally $0. Cash collected is the number that actually belongs next to
+            gross: the same money, before we've earned it. */}
+        <Kpi icon="ph-arrow-circle-down" label="Deposits · MTD" value={money(k.depositsMtd)} hint="cash collected — not revenue" />
       </div>
 
       {/* Tabs */}
@@ -105,29 +118,28 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
       </div>
 
       <div className="page-anim">
-        {tab === 'overview' && <OverviewTab k={k} days={days} />}
-        {tab === 'transactions' && <TransactionsTab />}
+        {tab === 'overview' && <OverviewTab k={k} days={days} ledger={ledger} />}
+        {tab === 'transactions' && <TransactionsTab ledger={ledger} />}
         {tab === 'wallets' && <WalletsTab />}
         {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
-        {tab === 'invoices' && <InvoicesTab />}
+        {tab === 'invoices' && <PaymentsTab payments={payments} />}
       </div>
     </section>
   );
 }
 
 /* ---------------------------------------------------------------- Overview */
-function OverviewTab({ k, days }: { k: FinanceKpis; days: RevenueDay[] }) {
-  const recent = [...TRANSACTIONS].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-  const pending = TRANSACTIONS.filter((t) => t.status === 'pending');
+function OverviewTab({ k, days, ledger }: { k: FinanceKpis; days: RevenueDay[]; ledger: LedgerEntry[] }) {
+  const recent = ledger.slice(0, 6); // already newest-first from the server
   const winDeposits = days.reduce((s, d) => s + d.deposits, 0);
   const winRecognized = days.reduce((s, d) => s + d.recognized, 0);
   const winMax = Math.max(winDeposits, winRecognized, 1);
 
-  // The money figures come from the real book — these alerts sat next to the real KPI band claiming
-  // "$11,160 in staff payouts due" (adminMock) while the band above said $3,044.40.
+  // Every alert must be a real thing an admin can act on. Two used to be theatre: "$20,080 in unsettled
+  // invoices" (every settled top-up receipt miscounted as a debt) and "1 pending payment · $200" (an
+  // adminMock row). Both are gone. An empty alert row now genuinely means nothing needs attention.
   const alerts = [
-    k.outstandingAr ? { icon: 'ph-warning-circle', tone: 'bad' as const, text: `${money(k.outstandingAr)} in unsettled invoices`, href: '?tab=invoices' } : null,
-    pending.length ? { icon: 'ph-hourglass-medium', tone: 'warn' as const, text: `${pending.length} pending payment${pending.length > 1 ? 's' : ''} · ${money(pending.reduce((a, t) => a + t.amount, 0))}`, href: '?tab=transactions' } : null,
+    k.paymentsInFlight ? { icon: 'ph-hourglass-medium', tone: 'warn' as const, text: `${money(k.paymentsInFlight)} in payments awaiting confirmation`, href: '?tab=invoices' } : null,
     k.payoutsDue ? { icon: 'ph-hand-coins', tone: 'warn' as const, text: `${money(k.payoutsDue)} in staff payouts due`, href: '?tab=payouts' } : null,
   ].filter(Boolean) as { icon: string; tone: 'bad' | 'warn'; text: string; href: string }[];
 
@@ -185,7 +197,8 @@ function OverviewTab({ k, days }: { k: FinanceKpis; days: RevenueDay[] }) {
             <Link href="?tab=transactions" scroll={false} className="text-xs font-semibold text-primary hover:underline">All →</Link>
           </div>
           <ul className="divide-y divide-border/60">
-            {recent.map((t) => <RecentRow key={t.id} t={t} />)}
+            {recent.map((e) => <RecentRow key={e.id} e={e} />)}
+            {recent.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">No money has moved yet.</li>}
           </ul>
         </div>
       </div>
@@ -193,60 +206,67 @@ function OverviewTab({ k, days }: { k: FinanceKpis; days: RevenueDay[] }) {
   );
 }
 
-function RecentRow({ t }: { t: Transaction }) {
-  const meta = TX_KIND[t.kind];
+function RecentRow({ e }: { e: LedgerEntry }) {
+  const meta = LEDGER_KIND[e.kind];
   return (
     <li className="flex items-center gap-3 py-2.5 text-sm">
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{t.party} <span className="text-muted-foreground">· {meta.label}</span></p>
-        <p className="text-[11px] text-muted-foreground">{t.at}{t.orderCode ? ` · ${t.orderCode}` : ''}</p>
+        <p className="truncate font-medium">{e.customer} <span className="text-muted-foreground">· {meta.label}</span></p>
+        <p className="text-[11px] text-muted-foreground">{stamp(e.at)}{e.orderCode ? ` · ${e.orderCode}` : ''}</p>
       </div>
-      <Amount n={t.amount} status={t.status} />
+      <LedgerAmount n={e.amount} />
     </li>
   );
 }
 
 /* ------------------------------------------------------------ Transactions */
-const KIND_FILTERS: { key: TxKind | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' }, { key: 'top_up', label: 'Top-ups' }, { key: 'charge', label: 'Payments' },
-  { key: 'refund', label: 'Refunds' }, { key: 'payout', label: 'Payouts' }, { key: 'adjustment', label: 'Adjustments' },
+// The real credit ledger. Note what ISN'T here versus the mock it replaces: no Method and no Status
+// column. credit_ledger records movements that have already happened, so "pending"/"failed" rows
+// cannot exist — a ledger row IS settled. Payment method lives on the receipt (Payments tab), not
+// on the movement.
+const KIND_FILTERS: { key: LedgerKind | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' }, { key: 'topup', label: 'Top-ups' }, { key: 'debit', label: 'Orders' },
+  { key: 'refund', label: 'Refunds' }, { key: 'cancel_fee', label: 'Fees' },
 ];
 
-const TX_DATES = TRANSACTIONS.map((t) => t.at.slice(0, 10)).sort();
-const TX_MIN = TX_DATES[0];
-const TX_MAX = TX_DATES[TX_DATES.length - 1];
-
-function TransactionsTab() {
-  const [kind, setKind] = useState<TxKind | 'all'>('all');
+function TransactionsTab({ ledger }: { ledger: LedgerEntry[] }) {
+  const [kind, setKind] = useState<LedgerKind | 'all'>('all');
   const [party, setParty] = useState('');
   const [search, setSearch] = useState('');
-  const [from, setFrom] = useState(TX_MIN);
-  const [to, setTo] = useState(TX_MAX);
-  const [selected, setSelected] = useState<Transaction | null>(null);
+  const [selected, setSelected] = useState<LedgerEntry | null>(null);
 
-  const parties = useMemo(() => [...new Set(TRANSACTIONS.map((t) => t.party))].sort(), []);
-  const rows = useMemo(() => [...TRANSACTIONS]
-    .sort((a, b) => b.at.localeCompare(a.at))
-    .filter((t) => {
-      const day = t.at.slice(0, 10);
-      return (kind === 'all' || t.kind === kind)
-        && (!party || t.party === party)
-        && day >= from && day <= to
-        && (!search.trim() || `${t.party} ${t.note} ${t.orderCode ?? ''}`.toLowerCase().includes(search.toLowerCase()));
-    }),
-    [kind, party, search, from, to]);
-  // Keep cash and revenue separate — a wallet charge spends credit that was
-  // already counted at top-up, so summing both would double-count the same money.
-  const topUps = rows.filter((t) => t.kind === 'top_up' && t.status !== 'failed').reduce((a, t) => a + t.amount, 0);
-  const revenue = rows.filter((t) => t.kind === 'charge').reduce((a, t) => a + t.amount, 0);
-  const sumOut = rows.filter((t) => t.amount < 0).reduce((a, t) => a + t.amount, 0);
+  // the pickable range is whatever the ledger actually spans — an empty ledger must not produce
+  // `undefined` bounds, which would silently filter every row out
+  const [min, max] = useMemo(() => {
+    const days = ledger.map((e) => e.at.slice(0, 10)).sort();
+    const today = new Date().toISOString().slice(0, 10);
+    return [days[0] ?? today, days[days.length - 1] ?? today];
+  }, [ledger]);
+  const [from, setFrom] = useState(min);
+  const [to, setTo] = useState(max);
+
+  const parties = useMemo(() => [...new Set(ledger.map((e) => e.customer))].sort(), [ledger]);
+  const rows = useMemo(() => ledger.filter((e) => {
+    const day = e.at.slice(0, 10);
+    return (kind === 'all' || e.kind === kind)
+      && (!party || e.customer === party)
+      && day >= from && day <= to
+      && (!search.trim() || `${e.customer} ${e.orderCode ?? ''} ${e.reference ?? ''}`.toLowerCase().includes(search.toLowerCase()));
+  }), [ledger, kind, party, search, from, to]);
+
+  // Three separate numbers, never added together. Cash in is real money arriving. Credit spent is the
+  // SAME money being committed to an order — counting it as income again would double-count it, and it
+  // isn't revenue either way (that's earned on delivery — see the Overview chart).
+  const cashIn = rows.filter((e) => e.kind === 'topup').reduce((a, e) => a + e.amount, 0);
+  const creditSpent = rows.filter((e) => e.kind === 'debit').reduce((a, e) => a + Math.abs(e.amount), 0);
+  const returned = rows.filter((e) => e.kind === 'refund').reduce((a, e) => a + e.amount, 0);
 
   const exportCsv = () => {
     downloadCsv(
       `transactions_${from}_to_${to}.csv`,
-      ['Date', 'Type', 'Party', 'Order', 'Method', 'Status', 'Amount', 'Note'],
-      rows.map((t) => [t.at, TX_KIND[t.kind].label, t.party, t.orderCode ?? '', TX_METHOD[t.method].label, t.status, t.amount, t.note]),
+      ['Date', 'Type', 'Customer', 'Order', 'Amount', 'Reference'],
+      rows.map((e) => [stamp(e.at), LEDGER_KIND[e.kind].label, e.customer, e.orderCode ?? '', e.amount, e.reference ?? '']),
     );
   };
 
@@ -260,17 +280,17 @@ function TransactionsTab() {
           ))}
         </div>
         <select value={party} onChange={(e) => setParty(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
-          <option value="">All parties</option>
+          <option value="">All customers</option>
           {parties.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <div className="inline-flex items-center gap-1 rounded-lg border border-border p-1 text-xs">
-          <input type="date" value={from} min={TX_MIN} max={to} onChange={(e) => setFrom(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
+          <input type="date" value={from} min={min} max={to} onChange={(e) => setFrom(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
           <span className="text-muted-foreground">→</span>
-          <input type="date" value={to} min={from} max={TX_MAX} onChange={(e) => setTo(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
+          <input type="date" value={to} min={from} max={max} onChange={(e) => setTo(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
         </div>
         <div className="relative ml-auto min-w-[12rem] flex-1 sm:flex-none">
           <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search party, note, order…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, order, ref…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
         </div>
         <button onClick={exportCsv} disabled={rows.length === 0}
           title="Download the filtered transactions as CSV"
@@ -280,84 +300,79 @@ function TransactionsTab() {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
-        <span>{rows.length} transactions</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-emerald-600" aria-hidden />Top-ups <span className="font-semibold text-emerald-600">{money(topUps)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-receipt text-emerald-600" aria-hidden />Revenue <span className="font-semibold text-emerald-600">{money(revenue)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-up text-rose-500" aria-hidden />Out <span className="font-semibold text-rose-500">{money(Math.abs(sumOut))}</span></span>
+        <span>{rows.length} movement{rows.length !== 1 ? 's' : ''}</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-sky-600" aria-hidden />Cash in <span className="font-semibold text-sky-600">{money(cashIn)}</span></span>
+        <span className="flex items-center gap-1" title="Credit committed to orders — the same money as the top-up, not new income">
+          <i className="ph-bold ph-receipt text-muted-foreground" aria-hidden />Credit spent <span className="font-semibold text-foreground">{money(creditSpent)}</span></span>
+        {returned > 0 && <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-u-down-left text-amber-600" aria-hidden />Refunded <span className="font-semibold text-amber-600">{money(returned)}</span></span>}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Date</th><th className="p-3">Type</th><th className="p-3">Party</th>
-              <th className="p-3">Method</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th><th className="p-3" aria-hidden />
+              <th className="p-3">Date</th><th className="p-3">Type</th><th className="p-3">Customer</th>
+              <th className="p-3">Order</th><th className="p-3 text-right">Amount</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => {
-              const meta = TX_KIND[t.kind];
+            {rows.map((e) => {
+              const meta = LEDGER_KIND[e.kind];
               return (
-                <tr key={t.id} onClick={() => setSelected(t)}
-                  role="button" tabIndex={0} aria-label={`${meta.label} · ${t.party} · ${money(Math.abs(t.amount))}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(t); } }}
+                <tr key={e.id} onClick={() => setSelected(e)}
+                  role="button" tabIndex={0} aria-label={`${meta.label} · ${e.customer} · ${money(Math.abs(e.amount))}`}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(e); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
-                  <td className="whitespace-nowrap p-3 text-muted-foreground">{t.at}</td>
+                  <td className="whitespace-nowrap p-3 text-muted-foreground">{stamp(e.at)}</td>
                   <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />{meta.label}</span></td>
-                  <td className="p-3"><span className="font-medium">{t.party}</span>{t.orderCode && <span className="text-muted-foreground"> · {t.orderCode}</span>}</td>
-                  <td className="p-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><i className={`ph-bold ${TX_METHOD[t.method].icon}`} aria-hidden />{TX_METHOD[t.method].label}</span></td>
-                  <td className="p-3"><TxStatusPill status={t.status} /></td>
-                  <td className="p-3 text-right"><Amount n={t.amount} status={t.status} /></td>
+                  <td className="p-3 font-medium">{e.customer}</td>
+                  <td className="p-3 text-muted-foreground">{e.orderCode ?? '—'}</td>
+                  <td className="p-3 text-right"><LedgerAmount n={e.amount} /></td>
                   <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions match.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transactions match.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? TX_KIND[selected.kind].label : ''}>
-        {selected && <TxDetail t={selected} />}
+      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? LEDGER_KIND[selected.kind].label : ''}>
+        {selected && <TxDetail e={selected} />}
       </SlideOver>
     </div>
   );
 }
 
-function TxDetail({ t }: { t: Transaction }) {
-  const meta = TX_KIND[t.kind];
-  const cust = t.partyId && t.partyId.startsWith('c') ? CUSTOMERS.find((c) => c.id === t.partyId) : null;
+function TxDetail({ e }: { e: LedgerEntry }) {
+  const meta = LEDGER_KIND[e.kind];
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <span className={`grid h-12 w-12 place-items-center rounded-xl ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon} text-xl`} aria-hidden /></span>
         <div>
-          <p className="display text-2xl font-bold leading-none"><Amount n={t.amount} status={t.status} /></p>
-          <p className="mt-1 text-xs text-muted-foreground">{meta.label} · {t.at}</p>
+          <p className="display text-2xl font-bold leading-none"><LedgerAmount n={e.amount} /></p>
+          <p className="mt-1 text-xs text-muted-foreground">{meta.label} · {stamp(e.at)}</p>
         </div>
-        <div className="ml-auto"><TxStatusPill status={t.status} /></div>
       </div>
+
+      <p className="rounded-lg border border-border bg-background/40 p-3 text-sm text-muted-foreground">{meta.hint}</p>
 
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <KV label="Party" value={t.party} />
-        <KV label="Method" value={TX_METHOD[t.method].label} />
-        <KV label="Reference" value={t.id.toUpperCase()} />
-        <KV label="Linked order" value={t.orderCode ?? '—'} />
-      </div>
-
-      <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Note</p>
-        <p className="rounded-lg border border-border bg-background/40 p-3 text-sm">{t.note}</p>
+        <KV label="Customer" value={e.customer} />
+        <KV label="Linked order" value={e.orderCode ?? '—'} />
+        <KV label="Ledger entry" value={e.id.slice(0, 8)} />
+        <KV label="Provider ref" value={e.reference ?? '—'} />
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
-        {cust && (
+        {e.customerId && (
           <>
-            <Link href={`/admin/customers/${cust.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
-            <a href={`/admin/customers/${cust.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
+            <Link href={`/admin/customers/${e.customerId}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
+            <a href={`/admin/customers/${e.customerId}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
           </>
         )}
-        {t.orderCode && <Link href="/admin/orders" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" aria-hidden />View order</Link>}
+        {e.orderCode && <Link href={`/admin/orders?q=${encodeURIComponent(e.orderCode)}`} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" aria-hidden />View order</Link>}
       </div>
     </div>
   );
@@ -1203,108 +1218,111 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   );
 }
 
-/* --------------------------------------------------------------- Invoices */
-function InvoicesTab() {
-  const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
-  const [paidIds, setPaidIds] = usePersistedState<Record<string, boolean>>('invoicePaid', {});
-  const [remindedIds, setRemindedIds] = usePersistedState<Record<string, boolean>>('invoiceReminded', {});
+/* --------------------------------------------------------------- Payments */
+// Receipts for money already taken. This replaces an "Invoices" table that modelled a post-paid
+// business we don't run: it had Due dates, an Overdue state, "Remind" and "Mark paid" buttons — and
+// its own $20,080 "Outstanding" total. All fiction. We are prepaid: the receipt is written *after*
+// the provider confirms the charge, so there is nothing to chase, nothing to mark, and no due date.
+// The only real status distinction is whether the provider has confirmed it yet.
+const RECEIPT_STATUS: Record<PaymentReceipt['status'], { label: string; pill: string; hint: string }> = {
+  issued:     { label: 'Settled',    pill: 'pill-live', hint: 'Provider confirmed the charge — cash is in' },
+  processing: { label: 'In flight',  pill: 'pill-warn', hint: 'Charge taken, awaiting provider confirmation' },
+  void:       { label: 'Void',       pill: 'pill-bad',  hint: 'Cancelled — never collected' },
+};
 
-  const effStatus = (i: Invoice): InvoiceStatus => (paidIds[i.id] ? 'paid' : i.status);
-
-  const sorted = useMemo(() => [...INVOICES].sort((a, b) => b.issued.localeCompare(a.issued)), []);
-  const rows = sorted.filter((i) => status === 'all' || effStatus(i) === status);
+function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
+  const [status, setStatus] = useState<PaymentReceipt['status'] | 'all'>('all');
+  const rows = payments.filter((p) => status === 'all' || p.status === status);
   const counts = {
-    all: INVOICES.length,
-    overdue: INVOICES.filter((i) => effStatus(i) === 'overdue').length,
-    due: INVOICES.filter((i) => effStatus(i) === 'due').length,
-    paid: INVOICES.filter((i) => effStatus(i) === 'paid').length,
+    all: payments.length,
+    issued: payments.filter((p) => p.status === 'issued').length,
+    processing: payments.filter((p) => p.status === 'processing').length,
+    void: payments.filter((p) => p.status === 'void').length,
+  };
+  const exportCsv = () => {
+    downloadCsv('payments.csv', ['Receipt', 'Customer', 'Date', 'Provider', 'Reference', 'Status', 'Amount'],
+      rows.map((p) => [p.number, p.customer, stamp(p.at), p.provider, p.providerRef ?? '', RECEIPT_STATUS[p.status].label, p.amount]));
   };
 
   return (
     <div className="space-y-3">
-      <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
-        {(['all', 'overdue', 'due', 'paid'] as const).map((s) => (
-          <button key={s} onClick={() => setStatus(s)}
-            className={`rounded-md px-2.5 py-1 capitalize transition ${status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{s} · {counts[s]}</button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
+          {(['all', 'issued', 'processing', 'void'] as const).map((s) => (
+            <button key={s} onClick={() => setStatus(s)}
+              className={`rounded-md px-2.5 py-1 transition ${status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {s === 'all' ? 'All' : RECEIPT_STATUS[s].label} · {counts[s]}
+            </button>
+          ))}
+        </div>
+        <button onClick={exportCsv} disabled={rows.length === 0}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">
+          <i className="ph-bold ph-download-simple" aria-hidden />Export CSV
+        </button>
       </div>
+
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Invoice</th><th className="p-3">Customer</th><th className="p-3">Issued</th>
-              <th className="p-3">Due</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
-              <th className="p-3 text-right">Actions</th>
+              <th className="p-3">Receipt</th><th className="p-3">Customer</th><th className="p-3">Paid</th>
+              <th className="p-3">Provider</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((i) => {
-              const st = effStatus(i);
-              const justPaid = !!paidIds[i.id];
-              const reminded = !!remindedIds[i.id];
-              return (
-                <tr key={i.id} className="border-b border-border/50 transition hover:bg-muted/40">
-                  <td className="p-3"><span className="font-semibold">{i.code}</span><span className="block text-[11px] text-muted-foreground">{i.orderCodes.join(', ')}</span></td>
-                  <td className="p-3"><Link href={`/admin/customers/${i.customerId}`} className="font-medium hover:underline">{i.customer}</Link></td>
-                  <td className="p-3 text-muted-foreground">{i.issued}</td>
-                  <td className="p-3 text-muted-foreground">{i.due}</td>
-                  <td className="p-3">
-                    <span className={`pill ${INVOICE_STATUS[st].pill}`}>{INVOICE_STATUS[st].label}</span>
-                    {justPaid && <span className="ml-1 text-[10px] font-semibold text-emerald-600">✓ now</span>}
-                  </td>
-                  <td className="p-3 text-right font-semibold tabular-nums">{money(i.amount)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {st === 'paid' ? (
-                        <span className="text-[11px] text-muted-foreground">—</span>
-                      ) : (
-                        <>
-                          {st === 'overdue' && (
-                            reminded
-                              ? <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-check" aria-hidden />Reminded</span>
-                              : <button onClick={() => setRemindedIds((s) => ({ ...s, [i.id]: true }))}
-                                  title={`Send a payment reminder to ${i.customer}`}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold transition hover:bg-accent"><i className="ph-bold ph-bell" aria-hidden />Remind</button>
-                          )}
-                          <button onClick={() => setPaidIds((s) => ({ ...s, [i.id]: true }))}
-                            title={`Mark ${i.code} as paid`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-check-circle" aria-hidden />Mark paid</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No invoices.</td></tr>}
+            {rows.map((p) => (
+              <tr key={p.id} className="border-b border-border/50 transition hover:bg-muted/40">
+                <td className="p-3 font-semibold">{p.number}</td>
+                <td className="p-3"><Link href={`/admin/customers/${p.customerId}`} className="font-medium hover:underline">{p.customer}</Link></td>
+                <td className="whitespace-nowrap p-3 text-muted-foreground">{stamp(p.at)}</td>
+                <td className="p-3 text-muted-foreground">
+                  <span className="capitalize">{p.provider}</span>
+                  {p.providerRef && <span className="block text-[11px] opacity-70">{p.providerRef}</span>}
+                </td>
+                <td className="p-3"><span className={`pill ${RECEIPT_STATUS[p.status].pill}`} title={RECEIPT_STATUS[p.status].hint}>{RECEIPT_STATUS[p.status].label}</span></td>
+                <td className="p-3 text-right font-semibold tabular-nums">{money(p.amount)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No payments.</td></tr>}
           </tbody>
-          {rows.length > 0 && (() => {
-            const total = rows.reduce((s, i) => s + i.amount, 0);
-            const outstanding = rows.filter((i) => effStatus(i) !== 'paid').reduce((s, i) => s + i.amount, 0);
-            const paid = rows.filter((i) => effStatus(i) === 'paid').reduce((s, i) => s + i.amount, 0);
-            return (
-              <tfoot>
-                <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
-                  <td className="p-3 text-muted-foreground">{rows.length} invoice{rows.length !== 1 ? 's' : ''}</td>
-                  <td colSpan={3} className="p-3">
-                    <span className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
-                      {outstanding > 0 && <span className="text-amber-600">Outstanding {money(outstanding)}</span>}
-                      {paid > 0 && <span className="text-emerald-600">Paid {money(paid)}</span>}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right tabular-nums">{money(total)}</td>
-                  <td className="p-3" />
-                </tr>
-              </tfoot>
-            );
-          })()}
+          {rows.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
+                <td className="p-3 text-muted-foreground">{rows.length} receipt{rows.length !== 1 ? 's' : ''}</td>
+                <td colSpan={4} className="p-3 text-muted-foreground">Collected</td>
+                <td className="p-3 text-right tabular-nums">{money(rows.filter((p) => p.status !== 'void').reduce((s, p) => s + p.amount, 0))}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
+
+      <p className="px-1 text-[11px] text-muted-foreground">
+        These are <b className="text-foreground">receipts for money already collected</b>, one per wallet top-up — not bills.
+        Customers pay before we work, so nothing here can be overdue. What we owe <i>them</i> is the{' '}
+        <b className="text-foreground">wallet liability</b> above; what they&apos;ve spent is in Transactions.
+      </p>
     </div>
   );
 }
 
 /* ----------------------------------------------------------------- shared */
+/** ISO timestamp → 'YYYY-MM-DD HH:mm' in the viewer's zone. */
+function stamp(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** A signed ledger amount. Green = credit into the wallet, red = out of it. */
+function LedgerAmount({ n }: { n: number }) {
+  return (
+    <span className={`font-semibold tabular-nums ${n >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+      {n >= 0 ? '+' : '−'}{money(Math.abs(n))}
+    </span>
+  );
+}
+
 function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
   const escape = (v: string | number) => {
     const s = String(v);
