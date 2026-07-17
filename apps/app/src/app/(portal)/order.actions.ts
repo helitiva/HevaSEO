@@ -93,6 +93,19 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const priced = computeOrderPrice(catalog, {
     packageId: input.packageId, qty: input.qty, addonPicks: input.addonPicks, isVip: cust.tier === 'vip',
   });
+  // A zero-value order is a free order. The catalog has packages priced 0 — 'Ultra' and 'Custom' under
+  // Optimization carry price: 0 with priceLabel: 'Consult' (data/services.ts) — so a customer could pick
+  // one here and create a real, unpaid order that entered the pipeline like any other: create_order only
+  // rejects p_value < 0, and this action never checked. The public checkout has guarded exactly this
+  // since it was written (api/public/checkout/route.ts: !hasNumericTotal → 422, !(value > 0) → 400);
+  // the dashboard flow simply never got the same gate.
+  //
+  // Gate on the VALUE, not on hasNumericTotal. hasNumericTotal is also false for 'from $79'-style
+  // packages that do charge their starting price here today — refusing those would change working
+  // behaviour, and whether they should be quote-only is a product call, not a bug fix.
+  if (!(priced.value > 0)) {
+    return { ok: false, error: 'This plan needs a custom quote — talk to us and we’ll price it for you.' };
+  }
   const serviceLabel = SERVICES[input.serviceKey]?.label ?? input.serviceKey;
   const code = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
   const deadline = deadlineFromSla(priced.sla); // ETA from the chosen package's SLA
