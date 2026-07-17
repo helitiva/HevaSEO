@@ -171,6 +171,11 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
   const finalTotal = total - vipOff;
   const subtotalText = isUsage ? `$${total.toFixed(2)}` : `$${total}`;
   const totalText = isUsage ? `$${finalTotal.toFixed(2)}` : (plan?.priceLabel ?? `$${finalTotal}`);
+  // A plan the catalog gives a priceLabel to has no total to charge — placing it asks for a quote, and
+  // the server does exactly that (order.actions.ts gates on hasNumericTotal). The button has to say so:
+  // "Place order" on a 'from $79' plan promises an order at $79, and neither half is true.
+  const isQuotePlan = !hasNumericTotal;
+  const submitLabel = isQuotePlan ? 'Request a quote' : 'Place order';
 
   /** Resolve the order's project + folder from the picker. The project is named after the website domain
    *  (from the Website URL field) unless the customer set a custom name; the folder is a brand-new one
@@ -570,9 +575,16 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
               </div>
             )}
             <button type="submit" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
-              Place order <i className="ph-bold ph-arrow-right" aria-hidden />
+              {submitLabel} <i className="ph-bold ph-arrow-right" aria-hidden />
             </button>
-            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">No charge yet — a specialist confirms scope &amp; final price within 24h.</p>
+            {/* This said "No charge yet — a specialist confirms scope & final price within 24h" on EVERY
+                plan, including the ones create_order debits the moment you click. Half the customers
+                were told the opposite of what happens to their money. */}
+            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
+              {isQuotePlan
+                ? 'No charge — a specialist prices this and sends you a quote to accept.'
+                : `Your credit is charged when you place this order — ${totalText} today.`}
+            </p>
           </div>
         </div>
       </aside>
@@ -584,7 +596,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain,
           <p className="display text-lg font-bold leading-none">{totalText}</p>
         </div>
         <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[.98]">
-          Place order <i className="ph-bold ph-arrow-right" aria-hidden />
+          {submitLabel} <i className="ph-bold ph-arrow-right" aria-hidden />
         </button>
       </div>
     </form>

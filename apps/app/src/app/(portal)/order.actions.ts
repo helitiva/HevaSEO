@@ -103,15 +103,17 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   });
   const serviceLabel = SERVICES[input.serviceKey]?.label ?? input.serviceKey;
 
-  // A zero-value order would be a FREE order. 'Ultra' and 'Custom' under Optimization carry price: 0
-  // with priceLabel: 'Consult' (data/services.ts), and this action used to hand that 0 straight to
-  // create_order — which only rejected p_value < 0. Real work, real pipeline, nobody charged.
+  // Anything the catalog gives a priceLabel to has no price to CHARGE — it has a price to DECIDE. That
+  // covers both 'Consult'/'Custom quote' plans (price 0) and 'from $79'-style ones: "from $79" is the
+  // start of a conversation, not a total, and billing it as if it were one commits us to a number
+  // nobody agreed. So they all become a QUOTE REQUEST — nothing debited, no order, a specialist prices
+  // the job and sends a link.
   //
-  // These plans don't have a price to charge; they have a price to *decide*. So they become a QUOTE
-  // REQUEST: nothing is debited, no order exists, and a specialist prices the job and sends the
-  // customer a link. Gated on the VALUE rather than hasNumericTotal, because hasNumericTotal is also
-  // false for 'from $79'-style packages that legitimately charge their starting price here.
-  if (!(priced.value > 0)) {
+  // hasNumericTotal is the same signal the public checkout has always gated on
+  // (api/public/checkout/route.ts:99). Until now the dashboard ignored it, so the two flows disagreed:
+  // the public checkout refused 'from $79' and quoted, while the dashboard silently charged $79 for the
+  // same package. One catalog, one answer now.
+  if (!priced.hasNumericTotal) {
     const plan = catalog.packages?.find((p) => p.id === input.packageId);
     const { data: q, error: qErr } = await createServiceClient().rpc('request_quote', {
       p_tenant: cust.tenant_id, p_customer: cust.id,
@@ -128,6 +130,9 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       quoteId: (q as { id?: string } | null)?.id,
     };
   }
+  // Numeric plan, but nothing to bill (e.g. a usage plan with nothing selected). The public checkout
+  // answers this with a 400 rather than a quote — it isn't a job to price, it's an empty basket.
+  if (!(priced.value > 0)) return { ok: false, error: 'Nothing to charge for this selection.' };
   const code = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
   const deadline = deadlineFromSla(priced.sla); // ETA from the chosen package's SLA
 
