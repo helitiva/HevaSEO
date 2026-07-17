@@ -2019,6 +2019,45 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_comp: {
+        Row: {
+          base_salary: number
+          commission_pct: number
+          profile_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_salary?: number
+          commission_pct?: number
+          profile_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_salary?: number
+          commission_pct?: number
+          profile_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_comp_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_comp_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_details: {
         Row: {
           active: boolean
@@ -3519,6 +3558,22 @@ export type Database = {
         Returns: undefined
       }
       set_notif_prefs: { Args: { p_notif: Json }; Returns: undefined }
+      set_staff_comp: {
+        Args: { p_base: number; p_pct: number; p_profile: string }
+        Returns: {
+          base_salary: number
+          commission_pct: number
+          profile_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_comp"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_ticket_status: {
         Args: {
           p_status: Database["public"]["Enums"]["ticket_status"]
