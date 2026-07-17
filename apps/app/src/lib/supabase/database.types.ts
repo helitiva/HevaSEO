@@ -1889,6 +1889,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_review: boolean
           away_auto_assign: boolean
           created_at: string
           email: string
@@ -1902,6 +1903,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          auto_review?: boolean
           away_auto_assign?: boolean
           created_at?: string
           email: string
@@ -1915,6 +1917,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          auto_review?: boolean
           away_auto_assign?: boolean
           created_at?: string
           email?: string
@@ -2867,6 +2870,7 @@ export type Database = {
         Returns: number
       }
       auto_assign_order: { Args: { p_order: string }; Returns: string }
+      auto_review_order: { Args: { p_order: string }; Returns: string }
       cancel_fee_pct: { Args: never; Returns: number }
       cancel_order: {
         Args: { p_order: string }
@@ -2987,6 +2991,7 @@ export type Database = {
           p_title?: string
         }
         Returns: {
+          auto_review: boolean
           away_auto_assign: boolean
           created_at: string
           email: string
@@ -3049,6 +3054,7 @@ export type Database = {
           p_skills: string[]
         }
         Returns: {
+          auto_review: boolean
           away_auto_assign: boolean
           created_at: string
           email: string
@@ -3233,6 +3239,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      my_auto_review: { Args: never; Returns: boolean }
       my_away_auto_assign: { Args: never; Returns: boolean }
       no_plan: { Args: never; Returns: boolean[] }
       num_failed: { Args: never; Returns: number }
@@ -3489,6 +3496,7 @@ export type Database = {
         Args: { p_affiliate: string; p_tier?: string }
         Returns: undefined
       }
+      set_auto_review: { Args: { p_on: boolean }; Returns: number }
       set_away_auto_assign: { Args: { p_on: boolean }; Returns: number }
       set_broadcast_status: {
         Args: { p_id: string; p_status: string }

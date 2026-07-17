@@ -8,7 +8,7 @@ import { SiteAlertBar } from '../broadcast/SiteAlertBar';
 import { BroadcastToaster } from '../broadcast/BroadcastToaster';
 import { ViewerProvider } from '@/lib/viewer';
 
-export function ManagerShell({ children, awayOn = false }: { children: React.ReactNode; awayOn?: boolean }) {
+export function ManagerShell({ children, awayOn = false, autoReviewOn = false }: { children: React.ReactNode; awayOn?: boolean; autoReviewOn?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);
@@ -20,7 +20,7 @@ export function ManagerShell({ children, awayOn = false }: { children: React.Rea
       <ManagerSidebar open={open} onClose={() => setOpen(false)} />
       {open && <div onClick={() => setOpen(false)} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden" />}
       <div className="flex min-w-0 flex-1 flex-col">
-        <ManagerTopbar onMenu={() => setOpen(true)} awayOn={awayOn} />
+        <ManagerTopbar onMenu={() => setOpen(true)} awayOn={awayOn} autoReviewOn={autoReviewOn} />
         <SiteAlertBar />
         <main ref={mainRef} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-5 sm:pb-6 lg:px-7">
           {pathname === '/manager' && <div className="mb-4"><BroadcastBanner /></div>}
