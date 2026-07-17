@@ -3,10 +3,52 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getOrderById, getPodOrderById, getOrderDetail } from '@/data/orders.server';
+import { getStaff } from '@/data/staff.server';
 import { buildOrderDetailProps } from '@/lib/orderDetail';
 import type { OrderDetailProps } from '@/app/admin/orders/[id]/OrderDetailClient';
 
 export type AssignResult = { ok: true } | { ok: false; error: string };
+
+/** A real staffer the order can actually be assigned to. `id` is a real profile UUID. */
+export type EligibleStaff = {
+  id: string; name: string; composite: number; quality: number; onTime: number;
+  openLoad: number; capacity: number; skills: string[];
+};
+
+const SKILL_OF: Record<string, string> = { Keyword: 'keyword', Backlink: 'backlink', Content: 'content', Optimization: 'optimize' };
+
+/**
+ * Who can actually take this order — real staff, with real ids.
+ *
+ * buildOrderDetailProps used to derive this from the adminMock STAFF constant, which has no real ids at
+ * all (s1..s6). That's why the picker's assign handler took a NAME and could only fake it: there was
+ * nothing to pass to assign_order. Skills come from staff_details, load from the live order counts.
+ */
+export async function getEligibleStaffAction(service: string, orderId: string): Promise<EligibleStaff[]> {
+  const supabase = await createClient();
+  const [staff, loadRes] = await Promise.all([
+    getStaff(),
+    supabase.from('orders').select('assignee_id')
+      .in('state', ['assigned', 'in_progress', 'internal_review', 'changes_requested'])
+      .returns<{ assignee_id: string | null }[]>(),
+  ]);
+  if (loadRes.error) throw new Error(`getEligibleStaffAction load: ${loadRes.error.message}`);
+  const loadBy = new Map<string, number>();
+  for (const o of loadRes.data ?? []) if (o.assignee_id) loadBy.set(o.assignee_id, (loadBy.get(o.assignee_id) ?? 0) + 1);
+
+  const skill = SKILL_OF[service];
+  const active = staff.filter((s) => s.active);
+  // skill-matched first; if nobody matches, offer everyone rather than an empty picker — assign_order
+  // is the authority on what's actually allowed and will reject anything invalid.
+  const matched = skill ? active.filter((s) => s.skills.includes(skill)) : [];
+  const pool = matched.length ? matched : active;
+  return pool
+    .map((s) => ({
+      id: s.id, name: s.name, composite: s.composite, quality: s.quality, onTime: s.onTime,
+      openLoad: loadBy.get(s.id) ?? 0, capacity: s.capacity, skills: s.skills,
+    }))
+    .sort((a, b) => b.composite - a.composite || a.openLoad - b.openLoad);
+}
 
 // The assignment slide-over must show the REAL order (queue items are real UUIDs; the old client-side
 // mock lookup returned null for them → a blank panel). Admins read the base orders table (with money);

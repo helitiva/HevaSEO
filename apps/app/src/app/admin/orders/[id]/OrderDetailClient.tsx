@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
 import { MessageAttachments } from '@/components/MessageAttachments';
@@ -10,6 +10,7 @@ import { useMoney, useShowMoney, useAreaBase } from '@/lib/viewer';
 import { UUID_RE } from '@/lib/orderMap';
 import { useOrderMessages } from '@/lib/useOrderMessages';
 import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
+import { assignOrderAction, getEligibleStaffAction, type EligibleStaff } from '@/app/admin/assignment/assign.actions';
 import { Checklist } from './Checklist';
 
 // Intake labels already surfaced by the Scope block (Project/Folder/Site) — filtered out of the customer
@@ -82,6 +83,18 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [toast, setToast] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; onYes: () => void } | null>(null);
   const [picker, setPicker] = useState(false);
+  // Real staff for the picker, loaded when it opens. p.eligibleStaff is built from the adminMock STAFF
+  // constant and carries no real ids, so it can label a button but can never assign anyone.
+  const [pickable, setPickable] = useState<EligibleStaff[] | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  useEffect(() => {
+    if (!picker || pickable) return;
+    let live = true;
+    void getEligibleStaffAction(p.order.service, p.order.id)
+      .then((rows) => { if (live) setPickable(rows); })
+      .catch(() => { if (live) setPickable([]); });
+    return () => { live = false; };
+  }, [picker, pickable, p.order.service, p.order.id]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState('');
@@ -139,7 +152,28 @@ export function OrderDetailClient(p: OrderDetailProps) {
     if (a.danger) { setConfirm({ title: `${a.label} this order?`, body: a.to === 'canceled' && debited ? `${money(o.value)} will be refunded to credit, minus a 5% fee.` : 'This cannot be undone.', onYes: () => { void doCancel(); setConfirm(null); } }); return; }
     transition(a.to);
   }
-  function assignTo(name: string) { setStaff(name); setPicker(false); if (status === 'confirmed') transition('assigned', `→ ${name}`); else { log('assign', `${o.code} → ${name}`); notify(`Assigned to ${name}`); } }
+  /**
+   * Assign for real. This used to be `setStaff(name)` + a toast — and, when the order was 'confirmed',
+   * it ALSO called transition('assigned'), which is a real advance_order. So the DB ended up in
+   * state='assigned' with assignee_id still NULL: the order looked assigned, showed a staff name until
+   * you refreshed, and then sat in Command Center's "Unassigned" column forever.
+   *
+   * assign_order does BOTH jobs — it sets assignee_id and moves new/confirmed → assigned — so it is the
+   * only call needed here. Calling transition() as well would be the old bug in a new shape.
+   */
+  function assignTo(s: EligibleStaff) {
+    if (assigning) return;
+    setAssigning(true);
+    void assignOrderAction(p.order.id, s.id).then((r) => {
+      setAssigning(false);
+      if (!r.ok) { notify(r.error); return; }
+      setStaff(s.name);
+      if (status === 'new' || status === 'confirmed') setStatus('assigned');
+      setPicker(false);
+      log('assign', `${o.code} → ${s.name}`);
+      notify(`Assigned to ${s.name}`);
+    });
+  }
   function sendMsg() {
     const body = msg.trim();
     if (!body) return;
@@ -346,12 +380,17 @@ export function OrderDetailClient(p: OrderDetailProps) {
       {picker && (
         <Overlay onClose={() => setPicker(false)} title="Assign staff">
           <p className="mb-3 text-xs text-muted-foreground">Suggested for <b className="text-foreground">{o.service}</b> · ranked by score & availability.</p>
-          <div className="space-y-2">{p.eligibleStaff.map((s) => (
-            <button key={s.name} onClick={() => assignTo(s.name)} className="flex w-full items-center justify-between rounded-xl border border-border bg-background/40 p-3 text-left transition hover:border-primary/50">
-              <div><p className="font-semibold">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.quality}% quality · {s.onTime}% on-time · {s.openLoad}/{s.capacity} load · {s.skills.join(', ')}</p></div>
-              <span className="display text-lg font-bold text-primary">{s.composite}</span>
-            </button>
-          ))}</div>
+          <div className="space-y-2">
+            {pickable === null && <p className="py-4 text-center text-sm text-muted-foreground">Loading staff…</p>}
+            {pickable?.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No active staff available for this service.</p>}
+            {pickable?.map((s) => (
+              <button key={s.id} onClick={() => assignTo(s)} disabled={assigning}
+                className="flex w-full items-center justify-between rounded-xl border border-border bg-background/40 p-3 text-left transition hover:border-primary/50 disabled:opacity-50">
+                <div><p className="font-semibold">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.quality}% quality · {s.onTime}% on-time · {s.openLoad}/{s.capacity} load · {s.skills.join(', ')}</p></div>
+                <span className="display text-lg font-bold text-primary">{s.composite}</span>
+              </button>
+            ))}
+          </div>
         </Overlay>
       )}
 
