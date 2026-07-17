@@ -1,4 +1,6 @@
 'use client';
+
+import { NoteSaveError } from '@/components/NoteSaveError';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,7 +16,7 @@ export function NoteFullEditor({ id }: { id?: string }) {
   const router = useRouter();
   const viewOnly = useStaffViewOnly();
   const base = usePortalBase();
-  const { notes, ready, mutate } = useNotes();
+  const { notes, ready, mutate , error: saveError, clearError } = useNotes();
   const existing = id ? notes.find((n) => n.id === id) ?? null : null;
 
   // Seed instantly from whatever the store has on first render (seed notes are present on SSR, so
@@ -49,6 +51,7 @@ export function NoteFullEditor({ id }: { id?: string }) {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <NoteSaveError error={saveError} onDismiss={clearError} />
       <div className="mb-4 flex items-center justify-between gap-2">
         <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
           <i className="ph-bold ph-arrow-left" aria-hidden /> {id ? 'Back to note' : 'Back to notes'}

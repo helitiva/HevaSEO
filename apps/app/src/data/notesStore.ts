@@ -19,6 +19,8 @@ function surfaceFor(): string {
 export function useNotes() {
   const [notes, setNotes] = useState<StaffNote[]>([]);
   const [ready, setReady] = useState(false);
+  /** Last write failure, for the UI to show. Null while everything has saved. */
+  const [error, setError] = useState<string | null>(null);
   const ref = useRef<StaffNote[]>([]);
   ref.current = notes;
   const surface = typeof window !== 'undefined' ? surfaceFor() : 'customer';
@@ -31,23 +33,40 @@ export function useNotes() {
     return () => { alive = false; window.removeEventListener(EVT, load); };
   }, [surface]);
 
-  // Apply the transform optimistically, then reconcile with the DB (upsert changed/new, delete removed).
+  /**
+   * Apply the transform optimistically, then reconcile with the DB — and ROLL BACK if the DB says no.
+   *
+   * This used to be `void Promise.all(ops).then(() => dispatch)`: no result check, no .catch. Both
+   * actions return {ok, error} and both were discarded, so a rejected write was an unhandled rejection
+   * and the note stayed on screen looking saved. The user found out on the next reload, when their
+   * writing was simply gone. Optimistic UI without rollback isn't optimistic, it's dishonest.
+   */
   const mutate = useCallback((fn: (xs: StaffNote[]) => StaffNote[]) => {
     const prev = ref.current;
     const next = fn(prev);
     setNotes(next);
+    setError(null);
     const prevById = new Map(prev.map((n) => [n.id, n]));
     const nextIds = new Set(next.map((n) => n.id));
-    const ops: Promise<unknown>[] = [];
+    const ops: Promise<{ ok: boolean; error?: string }>[] = [];
     for (const n of next) {
       const before = prevById.get(n.id);
       if (!before || JSON.stringify(before) !== JSON.stringify(n)) ops.push(upsertNoteAction(surfaceFor(), n));
     }
     for (const p of prev) if (!nextIds.has(p.id)) ops.push(deleteNoteAction(p.id));
-    if (ops.length) void Promise.all(ops).then(() => window.dispatchEvent(new Event(EVT)));
+    if (!ops.length) return;
+
+    const undo = (msg: string) => { setNotes(prev); ref.current = prev; setError(msg); };
+    void Promise.all(ops)
+      .then((results) => {
+        const failed = results.find((r) => !r.ok);
+        if (failed) { undo(failed.error ?? 'Could not save — your change was undone.'); return; }
+        window.dispatchEvent(new Event(EVT));
+      })
+      .catch((e: unknown) => undo(e instanceof Error ? e.message : 'Could not save — your change was undone.'));
   }, []);
 
-  return { notes, ready, mutate };
+  return { notes, ready, mutate, error, clearError: () => setError(null) };
 }
 
 // Single-note lookup that stays reactive to store changes.

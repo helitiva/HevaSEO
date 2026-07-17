@@ -29,7 +29,10 @@ export async function getMyNotesAction(surface: string): Promise<StaffNote[]> {
   const { data, error } = await supabase
     .from('notes').select('id, title, body, color, created_at, updated_at').eq('surface', surface)
     .order('updated_at', { ascending: false }).returns<NoteRow[]>();
-  if (error) return [];
+  // Was `if (error) return []` — a read failure rendered "Your notebook is empty" / "Note not found",
+  // which is the same screen as having no notes. Losing sight of your own writing should never look
+  // identical to never having written any.
+  if (error) throw new Error(`getMyNotesAction: ${error.message}`);
   return (data ?? []).map(toNote);
 }
 

@@ -1,4 +1,6 @@
 'use client';
+
+import { NoteSaveError } from '@/components/NoteSaveError';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/staff/EmptyState';
 import { NoteComposer } from './NoteComposer';
@@ -12,7 +14,7 @@ import { useStaffViewOnly } from '@/lib/staffView';
 
 export function NotesClient() {
   const viewOnly = useStaffViewOnly();
-  const { notes, mutate } = useNotes();
+  const { notes, mutate , error: saveError, clearError } = useNotes();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string>('all');
   const [label, setLabel] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export function NotesClient() {
   return (
     <>
       {/* Controls */}
+      <NoteSaveError error={saveError} onDismiss={clearError} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
