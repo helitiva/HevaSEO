@@ -2,6 +2,17 @@ import { Donut } from './Donut';
 import { MiniBars } from './MiniBars';
 import { USER_KPIS, USER_STATS, DAU_SERIES, RETENTION, FUNNEL, type DauPoint, type UserKpi } from '@/data/adminMock';
 
+/**
+ * DEMO DATA — and labelled as such in the UI, deliberately.
+ *
+ * Everything else on this page is now real (see analytics.server.ts). This panel cannot be: DAU/WAU,
+ * retention cohorts and the activation funnel need a product-events pipeline, and no such table exists
+ * — the only *_events table in the schema is broadcast_events, which tracks broadcast delivery, not
+ * sessions. Deriving "DAU" from, say, orders.created_at would be inventing a metric and dressing it as
+ * measured, which is exactly the failure mode the rest of this cleanup removed.
+ *
+ * So it stays mock and says so. When an events source lands, make it real and drop the badge.
+ */
 export function AudienceAnalytics() {
   const u = USER_STATS;
   const nrSegs = [
@@ -15,6 +26,10 @@ export function AudienceAnalytics() {
         <i className="ph-bold ph-users text-primary" aria-hidden />
         <h2 className="display text-lg font-bold tracking-tight">Audience</h2>
         <span className="text-xs text-muted-foreground">user growth &amp; engagement</span>
+        <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/5 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
+          title="DAU, retention and funnel need a product-events pipeline, which this system doesn't have yet. Every other figure on this page is real.">
+          <i className="ph-bold ph-flask" aria-hidden />Demo data
+        </span>
       </div>
 
       {/* user KPI tiles */}
