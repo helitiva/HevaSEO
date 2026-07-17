@@ -58,6 +58,17 @@ type InvoiceRow = {
 /** Admin lists by company — that's how the customer directory and order cards label them. */
 const nameOf = (c: CustomerRef): string => c?.company || c?.name || 'Unknown';
 
+/** A customer's prepaid wallet. `balance` is what we owe them as work; `spend` is what they've used. */
+export interface CustomerWallet {
+  id: string;
+  name: string;
+  company: string;
+  tier: string;
+  balance: number;
+  spend: number;        // lifetime credit spent on orders
+  lastActive: string | null;
+}
+
 const RECEIPT_STATUSES = ['issued', 'processing', 'void'] as const;
 function assertStatus(s: string, number: string): PaymentReceipt['status'] {
   if ((RECEIPT_STATUSES as readonly string[]).includes(s)) return s as PaymentReceipt['status'];
@@ -81,6 +92,49 @@ export async function getLedger(): Promise<LedgerEntry[]> {
     orderCode: r.orders?.code ?? null,
     reference: r.stripe_event_id,
   }));
+}
+
+/**
+ * Every customer's prepaid wallet, real. The Wallets tab used to render adminMock CUSTOMERS and print
+ * "7 customers holding $2,460 in prepaid credit" — twelve lines below a KPI band that (correctly) said
+ * $19,728.98. One screen, two answers to "how much do we owe customers".
+ *
+ * `customer_balances` is a base table maintained by create_order/topup, and getRevenueBook already sums
+ * it for `deferred.unspentCredit` — so this tab and that KPI now come from the same rows and cannot
+ * drift apart again.
+ */
+export async function getCustomerWallets(): Promise<CustomerWallet[]> {
+  const supabase = await createClient();
+  const [balRes, ledRes] = await Promise.all([
+    supabase.from('customer_balances')
+      .select('balance, customers(id, name, company, tier, last_active_at)')
+      .returns<{ balance: number | string; customers: (CustomerRef & { tier: string | null; last_active_at: string | null }) | null }[]>(),
+    supabase.from('credit_ledger').select('customer_id, amount, kind')
+      .returns<{ customer_id: string; amount: number | string; kind: LedgerKind }[]>(),
+  ]);
+  if (balRes.error) throw new Error(`getCustomerWallets balances: ${balRes.error.message}`);
+  if (ledRes.error) throw new Error(`getCustomerWallets ledger: ${ledRes.error.message}`);
+
+  // lifetime spend = credit actually consumed by orders. Deliberately NOT "all negative rows": a
+  // cancellation fee leaves the wallet too but isn't spend on work.
+  const spendBy = new Map<string, number>();
+  for (const l of ledRes.data ?? []) {
+    if (l.kind !== 'debit') continue;
+    spendBy.set(l.customer_id, (spendBy.get(l.customer_id) ?? 0) + Math.abs(Number(l.amount) || 0));
+  }
+
+  return (balRes.data ?? [])
+    .filter((b) => b.customers)
+    .map((b) => ({
+      id: b.customers!.id,
+      name: b.customers!.name ?? 'Customer',
+      company: b.customers!.company ?? '',
+      tier: b.customers!.tier ?? 'new',
+      balance: Number(b.balance) || 0,
+      spend: Math.round((spendBy.get(b.customers!.id) ?? 0) * 100) / 100,
+      lastActive: b.customers!.last_active_at,
+    }))
+    .sort((a, b) => b.balance - a.balance || b.spend - a.spend);
 }
 
 export async function getPayments(): Promise<PaymentReceipt[]> {

@@ -21,7 +21,7 @@ import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { CompPayroll } from '@/components/admin/finance/CompPayroll';
 import type { PayrollPreview } from '@/data/adminComp.server';
 import type { FinanceKpis, RevenueBook, RevenueDay } from '@/data/adminRevenue.server';
-import type { LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
+import type { CustomerWallet, LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
 import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
@@ -37,6 +37,11 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   // taken, not bills we're chasing. Prepaid business: nobody can owe us.
   { key: 'invoices', label: 'Payments', icon: 'ph-receipt' },
 ];
+
+/** Name a movement by what it IS: a debit with no order is an adjustment, not an order. */
+function movementLabel(e: { kind: LedgerKind; orderCode: string | null }): string {
+  return e.kind === 'debit' && !e.orderCode ? 'Credit adjustment' : LEDGER_KIND[e.kind].label;
+}
 
 /** How each real ledger movement reads to a finance admin. `flow` is in/out of the customer WALLET. */
 const LEDGER_KIND: Record<LedgerKind, { label: string; icon: string; flow: 'in' | 'out'; hint: string }> = {
@@ -70,7 +75,7 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], reconcile, ledger = [], payments = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; reconcile?: RevenueBook['reconcile']; ledger?: LedgerEntry[]; payments?: PaymentReceipt[] }) {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], reconcile, ledger = [], payments = [], wallets = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; reconcile?: RevenueBook['reconcile']; ledger?: LedgerEntry[]; payments?: PaymentReceipt[]; wallets?: CustomerWallet[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -120,7 +125,7 @@ export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff
       <div className="page-anim">
         {tab === 'overview' && <OverviewTab k={k} days={days} ledger={ledger} reconcile={reconcile} />}
         {tab === 'transactions' && <TransactionsTab ledger={ledger} />}
-        {tab === 'wallets' && <WalletsTab />}
+        {tab === 'wallets' && <WalletsTab wallets={wallets} ledger={ledger} />}
         {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
         {tab === 'invoices' && <PaymentsTab payments={payments} />}
       </div>
@@ -260,7 +265,7 @@ function RecentRow({ e }: { e: LedgerEntry }) {
     <li className="flex items-center gap-3 py-2.5 text-sm">
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{e.customer} <span className="text-muted-foreground">· {meta.label}</span></p>
+        <p className="truncate font-medium">{e.customer} <span className="text-muted-foreground">· {movementLabel(e)}</span></p>
         <p className="text-[11px] text-muted-foreground">{stamp(e.at)}{e.orderCode ? ` · ${e.orderCode}` : ''}</p>
       </div>
       <LedgerAmount n={e.amount} />
@@ -314,7 +319,7 @@ function TransactionsTab({ ledger }: { ledger: LedgerEntry[] }) {
     downloadCsv(
       `transactions_${from}_to_${to}.csv`,
       ['Date', 'Type', 'Customer', 'Order', 'Amount', 'Reference'],
-      rows.map((e) => [stamp(e.at), LEDGER_KIND[e.kind].label, e.customer, e.orderCode ?? '', e.amount, e.reference ?? '']),
+      rows.map((e) => [stamp(e.at), movementLabel(e), e.customer, e.orderCode ?? '', e.amount, e.reference ?? '']),
     );
   };
 
@@ -373,7 +378,7 @@ function TransactionsTab({ ledger }: { ledger: LedgerEntry[] }) {
                   onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(e); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
                   <td className="whitespace-nowrap p-3 text-muted-foreground">{stamp(e.at)}</td>
-                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />{meta.label}</span></td>
+                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />{movementLabel(e)}</span></td>
                   <td className="p-3 font-medium">{e.customer}</td>
                   <td className="p-3 text-muted-foreground">{e.orderCode ?? '—'}</td>
                   <td className="p-3 text-right"><LedgerAmount n={e.amount} /></td>
@@ -428,240 +433,125 @@ function TxDetail({ e }: { e: LedgerEntry }) {
 }
 
 /* ---------------------------------------------------------------- Wallets */
-// Admin-granted wallet credit (session-only — no backend yet).
-type AdminTopup = { id: string; customerId: string; amount: number; at: string; note: string };
-function nowStamp(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function WalletsTab() {
-  const [selected, setSelected] = useState<AdminCustomer | null>(null);
-  const [topups, setTopups] = usePersistedState<AdminTopup[]>('walletTopups', []);
-  const [topup, setTopup] = useState<{ open: boolean; presetId?: string }>({ open: false });
-
-  const addedFor = (id: string) => topups.filter((t) => t.customerId === id).reduce((a, t) => a + t.amount, 0);
-  const balanceOf = (c: AdminCustomer) => c.balance + addedFor(c.id);
-  const sessionTxFor = (id: string): Transaction[] => topups
-    .filter((t) => t.customerId === id)
-    .map((t): Transaction => ({ id: t.id, at: t.at, kind: 'top_up', amount: t.amount, party: CUSTOMERS.find((c) => c.id === id)?.company ?? '', partyId: id, method: 'manual', status: 'settled', orderCode: null, note: t.note }))
-    .sort((a, b) => b.at.localeCompare(a.at));
-
-  const addCredit = (customerId: string, amount: number, note: string) => {
-    setTopups((s) => [...s, { id: `atu-${Date.now()}`, customerId, amount, at: nowStamp(), note: note.trim() || 'Admin trial credit' }]);
-    setTopup({ open: false });
-    const c = CUSTOMERS.find((x) => x.id === customerId);
-    if (c) setSelected(c);
-  };
-
-  const rows = [...CUSTOMERS].filter((c) => balanceOf(c) > 0).sort((a, b) => balanceOf(b) - balanceOf(a));
-  const sessionAdded = topups.reduce((a, t) => a + t.amount, 0);
-  const baseTopped = TRANSACTIONS.filter((t) => t.kind === 'top_up' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const liability = FINANCE.walletLiability + sessionAdded;
-  const maxBal = Math.max(...rows.map((c) => balanceOf(c)), 1);
+/**
+ * Real prepaid wallets, from customer_balances — the same rows getRevenueBook sums for the
+ * "Wallet liability" KPI, so the two can no longer disagree.
+ *
+ * They did disagree, loudly: this tab used to render adminMock CUSTOMERS and announce "7 customers
+ * holding $2,460 in prepaid credit" directly beneath a KPI band that correctly said $19,728.98. It
+ * listed people who don't exist ("Jane Doe · Acme Co · $320") while the real Jane Doe's wallet held
+ * $19,728.98 under a different company.
+ *
+ * The "Top up a customer" button is gone rather than rewired. It appended to localStorage: it looked
+ * like granting credit, showed a green "+$50" chip, and never touched a wallet — an admin could believe
+ * they'd funded an account that had no money in it. Granting credit for real needs a service-role
+ * action (the existing topup() fn is the customer's own provider-backed path); that's a feature to
+ * build deliberately, not a button to leave lying.
+ */
+function WalletsTab({ wallets, ledger }: { wallets: CustomerWallet[]; ledger: LedgerEntry[] }) {
+  const [selected, setSelected] = useState<CustomerWallet | null>(null);
+  const holders = wallets.filter((w) => w.balance !== 0);
+  const liability = holders.reduce((s, w) => s + w.balance, 0);
+  const toppedUp = ledger.filter((e) => e.kind === 'topup').reduce((s, e) => s + e.amount, 0);
+  const maxBal = Math.max(...holders.map((w) => Math.abs(w.balance)), 1);
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="px-1 text-xs text-muted-foreground">{rows.length} customers holding {money(liability)} in prepaid credit · {money(baseTopped + sessionAdded)} topped up to date. Click a row for the ledger.</p>
-        <button onClick={() => setTopup({ open: true })}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110">
-          <i className="ph-bold ph-plus-circle" aria-hidden />Top up a customer
-        </button>
-      </div>
+      <p className="px-1 text-xs text-muted-foreground">
+        {holders.length} customer{holders.length !== 1 ? 's' : ''} holding <b className="text-foreground">{money(liability)}</b> in prepaid
+        credit · {money(toppedUp)} topped up to date. Click a row for the ledger.
+        {wallets.length > holders.length && <span className="opacity-70"> · {wallets.length - holders.length} with an empty wallet hidden.</span>}
+      </p>
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="p-3">Customer</th><th className="p-3">Tier</th><th className="p-3">Lifetime spend</th>
-              <th className="p-3">Wallet balance</th><th className="p-3">Last active</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
+              <th className="p-3">Wallet balance</th><th className="p-3">Last active</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => {
-              const bal = balanceOf(c);
-              const added = addedFor(c.id);
-              return (
-                <tr key={c.id} onClick={() => setSelected(c)}
-                  role="button" tabIndex={0} aria-label={`View wallet ledger for ${c.company}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); } }}
-                  className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
-                  <td className="p-3"><CustomerHoverCard customer={c.id}><Link href={`/admin/customers/${c.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{c.name}</Link></CustomerHoverCard><span className="text-muted-foreground"> · {c.company}</span></td>
-                  <td className="p-3 capitalize text-muted-foreground">{c.tier}</td>
-                  <td className="p-3">{money(c.spend)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold tabular-nums">{money(bal)}</span>
-                      {added > 0 && <span className="rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-600">+{money(added)}</span>}
-                      <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${(bal / maxBal) * 100}%` }} /></span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-muted-foreground">{c.lastActive}</td>
-                  <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setTopup({ open: true, presetId: c.id })}
-                      className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent">Top up</button>
-                  </td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No customers hold prepaid credit yet. Use “Top up a customer” to grant trial credit.</td></tr>}
+            {holders.map((w) => (
+              <tr key={w.id} onClick={() => setSelected(w)}
+                role="button" tabIndex={0} aria-label={`View wallet ledger for ${w.company || w.name}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(w); } }}
+                className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
+                <td className="p-3">
+                  <CustomerHoverCard customer={w.id}><Link href={`/admin/customers/${w.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{w.name}</Link></CustomerHoverCard>
+                  {w.company && <span className="text-muted-foreground"> · {w.company}</span>}
+                </td>
+                <td className="p-3 capitalize text-muted-foreground">{w.tier}</td>
+                <td className="p-3 tabular-nums">{money(w.spend)}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    {/* customer_balances has no >= 0 check constraint, so a negative wallet is representable.
+                        It would mean we let work out the door unpaid — say so loudly rather than draw a bar. */}
+                    <span className={`font-semibold tabular-nums ${w.balance < 0 ? 'text-rose-600' : ''}`}>{money(w.balance)}</span>
+                    {w.balance < 0
+                      ? <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-600" title="This wallet is overdrawn — work was taken without credit to cover it">OVERDRAWN</span>
+                      : <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${(w.balance / maxBal) * 100}%` }} /></span>}
+                  </div>
+                </td>
+                <td className="p-3 text-muted-foreground">{w.lastActive ? w.lastActive.slice(0, 10) : '—'}</td>
+                <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
+              </tr>
+            ))}
+            {holders.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No customer holds prepaid credit yet.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.company} · Wallet ledger` : ''}>
-        {selected && <WalletDetail c={selected} balance={balanceOf(selected)} extraTx={sessionTxFor(selected.id)} onTopup={() => setTopup({ open: true, presetId: selected.id })} />}
-      </SlideOver>
-
-      <SlideOver open={topup.open} onClose={() => setTopup({ open: false })} title="Top up wallet">
-        {topup.open && <TopupForm presetId={topup.presetId} balanceOf={(id) => { const c = CUSTOMERS.find((x) => x.id === id); return c ? balanceOf(c) : 0; }} onSubmit={addCredit} onClose={() => setTopup({ open: false })} />}
+      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.company || selected.name} · Wallet ledger` : ''}>
+        {selected && <WalletDetail w={selected} entries={ledger.filter((e) => e.customerId === selected.id)} />}
       </SlideOver>
     </div>
   );
 }
 
-const TOPUP_PRESETS = [25, 50, 100, 250];
-
-function TopupForm({ presetId, balanceOf, onSubmit, onClose }: {
-  presetId?: string;
-  balanceOf: (id: string) => number;
-  onSubmit: (customerId: string, amount: number, note: string) => void;
-  onClose: () => void;
-}) {
-  const customers = useMemo(() => [...CUSTOMERS].sort((a, b) => a.company.localeCompare(b.company)), []);
-  const [cid, setCid] = useState(presetId ?? '');
-  const [amount, setAmount] = useState<number>(50);
-  const [note, setNote] = useState('Trial credit');
-  const cust = customers.find((c) => c.id === cid);
-  const valid = !!cid && amount > 0;
-
+/** One customer's wallet: the balance, and every movement that produced it — from the same real ledger. */
+function WalletDetail({ w, entries }: { w: CustomerWallet; entries: LedgerEntry[] }) {
+  const toppedUp = entries.filter((e) => e.kind === 'topup').reduce((s, e) => s + e.amount, 0);
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600"><i className="ph-bold ph-plus-circle text-xl" aria-hidden /></span>
-        <div>
-          <p className="display text-lg font-bold leading-none">Add wallet credit</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Grant prepaid credit so a customer can try paid services.</p>
-        </div>
+      <div className="rounded-2xl border border-border bg-background/40 p-4">
+        <p className="text-xs text-muted-foreground">Wallet balance</p>
+        <p className={`display text-3xl font-bold leading-tight ${w.balance < 0 ? 'text-rose-600' : ''}`}>{money(w.balance)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">Credit we hold — owed back to {w.company || w.name} as work, not revenue.</p>
       </div>
 
-      {/* customer */}
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <KV label="Tier" value={w.tier} />
+        <KV label="Last active" value={w.lastActive ? w.lastActive.slice(0, 10) : '—'} />
+        <KV label="Topped up" value={money(toppedUp)} />
+        <KV label="Spent on orders" value={money(w.spend)} />
+      </div>
+
       <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</label>
-        <select value={cid} onChange={(e) => setCid(e.target.value)} disabled={!!presetId}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60">
-          <option value="">Select a customer…</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.company} · {c.name}</option>)}
-        </select>
-        {cust && <p className="mt-1 text-xs text-muted-foreground">Current balance <span className="font-semibold text-foreground tabular-nums">{money(balanceOf(cust.id))}</span> → after top-up <span className="font-semibold text-emerald-600 tabular-nums">{money(balanceOf(cust.id) + (amount > 0 ? amount : 0))}</span></p>}
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ledger · {entries.length} movement{entries.length !== 1 ? 's' : ''}</p>
+        <ul className="divide-y divide-border/60 rounded-lg border border-border">
+          {entries.map((e) => {
+            const meta = LEDGER_KIND[e.kind];
+            return (
+              <li key={e.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                <i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  {/* a debit with no order is the "non-order spend" term in the reconcile identity — a
+                      manual/legacy adjustment. Calling it "Order placed" would name it after an order
+                      that doesn't exist. */}
+                  <span className="font-medium">{movementLabel(e)}</span>
+                  {e.orderCode && <span className="text-muted-foreground"> · {e.orderCode}</span>}
+                  <span className="block text-[11px] text-muted-foreground">{stamp(e.at)} UTC</span>
+                </span>
+                <LedgerAmount n={e.amount} />
+              </li>
+            );
+          })}
+          {entries.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No movements.</li>}
+        </ul>
       </div>
 
-      {/* amount */}
-      <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</label>
-        <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
-          <span className="shrink-0 border-r border-border bg-muted px-3 py-2 text-sm text-muted-foreground">$</span>
-          <input type="number" min={1} step={5} value={amount}
-            onChange={(e) => setAmount(Math.max(0, Number(e.target.value)))}
-            className="w-full bg-transparent px-3 py-2 text-sm font-semibold tabular-nums outline-none" />
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {TOPUP_PRESETS.map((v) => (
-            <button key={v} onClick={() => setAmount(v)}
-              className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${amount === v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'}`}>{money(v)}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* note */}
-      <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Note</label>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Trial credit, goodwill, refund top-up"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-      </div>
-
-      {/* action */}
-      <div className="flex gap-2 border-t border-border pt-4">
-        <button onClick={onClose} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-        <button onClick={() => valid && onSubmit(cid, amount, note)} disabled={!valid}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40">
-          <i className="ph-bold ph-plus-circle" aria-hidden />Add {money(amount > 0 ? amount : 0)} credit
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; balance: number; extraTx: Transaction[]; onTopup: () => void }) {
-  const ledger = [...extraTx, ...TRANSACTIONS.filter((t) => t.partyId === c.id)]
-    .sort((a, b) => b.at.localeCompare(a.at));
-  const toppedUp = ledger.filter((t) => t.kind === 'top_up' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const spent = ledger.filter((t) => t.kind === 'charge' && t.method === 'wallet' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const pending = ledger.filter((t) => t.status === 'pending').reduce((a, t) => a + t.amount, 0);
-  const tier = TIER[c.tier];
-
-  return (
-    <div className="space-y-5">
-      {/* header */}
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i className="ph-bold ph-wallet text-xl" aria-hidden /></span>
-        <div className="min-w-0">
-          <p className="display text-xl font-bold leading-none">{c.company}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{c.name} · <span style={{ color: tier.color }}>{tier.label}</span></p>
-        </div>
-        <div className="ml-auto shrink-0 text-right">
-          <p className="display text-xl font-bold tabular-nums text-primary">{money(balance)}</p>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Balance</p>
-        </div>
-      </div>
-
-      {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        {([
-          { label: 'Topped up', val: money(toppedUp), tone: 'text-emerald-600' },
-          { label: 'Spent (wallet)', val: money(spent), tone: 'text-rose-500' },
-          { label: 'Pending', val: money(pending), tone: pending ? 'text-amber-600' : '' },
-        ] as { label: string; val: string; tone: string }[]).map(({ label, val, tone }) => (
-          <div key={label} className="rounded-xl border border-border p-3">
-            <p className={`display text-lg font-bold ${tone}`}>{val}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ledger */}
-      <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transaction history</p>
-        {ledger.length === 0 ? (
-          <p className="rounded-xl border border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground">No wallet activity recorded.</p>
-        ) : (
-          <ul className="divide-y divide-border/60 rounded-xl border border-border">
-            {ledger.map((t) => {
-              const meta = TX_KIND[t.kind];
-              const isAdmin = t.id.startsWith('atu-');
-              return (
-                <li key={t.id} className="flex items-center gap-3 p-3 text-sm">
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{isAdmin ? 'Admin top-up' : meta.label}{t.orderCode ? <span className="text-muted-foreground"> · {t.orderCode}</span> : ''}{isAdmin && <span className="ml-1.5 rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-600">new</span>}</p>
-                    <p className="text-[11px] text-muted-foreground">{t.at} · {TX_METHOD[t.method].label}{isAdmin && t.note ? ` · ${t.note}` : ''}</p>
-                  </div>
-                  <div className="text-right">
-                    <Amount n={t.amount} status={t.status} />
-                    {t.status !== 'settled' && <p className="text-[10px] capitalize text-muted-foreground">{t.status}</p>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="flex gap-2 border-t border-border pt-4">
-        <button onClick={onTopup} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-plus-circle" aria-hidden />Top up</button>
-        <Link href={`/admin/customers/${c.id}`} className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 font-semibold transition hover:bg-accent"><i className="ph-bold ph-user" aria-hidden />Profile</Link>
+      <div className="flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
+        <Link href={`/admin/customers/${w.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
       </div>
     </div>
   );

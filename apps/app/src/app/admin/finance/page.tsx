@@ -5,7 +5,7 @@ import { getPenalties, getWalletStaff } from '@/data/adminPenalties.server';
 import { getPayrollRuns } from '@/data/adminPayroll.server';
 import { getPayrollPreview } from '@/data/adminComp.server';
 import { financeKpis, getRevenueBook } from '@/data/adminRevenue.server';
-import { getLedger, getPayments } from '@/data/adminLedger.server';
+import { getCustomerWallets, getLedger, getPayments } from '@/data/adminLedger.server';
 
 export const metadata = { title: 'Finance' };
 
@@ -13,9 +13,9 @@ export default async function FinancePage() {
   // real staff money-ops (Lane D inc-D4/D5/D7): withdrawals + penalties + payroll runs + wallet-holders,
   // plus the real comp config + what this period owes (commission on ASC 606 delivered value) and the
   // KPI band (was adminMock's fixed $18,650 gross / "3% of gross" refunds).
-  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview, book, ledger, payments] = await Promise.all([
+  const [payoutRequests, penalties, walletStaff, payrollRuns, compPreview, book, ledger, payments, wallets] = await Promise.all([
     getPayoutRequests(), getPenalties(), getWalletStaff(), getPayrollRuns(), getPayrollPreview(),
-    getRevenueBook(30), getLedger(), getPayments(),
+    getRevenueBook(30), getLedger(), getPayments(), getCustomerWallets(),
   ]);
   // the KPI band is derived, not fetched — every input above is already in hand. Fetching it separately
   // (as getFinanceKpis() did) re-ran the whole money book and the payroll a second time per request.
@@ -24,7 +24,7 @@ export default async function FinancePage() {
     <Suspense fallback={null}>
       <FinanceClient payoutRequests={payoutRequests} penalties={penalties} walletStaff={walletStaff}
         payrollRuns={payrollRuns} compPreview={compPreview} kpis={kpis} days={book.days}
-        reconcile={book.reconcile} ledger={ledger} payments={payments} />
+        reconcile={book.reconcile} ledger={ledger} payments={payments} wallets={wallets} />
     </Suspense>
   );
 }

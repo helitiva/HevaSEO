@@ -23,6 +23,18 @@ export const RECOGNIZED_STATES = ['delivered', 'approved', 'completed'] as const
 // Committed but not yet earned — the customer's credit is spoken for, we still owe the work.
 const UNEARNED_STATES = ['new', 'confirmed', 'assigned', 'in_progress', 'internal_review', 'changes_requested'] as const;
 
+/**
+ * Is this order ON the books at all? Only a cancellation takes it off — its credit is refunded, so it
+ * was never sold. Everything else counts as booked, including 'new': the credit is already debited and
+ * we already owe the work.
+ *
+ * Exported for the same reason RECOGNIZED_STATES is. /admin/analytics used its own set
+ * (`['new','canceled']`) and so dropped every unconfirmed order from its Bookings KPI, chart, service
+ * mix and top-customers — while Command Center and Finance counted it. Every order passes through
+ * 'new', so any order awaiting confirmation made the two pages disagree.
+ */
+export const isBookedState = (state: string): boolean => state !== 'canceled';
+
 export interface RevenueDay { date: string; deposits: number; bookings: number; recognized: number }
 export interface RevenueSlice { deposits: number; bookings: number; recognized: number }
 export interface RevenueBook {
@@ -65,7 +77,7 @@ export async function getRevenueBook(windowDays = 30): Promise<RevenueBook> {
   if (balRes.error) throw new Error(`getRevenueBook balances: ${balRes.error.message}`);
 
   const ledger = ledgerRes.data ?? [];
-  const orders = (ordersRes.data ?? []).filter((o) => o.state !== 'canceled'); // a canceled order was never booked
+  const orders = (ordersRes.data ?? []).filter((o) => isBookedState(o.state));
   // Filter on KIND, never on sign. A refund is also a positive amount (see the credit_ledger migration:
   // "+ topup/refund, - debit"), so `amount > 0` silently swept refunds into deposits and reported credit
   // handed back to a customer as "cash collected". Dormant only because nothing has been cancelled yet —

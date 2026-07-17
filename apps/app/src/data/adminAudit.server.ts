@@ -76,22 +76,29 @@ function describe(r: LogRow, code: string | null): string {
 
 export async function getAuditFeed(limit = 8): Promise<AuditEvent[]> {
   const supabase = await createClient();
-  const [logRes, ordersRes] = await Promise.all([
-    supabase.from('audit_log')
-      .select('id, action, entity_type, entity_id, meta, created_at, seq, profiles(name)')
-      // seq breaks ties: rows written in one transaction share an identical created_at (Postgres now()
-      // is the transaction timestamp), so without it the auto-review chain renders in arbitrary order.
-      .order('created_at', { ascending: false })
-      .order('seq', { ascending: false })
-      .limit(limit)
-      .returns<LogRow[]>(),
-    supabase.from('orders').select('id, code').returns<{ id: string; code: string }[]>(),
-  ]);
+  const logRes = await supabase.from('audit_log')
+    .select('id, action, entity_type, entity_id, meta, created_at, seq, profiles(name)')
+    // seq breaks ties: rows written in one transaction share an identical created_at (Postgres now()
+    // is the transaction timestamp), so without it the auto-review chain renders in arbitrary order.
+    .order('created_at', { ascending: false })
+    .order('seq', { ascending: false })
+    .limit(limit)
+    .returns<LogRow[]>();
   if (logRes.error) throw new Error(`getAuditFeed: ${logRes.error.message}`);
-  if (ordersRes.error) throw new Error(`getAuditFeed orders: ${ordersRes.error.message}`);
+  const rows = logRes.data ?? [];
 
-  const codeById = new Map((ordersRes.data ?? []).map((o) => [o.id, o.code]));
-  return (logRes.data ?? []).map((r) => ({
+  // Resolve codes only for the orders these rows actually reference. The first cut selected the whole
+  // orders table to label at most 8 events — and unbounded, so PostgREST's max_rows would have started
+  // silently dropping the ones we needed once the table grew past it.
+  const ids = [...new Set(rows.filter((r) => r.entity_type === 'order' && r.entity_id).map((r) => r.entity_id!))];
+  const codeById = new Map<string, string>();
+  if (ids.length) {
+    const ordersRes = await supabase.from('orders').select('id, code').in('id', ids).returns<{ id: string; code: string }[]>();
+    if (ordersRes.error) throw new Error(`getAuditFeed orders: ${ordersRes.error.message}`);
+    for (const o of ordersRes.data ?? []) codeById.set(o.id, o.code);
+  }
+
+  return rows.map((r) => ({
     id: r.id,
     at: r.created_at,
     // a system action (auto-assign, commission posting) has no actor_id — say so rather than blaming a person

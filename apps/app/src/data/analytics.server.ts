@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { money, GEO, type ServiceMixRow, type RevKpi, type GeoRow } from '@/data/adminMock';
-import { RECOGNIZED_STATES } from '@/data/adminRevenue.server';
+import { RECOGNIZED_STATES, isBookedState } from '@/data/adminRevenue.server';
 
 // inc-analytics — real revenue analytics (admin RLS = all tenant orders). Derives KPIs + a 90-day daily
 // series + service mix + revenue-by-source + top customers from real orders. Audience/geo panels stay
@@ -17,7 +17,6 @@ import { RECOGNIZED_STATES } from '@/data/adminRevenue.server';
 // month before the first real order. Real clock throughout.
 const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#a855f7', '#ef4444', '#14b8a6'];
 const colorFor = (i: number) => PALETTE[i % PALETTE.length];
-const EXCLUDED = new Set(['new', 'canceled']);
 
 /** A day on the analytics chart. `booked` = order value placed; `recognized` = value delivered. */
 export interface AnalyticsPoint { iso: string; date: string; booked: number; recognized: number; orders: number }
@@ -43,7 +42,9 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   if (ordersRes.error) throw new Error(`getAnalytics: ${ordersRes.error.message}`);
   if (custRes.error) throw new Error(`getAnalytics customers: ${custRes.error.message}`);
 
-  const orders = (ordersRes.data ?? []).filter((o) => !EXCLUDED.has(o.state));
+  // was `!EXCLUDED.has(o.state)` with EXCLUDED = ['new','canceled'] — it silently dropped every
+  // unconfirmed order, so this page's Bookings disagreed with the money book's. Same rule now.
+  const orders = (ordersRes.data ?? []).filter((o) => isBookedState(o.state));
   const custById = new Map((custRes.data ?? []).map((c) => [c.id, c]));
   const isRecognized = (o: OrderRow) => !!o.delivered_at && (RECOGNIZED_STATES as readonly string[]).includes(o.state);
 
