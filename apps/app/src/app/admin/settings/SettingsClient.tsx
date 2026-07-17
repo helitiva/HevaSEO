@@ -61,7 +61,19 @@ export function SettingsClient({ settings }: Props) {
   useEffect(() => { const url = new URL(window.location.href); url.searchParams.set('tab', tab); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [tab]);
 
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
-  const save = () => { setSaved(clone(s)); flash('Settings saved · change logged to the audit log'); };
+  /**
+   * NOT a save. It moves the "saved" baseline in local state so the unsaved-dots clear — nothing is
+   * persisted and nothing is logged. The toast used to claim "Settings saved · change logged to the
+   * audit log": both halves were false (there is no settings.* verb in audit_log at all), and an admin
+   * could leave believing an SLA or routing change had taken effect.
+   *
+   * Wiring this up is not a UI job. SLA, Routing/scoring and Email templates have no table AND no
+   * reader — the engines that would obey them (assignment, the SLA timers) don't consult any config
+   * today, so adding storage alone would still change nothing. General could sit on tenants(name, theme)
+   * and Admins on profiles (which already has status/role/two_fa_enabled); those two are the tractable
+   * ones when this is picked up.
+   */
+  const save = () => { setSaved(clone(s)); flash('Kept for this session only — settings are not saved yet'); };
   const discard = () => setS(clone(saved));
 
   const setBiz = (k: keyof AdminSettings['business'], v: string) => setS((p) => ({ ...p, business: { ...p.business, [k]: v } }));
@@ -233,7 +245,7 @@ export function SettingsClient({ settings }: Props) {
           <div className="mx-auto flex max-w-5xl items-center gap-3 pl-12 sm:pl-0">
             {errors.length > 0
               ? <span className="flex items-center gap-2 text-sm font-medium text-destructive"><i className="ph-fill ph-x-circle" aria-hidden />{errors[0]}</span>
-              : <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" aria-hidden />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· logged to the audit log · ⌘S to save</span></span>}
+              : <span className="flex items-center gap-2 text-sm font-medium"><i className="ph-fill ph-warning-circle text-amber-500" aria-hidden />Unsaved changes <span className="hidden text-xs text-muted-foreground sm:inline">· ⌘S to keep for this session</span></span>}
             <div className="ml-auto flex gap-2">
               <button onClick={discard} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Discard</button>
               <button onClick={save} disabled={!canSave} className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" title={errors.length ? errors[0] : 'Save changes'}>Save changes</button>
@@ -392,7 +404,10 @@ function AdminsSection({ s, setS, onReset }: { s: AdminSettings; setS: React.Dis
               <p className="truncate text-xs text-muted-foreground">{a.email} · {a.lastActive}</p>
             </div>
             {a.status === 'invited' && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600">invited</span>}
-            {a.role !== 'Master admin' && a.status !== 'disabled' && <button onClick={() => setS((p) => ({ ...p, admins: p.admins.map((x) => x.id === a.id ? { ...x, status: 'disabled' } : x) }))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground hover:text-destructive">Deactivate</button>}
+            {/* Local state only — profiles.status is the real switch and nothing here writes it. Labelled
+                honestly rather than left reading "Deactivate", which implied a compromised admin had
+                just been locked out when their account was still live. */}
+            {a.role !== 'Master admin' && a.status !== 'disabled' && <button onClick={() => setS((p) => ({ ...p, admins: p.admins.map((x) => x.id === a.id ? { ...x, status: 'disabled' } : x) }))} title="Preview only — this does not revoke access. Deactivating for real needs profiles.status." className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground hover:text-destructive">Deactivate <span className="opacity-60">(preview)</span></button>}
             {a.status === 'disabled' && <button onClick={() => setS((p) => ({ ...p, admins: p.admins.map((x) => x.id === a.id ? { ...x, status: 'active' } : x) }))} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:text-foreground">Reactivate</button>}
           </div>
         ))}
