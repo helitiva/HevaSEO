@@ -60,3 +60,23 @@ export async function getStaff(): Promise<AdminStaff[]> {
     } satisfies AdminStaff];
   });
 }
+
+/**
+ * Who each staffer reports to — real, from staff_details.manager_id.
+ *
+ * getStaff() deliberately doesn't select manager_id (its shape mirrors adminMock's AdminStaff, which
+ * carries no pod), so the staff roster fell back to a mock managerOf() lookup keyed by id. Real UUIDs
+ * never matched the mock's s1..s6, so every card rendered without a manager while staff_details had the
+ * pod populated all along.
+ */
+export async function getStaffManagers(): Promise<Map<string, { id: string; name: string }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('staff_details')
+    .select('profile_id, manager:profiles!staff_details_manager_id_fkey(id, name)')
+    .returns<{ profile_id: string; manager: { id: string; name: string | null } | null }[]>();
+  if (error) throw new Error(`getStaffManagers: ${error.message}`);
+  const out = new Map<string, { id: string; name: string }>();
+  for (const r of data ?? []) if (r.manager) out.set(r.profile_id, { id: r.manager.id, name: r.manager.name ?? '—' });
+  return out;
+}

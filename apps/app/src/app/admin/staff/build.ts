@@ -13,7 +13,21 @@ function daysToDue(deadline: string | null): number {
 
 // Shared by the admin Staff page and the manager (pod-scoped) one. `allOrders` defaults to the mock
 // ORDERS (manager surface, still mock); the admin page passes real orders so workload is real.
-export function buildStaffVMs(staffList: readonly AdminStaff[], allOrders: readonly AdminOrder[] = ORDERS): StaffVM[] {
+/**
+ * @param pay  Real monthly pay per profile id, from staff_comp + delivered-basis commission
+ *             (getPayrollPreview). rosterSignals below CANNOT supply it: it does
+ *             `STAFF.find(x => x.id === staffId)` against the adminMock roster whose ids are s1..s6,
+ *             so a real UUID always misses and `sig?.monthlyPay ?? 0` rendered **$0/mo for every
+ *             staffer** — while Finance, reading the same people from payroll_runs, showed $1,029.60.
+ * @param managerNames  Real pod owner per profile id, from staff_details.manager_id. Same bug: the mock
+ *             managerOf() lookup missed on UUIDs, so every card said "No staff assigned".
+ */
+export function buildStaffVMs(
+  staffList: readonly AdminStaff[],
+  allOrders: readonly AdminOrder[] = ORDERS,
+  pay: ReadonlyMap<string, number> = new Map(),
+  managerNames: ReadonlyMap<string, { id: string; name: string }> = new Map(),
+): StaffVM[] {
   return staffList.map((s) => {
     const mine = allOrders.filter((o) => o.staff === s.name);
     const active = mine.filter((o) => ACTIVE.has(o.status));
@@ -33,7 +47,7 @@ export function buildStaffVMs(staffList: readonly AdminStaff[], allOrders: reado
     const dueSoon = activeOrders.filter((o) => o.daysToDue >= 0 && o.daysToDue <= 1).length;
     const valueInFlight = activeOrders.reduce((sum, o) => sum + o.value, 0);
     const completed = mine.filter((o) => o.status === 'completed').length;
-    const mgr = managerOf(s.id);
+    const mgr = managerNames.get(s.id) ?? managerOf(s.id);
     const sig = rosterSignals(s.id);
 
     return {
@@ -43,7 +57,7 @@ export function buildStaffVMs(staffList: readonly AdminStaff[], allOrders: reado
       load, overdue, dueSoon, valueInFlight, completed, activeOrders,
       managerId: mgr?.id ?? null, managerName: mgr?.name ?? null,
       tier: sig?.tier ?? '—', rank: sig?.rank ?? null,
-      monthlyPay: sig?.monthlyPay ?? 0, walletBalance: sig?.walletBalance ?? 0,
+      monthlyPay: pay.get(s.id) ?? sig?.monthlyPay ?? 0, walletBalance: sig?.walletBalance ?? 0,
       pendingFines: sig?.pendingFines ?? 0, appliedFines: sig?.appliedFines ?? 0,
       rewardsUnlocked: sig?.rewardsUnlocked ?? 0, rewardsTotal: sig?.rewardsTotal ?? 0,
       firstPassRate: sig?.firstPassRate ?? 0, avgRating: sig?.avgRating ?? null,
