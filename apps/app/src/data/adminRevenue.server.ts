@@ -17,7 +17,10 @@ import { getPayrollPreview } from '@/data/adminComp.server';
  */
 
 // Work is earned once it reaches the customer; a delivery sent back (changes_requested) is un-earned again.
-const RECOGNIZED_STATES = ['delivered', 'approved', 'completed'] as const;
+// Exported so /admin/analytics recognizes revenue by the same rule — one definition, or the two pages
+// disagree about the top line (they did: analytics counted only state='completed' and reported $0 while
+// this book reported $296.02 for the same orders).
+export const RECOGNIZED_STATES = ['delivered', 'approved', 'completed'] as const;
 // Committed but not yet earned — the customer's credit is spoken for, we still owe the work.
 const UNEARNED_STATES = ['new', 'confirmed', 'assigned', 'in_progress', 'internal_review', 'changes_requested'] as const;
 

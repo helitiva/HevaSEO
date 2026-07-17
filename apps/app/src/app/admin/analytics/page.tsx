@@ -38,7 +38,7 @@ export default async function AnalyticsPage() {
         {a.kpis.map((k) => <RevTile key={k.key} kpi={k} />)}
       </div>
 
-      <RevenueChart data={a.daily} services={a.serviceMix} />
+      <RevenueChart data={a.daily} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
