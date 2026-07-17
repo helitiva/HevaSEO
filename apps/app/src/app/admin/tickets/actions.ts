@@ -33,7 +33,10 @@ export async function getAgentTicketsAction(): Promise<AdminTicket[]> {
     .select('id, code, subject, type, channel, status, priority, sla_tier, created_at, last_reply_at, customer:customers(name, company), assignee:profiles!tickets_assignee_id_fkey(name), order:orders(code), ticket_messages(author_role, body, created_at, attachments)')
     .order('last_reply_at', { ascending: false, nullsFirst: false })
     .returns<Row[]>();
-  if (error) return [];
+  // Was `if (error) return []` — an RLS or query failure rendered an empty inbox with every KPI at 0 and
+  // no indication anything went wrong. "No tickets" and "we couldn't read the tickets" are not the same
+  // sentence, and only one of them is safe to show a support lead.
+  if (error) throw new Error(`getTickets: ${error.message}`);
   return (data ?? []).map((t) => {
     const custName = t.customer?.company || t.customer?.name || 'Customer';
     const thread: TicketMessage[] = (t.ticket_messages ?? [])

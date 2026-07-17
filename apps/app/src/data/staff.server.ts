@@ -30,6 +30,9 @@ export async function getStaff(): Promise<AdminStaff[]> {
     supabase.rpc('staff_perf_all').returns<PerfRow[]>(), // inc-E32: computed from real deliverables
   ]);
   if (staff.error) throw new Error(`getStaff: ${staff.error.message}`);
+  // If the perf RPC fails, `?? []` silently serves the SEEDED showcase numbers as if they were measured.
+  // Better to fail than to present demo quality/on-time figures as this team's real performance.
+  if (perf.error) throw new Error(`getStaff perf: ${perf.error.message}`);
   // computed perf overrides the seeded showcase values ONLY for staff with real reviewed work
   const perfBy = new Map((perf.data ?? []).filter((p) => p.quality != null).map((p) => [p.profile_id, p]));
 

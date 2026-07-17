@@ -21,6 +21,11 @@ export async function getCustomers(): Promise<AdminCustomer[]> {
     supabase.from('orders').select('customer_id, value').neq('state', 'canceled'),
   ]);
   if (custs.error) throw new Error(`getCustomers: ${custs.error.message}`);
+  // Every read, not just the first. An RLS denial on these two used to fall through `?? []` and render
+  // every customer with $0 balance and $0 LTV — indistinguishable from a customer who genuinely has
+  // neither. Silent zeroes on money are the failure this codebase keeps paying for.
+  if (bals.error) throw new Error(`getCustomers balances: ${bals.error.message}`);
+  if (ords.error) throw new Error(`getCustomers orders: ${ords.error.message}`);
 
   const balByCust = new Map((bals.data ?? []).map((b) => [b.customer_id as string, Number(b.balance)]));
   const agg = new Map<string, { n: number; spend: number }>();
