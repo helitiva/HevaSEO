@@ -1,0 +1,65 @@
+name: ci
+
+# Everything below already existed and already passed — nothing ran it.
+#
+# On 2026-07-17 a migration changed run_payroll's signature. 0320_fn_run_payroll_test.sql went red
+# immediately and stayed red for two hours, through several more commits, until someone happened to run
+# the suite by hand. 623 database tests and 405 unit tests, and the only automated check in the repo was
+# doc coverage. A test nobody runs is a comment.
+on:
+  push:
+    branches: [main, 'fix/**', 'feat/**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: types · unit · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Types first: it's the fastest signal and it catches the shape breaks (a fn signature change, a
+      # column added to a row type) that unit tests only notice by accident.
+      - name: typecheck
+        run: pnpm --filter @heva/app exec tsc --noEmit
+
+      - name: unit tests
+        run: pnpm --filter @heva/app exec vitest run
+
+      # The build is its own check: `next build` type-checks pages and server actions that tsc --noEmit
+      # on the app project doesn't reach the same way.
+      - name: build
+        run: pnpm --filter @heva/app build
+
+  db:
+    name: pgTAP (RLS + money functions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # This job is the one that matters most. The money lives in SECURITY DEFINER functions and RLS
+      # policies — create_order, accept_quote, run_payroll, post_staff_pay — and none of it is reachable
+      # from a unit test. These are the tests that assert a leaked quote link can't drain a wallet and
+      # that payroll can't pay twice.
+      # This also proves every migration applies cleanly to an empty database: a migration that only
+      # works against one laptop's accumulated state fails right here instead of on the next person's.
+      # (Deliberately NOT `supabase db reset` — that command wipes a real dev database, and a CI file is
+      # the first place someone copies a command from.)
+      - name: start supabase (applies all migrations from scratch)
+        run: supabase start
+
+      - name: pgTAP
+        run: supabase test db

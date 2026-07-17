@@ -1,11 +1,49 @@
 #!/bin/sh
-# Block commits that introduce NEW code↔docs drift (a route or exported behavior with no
-# mention in docs/FEATURES.md), measured against scripts/crawl/doc-coverage.baseline.json.
+# Fast local gate. CI (.github/workflows/ci.yml) is the authority — this only catches, in seconds, the
+# mistakes that have actually bitten this repo.
 #
 # Enable once per clone:  git config core.hooksPath scripts/git-hooks
-# Accept intentional gaps: pnpm doc-coverage:accept   (then commit the updated baseline)
-# Bypass a single commit:  git commit --no-verify
+# Bypass a single commit: git commit --no-verify
+#
+# Deliberately does NOT run pgTAP or the build: both need Docker or a full compile, and a hook slow
+# enough to be annoying is a hook that gets bypassed. CI runs those on every push.
 
+staged() { git diff --cached --name-only --diff-filter=ACM; }
+
+# ── 1. Files this repo keeps out of git on purpose ───────────────────────────────────────────────────
+BLOCKED=$(staged | grep -E '^(system-overview/|AGENTS\.md$|CLAUDE\.md$|\.claude/settings\.json$)' || true)
+if [ -n "$BLOCKED" ]; then
+  echo "✗ pre-commit: these are intentionally untracked —"
+  echo "$BLOCKED" | sed 's/^/    /'
+  echo "  unstage them: git restore --staged <file>"
+  exit 1
+fi
+
+# ── 2. Types ─────────────────────────────────────────────────────────────────────────────────────────
+# The cheapest signal, and the one that catches shape breaks: a column added to a row type, an argument
+# added to a function. Incremental + capped so it stays a few seconds.
+if staged | grep -qE '^apps/app/.*\.(ts|tsx)$'; then
+  echo "→ pre-commit: typechecking apps/app…"
+  if ! pnpm --filter @heva/app exec tsc --noEmit --pretty false \
+        --incremental --tsBuildInfoFile node_modules/.cache/tsc-precommit.tsbuildinfo; then
+    echo "✗ pre-commit: type errors above."
+    exit 1
+  fi
+fi
+
+# ── 3. Migrations ────────────────────────────────────────────────────────────────────────────────────
+# A migration that changes a function's signature breaks the pgTAP test that names that signature — and
+# it breaks it in a file that looks unrelated to the diff. That is exactly how 0320_fn_run_payroll_test
+# stayed red for two hours after run_payroll gained p_commission. Warn; CI enforces.
+if staged | grep -q '^supabase/migrations/'; then
+  echo "→ pre-commit: migration staged — run 'pnpm db:test' before pushing."
+  echo "  pgTAP names function signatures explicitly, so a new parameter fails a test elsewhere."
+fi
+
+# ── 4. Code↔docs drift ───────────────────────────────────────────────────────────────────────────────
+# Blocks NEW drift only (a route or exported behavior with no mention in docs/FEATURES.md), measured
+# against scripts/crawl/doc-coverage.baseline.json.
+# Accept intentional gaps: pnpm doc-coverage:accept   (then commit the updated baseline)
 node scripts/crawl/manifest.mjs >/dev/null 2>&1
 if ! node scripts/crawl/doc-coverage.mjs --ci >/tmp/doc-coverage-precommit.txt 2>&1; then
   cat /tmp/doc-coverage-precommit.txt

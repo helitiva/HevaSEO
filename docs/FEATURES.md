@@ -95,8 +95,23 @@ Features are grouped by domain. Each entry includes a 1–2 line description and
 | Payout request (staff) | Staff request withdrawals to a registered payout method; status: requested → approved → paid | `/staff/finance` |
 | Penalty system | Auto-flagged (revision rounds, late, rating) and manual penalties; staff can dispute | `/staff/finance`, `/staff/performance` |
 | Customer credit & invoices | Credit balance, spend, transaction history, invoices; runway calculation | `/credit` |
-| Credit adjustment | Admin-only: adjust a customer's credit balance | `/admin/customers/[id]` |
 | Affiliate finance overview | Admin view of partner tiers, earnings, and payout approvals | `/admin/affiliate` |
+
+#### Custom quotes
+
+Plans the catalog gives a `priceLabel` to — `Consult`, `Custom quote`, and every `from $X` — have no price to charge, only a price to decide. Placing one **charges nothing and creates no order**: it opens a quote request. A specialist prices the job, the customer gets a link, and the order is born only when they accept and pay that amount.
+
+| Feature | Description | Routes |
+| --- | --- | --- |
+| Request a quote | Customer picks a `priceLabel` plan; nothing is debited, no order exists. The order button reads "Request a quote" | `/services/[svc]` |
+| Quote queue | Managers price custom jobs and copy the customer's link. **Tenant-wide, not pod-scoped** — a new lead has no pod yet, so pod-scoping would make every lead invisible | `/manager/quotes` |
+| Accept & pay | Customer sees the amount, their balance and what's left before deciding; accepting debits exactly the quoted amount and creates the order | `/quote/[token]` |
+
+**Who may price.** Managers are money-blind by design (no `pricing.view`, no `finance.view`; `orders_mgr` strips `value`). Quoting is pricing, so `quotes.manage` is a deliberate, narrow exception: a manager sets one number on one quote and gains nothing else — not a wallet, not LTV, not revenue, not even the value of the order their own quote becomes.
+
+**The link is not a key.** `/quote/<token>` requires the owning customer to be signed in; RLS returns the row to nobody else, and `accept_quote` re-checks ownership from the JWT before debiting. A forwarded link cannot spend someone else's credit.
+
+**Revenue.** An accepted quote is a *booking*, not revenue — the order starts at `new`, and revenue is recognized on delivery like any other (ASC 606). Deferred revenue is unchanged by the accept: the credit simply becomes undelivered work.
 
 ### 2.6 Broadcasts / Messaging
 
