@@ -39,6 +39,18 @@ export async function run(ctx) {
     eq(Number(((await recognized(ctx.admin)) - rec0).toFixed(2)), V, 'recognized rose by the delivered value, no more');
   });
 
+  group('Affiliate — the customer approving a referred order pays the referrer');
+  // ACME (jane@acme.com) was referred by the affiliate (JANESEO, bronze 10%), so approving her order
+  // posts commission to the affiliate's wallet — live, through the real customer + affiliate sessions.
+  const affBalance = () => rows(ctx.affiliate.from('affiliate_commission').select('balance'), 'aff balance')
+    .then((r) => Number(r.at(0)?.balance ?? 0));
+  const affBefore = await affBalance();
+  await allowed(ctx.customer.rpc('advance_order', { p_order: oid, p_to: 'approved' }), 'customer approves');
+  await check('approving a referred order posts value × 10% to the affiliate wallet', async () => {
+    eq(Number(((await affBalance()) - affBefore).toFixed(2)), Number((V * 0.10).toFixed(2)),
+       'affiliate wallet rose by exactly the referred commission');
+  });
+
   group('Payroll — the delivered order accrues commission that run_payroll settles, once');
   const BASE = 1000, PCT = 10;
   await allowed(ctx.admin.rpc('set_staff_comp', { p_profile: MAI, p_base: BASE, p_pct: PCT }), 'set_staff_comp');

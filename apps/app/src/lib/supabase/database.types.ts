@@ -784,6 +784,8 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          order_id: string | null
+          order_value: number | null
           referral_id: string | null
           tenant_id: string
         }
@@ -793,6 +795,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind: string
+          order_id?: string | null
+          order_value?: number | null
           referral_id?: string | null
           tenant_id: string
         }
@@ -802,6 +806,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          order_id?: string | null
+          order_value?: number | null
           referral_id?: string | null
           tenant_id?: string
         }
@@ -811,6 +817,20 @@ export type Database = {
             columns: ["affiliate_id"]
             isOneToOne: false
             referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_mgr"
             referencedColumns: ["id"]
           },
           {
@@ -3001,6 +3021,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      affiliate_effective_rate: {
+        Args: { p_affiliate: string }
+        Returns: number
+      }
       apply_penalty: {
         Args: {
           p_amount: number
@@ -3484,6 +3508,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      post_referral_commission: {
+        Args: { p_actor: string; p_order: string }
+        Returns: undefined
       }
       post_staff_manager_message: {
         Args: { p_body: string; p_staff: string }

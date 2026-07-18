@@ -18,7 +18,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type AffRow = { id: string; code: string; tier: string; status: string; joined_at: string | null; platform: string | null; niche: string | null; audience: string | null; clicks: number | null; profiles: { name: string | null; email: string | null } | null };
 type RefRow = { id: string; volume: number | string; status: string; created_at: string; customers: { name: string | null; company: string | null } | null };
-type LedRow = { id: string; amount: number | string; kind: string; referral_id: string | null; created_at: string };
+type LedRow = { id: string; amount: number | string; kind: string; referral_id: string | null; created_at: string; order_id: string | null; order_value: number | string | null };
 type PayRow = { id: string; amount: number | string; status: string; requested_at: string };
 
 // PortalData + the authoritative withdrawable balance (affiliate_commission.balance == SUM(ledger)) +
@@ -77,7 +77,7 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
   const [refs, led, pays, bal, tiers, methods] = await Promise.all([
     supabase.from('affiliate_referrals').select('id, volume, status, created_at, customers(name, company)')
       .eq('affiliate_id', aff.id).order('created_at', { ascending: false }).returns<RefRow[]>(),
-    supabase.from('commission_ledger').select('id, amount, kind, referral_id, created_at')
+    supabase.from('commission_ledger').select('id, amount, kind, referral_id, created_at, order_id, order_value')
       .eq('affiliate_id', aff.id).order('created_at', { ascending: false }).returns<LedRow[]>(),
     supabase.from('affiliate_payouts').select('id, amount, status, requested_at')
       .eq('affiliate_id', aff.id).order('requested_at', { ascending: false }).returns<PayRow[]>(),
@@ -104,11 +104,21 @@ async function buildPortal(supabase: Supa, aff: AffRow): Promise<MyAffiliate> {
     status: r.status === 'churned' ? 'churned' : 'active',
   }));
   const custByRef = new Map(referrals.map((r) => [r.id, r.customer]));
-  const events: CommissionEvent[] = (led.data ?? []).filter((l) => l.kind === 'commission').map((l) => ({
-    id: l.id, at: ymd(l.created_at), referralId: l.referral_id ?? '',
-    customer: (l.referral_id && custByRef.get(l.referral_id)) || '—', orderCode: '—',
-    orderValue: 0, rate: 0, amount: Number(l.amount), status: 'cleared',
-  }));
+  const events: CommissionEvent[] = (led.data ?? []).filter((l) => l.kind === 'commission').map((l) => {
+    const orderValue = Number(l.order_value ?? 0);
+    const amount = Number(l.amount);
+    return {
+      id: l.id, at: ymd(l.created_at), referralId: l.referral_id ?? '',
+      customer: (l.referral_id && custByRef.get(l.referral_id)) || '—',
+      orderCode: '—',
+      orderValue,
+      // the rate is recovered from the posted amount rather than stored — commission_ledger keeps only
+      // the money, and amount = value × rate by construction (see post_referral_commission).
+      rate: orderValue > 0 ? Math.round((amount / orderValue) * 100) / 100 : 0,
+      amount,
+      status: 'cleared',
+    };
+  });
   const payouts: PayoutRequest[] = (pays.data ?? []).map((p) => ({
     id: p.id, at: ymd(p.requested_at), amount: Number(p.amount), method: affiliate.payoutLabel,
     status: p.status as PayoutRequest['status'],
