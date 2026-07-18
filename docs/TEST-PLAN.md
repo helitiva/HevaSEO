@@ -176,7 +176,7 @@ The existing E2E drives *states* but not the *money book*. Close that.
   - **Determinism:** keep Sofia's `away_auto_assign` + `auto_review` **off**; use a **numeric-priced** package (Consult/`from $X` → a quote, not an order); avoid top-ups ending in `.99` (mock decline); delivery must land in the **same calendar month** you preview (real clock).
 
 ### Phase 3 — close the ranked untested fns with pgTAP _(each sabotage-verified)_
-1. `08xx_fn_manager_standing_modes_test.sql` — **B2, top priority.** `set/my_away_auto_assign` + `auto_assign_order` and `set/my_auto_review` + `auto_review_order`; **pin the pod-ownership check** (a manager can't auto-review / be routed work outside their pod). The regression guard the recurring bug never had.
+1. ✅ **DONE** — `0840_manager_standing_modes_test.sql` (20 assertions). Pins both toggles as manager-only, both internal fns as not-client-callable, auto-assign as pod-scoped, and an auto-reviewed order as delivered_at-stamped. **Assertion #14 is the regression guard:** a manager cannot advance an order worked outside their own pod (`NOT_YOUR_POD`). Sabotage-verified — stripping the pod check from `advance_order` (the exact historical regression) turns #14 red; restoring it passes. Suite now 85 files / 679 tests.
 2. `08xx_fn_set_staff_comp_test.sql` — admin-gated pay-rate mutation; non-admin denied.
 3. `08xx_fn_quote_decline_revise_test.sql` — `decline_quote`, `revise_delivered` (+ its effect on recognized revenue).
 4. `08xx_fn_settings_delete_test.sql` — `revoke_api_key`, `delete_webhook` (the delete halves; create/upsert already in 0730).
