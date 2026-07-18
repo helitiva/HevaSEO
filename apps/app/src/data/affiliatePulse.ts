@@ -34,14 +34,21 @@ export interface Challenge {
   unit: string;       // 'referrals', 'orders', etc.
 }
 
-export const monthlyChallenge = (): Challenge => ({
-  label: 'June sprint',
-  current: 2,
-  goal: 3,
-  reward: 250,
-  endsAt: '2026-06-30T23:59:59',
-  unit: 'new referrals',
-});
+// The sprint tracks the CURRENT month, ending on its last day — a hardcoded 'June sprint' left the
+// countdown frozen at 00:00:00 for every month after June. The Countdown widget is client-only (renders
+// nothing until mounted), so deriving this from the clock can't cause a hydration mismatch.
+export const monthlyChallenge = (): Challenge => {
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  return {
+    label: `${now.toLocaleString('en-US', { month: 'long' })} sprint`,
+    current: 2,
+    goal: 3,
+    reward: 250,
+    endsAt: endOfMonth.toISOString(),
+    unit: 'new referrals',
+  };
+};
 
 // ---- Live activity feed ----
 export type ActivityKind = 'commission' | 'signup' | 'tier' | 'peer' | 'payout';

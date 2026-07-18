@@ -38,7 +38,7 @@ export function KpiCards({ k }: { k: AffiliateKpis }) {
       <Card icon="ph-chart-bar" label="Referred volume" value={money(k.totalVolume)}
         foot={<Delta value={pctDelta(k.volumeThisMonth, k.volumeLastMonth)} />} />
       <Card icon="ph-coins" label="Commission (lifetime)" value={money(k.commissionLifetime)}
-        foot={<span className="text-[11px] text-muted-foreground">earned to date</span>} />
+        foot={<span className="text-[11px] text-muted-foreground">attributed · paid to your wallet as billed</span>} />
       <Card icon="ph-trend-up" label="Commission (this mo.)" value={money(k.commissionThisMonth)}
         foot={<Delta value={pctDelta(k.commissionThisMonth, k.commissionLastMonth)} />} />
     </div>

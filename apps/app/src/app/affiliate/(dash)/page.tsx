@@ -12,16 +12,14 @@ import { AssetsGrid } from '@/components/affiliate/AssetsGrid';
 import { RankCard, ChallengeCard, StreakCard } from '@/components/affiliate/MomentumCards';
 import { ActivityPulse } from '@/components/affiliate/ActivityPulse';
 import { HowItWorks } from '@/components/affiliate/HowItWorks';
-import { rollupKpis, monthlySeries, funnelStats, earningStreak, projectMonth } from '@/lib/affiliate';
+import { rollupKpis, monthlySeries, funnelStats, earningStreak, projectMonth, tierForIn, AFFILIATE_TIERS } from '@/lib/affiliate';
 import { portalDataFor } from '@/data/affiliatePortal';
 import { getAffiliatePortalData } from '@/data/affiliate.server';
 import { currentAffiliateId } from '@/lib/currentAffiliate';
-import { MOCK_TODAY } from '@/lib/today';
 
 export const metadata: Metadata = { title: 'Affiliate overview' };
 
 // Phase-0 mock anchor for "today" so run-rate/projection reads consistently.
-const TODAY = MOCK_TODAY;
 
 // Section anchor with a "view all" link to the deeper sub-page.
 function SectionHead({ title, icon, href, cta }: { title: string; icon: string; href?: string; cta?: string }) {
@@ -39,10 +37,27 @@ export default async function AffiliateOverviewPage() {
   const real = await getAffiliatePortalData(); // own, or the impersonated partner (admin), else null
   const { affiliate: me, referrals, events, clicks, payouts } = real ?? portalDataFor(await currentAffiliateId());
 
-  const kpis = rollupKpis(referrals, events, clicks);
+  const TODAY = new Date().toISOString().slice(0, 10); // real clock — this is a server component
+  const kpisRaw = rollupKpis(referrals, events, clicks);
+  const lifetimeVolume = kpisRaw.totalVolume;
+
+  // Commission the affiliate has EARNED from referred volume at their tier rate (accrued). It posts to
+  // the withdrawable wallet as referred orders are billed (post_affiliate_commission), so it matches the
+  // per-referral commission in the table below — while the Payouts wallet stays the separate "posted &
+  // available to withdraw" figure. Same accrued-vs-paid split as staff payroll. Deriving the KPI from the
+  // (empty) commission_ledger events made it read $0 and contradict the referrals table.
+  const rate = tierForIn(lifetimeVolume, real?.tiers?.length ? real.tiers : AFFILIATE_TIERS).rate;
+  const thisMonthVolume = referrals
+    .filter((r) => r.joinedAt.slice(0, 7) === TODAY.slice(0, 7))
+    .reduce((s, r) => s + r.volume, 0);
+  const kpis = {
+    ...kpisRaw,
+    commissionLifetime: Math.round(lifetimeVolume * rate),
+    commissionThisMonth: Math.round(thisMonthVolume * rate),
+  };
+
   const series = monthlySeries(events);
   const funnel = funnelStats({ clicks, referrals });
-  const lifetimeVolume = kpis.totalVolume;
   const streak = earningStreak(events);
   const projected = projectMonth(kpis.commissionThisMonth, TODAY);
 
