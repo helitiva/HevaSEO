@@ -7,7 +7,7 @@
 
 | Layer | What it proves | Where | Runs in CI? |
 |---|---|---|---|
-| **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules | `apps/app` (vitest), **22 files / 437 tests** | ✅ yes (`app` job) |
+| **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules, payroll accrual | `apps/app` (vitest), **24 files / 451 tests** | ✅ yes (`app` job) |
 | **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **89 files / 734 tests** | ✅ yes (`db` job) |
 | **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **8 features / 105 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
 | **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ❌ **NO — parked (§7 Phase 1.3)** |
@@ -184,8 +184,10 @@ The existing E2E drove *states* but not the *money book*. `08-revenue-payroll.mj
 
 **Phase 3 is complete** — all 19 previously-untested SECURITY DEFINER fns now have a pgTAP guard (89 files / 734 tests).
 
-### Phase 4 — unit tests for untested money TS logic (vitest)
-`data/managerFinance.ts` (pod-override: `10%·gig + 15%·commission` — a different formula from the payroll path, easy to cross), `adminComp.server.ts` preview math (accrued − paid = outstanding, clamped ≥ 0), `data/adminCustomerInsight.ts`. Extract pure fns trapped behind `server-only` (the `adminRevenue.ts` split is the template).
+### Phase 4 — unit tests for untested money TS logic (vitest) ✅ **money parts DONE**
+- ✅ **The payroll accrual brain.** Extracted `getPayrollPreview`'s computation into `data/adminComp.ts` (`computePayrollPreview`, pure) behind the `adminComp.server.ts` I/O, per the `adminRevenue.ts` template — `/admin/finance` still reads Payouts due $2,014.8. `adminComp.test.ts` (10) pins: staff commission = basis × pct% over own delivered orders, the ASC 606 in-period filter (undelivered/wrong-month/non-recognized excluded), manager basis = pod value, `totals.basis` staff-only (no double-count), and **outstanding = accrued − paid, clamped ≥ 0** (an over-payment shows 0, not a negative that cancels other pay). Sabotage-verified on the clamp and the staff-only basis.
+- ✅ **Manager pod-override.** `managerFinance.test.ts` (4): every payout = `round(podGig×gigPct + podCommission×commPct)`, and a manager earns no gig/no bonus (take-home = base + override). The SQL twin is pgTAP 0220.
+- ⬜ **Optional (non-money):** `data/adminCustomerInsight.ts` (churn/risk signals) — lower value, deferred.
 
 ### Phase 5 — frontend / visual (Playwright) _(lower priority)_
 Extend the specs: screenshot the money surfaces at 320/768/1024/1440 in light & dark; a11y pass on `/admin/finance` + the order flow; gate on no-overflow + contrast.

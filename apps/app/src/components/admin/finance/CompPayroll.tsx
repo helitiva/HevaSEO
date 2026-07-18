@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { money } from '@/data/adminMock';
 import { setStaffCompAction } from '@/app/admin/finance/comp.actions';
 import { runPayrollAction } from '@/app/admin/finance/payroll.actions';
-import type { CompLine, PayrollPreview } from '@/data/adminComp.server';
+import type { CompLine, PayrollPreview } from '@/data/adminComp';
 
 /**
  * Set a person's pay and see what this period actually owes them. Commission is computed on the same ASC 606
