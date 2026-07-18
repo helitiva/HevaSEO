@@ -1,10 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Overlay store for admin-provisioned staff (Phase-0, localStorage only). Same
-// window-event pattern as broadcastStore. Holds just enough to render a freshly
-// created staff member in the directory with a "New · pending first activity" state —
-// no fabricated analytics. The login account itself lives in lib/auth.
+// Session-only overlay for admin-provisioned staff. Holds just enough to render a freshly created member
+// immediately after create_staff_member — which already revalidatePath's /admin/staff, so the real row
+// (with its real profile id) arrives from the server on the next load.
+//
+// Kept IN-MEMORY, not localStorage, on purpose: a persisted overlay carries a client-made id that never
+// matches the real one, so it would render the member TWICE — forever — once from the revalidated server
+// roster and once from the stale overlay. Session-only means the optimistic row is discarded on reload,
+// exactly when the real one has arrived. Same window-event pattern as before for live subscribers.
 
 export interface CreatedStaff {
   id: string;
@@ -16,30 +20,21 @@ export interface CreatedStaff {
   createdAt: string;  // ISO date
 }
 
-const KEY = 'heva:staff:created:v1';
 const EVT = 'heva:staff-accounts-changed';
-
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
-  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; }
-}
-function writeJson(key: string, value: unknown): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
-  window.dispatchEvent(new Event(EVT));
-}
+let created: CreatedStaff[] = []; // module-level, per session; gone on a full reload
 
 export function addCreatedStaff(s: CreatedStaff): void {
-  const list = readJson<CreatedStaff[]>(KEY, []);
-  writeJson(KEY, [s, ...list.filter((x) => x.id !== s.id)]);
+  created = [s, ...created.filter((x) => x.id !== s.id)];
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVT));
 }
 
 export function useCreatedStaff(): CreatedStaff[] {
   const [list, setList] = useState<CreatedStaff[]>([]);
   useEffect(() => {
-    const load = () => setList(readJson<CreatedStaff[]>(KEY, []));
+    const load = () => setList(created);
     load();
-    window.addEventListener(EVT, load); window.addEventListener('storage', load);
-    return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
+    window.addEventListener(EVT, load);
+    return () => window.removeEventListener(EVT, load);
   }, []);
   return list;
 }

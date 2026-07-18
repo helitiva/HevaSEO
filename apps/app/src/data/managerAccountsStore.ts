@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Overlay store for admin-provisioned managers/admins (Phase-0, localStorage only).
-// Same window-event pattern as broadcastStore. A created entry shows up in the
-// Managers directory with an empty team and a "New" state — no fabricated analytics.
-// The login account itself lives in lib/auth (role: 'manager' | 'admin').
+// Session-only overlay for admin-provisioned managers/admins. Shows a freshly created entry in the
+// Managers directory immediately after create_manager — which already revalidatePath's /admin/managers,
+// so the real profile row arrives from the server on the next load.
+//
+// Kept IN-MEMORY, not localStorage, on purpose: a persisted overlay carries a client-made id that never
+// matches the real one, so it would render the manager TWICE — forever. Session-only means the optimistic
+// row is discarded on reload, exactly when the real one has arrived.
 
 export interface CreatedManager {
   id: string;
@@ -16,30 +19,21 @@ export interface CreatedManager {
   createdAt: string;       // ISO date
 }
 
-const KEY = 'heva:managers:created:v1';
 const EVT = 'heva:manager-accounts-changed';
-
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
-  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; }
-}
-function writeJson(key: string, value: unknown): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
-  window.dispatchEvent(new Event(EVT));
-}
+let created: CreatedManager[] = []; // module-level, per session; gone on a full reload
 
 export function addCreatedManager(m: CreatedManager): void {
-  const list = readJson<CreatedManager[]>(KEY, []);
-  writeJson(KEY, [m, ...list.filter((x) => x.id !== m.id)]);
+  created = [m, ...created.filter((x) => x.id !== m.id)];
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVT));
 }
 
 export function useCreatedManagers(): CreatedManager[] {
   const [list, setList] = useState<CreatedManager[]>([]);
   useEffect(() => {
-    const load = () => setList(readJson<CreatedManager[]>(KEY, []));
+    const load = () => setList(created);
     load();
-    window.addEventListener(EVT, load); window.addEventListener('storage', load);
-    return () => { window.removeEventListener(EVT, load); window.removeEventListener('storage', load); };
+    window.addEventListener(EVT, load);
+    return () => window.removeEventListener(EVT, load);
   }, []);
   return list;
 }
