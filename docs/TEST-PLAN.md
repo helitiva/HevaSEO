@@ -10,7 +10,7 @@
 | **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules, payroll accrual | `apps/app` (vitest), **24 files / 451 tests** | ✅ yes (`app` job) |
 | **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **89 files / 734 tests** | ✅ yes (`db` job) |
 | **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **8 features / 105 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
-| **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ❌ **NO — parked (§7 Phase 1.3)** |
+| **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ◐ **smoke subset (20) in CI (`ui` job)**; journey/verify-* run locally |
 
 **Golden rule:** DB-level exhaustive coverage lives in pgTAP; the backend E2E is the *live* layer that
 proves the same guarantees hold through PostgREST with real JWTs; Playwright covers the rendered UI.
@@ -167,7 +167,7 @@ Run those on CI's throwaway Postgres or a separately-spun ephemeral DB — hence
 The order/payroll automation you asked about is **already written**; it just doesn't run.
 1. ✅ **DONE** — verified green on a from-scratch CI DB: **101 passed, 0 failed**. Pre-flight first confirmed no signature rot (every RPC the suite calls resolves to a current signature with all required params).
 2. ✅ **DONE** — added the `e2e` CI job (commit `58aec9d`), mirroring the `db` job: `supabase start` (migrations + seed) → `test:e2e` with `SMOKE_*` from `supabase status -o json`. Green on the first run.
-3. ⬜ **TODO** — the Playwright UI specs (`test:ui`, 98 cases) stay parked: they need the Next app running on :4455 + a browser (`playwright install`), a heavier and flakier job. Wire as a follow-up or keep parked deliberately.
+3. ✅ **DONE (Phase 5)** — a `ui` CI job runs the **stable smoke subset** (20 tests): login across all 5 roles, wrong-password, unauth redirect, per-role nav-route health, RBAC bounces, console cleanliness, surface renders. It builds the app, serves it on :4500 with the local Supabase env (keys from `supabase status`), and Playwright reuses that server. Green on the first run. The journey/verify-* specs (place-an-order, tickets, revisions…) assume a pristine single-run seed and mutate as they go, so they stay a **local** tool (`pnpm --filter @heva/app test:ui` after `db:reset`) — a reliable CI green beats a flaky one.
 
 ### Phase 2 — the two flows you named, tied to money ✅ **DONE**
 The existing E2E drove *states* but not the *money book*. `08-revenue-payroll.mjs` (new feature, wired into `run.mjs`) closes both, driven live end-to-end:
@@ -189,8 +189,8 @@ The existing E2E drove *states* but not the *money book*. `08-revenue-payroll.mj
 - ✅ **Manager pod-override.** `managerFinance.test.ts` (4): every payout = `round(podGig×gigPct + podCommission×commPct)`, and a manager earns no gig/no bonus (take-home = base + override). The SQL twin is pgTAP 0220.
 - ⬜ **Optional (non-money):** `data/adminCustomerInsight.ts` (churn/risk signals) — lower value, deferred.
 
-### Phase 5 — frontend / visual (Playwright) _(lower priority)_
-Extend the specs: screenshot the money surfaces at 320/768/1024/1440 in light & dark; a11y pass on `/admin/finance` + the order flow; gate on no-overflow + contrast.
+### Phase 5 — frontend / visual (Playwright) ✅ **smoke gate DONE**
+The `ui` CI job (above) is the smoke gate — 20 tests across all 5 roles, green. Still open as follow-ups: promoting more of the journey/verify-* specs once they're made seed-independent, and a dedicated visual pass (screenshot the money surfaces at 320/768/1024/1440 in light & dark, a11y on `/admin/finance` + the order flow, gate on no-overflow + contrast).
 
 ### Suggested order
 1. **Phase 1** — turns ~200 already-written, dead E2E cases into a running gate. Biggest return.
