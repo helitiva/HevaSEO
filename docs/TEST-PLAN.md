@@ -8,7 +8,7 @@
 | Layer | What it proves | Where | Runs in CI? |
 |---|---|---|---|
 | **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules | `apps/app` (vitest), **22 files / 437 tests** | ✅ yes (`app` job) |
-| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **88 files / 722 tests** | ✅ yes (`db` job) |
+| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **89 files / 734 tests** | ✅ yes (`db` job) |
 | **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **8 features / 105 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
 | **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ❌ **NO — parked (§7 Phase 1.3)** |
 
@@ -180,7 +180,9 @@ The existing E2E drove *states* but not the *money book*. `08-revenue-payroll.mj
 2. ✅ **DONE** — `0850_fn_set_staff_comp_test.sql` (18 assertions): admin-only (staff/manager/customer → NOT_ADMIN — managers are pay-blind too), value guards (salary ≥ 0, 0 ≤ rate ≤ 100), target guard (staff/manager only), upsert (one row per person), and RLS read scope (self-only; a colleague's pay is invisible). Sabotage-verified: stripping the admin gate turns the three NOT_ADMIN assertions red.
 3. ✅ **DONE** — `0860_fn_quote_decline_revise_test.sql` (15): `decline_quote` (customer-only, own-quote-only, not-open guard) and `revise_delivered` (staff-assignee-only, delivered-only, versioned re-open). Sabotage-verified: stripping `decline_quote`'s ownership check turns its NOT_YOUR_QUOTE assertion red.
 4. ✅ **DONE** — `0870_fn_settings_delete_test.sql` (10): `revoke_api_key`, `delete_webhook` — customer-only and own-scoped (a colleague's revoke/delete is a silent no-op). Sabotage-verified: stripping the own-scope from `revoke_api_key` lets one customer revoke another's key → red.
-5. ⬜ **TODO (lower)** — `reassign_project_orders`, `edit_deliverable`/`mark_deliverable_viewed`, `set_notif_prefs`, `mark_broadcast_dismissed`.
+5. ✅ **DONE** — `0880_fn_prefs_misc_test.sql` (12): existence + the authz gate for the low-risk tail — `reassign_project_orders` (NOT_YOUR_PROJECT), `edit_deliverable` (NOT_STAFF), `set_notif_prefs` (NOT_CUSTOMER), `mark_broadcast_dismissed` (NOT_A_RECIPIENT), and `mark_deliverable_viewed` (customer-only no-op). Lean by design — no money moves through these. Sabotage-verified on the set_notif_prefs gate.
+
+**Phase 3 is complete** — all 19 previously-untested SECURITY DEFINER fns now have a pgTAP guard (89 files / 734 tests).
 
 ### Phase 4 — unit tests for untested money TS logic (vitest)
 `data/managerFinance.ts` (pod-override: `10%·gig + 15%·commission` — a different formula from the payroll path, easy to cross), `adminComp.server.ts` preview math (accrued − paid = outstanding, clamped ≥ 0), `data/adminCustomerInsight.ts`. Extract pure fns trapped behind `server-only` (the `adminRevenue.ts` split is the template).
