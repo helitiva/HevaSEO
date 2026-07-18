@@ -6,6 +6,7 @@ import { myEarnings, earningsHistory, myEarningsSummary, myFinance, myRewards } 
 import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
 import { getMyStaffWallet } from '@/data/staffWallet.server';
+import { payslipsToEarnings } from '@/data/staffPayroll';
 
 export const metadata = { title: 'Finance' };
 
@@ -14,10 +15,14 @@ export const metadata = { title: 'Finance' };
 // Renders for the impersonated staffer when an admin is impersonating (else the demo staffer).
 export default async function FinancePage() {
   const sid = await currentStaffId();
-  const earnings = myEarnings(sid);
   const me = STAFF.find((s) => s.id === sid);
   // Real DB wallet for the signed-in staffer (null → mock fallback for demo/impersonation/never-paid).
   const realWallet = await getMyStaffWallet();
+  // Payroll is the source of truth for staff pay. When the signed-in staffer has real payroll runs, the
+  // hero card + earnings chart + YTD come from them (the same runs the Payslips tab already shows), so
+  // every number on the page is real and consistent. No commission is minted into the wallet.
+  const realPay = realWallet ? payslipsToEarnings(realWallet.payslips) : null;
+  const earnings = realPay?.earnings ?? myEarnings(sid);
 
   if (!earnings || !me) {
     return (
@@ -34,8 +39,8 @@ export default async function FinancePage() {
       <ViewOnlyGuard>
         <FinanceClient
           earnings={earnings}
-          history={earningsHistory(sid)}
-          summary={myEarningsSummary(sid)}
+          history={realPay?.history ?? earningsHistory(sid)}
+          summary={realPay?.summary ?? myEarningsSummary(sid)}
           finance={myFinance(sid)}
           rewards={myRewards(sid)}
           firstPassRate={me.quality}

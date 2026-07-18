@@ -170,7 +170,7 @@ export function FinanceClient({ earnings, history, summary, finance, rewards = [
               )}
             </div>
             <p className="mt-3 text-[11px] text-white/70">
-              Balance {money(balance)} · {isManager ? 'your pod-override commission accrues here each cycle (salary is paid automatically).' : 'commission accrues here as your work is billed.'} {MIN_PAYOUT > 0 && `Minimum payout ${money(MIN_PAYOUT)}.`}
+              Balance {money(balance)} · {isManager ? 'your pod-override commission accrues here each cycle (salary is paid automatically).' : 'bonuses and adjustments settle here; your salary and commission are paid on payroll (below).'} {MIN_PAYOUT > 0 && `Minimum payout ${money(MIN_PAYOUT)}.`}
             </p>
           </div>
         </div>
