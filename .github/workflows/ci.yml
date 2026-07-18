@@ -73,3 +73,40 @@ jobs:
 
       - name: pgTAP
         run: supabase test db
+
+  e2e:
+    name: E2E (live Supabase — auth · RLS · money · payroll)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      # Node 22, not 20: the suite drives Supabase through @supabase/ssr, whose realtime-js needs a
+      # native WebSocket (Node ≥22) or it throws at client construction.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # apps/app/scripts/e2e drives the REAL stack — Auth + RLS + SECURITY DEFINER money/provisioning
+      # fns — as a browser client would, across all 5 roles: the order lifecycle, cancel-refund, the
+      # wallet invariant (balance == SUM(ledger)), payouts, penalties and idempotent payroll. It is the
+      # live twin of the pgTAP suite, and until now nothing ran it.
+      #
+      # `supabase start` on the runner's fresh volume applies migrations AND seed.sql (db.seed.enabled),
+      # so the five demo accounts (password demo1234) and the seed tenant exist for login(). Same service
+      # exclusions as the db job — the suite talks only to the Postgres/PostgREST API, never a browser or
+      # the Next app, so no mail/studio/edge/analytics containers are needed. NOT `supabase db reset`.
+      - name: start supabase (migrations + seed from scratch)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
+
+      - name: run live E2E across all 5 roles
+        run: |
+          J=$(supabase status -o json)
+          export SMOKE_URL=http://127.0.0.1:54321
+          export SMOKE_ANON=$(node -e "console.log(JSON.parse(process.argv[1]).ANON_KEY)" "$J")
+          export SMOKE_SVC=$(node -e "console.log(JSON.parse(process.argv[1]).SERVICE_ROLE_KEY)" "$J")
+          pnpm --filter @heva/app test:e2e
