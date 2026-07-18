@@ -110,3 +110,57 @@ jobs:
           export SMOKE_ANON=$(node -e "console.log(JSON.parse(process.argv[1]).ANON_KEY)" "$J")
           export SMOKE_SVC=$(node -e "console.log(JSON.parse(process.argv[1]).SERVICE_ROLE_KEY)" "$J")
           pnpm --filter @heva/app test:e2e
+
+  ui:
+    name: Playwright (UI smoke — 5 roles · RBAC · console)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # This job runs the REAL Next app in a browser. Unlike the e2e job (which talks to Postgres
+      # directly), the UI needs the app built + served with the local Supabase env, so:
+      #   supabase start (migrations + seed) → export its keys → build → serve on :4500 → Playwright.
+      # Scope: the stable smoke specs only — login across all 5 roles, RBAC bounces, per-role nav-route
+      # health, console cleanliness, surface renders. The larger journey/verify-* specs assume a pristine
+      # single-run seed and mutate as they go; they stay a local tool (`pnpm --filter @heva/app test:ui`)
+      # rather than a CI gate, so this job is a reliable green, not a flaky one.
+      - name: start supabase (migrations + seed)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
+
+      - name: export local Supabase env for the app
+        run: |
+          J=$(supabase status -o json)
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(node -e "console.log(JSON.parse(process.argv[1]).ANON_KEY)" "$J")" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(node -e "console.log(JSON.parse(process.argv[1]).SERVICE_ROLE_KEY)" "$J")" >> "$GITHUB_ENV"
+          # the smoke specs stub window.grecaptcha, so any non-empty site key is fine — the widget path
+          # just needs to render.
+          echo "NEXT_PUBLIC_RECAPTCHA_SITE_KEY=ci-smoke-key" >> "$GITHUB_ENV"
+
+      - name: install playwright chromium
+        run: pnpm --filter @heva/app exec playwright install --with-deps chromium
+
+      - name: build the app
+        run: pnpm --filter @heva/app build
+
+      # One step: a backgrounded process does NOT survive into the next Actions step (each `run` is a
+      # fresh shell), so the server must be started and used in the same shell. Playwright's webServer
+      # config (reuseExistingServer) then reuses this :4500 rather than starting `next dev`.
+      - name: serve the built app + run UI smoke
+        run: |
+          pnpm --filter @heva/app start &
+          APP_PID=$!
+          for i in $(seq 1 60); do curl -sf http://localhost:4500/login >/dev/null && break; sleep 2; done
+          pnpm --filter @heva/app exec playwright test auth surfaces console-sweep staff-smoke manager-smoke --reporter=line
+          RESULT=$?
+          kill $APP_PID 2>/dev/null || true
+          exit $RESULT
