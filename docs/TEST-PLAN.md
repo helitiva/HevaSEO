@@ -1,19 +1,27 @@
 # HevaSEO — Test Plan & Feature Test Cases
 
 > Living test plan for the backend + app. Organized **by feature**, mapped to the **layer** that proves
-> each case. Last updated 2026-07-01.
+> each case. Last updated 2026-07-18 (counts refreshed + §6/§7 gap review added).
 
 ## 1. Test layers (the pyramid)
 
-| Layer | What it proves | Where | How to run |
+| Layer | What it proves | Where | Runs in CI? |
 |---|---|---|---|
-| **Unit** | Pure logic — pricing, tier math, mappers, ledgers | `apps/app` (vitest), 378 tests | `pnpm --filter @heva/app test` |
-| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, 524 tests / 68 files | `pnpm verify:db` |
-| **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, 81 cases | `pnpm --filter @heva/app test:e2e` (env below) |
-| **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, 12 cases | `pnpm --filter @heva/app test:ui` |
+| **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules | `apps/app` (vitest), **22 files / 437 tests** | ✅ yes (`app` job) |
+| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **84 files / 659 tests** | ✅ yes (`db` job) |
+| **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **7 features / 101 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
+| **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ❌ **NO — parked (§7 Phase 1.3)** |
 
 **Golden rule:** DB-level exhaustive coverage lives in pgTAP; the backend E2E is the *live* layer that
 proves the same guarantees hold through PostgREST with real JWTs; Playwright covers the rendered UI.
+
+> **Backend live layer is now wired.** `.github/workflows/ci.yml` runs `app` (unit) + `db` (pgTAP) +
+> `e2e` (live, 101 cases across 5 roles) — all green on a from-scratch DB. The 98-case Playwright UI
+> suite is still unrun (it needs the Next app + a browser — heavier); that's the remaining Phase 1 step.
+
+> ⚠ **`pnpm verify:db` contains `supabase db reset`** (`package.json`). That command wipes a real dev
+> database — **never run it against your working DB.** For a safe local pgTAP run use `supabase test db`
+> alone (no reset); the from-scratch reset belongs only on CI's throwaway Postgres.
 
 ## 2. How to run (live)
 
@@ -37,8 +45,11 @@ SMOKE_SVC=$(echo "$J"|node -e "let d='';process.stdin.on('data',c=>d+=c);process
 pnpm --filter @heva/app test:ui
 ```
 
-> Re-runnable: the backend E2E creates data (orders, payouts), so **reset before each full run**. The UI
-> suite stubs reCAPTCHA (`window.grecaptcha`) so login is deterministic and needs no network.
+> ⚠ **Run this against a throwaway/ephemeral stack, never your working dev DB** — `db:reset` wipes real
+> data. On CI the DB is disposable, so reset is safe there; that's why the live layers belong in CI (§7).
+>
+> Re-runnable: the backend E2E creates data (orders, payouts), so the stack must be **pristine before each
+> full run**. The UI suite stubs reCAPTCHA (`window.grecaptcha`) so login is deterministic and needs no network.
 
 ## 3. Feature test cases + coverage map
 
@@ -111,9 +122,74 @@ and the F7 E2E denial case.
 - `apps/app/scripts/e2e/run.mjs` — orchestrator
 - `apps/app/e2e-ui/` — Playwright specs (`auth`, `surfaces`) + `helpers.ts` + `playwright.config.ts`
 
-## 6. Gaps / follow-ups
-- UI E2E covers login + surface-render + RBAC gate; deeper UI journeys (place an order, approve a payout
-  through the modal, submit a deliverable via the UI) are candidates to add next.
-- Visual regression (screenshots per breakpoint/theme) not yet wired.
-- The public checkout HTTP route is exercised at the DB layer (`materialize_order`) + code review; an
-  HTTP-level test hitting the running route (provision/refuse/Turnstile) is a follow-up.
+## 6. Gap review (2026-07-18)
+
+Two kinds of gap. **Functional gaps** (a feature that doesn't fully work in the real app) outrank
+**test gaps** (a working feature with no test) — the first blocks, the second warns.
+
+### 6A. Functional gaps — ranked
+
+| # | Gap | Evidence | Severity |
+|---|-----|----------|----------|
+| 1 | **Staff-wallet commission is never minted in the running app.** `post_staff_pay` (credits `staff_wallet` on delivery) has **zero app callers** — only `seed.sql` + pgTAP call it. A real staffer's wallet commission ledger stays empty; commission only surfaces via the payroll *computation*. Wire it into delivery, or stop the wallet advertising commission it never gets. **Design decision — the biggest "sót".** | only ref in `apps/app/src` is a comment, `data/staffWallet.server.ts:11` | HIGH — decide |
+| 2 | **Password reset is fake** — `/forgot-password` + `/reset-password` write a localStorage outbox/record, not Supabase Auth. (Login/signup/session ARE real.) | `lib/auth.ts:221,227` | HIGH |
+| 3 | **`/admin/settings` is entirely unwired** — every tab renders `ADMIN_SETTINGS` mock; the page says so. | `app/admin/settings/page.tsx:8` | HIGH |
+| 4 | **Public checkout bot-check is a no-op** — Turnstile is a documented stub; only an in-memory IP limiter guards it. | `app/api/public/checkout/route.ts:16,39,52` | HIGH (security) |
+| 5 | **Temp-credential "email" is a mock outbox** — account creation is REAL (`create_staff_member`/`create_manager`), but the temp password only shows in a localStorage drawer; no mail is sent. | `components/admin/accounts/OutboxDrawer.tsx` | MEDIUM |
+| 6 | **`run_payroll` idempotency is amount-blind & one-shot per period** — re-running returns the first row and ignores new amounts. If an order is delivered *after* payroll ran that month, `outstanding` shows >0 but Pay does nothing, and a wrong first payment can't be corrected without deleting the row. | `payroll_commission.sql:35-36` | MEDIUM |
+| 7 | **Pure-mock staff surfaces** (no backend): Deliverables, Notifications, Calendar, Performance, Settings, History. | `app/staff/{deliverables,notifications,calendar,performance,settings,history}` | MEDIUM |
+| 8 | **`MOCK_TODAY` frozen clock still live in ~6 rendered surfaces** — they show 2026-06-24 as "today" while real-clock pages show the true date. | `staff/finance/FinanceClient.tsx:20`, `staff/performance/page.tsx:747`, `staff/settings/SettingsClient.tsx:39`, `admin/managers/page.tsx:10`, `admin/staff/[id]/StaffProfileClient.tsx:221`, `affiliate/(dash)/page.tsx:24` | MEDIUM |
+| 9 | **Manager Audit is mock** (admin audit was migrated); **Admin › Staff › Leave is mock**. | `app/manager/audit/page.tsx:3`; `app/admin/staff/leave/page.tsx:1` | MEDIUM |
+| 10 | **Hardcoded customer-dashboard figures** — active-projects count, membership tier, on-time % (last has a `TODO(backend)`: orders carry no on-time flag). | `components/DashboardTop.tsx:28,179` | LOW |
+| 11 | **Affiliate self-registration writes localStorage**, not a Supabase signup (unlike `/register`). | `data/affiliateAdminStore.ts:88` | LOW |
+| 12 | **localStorage display-overlays** for freshly-created staff/manager/affiliate rows (rendered instead of re-fetched) → transient drift after the real RPC. | `StaffClient.tsx:131`, `ManagersClient.tsx:117` | LOW |
+| 13 | **Staff/manager avatar upload not wired** (customer avatar IS, via the `avatars` bucket). | `StaffProfileClient.tsx:963` | LOW |
+| 14 | **Analytics "Audience" panel is mock** (openly "Demo data") — no product-events pipeline. Everything else on `/admin/analytics` (revenue, geo counts, support, team) is REAL. Accept if intended. | `components/admin/AudienceAnalytics.tsx:3` | ACCEPT? |
+| 15 | **Dead export** — `data/affiliate.server.ts` `payoutMethodLabel`/`getMyAffiliate`/`getAffiliateById` have no importers. | — | LOW |
+
+### 6B. Test-coverage gaps
+
+| # | Gap | Evidence | Severity |
+|---|-----|----------|----------|
+| B1 | **~200 live E2E cases exist and CI runs none of them** (§1). Backend 7 features / 98 cases + Playwright 35 specs / 98 cases, both wired to package.json scripts but no workflow. | grep `.github/` for `test:e2e`/`playwright` = empty | **HIGH** |
+| B2 | **Manager "standing modes" entirely untested — and they touch a check that keeps regressing.** `auto_assign_order` + `set/my_away_auto_assign` and `auto_review_order` + `set/my_auto_review` have **0 pgTAP refs**. The current `advance_order` carries a comment (`manager_auto_review.sql:50`) that a later redefinition *dropped the manager pod-ownership check and it had to be restored* — a known recurring bug with no regression guard. | 0 refs (verified) | **HIGH** |
+| B3 | **`set_staff_comp` untested** — mutates staff pay rate; feeds payroll + commission. Highest-value single untested money fn. | 0 refs | HIGH |
+| B4 | **13 more untested SECURITY DEFINER fns:** `decline_quote`, `revise_delivered`, `reassign_project_orders`, `revoke_api_key`, `delete_webhook`, `edit_deliverable`, `mark_deliverable_viewed`, `set_notif_prefs`, `mark_broadcast_dismissed`, `sync_profile_email`, `current_customer_id`, `order_assignee_id`, `my_*` readers (19 untested of 93 total). | verified | MEDIUM |
+| B5 | **Untested money TS logic** (not just RLS wrappers): `data/managerFinance.ts` (pod-override pay math), `adminComp.server.ts` preview math, `data/adminCustomerInsight.ts`. | — | MEDIUM |
+
+## 7. The plan — phased
+
+**Shaping rule:** the from-scratch suites need a pristine seed (`db:reset`). **Never reset the dev DB.**
+Run those on CI's throwaway Postgres or a separately-spun ephemeral DB — hence "wire into CI", not
+"run locally".
+
+### Phase 1 — make the existing E2E real _(highest ROI, do first)_
+The order/payroll automation you asked about is **already written**; it just doesn't run.
+1. ✅ **DONE** — verified green on a from-scratch CI DB: **101 passed, 0 failed**. Pre-flight first confirmed no signature rot (every RPC the suite calls resolves to a current signature with all required params).
+2. ✅ **DONE** — added the `e2e` CI job (commit `58aec9d`), mirroring the `db` job: `supabase start` (migrations + seed) → `test:e2e` with `SMOKE_*` from `supabase status -o json`. Green on the first run.
+3. ⬜ **TODO** — the Playwright UI specs (`test:ui`, 98 cases) stay parked: they need the Next app running on :4455 + a browser (`playwright install`), a heavier and flakier job. Wire as a follow-up or keep parked deliberately.
+
+### Phase 2 — the two flows you named, tied to money
+The existing E2E drives *states* but not the *money book*. Close that.
+- **Flow 1 — auto place order → assert revenue recognized.** `07-lifecycle.mjs` already drives topup→create→assign→work→review→deliver→approve→complete. **Add:** after `→delivered`, assert `revenue_book().total.recognized` rose by **exactly the order value** (ties the lifecycle to ASC 606 — nothing does this today).
+- **Flow 2 — auto pay staff from a *delivered order*.** `03-payouts-finance.mjs` seeds the wallet with `post_staff_pay` directly + runs payroll with arbitrary numbers — it does **not** exercise the real accrual path. **Add a feature that:** (0) `set_staff_comp(Mai, base, pct)` — required, not seeded; (1) drives a real order to `delivered` for Mai; (2) `getPayrollPreview` → `outstanding = base + value×pct%`, `paid = 0`; (3) `run_payroll(...)` → exactly one `payroll_runs` row, correct total; (4) re-run different amounts → still one row, unchanged (document gap #6); (5) preview → `outstanding = 0`.
+  - **Determinism:** keep Sofia's `away_auto_assign` + `auto_review` **off**; use a **numeric-priced** package (Consult/`from $X` → a quote, not an order); avoid top-ups ending in `.99` (mock decline); delivery must land in the **same calendar month** you preview (real clock).
+
+### Phase 3 — close the ranked untested fns with pgTAP _(each sabotage-verified)_
+1. `08xx_fn_manager_standing_modes_test.sql` — **B2, top priority.** `set/my_away_auto_assign` + `auto_assign_order` and `set/my_auto_review` + `auto_review_order`; **pin the pod-ownership check** (a manager can't auto-review / be routed work outside their pod). The regression guard the recurring bug never had.
+2. `08xx_fn_set_staff_comp_test.sql` — admin-gated pay-rate mutation; non-admin denied.
+3. `08xx_fn_quote_decline_revise_test.sql` — `decline_quote`, `revise_delivered` (+ its effect on recognized revenue).
+4. `08xx_fn_settings_delete_test.sql` — `revoke_api_key`, `delete_webhook` (the delete halves; create/upsert already in 0730).
+5. Lower: `reassign_project_orders`, `edit_deliverable`/`mark_deliverable_viewed`, `set_notif_prefs`, `mark_broadcast_dismissed`.
+
+### Phase 4 — unit tests for untested money TS logic (vitest)
+`data/managerFinance.ts` (pod-override: `10%·gig + 15%·commission` — a different formula from the payroll path, easy to cross), `adminComp.server.ts` preview math (accrued − paid = outstanding, clamped ≥ 0), `data/adminCustomerInsight.ts`. Extract pure fns trapped behind `server-only` (the `adminRevenue.ts` split is the template).
+
+### Phase 5 — frontend / visual (Playwright) _(lower priority)_
+Extend the specs: screenshot the money surfaces at 320/768/1024/1440 in light & dark; a11y pass on `/admin/finance` + the order flow; gate on no-overflow + contrast.
+
+### Suggested order
+1. **Phase 1** — turns ~200 already-written, dead E2E cases into a running gate. Biggest return.
+2. **Phase 2 Flow 2 + Phase 3 #1** — covers "auto pay staff" *and* the highest-risk untested area together.
+3. **Phase 2 Flow 1 + Phase 3 #2** — revenue-recognized assertion + `set_staff_comp`.
+4. **Functional gaps (§6A)** are product calls (wire password reset? admin settings? mint wallet commission on delivery?), decide separately from test work.
