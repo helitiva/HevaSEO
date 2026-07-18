@@ -8,8 +8,8 @@
 | Layer | What it proves | Where | Runs in CI? |
 |---|---|---|---|
 | **Unit** | Pure logic — pricing, tier math, mappers, ledgers, ASC 606 rules | `apps/app` (vitest), **22 files / 437 tests** | ✅ yes (`app` job) |
-| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **84 files / 659 tests** | ✅ yes (`db` job) |
-| **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **7 features / 101 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
+| **DB (pgTAP)** | Every SECURITY DEFINER fn: RLS, authz gates, guards, money invariant, execute-grants — exhaustive per-fn | `supabase/tests/*.sql`, **86 files / 697 tests** | ✅ yes (`db` job) |
+| **Backend E2E (live)** | Real Supabase Auth + RLS + fns end-to-end across all 5 roles — behaviour & security through the actual API | `apps/app/scripts/e2e/`, **8 features / 105 cases** | ✅ **yes (`e2e` job)** — added 2026-07-18 |
 | **UI E2E (Playwright)** | Critical user journeys through the real Next app + browser | `apps/app/e2e-ui/`, **35 specs / 98 cases** | ❌ **NO — parked (§7 Phase 1.3)** |
 
 **Golden rule:** DB-level exhaustive coverage lives in pgTAP; the backend E2E is the *live* layer that
@@ -169,15 +169,15 @@ The order/payroll automation you asked about is **already written**; it just doe
 2. ✅ **DONE** — added the `e2e` CI job (commit `58aec9d`), mirroring the `db` job: `supabase start` (migrations + seed) → `test:e2e` with `SMOKE_*` from `supabase status -o json`. Green on the first run.
 3. ⬜ **TODO** — the Playwright UI specs (`test:ui`, 98 cases) stay parked: they need the Next app running on :4455 + a browser (`playwright install`), a heavier and flakier job. Wire as a follow-up or keep parked deliberately.
 
-### Phase 2 — the two flows you named, tied to money
-The existing E2E drives *states* but not the *money book*. Close that.
-- **Flow 1 — auto place order → assert revenue recognized.** `07-lifecycle.mjs` already drives topup→create→assign→work→review→deliver→approve→complete. **Add:** after `→delivered`, assert `revenue_book().total.recognized` rose by **exactly the order value** (ties the lifecycle to ASC 606 — nothing does this today).
-- **Flow 2 — auto pay staff from a *delivered order*.** `03-payouts-finance.mjs` seeds the wallet with `post_staff_pay` directly + runs payroll with arbitrary numbers — it does **not** exercise the real accrual path. **Add a feature that:** (0) `set_staff_comp(Mai, base, pct)` — required, not seeded; (1) drives a real order to `delivered` for Mai; (2) `getPayrollPreview` → `outstanding = base + value×pct%`, `paid = 0`; (3) `run_payroll(...)` → exactly one `payroll_runs` row, correct total; (4) re-run different amounts → still one row, unchanged (document gap #6); (5) preview → `outstanding = 0`.
-  - **Determinism:** keep Sofia's `away_auto_assign` + `auto_review` **off**; use a **numeric-priced** package (Consult/`from $X` → a quote, not an order); avoid top-ups ending in `.99` (mock decline); delivery must land in the **same calendar month** you preview (real clock).
+### Phase 2 — the two flows you named, tied to money ✅ **DONE**
+The existing E2E drove *states* but not the *money book*. `08-revenue-payroll.mjs` (new feature, wired into `run.mjs`) closes both, driven live end-to-end:
+- **Flow 1 — place order → revenue recognized.** Captures `revenue_book().total.recognized`, places an order (asserts recognized is **unchanged** — booking ≠ revenue), walks it topup→assign→work→submit→**deliver**, then asserts recognized rose by **exactly the order value** (ASC 606). Nothing asserted this before.
+- **Flow 2 — pay staff from a *delivered order*.** Turns the pod manager's `auto_review`/`away` **off** for determinism, `set_staff_comp(Mai, base, pct)`, then `run_payroll` for the delivery's month → asserts `total = base + value×pct%` and the commission leg, then **re-runs with different inputs and asserts one unchanged row** (pins the amount-blind idempotency of gap #6).
+  - Uses a numeric-priced service (Backlink) and the real clock; runs last so its `revenue_book` delta is just its own order.
 
 ### Phase 3 — close the ranked untested fns with pgTAP _(each sabotage-verified)_
 1. ✅ **DONE** — `0840_manager_standing_modes_test.sql` (20 assertions). Pins both toggles as manager-only, both internal fns as not-client-callable, auto-assign as pod-scoped, and an auto-reviewed order as delivered_at-stamped. **Assertion #14 is the regression guard:** a manager cannot advance an order worked outside their own pod (`NOT_YOUR_POD`). Sabotage-verified — stripping the pod check from `advance_order` (the exact historical regression) turns #14 red; restoring it passes. Suite now 85 files / 679 tests.
-2. `08xx_fn_set_staff_comp_test.sql` — admin-gated pay-rate mutation; non-admin denied.
+2. ✅ **DONE** — `0850_fn_set_staff_comp_test.sql` (18 assertions): admin-only (staff/manager/customer → NOT_ADMIN — managers are pay-blind too), value guards (salary ≥ 0, 0 ≤ rate ≤ 100), target guard (staff/manager only), upsert (one row per person), and RLS read scope (self-only; a colleague's pay is invisible). Sabotage-verified: stripping the admin gate turns the three NOT_ADMIN assertions red.
 3. `08xx_fn_quote_decline_revise_test.sql` — `decline_quote`, `revise_delivered` (+ its effect on recognized revenue).
 4. `08xx_fn_settings_delete_test.sql` — `revoke_api_key`, `delete_webhook` (the delete halves; create/upsert already in 0730).
 5. Lower: `reassign_project_orders`, `edit_deliverable`/`mark_deliverable_viewed`, `set_notif_prefs`, `mark_broadcast_dismissed`.

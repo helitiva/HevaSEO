@@ -14,6 +14,7 @@ import { run as provisioning } from './features/04-provisioning-invite.mjs';
 import { run as collabContent } from './features/05-collab-content.mjs';
 import { run as affiliateSecurity } from './features/06-affiliate-security.mjs';
 import { run as lifecycle } from './features/07-lifecycle.mjs';
+import { run as revenuePayroll } from './features/08-revenue-payroll.mjs';
 
 console.log('\n\x1b[1mHevaSEO — live E2E feature suite\x1b[0m (real Supabase Auth + RLS + money fns)');
 
@@ -25,7 +26,7 @@ const ctx = {
   affiliate: await login(ACCOUNTS.affiliate),
 };
 
-for (const feature of [authRls, ordersMoney, payoutsFinance, provisioning, collabContent, affiliateSecurity, lifecycle]) {
+for (const feature of [authRls, ordersMoney, payoutsFinance, provisioning, collabContent, affiliateSecurity, lifecycle, revenuePayroll]) {
   await feature(ctx);
 }
 
