@@ -7,16 +7,21 @@ import { DeliveredReview } from '@/components/DeliveredReview';
 import { ACTIVITY } from '@/data/mock';
 import { getMyOrders, getMyDeliveredOrders } from '@/data/orders.server';
 import { getMyActivity } from '@/data/activity.server';
+import { getMyProjects } from '@/data/projects.server';
+import { getServerSession } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Overview' };
 
 export default async function DashboardPage() {
-  const [orders, delivered, realActivity] = await Promise.all([getMyOrders(), getMyDeliveredOrders(), getMyActivity()]); // RLS-scoped
+  const [orders, delivered, realActivity, projects, session] = await Promise.all([
+    getMyOrders(), getMyDeliveredOrders(), getMyActivity(), getMyProjects(), getServerSession(),
+  ]); // RLS-scoped
   const activity = realActivity.length ? realActivity : ACTIVITY; // real feed; mock only when there's none yet
+  const activeProjects = projects.filter((p) => !p.archived && p.status !== 'completed').length; // in-flight
 
   return (
     <>
-      <DashboardTop realOrders={orders} today={new Date().toISOString()} />
+      <DashboardTop realOrders={orders} today={new Date().toISOString()} name={session?.name} activeProjects={activeProjects} />
 
       {delivered.length > 0 && (
         <section className="mt-5">

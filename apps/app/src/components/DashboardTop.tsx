@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ORDERS, PROJECTS, SERVICES, type Order, type OrderStatus, type ServiceKey } from '@/data/mock';
+import { ORDERS, SERVICES, type Order, type OrderStatus, type ServiceKey } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
 import { CountUp } from './CountUp';
 import { QuickOrderButton } from './QuickOrderButton';
@@ -25,9 +25,13 @@ const parseUS = (d: string): Date | null => {
 };
 
 // `orders` is the real RLS-scoped read (customer's own, inc-3e); falls back to the mock seed where
-// not wired. PROJECTS (activeProjects) + tier stay mock until those entities migrate.
-export function DashboardTop({ realOrders, today: todayIso }: {
+// not wired. `name` + `activeProjects` are real (server session + getMyProjects); tier stays mock.
+export function DashboardTop({ realOrders, today: todayIso, name, activeProjects = 0 }: {
   realOrders?: Order[];
+  /** The signed-in customer's display name (server session). The greeting shows the first token. */
+  name?: string;
+  /** Real count of the customer's in-flight projects (not archived, not completed). */
+  activeProjects?: number;
   /**
    * Real today (ISO), computed on the SERVER and passed in.
    *
@@ -58,7 +62,6 @@ export function DashboardTop({ realOrders, today: todayIso }: {
   const total = orders.length;
   const completed = orders.filter((o) => statusOf(o) === 'completed').length;
   const inProgress = orders.filter((o) => statusOf(o) === 'progress' || statusOf(o) === 'review').length;
-  const activeProjects = PROJECTS.filter((p) => p.status === 'progress').length;
 
   // Service mix (top services + Other) for the legend + segmented bar.
   const mix = useMemo(() => {
@@ -72,6 +75,7 @@ export function DashboardTop({ realOrders, today: todayIso }: {
   }, [orders]);
 
   const rangeLabel = RANGES.find((r) => r.days === range)?.label ?? 'Last 90 days';
+  const firstName = name?.trim().split(/\s+/)[0] || 'there';
 
   return (
     <>
@@ -81,7 +85,7 @@ export function DashboardTop({ realOrders, today: todayIso }: {
             <h1 className="display text-2xl font-semibold tracking-tight md:text-3xl">Overview</h1>
             <span className="pill pill-live"><span /> Live</span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Hi Huy 👋 · {activeProjects} active project{activeProjects === 1 ? '' : 's'} · updated 2 minutes ago</p>
+          <p className="mt-1 text-sm text-muted-foreground">Hi {firstName} 👋 · {activeProjects} active project{activeProjects === 1 ? '' : 's'} · updated 2 minutes ago</p>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="relative">
