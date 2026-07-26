@@ -3059,6 +3059,7 @@ export type Database = {
         Args: { p_manager?: string; p_staff: string }
         Returns: undefined
       }
+      attribute_referral: { Args: { p_code: string }; Returns: string }
       auto_approve_stale_deliveries: {
         Args: { p_grace_days?: number }
         Returns: number

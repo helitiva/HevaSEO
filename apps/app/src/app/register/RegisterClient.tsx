@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signUpCustomer } from '@/lib/auth';
+import { claimReferralAction } from './referral.actions';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
 
@@ -36,6 +37,9 @@ export function RegisterClient() {
     const res = await signUpCustomer({ name, email, password });
     if (res.ok) {
       if (res.signedIn) {
+        // Claim this signup for the affiliate whose link brought them here (30-day `heva_ref` cookie).
+        // Needs the session, so it runs only once signed in; best-effort and never blocks the redirect.
+        await claimReferralAction();
         router.replace('/dashboard');
         router.refresh();
       } else {
