@@ -115,6 +115,7 @@
     "apps/app/src/lib/orderDetail.ts::domainFromBrief",
     "apps/app/src/lib/orderDetail.ts::orderNavFrom",
     "apps/app/src/lib/orderMap.ts::toAdminOrder",
+    "apps/app/src/lib/orderMap.ts::aggregateProjectTags",
     "apps/app/src/lib/orderMap.ts::toCustomerOrder",
     "apps/app/src/lib/orderPricing.ts::computeOrderPrice",
     "apps/app/src/lib/orderSla.ts::slaToDays",

@@ -1,7 +1,7 @@
 // Pure DB-row → UI-model mappers for orders. Extracted from data/orders.server.ts so they can be
 // unit-tested without the `server-only` boundary. No I/O here — just shape transforms.
 import type { AdminOrder } from '@/data/adminMock';
-import type { Order, OrderStatus as CustStatus, ServiceKey, Priority } from '@/data/mock';
+import type { Order, OrderStatus as CustStatus, ServiceKey, Priority, Project } from '@/data/mock';
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -69,6 +69,31 @@ export const CUST_STATUS: Record<string, CustStatus> = {
   internal_review: 'review', delivered: 'completed',
   approved: 'completed', completed: 'completed',
 };
+
+// ── project card service tags — group a customer's linked orders into {service → {plan,run,done}} ─────────
+export type ProjectTagInput = { projectId: string | null; service: string; state: string };
+// a customer order status → the card's 3 columns: planned→plan (ordered), progress/review→run, completed→done.
+function tagBucket(state: string): 'plan' | 'run' | 'done' | null {
+  const s = CUST_STATUS[state];
+  if (s === 'planned') return 'plan';
+  if (s === 'progress' || s === 'review') return 'run';
+  if (s === 'completed') return 'done';
+  return null;   // canceled + unknown states count toward no column
+}
+/** Aggregate linked orders into the per-service {plan,run,done} summary each project card renders. Rows with
+ *  no project link or a canceled/unknown state are skipped. Immutable accumulation → keyed by project id. */
+export function aggregateProjectTags(rows: ProjectTagInput[]): Map<string, Project['tags']> {
+  const byProject = new Map<string, Project['tags']>();
+  for (const r of rows) {
+    const bucket = tagBucket(r.state);
+    if (!r.projectId || !bucket) continue;
+    const key: ServiceKey = SERVICE_KEY[r.service] ?? 'optimize';
+    const tags = byProject.get(r.projectId) ?? {};
+    const cell = tags[key] ?? { plan: 0, run: 0, done: 0 };
+    byProject.set(r.projectId, { ...tags, [key]: { ...cell, [bucket]: cell[bucket] + 1 } });
+  }
+  return byProject;
+}
 type ProjLite = { domain: string | null };
 type BriefLite = { label?: string | null; value?: string | null };
 type OrderDetailLite = { project: string | null; folder: string | null; title: string | null; site: string | null; brief: BriefLite[] | null; proj: ProjLite | ProjLite[] | null };

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  UUID_RE, toAdminOrder, toMgrOrder, toCustomerOrder, CUST_STATUS, SERVICE_KEY,
-  type OrderRow, type MyOrderRow,
+  UUID_RE, toAdminOrder, toMgrOrder, toCustomerOrder, CUST_STATUS, SERVICE_KEY, aggregateProjectTags,
+  type OrderRow, type MyOrderRow, type ProjectTagInput,
 } from './orderMap';
 
 const baseRow: OrderRow = {
@@ -190,6 +190,45 @@ describe('toCustomerOrder (derive)', () => {
     const o = toCustomerOrder(myRow);
     expect(o.project).toBeUndefined();
     expect(o.folder).toBeUndefined();
+  });
+});
+
+describe('aggregateProjectTags — project card {service → {plan,run,done}} from linked orders', () => {
+  const P1 = '11111111-1111-1111-1111-111111111111';
+  const P2 = '22222222-2222-2222-2222-222222222222';
+  const row = (projectId: string | null, service: string, state: string): ProjectTagInput => ({ projectId, service, state });
+
+  it('buckets each state: planned→plan, in_progress/internal_review→run, delivered/approved/completed→done', () => {
+    const tags = aggregateProjectTags([
+      row(P1, 'Audit', 'new'),             // plan
+      row(P1, 'Audit', 'in_progress'),     // run
+      row(P1, 'Audit', 'internal_review'), // run (in review still counts as running work)
+      row(P1, 'Audit', 'delivered'),       // done
+      row(P1, 'Audit', 'approved'),        // done
+    ]).get(P1)!;
+    expect(tags.audit).toEqual({ plan: 1, run: 2, done: 2 });
+  });
+
+  it('accumulates orders, keeps services separate, scopes per project', () => {
+    const m = aggregateProjectTags([
+      row(P1, 'Audit', 'new'),
+      row(P1, 'Optimization', 'new'),
+      row(P2, 'Backlink', 'completed'),
+    ]);
+    expect(m.get(P1)).toEqual({ audit: { plan: 1, run: 0, done: 0 }, optimize: { plan: 1, run: 0, done: 0 } });
+    expect(m.get(P2)).toEqual({ backlink: { plan: 0, run: 0, done: 1 } });
+  });
+
+  it('skips rows with no project link', () => {
+    expect(aggregateProjectTags([row(null, 'Audit', 'new')]).size).toBe(0);
+  });
+
+  it('skips canceled + unknown states — they belong to no column', () => {
+    expect(aggregateProjectTags([row(P1, 'Audit', 'canceled'), row(P1, 'Audit', 'weird')]).size).toBe(0);
+  });
+
+  it('unknown service falls back to optimize (mirrors toCustomerOrder)', () => {
+    expect(aggregateProjectTags([row(P1, 'Mystery', 'new')]).get(P1)).toEqual({ optimize: { plan: 1, run: 0, done: 0 } });
   });
 });
 
