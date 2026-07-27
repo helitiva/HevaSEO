@@ -43,17 +43,20 @@ begin
     -- (2) CREATE: genuinely new email → fresh forced-customer profile (metadata role stays untrusted).
     insert into public.profiles (tenant_id, user_id, email, name, role)
     values (v_agency, new.id, new.email, v_name, 'customer');
-  end if;
 
-  -- (3) PROVISION: a customer profile needs the customers row the rest of the product references.
-  -- Only for role='customer' — a linked staff/manager/affiliate profile must never gain a customer entity.
-  insert into public.customers (tenant_id, user_id, name, email, status)
-  select v_agency, p.id, coalesce(p.name, v_name, split_part(new.email, '@', 1)), new.email, 'claimed'
-    from public.profiles p
-   where p.tenant_id = v_agency
-     and p.user_id   = new.id
-     and p.role      = 'customer'
-     and not exists (select 1 from public.customers c where c.user_id = p.id);
+    -- (3) PROVISION — CREATE PATH ONLY: a genuinely-new self-signup has no customers row, and the rest of
+    -- the product (orders, projects, affiliate_referrals) references one. This must NOT run on the LINK
+    -- path above: a claimed shadow always arrives with its customers row from whoever created it
+    -- (seed.sql, admin provisioning), and seed in particular inserts auth.users — firing this trigger —
+    -- BEFORE it inserts its own customers rows, so provisioning there would race and duplicate the row.
+    insert into public.customers (tenant_id, user_id, name, email, status)
+    select v_agency, p.id, coalesce(p.name, v_name, split_part(new.email, '@', 1)), new.email, 'claimed'
+      from public.profiles p
+     where p.tenant_id = v_agency
+       and p.user_id   = new.id
+       and p.role      = 'customer'
+       and not exists (select 1 from public.customers c where c.user_id = p.id);
+  end if;
 
   return new;
 end $$;
