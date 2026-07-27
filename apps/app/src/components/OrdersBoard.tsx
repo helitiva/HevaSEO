@@ -239,6 +239,12 @@ function MetaRows({ o }: { o: Order }) {
         <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
         {/* the siteLabel already encodes the URL count for indexer, so only append it for plain URLs */}
         {o.urls != null && !o.siteLabel && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
+        {/* the chosen package/plan (e.g. "Standard", "A2000") — relocated off the service row to sit here, right-aligned */}
+        {o.sub && (
+          <span className="ml-auto shrink-0 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title={o.sub}>
+            {o.sub.split('·')[0].trim()}
+          </span>
+        )}
         {/* only shown where it expands a truncated real value (long backlink URL, clipped keyword topic) */}
         {o.siteHover && (
           <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-30 mt-1 max-w-[17rem] break-all rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium leading-snug text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/url:opacity-100">
@@ -321,6 +327,7 @@ function PeopleMetaRow({ o, planned, reviewing, showSchedule }: { o: Order; plan
 function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number, reviewing: boolean, planned: boolean) {
   const compact = density === 'compact';
   // Top row: Done badge (when completed), service type tag, service code (right).
+  // The package/plan chip used to live here too; it now sits on the website line (MetaRows), off the service row.
   const topRow = (
     <div className="flex items-center gap-2">
       <DoneBadge done={done} />
@@ -328,12 +335,6 @@ function cardInner(o: Order, template: CardTemplate, density: CardDensity, done:
         <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden />
         <span className="truncate">{SERVICES[o.service].label}</span>
       </span>
-      {/* the chosen package/plan (e.g. "Standard", "A2000") — the service has several to pick from */}
-      {o.sub && (
-        <span className="shrink-0 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title={o.sub}>
-          {o.sub.split('·')[0].trim()}
-        </span>
-      )}
       {/* delivered-awaiting-review: icon-only hourglass on the top row; label + auto-approve on hover */}
       {o.awaitingReview && (
         <span className="group relative ml-auto inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-amber-500/15 p-1 text-amber-600" aria-label="Awaiting review">

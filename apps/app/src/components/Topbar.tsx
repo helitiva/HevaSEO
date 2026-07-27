@@ -9,7 +9,7 @@ export function Topbar({ onMenu, identity, avatarUrl, initials: realInitials }: 
   // impersonation shows the amber initials avatar, not the signed-in admin's photo
   const photo = identity ? undefined : (avatarUrl || undefined);
   return (
-    <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
+    <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-5">
       <button
         onClick={onMenu}
         aria-label="Open menu"

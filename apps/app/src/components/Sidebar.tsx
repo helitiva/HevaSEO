@@ -15,7 +15,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
   return (
     <aside
       id="sidebar"
-      className={`flex w-52 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl${open ? ' open' : ''}`}
+      className={`flex w-48 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl${open ? ' open' : ''}`}
     >
       <div className="flex h-[68px] items-center gap-2 border-b border-border px-4">
         <Logo />
