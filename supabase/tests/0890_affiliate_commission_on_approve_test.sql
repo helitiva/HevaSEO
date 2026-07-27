@@ -22,11 +22,13 @@ insert into affiliates(id, tenant_id, user_id, code, tier, status, joined_at) va
   ('99990000-0000-4000-8000-0000000000f2', '99999999-9999-9999-9999-999999999999', '99990000-0000-4000-8000-0000000000a2', 'ATWO', 'bronze', 'active', '2026-01-01');
 insert into customers(id, tenant_id, user_id, name, company, email) values
   ('99990000-0000-4000-8000-0000000000d1', '99999999-9999-9999-9999-999999999999', '99990000-0000-4000-8000-0000000000c1', 'C1', 'Co1', 'c1@a'),
+  ('99990000-0000-4000-8000-0000000000d2', '99999999-9999-9999-9999-999999999999', null, 'C2', 'Co2', 'c2@a'),   -- A2's referral
   ('99990000-0000-4000-8000-0000000000d3', '99999999-9999-9999-9999-999999999999', null, 'C3', 'Co3', 'c3@a');   -- referred by nobody
--- A1's pod of referrals totals $1,200 (bronze); A2's totals $6,000 (silver)
+-- A1's pod of referrals totals $1,200 (bronze); A2's totals $6,000 (silver). Each partner needs its OWN
+-- referred customer — a customer has exactly one referrer (affiliate_referrals_customer_uniq, 20260726120000).
 insert into affiliate_referrals(tenant_id, affiliate_id, customer_id, volume, status) values
   ('99999999-9999-9999-9999-999999999999', '99990000-0000-4000-8000-0000000000f1', '99990000-0000-4000-8000-0000000000d1', 1200, 'active'),
-  ('99999999-9999-9999-9999-999999999999', '99990000-0000-4000-8000-0000000000f2', '99990000-0000-4000-8000-0000000000d1', 6000, 'active');
+  ('99999999-9999-9999-9999-999999999999', '99990000-0000-4000-8000-0000000000f2', '99990000-0000-4000-8000-0000000000d2', 6000, 'active');
 
 select is(affiliate_effective_rate('99990000-0000-4000-8000-0000000000f1')::numeric, 0.10::numeric, '$1,200 referred → bronze 10%');
 select is(affiliate_effective_rate('99990000-0000-4000-8000-0000000000f2')::numeric, 0.15::numeric, '$6,000 referred → silver 15%');

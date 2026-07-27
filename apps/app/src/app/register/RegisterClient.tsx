@@ -31,7 +31,9 @@ export function RegisterClient() {
     if (!EMAIL_RE.test(email)) { setError('Please enter a valid email address.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
-    if (!token) { setError('Please complete the reCAPTCHA'); return; }
+    // reCAPTCHA is required in every deployed environment. It is skipped only under `next dev`, where the
+    // widget has no real keys and the signup path (incl. referral attribution) has to be walkable locally.
+    if (!token && process.env.NODE_ENV !== 'development') { setError('Please complete the reCAPTCHA'); return; }
 
     setBusy(true);
     const res = await signUpCustomer({ name, email, password });

@@ -20,7 +20,10 @@ select record_affiliate_click('NOPE');
 reset role;
 select is((select clicks from affiliates where id = 'eeeeeeee-0000-0000-0000-0000000000f1'), 2, 'counter incremented twice (case-insensitive)');
 select is((select count(*) from affiliate_clicks where affiliate_id = 'eeeeeeee-0000-0000-0000-0000000000f1')::int, 2, 'two click rows logged');
-select is((select count(*) from affiliate_clicks)::int, 2, 'unknown code recorded nothing (silent)');
+-- Scoped to this test's tenant on purpose: an unscoped count(*) also sees clicks that real traffic left
+-- in the database, so this passed on a clean CI database and failed on any dev one that had been used.
+select is((select count(*) from affiliate_clicks where tenant_id = '11111111-1111-1111-1111-111111111111')::int,
+          2, 'unknown code recorded nothing (silent)');
 select ok(not exists (select 1 from affiliates where code = 'NOPE'), 'unknown code never existed');
 
 select * from finish();
