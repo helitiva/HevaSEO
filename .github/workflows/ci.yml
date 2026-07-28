@@ -156,6 +156,11 @@ jobs:
       # fresh shell), so the server must be started and used in the same shell. Playwright's webServer
       # config (reuseExistingServer) then reuses this :4500 rather than starting `next dev`.
       - name: serve the built app + run UI smoke
+        env:
+          # The smoke drives the REAL login form against this production build with a stubbed widget;
+          # the server-side reCAPTCHA check (lib/captcha) would fail-closed without real Google keys.
+          # Test-only bypass — never set in an actual deployment.
+          RECAPTCHA_BYPASS: '1'
         run: |
           pnpm --filter @heva/app start &
           APP_PID=$!

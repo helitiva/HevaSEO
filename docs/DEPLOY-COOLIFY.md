@@ -62,6 +62,8 @@ Runbook đưa HevaSEO (apps/app, Next.js standalone) lên production. Payment (S
 | `MARKETING_ORIGIN` | `https://<domain>` | dùng bởi checkout public |
 | `PAYMENTS_PROVIDER` / `STRIPE_*` | — | ⏸ để sau khi tích hợp Stripe |
 
+> ⚠️ **KHÔNG BAO GIỜ** set `RECAPTCHA_BYPASS` trên production — biến này chỉ dành cho CI smoke (tắt hẳn verify captcha server-side).
+
 > `NEXT_PUBLIC_*` phải có mặt **lúc build** (Coolify inject build-time env). Đổi giá trị = rebuild.
 
 ## 3. Cron (auto-approve đơn quá hạn review)

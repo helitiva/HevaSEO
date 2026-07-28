@@ -16,7 +16,9 @@ const CSP = [
   `script-src 'self' 'unsafe-inline'${IS_DEV ? " 'unsafe-eval'" : ''} https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://js.stripe.com`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "img-src 'self' data: blob: https:",
+  // https: covers hosted storage CDNs; the explicit Supabase origin also admits the plain-http local
+  // stack (127.0.0.1:54321) that CI's console sweep runs against — avatars live in its storage bucket.
+  `img-src 'self' data: blob: https: ${SUPABASE_ORIGIN}`.trimEnd(),
   `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS}${IS_DEV ? ' ws: wss:' : ''} https://www.google.com https://challenges.cloudflare.com https://api.stripe.com`.replace(/\s+/g, ' '),
   "frame-src https://www.google.com https://challenges.cloudflare.com https://js.stripe.com",
   "object-src 'none'",

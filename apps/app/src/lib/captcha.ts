@@ -9,6 +9,10 @@ import 'server-only';
 // rejects the request rather than waving it through.
 export async function verifyRecaptcha(token: string | null | undefined): Promise<boolean> {
   if (process.env.NODE_ENV === 'development') return true;
+  // TEST-ONLY escape hatch for the CI UI smoke, which drives the real login form against a production
+  // build with a stubbed widget (no real Google keys there). NEVER set RECAPTCHA_BYPASS in production —
+  // it disables the server-side check entirely.
+  if (process.env.RECAPTCHA_BYPASS === '1') return true;
   const secret = process.env.RECAPTCHA_SECRET_KEY;
   if (!secret || !token) return false;
   try {
