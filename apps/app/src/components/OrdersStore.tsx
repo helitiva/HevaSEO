@@ -11,12 +11,14 @@ type OrdersCtx = {
   /** Orders placed this session (e.g. from the Services flow), newest first. */
   addedOrders: Order[];
   addOrder: (order: Order) => void;
+  /** The signed-in customer's REAL orders (getMyOrders), so the detail slide-over resolves by id. */
+  realOrders: Order[];
 };
 
 const Ctx = createContext<OrdersCtx | null>(null);
 
 /** Client-side store so panel edits (status, comments) and placed orders reflect on the board without a backend. */
-export function OrdersProvider({ children }: { children: ReactNode }) {
+export function OrdersProvider({ children, initialOrders = [] }: { children: ReactNode; initialOrders?: Order[] }) {
   const [statusOverrides, setStatusOverrides] = useState<Record<string, OrderStatus>>({});
   const [extraComments, setExtraComments] = useState<Record<string, OrderComment[]>>({});
   const [addedOrders, setAddedOrders] = useState<Order[]>([]);
@@ -25,6 +27,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     statusOverrides,
     extraComments,
     addedOrders,
+    realOrders: initialOrders,
     setStatus: (id, status) => setStatusOverrides((m) => ({ ...m, [id]: status })),
     addComment: (id, text) =>
       setExtraComments((m) => ({
@@ -32,7 +35,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         [id]: [...(m[id] ?? []), { author: 'Huy', initials: 'HV', text, time: 'just now' }],
       })),
     addOrder: (order) => setAddedOrders((list) => [order, ...list]),
-  }), [statusOverrides, extraComments, addedOrders]);
+  }), [statusOverrides, extraComments, addedOrders, initialOrders]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

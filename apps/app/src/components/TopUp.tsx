@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
-import { useCredit } from './CreditStore';
+import { topUpAction } from '@/app/(portal)/credit.actions';
+import { getMyBillingAction, updateBillingAction } from '@/app/(portal)/profile.actions';
+import { billingComplete, type BillingForm } from '@/lib/billing';
+import { StripeTopUp, stripeConfigured } from './StripeTopUp';
 
 const PRESETS = [20, 80, 200, 400, 800];
 type Method = 'card' | 'paypal';
@@ -37,7 +41,13 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
   const [cvc, setCvc] = useState('');
   const [name, setName] = useState('');
   const toast = useToast();
-  const { topUp } = useCredit();
+  const router = useRouter();
+  const [paying, setPaying] = useState(false);
+  // Billing gate: a top-up needs complete billing (invoice + charge details). Load the saved billing; if
+  // it's incomplete the user fills it here first, otherwise we prefill the card widget from it.
+  const [billing, setBilling] = useState<BillingForm | null>(null);
+  useEffect(() => { getMyBillingAction().then((r) => setBilling(r.billing)); }, []);
+  const billingReady = billing ? billingComplete(billing) : false;
 
   const pick = (n: number) => { setAmount(n); setCustom(''); };
   const onCustom = (v: string) => {
@@ -54,11 +64,17 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
     return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
   };
 
-  const pay = (label: string) => {
-    if (tooLow || !(amount > 0)) return;
-    topUp(amount, label);
-    toast(`Topped up $${amount} — added to your balance`);
+  // Real top-up: the server charges via the payment provider (mock/Stripe) then credits via the
+  // topup fn + writes an invoice. The balance/history refresh from the real read on router.refresh().
+  const pay = async (label: string) => {
+    if (tooLow || !(amount > 0) || paying) return;
+    setPaying(true);
+    const res = await topUpAction(amount, label);
+    setPaying(false);
+    if (!res.ok) { toast(res.error, 'error'); return; }
+    toast(`Topped up $${res.amount} — added to your balance`, 'success');
     onDone?.();
+    router.refresh();
   };
   const cardLabel = () => {
     const last4 = card.replace(/\D/g, '').slice(-4);
@@ -80,6 +96,11 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
         {tooLow && <p className="mt-1 text-[11px] font-medium text-destructive">Minimum top-up is $5.</p>}
       </div>
 
+      {billing === null ? (
+        <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><i className="ph-bold ph-circle-notch animate-spin" aria-hidden /> Loading billing…</p>
+      ) : !billingReady ? (
+        <BillingGate initial={billing} onSaved={setBilling} />
+      ) : (<>
       {/* method switch */}
       <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
       <div className="grid grid-cols-2 gap-2">
@@ -88,7 +109,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           onClick={() => setMethod('card')}
           className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition ${method === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40'}`}
         >
-          <i className="ph-bold ph-credit-card text-base" /> Card
+          <i className="ph-bold ph-credit-card text-base" aria-hidden /> Card
         </button>
         <button
           type="button"
@@ -100,11 +121,15 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       </div>
 
       {method === 'card' ? (
+        stripeConfigured() ? (
+          // Stripe Payment Element — Link + card + Apple/Google Pay in one embedded widget
+          <StripeTopUp amount={amount} onDone={onDone} billing={billing} />
+        ) : (
         <>
           {/* express wallets */}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => pay('Apple Pay')} className="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
-              <i className="ph-fill ph-apple-logo text-base" /> Pay
+              <i className="ph-fill ph-apple-logo text-base" aria-hidden /> Pay
             </button>
             <button type="button" onClick={() => pay('Google Pay')} className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent">
               <span className="font-bold"><span className="text-[#4285f4]">G</span> Pay</span>
@@ -121,7 +146,7 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
               <label className="lbl">Card number</label>
               <div className="relative">
                 <input value={card} onChange={(e) => setCard(fmtCard(e.target.value))} inputMode="numeric" className="field pr-14 font-mono" placeholder="1234 5678 9012 3456" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2">{brand ? <BrandMark brand={brand} /> : <i className="ph-bold ph-credit-card text-muted-foreground" />}</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">{brand ? <BrandMark brand={brand} /> : <i className="ph-bold ph-credit-card text-muted-foreground" aria-hidden />}</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -131,10 +156,11 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
             <div><label className="lbl">Name on card</label><input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder="Full name" /></div>
           </div>
 
-          <button type="button" onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-            <i className="ph-bold ph-lock-simple" /> Pay ${amount}
+          <button type="button" disabled={paying} onClick={() => pay(cardLabel())} className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60">
+            <i className={`ph-bold ${paying ? 'ph-circle-notch animate-spin' : 'ph-lock-simple'}`} aria-hidden /> {paying ? 'Processing…' : `Pay $${amount}`}
           </button>
         </>
+        )
       ) : (
         <div className="mt-4">
           <div className="rounded-xl border border-border bg-background p-5 text-center">
@@ -146,11 +172,12 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
           </button>
         </div>
       )}
+      </>)}
 
       {/* trust footer */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <i className="ph-bold ph-lock-simple text-emerald-500" /> Payments secured by <b className="text-foreground">Stripe</b> · we never store your card details
+          <i className="ph-bold ph-lock-simple text-emerald-500" aria-hidden /> Payments secured by <b className="text-foreground">Stripe</b> · we never store your card details
         </p>
         <div className="flex items-center gap-1.5">
           <BrandMark brand="visa" /><BrandMark brand="mastercard" /><BrandMark brand="amex" />
@@ -166,6 +193,40 @@ export function TopUp({ embedded = false, onDone }: { embedded?: boolean; onDone
       <h2 className="display text-lg font-semibold tracking-tight">Top up credits</h2>
       <p className="text-xs text-muted-foreground">Pay securely by card or PayPal. Credits are added to your balance instantly.</p>
       {body}
+    </div>
+  );
+}
+
+// Shown at top-up when the saved billing is incomplete: the user fills the required detail here (also
+// persisted to Settings), which unlocks the payment methods once saved.
+function BillingGate({ initial, onSaved }: { initial: BillingForm; onSaved: (b: BillingForm) => void }) {
+  const toast = useToast();
+  const [b, setB] = useState<BillingForm>(initial);
+  const [saving, setSaving] = useState(false);
+  const set = (k: keyof BillingForm, v: string) => setB((p) => ({ ...p, [k]: v }));
+  const save = async () => {
+    if (!billingComplete(b)) { toast('Fill in name, address, city and country.', 'error'); return; }
+    setSaving(true);
+    const r = await updateBillingAction(b);
+    setSaving(false);
+    if (!r.ok) { toast(r.error ?? 'Save failed', 'error'); return; }
+    toast('Billing details saved', 'success');
+    onSaved(b);
+  };
+  return (
+    <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+      <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400"><i className="ph-bold ph-warning-circle" aria-hidden /> Complete your billing details to continue</p>
+      <p className="mt-1 text-xs text-muted-foreground">Required for your invoice before we charge. Saved to your <a href="/settings" className="text-primary hover:underline">Settings</a> too, so you only do this once.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div><label className="lbl">Billing name<span className="text-primary"> *</span></label><input className="field" value={b.name} onChange={(e) => set('name', e.target.value)} placeholder="Full name or contact" /></div>
+        <div><label className="lbl">Company</label><input className="field" value={b.company} onChange={(e) => set('company', e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className="lbl">Address line 1<span className="text-primary"> *</span></label><input className="field" value={b.line1} onChange={(e) => set('line1', e.target.value)} placeholder="Street address" /></div>
+        <div><label className="lbl">City<span className="text-primary"> *</span></label><input className="field" value={b.city} onChange={(e) => set('city', e.target.value)} /></div>
+        <div><label className="lbl">Country<span className="text-primary"> *</span></label><input className="field" value={b.country} onChange={(e) => set('country', e.target.value)} placeholder="Vietnam" /></div>
+        <div><label className="lbl">Postal code</label><input className="field" value={b.postalCode} onChange={(e) => set('postalCode', e.target.value)} /></div>
+        <div><label className="lbl">Tax ID / VAT</label><input className="field" value={b.taxId} onChange={(e) => set('taxId', e.target.value)} /></div>
+      </div>
+      <div className="mt-3 flex justify-end"><button type="button" disabled={saving} onClick={save} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60">{saving ? 'Saving…' : 'Save & continue'}</button></div>
     </div>
   );
 }

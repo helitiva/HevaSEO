@@ -53,7 +53,7 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
         </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs">
-            <i className="ph-bold ph-magnifying-glass text-muted-foreground" />
+            <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search task, client, file…" aria-label="Search deliverables" className="w-40 bg-transparent outline-none" />
           </div>
           <select value={service} onChange={(e) => setService(e.target.value)} aria-label="Filter by service" className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
@@ -64,7 +64,7 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
       </div>
 
       {shown.length === 0 ? (
-        <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-tray mb-1 block text-xl" />Nothing here.</div>
+        <div className="kcard text-center text-sm text-muted-foreground"><i className="ph-bold ph-tray mb-1 block text-xl" aria-hidden />Nothing here.</div>
       ) : (
         <div className="scrollbar-thin overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full border-collapse text-sm">
@@ -86,25 +86,25 @@ export function DeliverablesClient({ rows, stats }: { rows: MyDeliverable[]; sta
                 <tr key={r.d.id} onClick={() => setSel(r)} className="cursor-pointer border-b border-border/50 transition last:border-0 hover:bg-muted/40">
                   <td className={`px-3 py-2.5 ${needs ? 'border-l-[3px] border-l-amber-500' : ''}`}>
                     <div className="flex items-center gap-2">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} aria-hidden /></span>
                       <div className="min-w-0"><p className="font-semibold leading-tight">{r.service}</p><p className="font-mono text-[11px] text-muted-foreground">{r.taskCode}</p></div>
                     </div>
                   </td>
                   <td className="px-3 py-2.5"><div className="flex min-w-0 flex-wrap items-center gap-1.5"><span className="truncate">{r.customer}</span><CareTags company={r.customer} /></div></td>
-                  <td className="hidden px-3 py-2.5 lg:table-cell"><span className="inline-flex items-center gap-1 text-muted-foreground"><i className={`ph-bold ${r.d.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} /><span className="block max-w-[13rem] truncate text-xs">{r.d.fileName ?? r.d.url}</span></span></td>
+                  <td className="hidden px-3 py-2.5 lg:table-cell"><span className="inline-flex items-center gap-1 text-muted-foreground"><i className={`ph-bold ${r.d.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} aria-hidden /><span className="block max-w-[13rem] truncate text-xs">{r.d.fileName ?? r.d.url}</span></span></td>
                   <td className="px-3 py-2.5 text-center font-semibold">v{r.d.version}</td>
                   <td className="hidden whitespace-nowrap px-3 py-2.5 text-muted-foreground sm:table-cell">{r.d.submittedAt}</td>
-                  <td className="px-3 py-2.5 text-center">{fb.customerRating ? <span className="inline-flex items-center gap-0.5 font-semibold text-amber-500"><i className="ph-fill ph-star" />{fb.customerRating}.0</span> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-2.5 text-center">{fb.customerRating ? <span className="inline-flex items-center gap-0.5 font-semibold text-amber-500"><i className="ph-fill ph-star" aria-hidden />{fb.customerRating}.0</span> : <span className="text-muted-foreground">—</span>}</td>
                   <td className="hidden px-3 py-2.5 text-center sm:table-cell">{rework > 0 ? <span className="font-semibold text-amber-600 dark:text-amber-400">{rework}×</span> : <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-3 py-2.5"><span className={`pill ${PILL[r.d.status] ?? 'pill'} whitespace-nowrap`}>{LABEL[r.d.status] ?? r.d.status}</span></td>
-                  <td className="px-2 py-2.5 text-right"><i className="ph-bold ph-caret-right text-muted-foreground" /></td>
+                  <td className="px-2 py-2.5 text-right"><i className="ph-bold ph-caret-right text-muted-foreground" aria-hidden /></td>
                 </tr>
               ); })}
             </tbody>
           </table>
         </div>
       )}
-      <p className="px-1 text-xs text-muted-foreground"><i className="ph-bold ph-info mr-1" />Rework rounds feed your quality score — fewer is better, but iterating is normal.</p>
+      <p className="px-1 text-xs text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Rework rounds feed your quality score — fewer is better, but iterating is normal.</p>
 
       {sel && <DetailPanel row={sel} onClose={() => setSel(null)} />}
     </div>
@@ -130,7 +130,7 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
               href={`/staff/tasks/${taskId}`}
               className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:border-primary/60 hover:bg-accent"
             >
-              Open task <i className="ph-bold ph-arrow-right" />
+              Open task <i className="ph-bold ph-arrow-right" aria-hidden />
             </Link>
             <a
               href={`/staff/tasks/${taskId}`}
@@ -140,7 +140,7 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
               aria-label="Open task in a new tab"
               className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-primary/60 hover:bg-accent hover:text-foreground"
             >
-              <i className="ph-bold ph-arrow-square-out text-base" />
+              <i className="ph-bold ph-arrow-square-out text-base" aria-hidden />
             </a>
           </div>
         </div>
@@ -160,13 +160,13 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">The deliverable</p>
           {d.kind === 'link' ? (
             <a href={d.url ?? '#'} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary/60 hover:bg-muted/40">
-              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-link text-primary" /><span className="truncate">{d.url}</span></span>
-              <span className="shrink-0 font-semibold text-primary">Open link <i className="ph-bold ph-arrow-square-out" /></span>
+              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-link text-primary" aria-hidden /><span className="truncate">{d.url}</span></span>
+              <span className="shrink-0 font-semibold text-primary">Open link <i className="ph-bold ph-arrow-square-out" aria-hidden /></span>
             </a>
           ) : (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5 text-sm">
-              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-file-text text-muted-foreground" /><span className="truncate">{d.fileName}</span></span>
-              <button onClick={() => { setToast('Demo build — the file isn’t stored.'); setTimeout(() => setToast(''), 2000); }} className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Download</button>
+              <span className="flex min-w-0 items-center gap-2"><i className="ph-bold ph-file-text text-muted-foreground" aria-hidden /><span className="truncate">{d.fileName}</span></span>
+              <button onClick={() => { setToast("Demo build — the file isn't stored."); setTimeout(() => setToast(''), 2000); }} className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />Download</button>
             </div>
           )}
         </div>
@@ -227,7 +227,7 @@ function DetailPanel({ row, onClose }: { row: MyDeliverable; onClose: () => void
 function Stars({ value }: { value: number }) {
   return (
     <span className="inline-flex items-center gap-0.5" aria-label={`${value} out of 5`}>
-      {[1, 2, 3, 4, 5].map((i) => <i key={i} className={`ph-fill ph-star text-sm ${i <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} />)}
+      {[1, 2, 3, 4, 5].map((i) => <i key={i} className={`ph-fill ph-star text-sm ${i <= value ? 'text-amber-500' : 'text-muted-foreground/30'}`} aria-hidden />)}
       <span className="ml-1 text-xs font-semibold">{value}.0</span>
     </span>
   );
@@ -238,7 +238,7 @@ function Kpi({ icon, label, value, tone, hint }: { icon: string; label: string; 
     <div className="kcard !p-3" title={hint}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-        <i className={`ph-bold ${icon} ${tone}`} />
+        <i className={`ph-bold ${icon} ${tone}`} aria-hidden />
       </div>
       <p className="display mt-1 text-2xl font-bold leading-none">{value}</p>
     </div>

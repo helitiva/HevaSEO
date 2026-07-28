@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CREDIT_BALANCE, TRANSACTIONS, INVOICES, type CreditTx, type Invoice } from '@/data/mock';
 
 type CreditCtx = {
@@ -21,10 +21,23 @@ const todayUS = () => {
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}/${d.getFullYear()}`;
 };
 
-export function CreditProvider({ children }: { children: ReactNode }) {
-  const [balance, setBalance] = useState(CREDIT_BALANCE);
-  const [transactions, setTransactions] = useState<CreditTx[]>(TRANSACTIONS);
-  const [invoices, setInvoices] = useState<Invoice[]>(INVOICES);
+// `initialBalance`/`initialTransactions`/`initialInvoices` come from the real RLS-scoped read (Lane B
+// inc-B1 + Phase 2 inc-P2, via the portal layout); they default to the mock seed when not provided.
+export function CreditProvider({ children, initialBalance, initialTransactions, initialInvoices }: {
+  children: ReactNode;
+  initialBalance?: number;
+  initialTransactions?: CreditTx[];
+  initialInvoices?: Invoice[];
+}) {
+  const [balance, setBalance] = useState(initialBalance ?? CREDIT_BALANCE);
+  const [transactions, setTransactions] = useState<CreditTx[]>(initialTransactions ?? TRANSACTIONS);
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices ?? INVOICES);
+
+  // Re-sync from the server when it refreshes (e.g. router.refresh() after a top-up / order): the
+  // props reference only changes on an actual RSC refetch, so these don't fire on plain client renders.
+  useEffect(() => { if (initialBalance !== undefined) setBalance(initialBalance); }, [initialBalance]);
+  useEffect(() => { if (initialTransactions) setTransactions(initialTransactions); }, [initialTransactions]);
+  useEffect(() => { if (initialInvoices) setInvoices(initialInvoices); }, [initialInvoices]);
 
   const value = useMemo<CreditCtx>(() => ({
     balance,

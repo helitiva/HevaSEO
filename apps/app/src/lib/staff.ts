@@ -1,8 +1,9 @@
 // Pure staff-surface logic. No money, no React — unit-tested in staff.test.ts.
 import type { OrderStatus, Priority } from '@/data/adminMock';
+import { MOCK_TODAY } from '@/lib/today';
 
 // Mock "now". Real backend uses the request clock.
-export const TODAY = '2026-06-26';
+export const TODAY = MOCK_TODAY;
 
 export function daysToDue(deadline: string | null, today = TODAY): number | null {
   if (!deadline) return null;
@@ -289,6 +290,7 @@ export function workStats(items: WorkItem[]): WorkStats {
 export interface MonthEarning {
   month: string; label: string;            // '2026-06' · 'Jun'
   base: number; commission: number; bonus: number; takeHome: number;
+  gig?: number;                            // piece-rate gig pay that month (current cycle)
   tasks: number;                           // tasks completed that month (commission driver)
 }
 export interface EarningsSummary {

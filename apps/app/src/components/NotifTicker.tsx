@@ -8,7 +8,7 @@ export function NotifTicker() {
       <div className="ticker-track flex items-center gap-10 whitespace-nowrap">
         {items.map((a, i) => (
           <span key={i} className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            <i className={`ph-fill ${a.icon} ${a.cls}`} />
+            <i className={`ph-fill ${a.icon} ${a.cls}`} aria-hidden />
             <span dangerouslySetInnerHTML={{ __html: a.html }} />
           </span>
         ))}

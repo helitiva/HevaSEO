@@ -2,18 +2,19 @@
 
 import { useRef, useState } from 'react';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
-import { GEO } from '@/data/adminMock';
+import { GEO, type GeoRow } from '@/data/adminMock';
 
 const GEO_URL = '/world-50m.json';
 
-const geoByIso = Object.fromEntries(GEO.map((g) => [g.isoNum, g]));
-const maxUsers = Math.max(...GEO.map((g) => g.users));
-const total = GEO.reduce((s, g) => s + g.users, 0);
-const sorted = [...GEO].sort((a, b) => b.users - a.users);
-
 interface Tooltip { name: string; flag: string; users: number; pct: number; }
 
-export function GeoPanel() {
+// `data` (real, getGeoStats — customers by country) overrides the mock GEO when provided.
+export function GeoPanel({ data }: { data?: GeoRow[] } = {}) {
+  const geo = data && data.length ? data : GEO;
+  const geoByIso = Object.fromEntries(geo.map((g) => [g.isoNum, g]));
+  const maxUsers = Math.max(...geo.map((g) => g.users), 1);
+  const total = geo.reduce((s, g) => s + g.users, 0) || 1;
+  const sorted = [...geo].sort((a, b) => b.users - a.users);
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -22,12 +23,11 @@ export function GeoPanel() {
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <i className="ph-bold ph-globe-hemisphere-west text-primary" /> Visitors by location
+          <i className="ph-bold ph-globe-hemisphere-west text-primary" aria-hidden /> Customers by country
         </p>
         <p className="text-xs text-muted-foreground">
-          via IP ·{' '}
-          <span className="font-semibold text-foreground">{GEO.length}</span> countries ·{' '}
-          <span className="font-semibold text-foreground">{total.toLocaleString('en-US')}</span> visitors
+          <span className="font-semibold text-foreground">{geo.length}</span> countries ·{' '}
+          <span className="font-semibold text-foreground">{total.toLocaleString('en-US')}</span> customers
         </p>
       </div>
 

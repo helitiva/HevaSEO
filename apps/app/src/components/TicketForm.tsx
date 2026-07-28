@@ -1,19 +1,27 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useToast } from './Toast';
+import { useOrdersStore } from './OrdersStore';
+import { useProjects } from './ProjectsStore';
+import { SERVICES } from '@/data/mock';
 
 const PRIORITIES = [
   { key: 'low', label: 'Low' },
   { key: 'normal', label: 'Normal' },
   { key: 'urgent', label: 'Urgent' },
 ];
+// form priority → DB order_priority
+const PRIO_DB: Record<string, 'low' | 'med' | 'high'> = { low: 'low', normal: 'med', urgent: 'high' };
 
-export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string) => void }) {
+const NONE = '__none';
+
+export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high', orderCode?: string) => void }) {
+  const { realOrders } = useOrdersStore();     // the customer's REAL orders (getMyOrders)
+  const { projects } = useProjects();          // the customer's REAL projects
+  const activeProjects = projects.filter((p) => !p.archived);
   const [prio, setPrio] = useState('normal');
-  const [svc, setSvc] = useState('BLEN-1042');
+  const [svc, setSvc] = useState(NONE);        // selected order code (the "Related service")
   const [files, setFiles] = useState<string[]>([]);
-  const toast = useToast();
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -22,11 +30,12 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
     const subject = String(fd.get('subject') ?? '').trim();
     if (!subject) return;
     const type = String(fd.get('type') ?? 'Other');
-    onSubmit?.(subject, type);
-    toast("Ticket submitted — we'll reply within business hours");
+    // the detailed description IS the first message; fall back to the subject when left blank
+    const body = String(fd.get('description') ?? '').trim() || subject;
+    onSubmit?.(subject, type, body, PRIO_DB[prio] ?? 'med', svc === NONE ? undefined : svc);
     form.reset();
     setPrio('normal');
-    setSvc('BLEN-1042');
+    setSvc(NONE);
     setFiles([]);
   };
 
@@ -48,26 +57,22 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
         </div>
         <div>
           <label className="lbl">Related project</label>
-          <select name="project" className="field">
-            <option>hevashop.com</option>
-            <option>clinicpro.com</option>
-            <option>anphat.com</option>
-            <option>Not project-related</option>
+          <select name="project" className="field" defaultValue={NONE}>
+            <option value={NONE}>Not project-related</option>
+            {activeProjects.map((p) => <option key={p.id} value={p.domain}>{p.name}{p.domain ? ` · ${p.domain}` : ''}</option>)}
           </select>
         </div>
       </div>
 
       <div className="mt-4">
-        <label className="lbl">Related service</label>
+        <label className="lbl">Related service <span className="font-normal text-muted-foreground">(links the ticket to an order)</span></label>
         <select className="field" value={svc} onChange={(e) => setSvc(e.target.value)}>
-          <option value="BLEN-1042">#BLEN-1042 · Entity Growth — hevashop.com</option>
-          <option value="IDX-1035">#IDX-1035 · Indexer Pro — hevashop.com</option>
-          <option value="CT-1033">#CT-1033 · Content SEO/GEO x30 — hevashop.com</option>
-          <option value="BLPR-1034">#BLPR-1034 · Press backlinks — anphat.com</option>
-          <option value="__id">Enter another service code…</option>
-          <option value="none">Not service-related</option>
+          <option value={NONE}>Not service-related</option>
+          {realOrders.map((o) => (
+            <option key={o.id} value={o.id}>#{o.id} · {SERVICES[o.service].label} — {o.domain}</option>
+          ))}
         </select>
-        {svc === '__id' && <input className="field mt-2" placeholder="Enter a service code, e.g. BLGP-1099 (see the code table on the FAQ page)" />}
+        {realOrders.length === 0 && <p className="mt-1 text-[11px] text-muted-foreground">You don’t have any orders yet — leave this as “Not service-related”.</p>}
       </div>
 
       <div className="mt-4">
@@ -97,7 +102,7 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
       <div className="mt-4">
         <label className="lbl">Attachments <span className="font-normal text-muted-foreground">(optional)</span></label>
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-3 text-sm text-muted-foreground transition hover:border-primary/50">
-          <i className="ph-bold ph-paperclip" />
+          <i className="ph-bold ph-paperclip" aria-hidden />
           <span>{files.length ? `${files.length} file${files.length > 1 ? 's' : ''} attached` : 'Drag & drop or click to upload screenshots, files…'}</span>
           <input type="file" multiple className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []).map((f) => f.name))} />
         </label>
@@ -107,7 +112,7 @@ export function TicketForm({ onSubmit }: { onSubmit?: (subject: string, type: st
       <div className="mt-5 flex items-center justify-between gap-3">
         <p className="text-[11px] text-muted-foreground">You&apos;ll get updates by email &amp; dashboard notifications.</p>
         <button type="submit" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-brand-500/25 transition hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[.98]">
-          <i className="ph-bold ph-paper-plane-tilt" /> Submit ticket
+          <i className="ph-bold ph-paper-plane-tilt" aria-hidden /> Submit ticket
         </button>
       </div>
     </form>

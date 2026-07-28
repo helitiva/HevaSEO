@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FORMAT_META, audienceMeta, type StaffDoc, type DocBlock } from '@/data/staffDocs';
+import { FORMAT_META, audienceMeta, audiencesOf, type StaffDoc, type DocBlock } from '@/data/staffDocs';
 
 const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -11,7 +11,6 @@ const RES_ICON: Record<string, string> = { link: 'ph-link-simple', file: 'ph-fil
 // out-of-scope doc never reaches here; this only renders.
 export function DocArticle({ doc, backHref }: { doc: StaffDoc; backHref: string }) {
   const fmt = FORMAT_META[doc.format];
-  const aud = audienceMeta(doc.audience);
 
   return (
     <article className="mx-auto max-w-3xl">
@@ -21,9 +20,11 @@ export function DocArticle({ doc, backHref }: { doc: StaffDoc; backHref: string 
 
       <header className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-          <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5" style={{ backgroundColor: `${aud.color}1a`, color: aud.color }}>
-            <i className={`ph-fill ${aud.icon}`} aria-hidden /> {aud.label}
-          </span>
+          {audiencesOf(doc).map((a) => { const m = audienceMeta(a); return (
+            <span key={a} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5" style={{ backgroundColor: `${m.color}1a`, color: m.color }}>
+              <i className={`ph-fill ${m.icon}`} aria-hidden /> {m.label}
+            </span>
+          ); })}
           <span className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-muted-foreground">
             <i className={`ph-bold ${fmt.icon}`} aria-hidden /> {fmt.label}
           </span>
@@ -37,9 +38,14 @@ export function DocArticle({ doc, backHref }: { doc: StaffDoc; backHref: string 
         </div>
       </header>
 
-      <div className="space-y-4">
-        {doc.body.map((block, i) => <Block key={i} block={block} />)}
-      </div>
+      {doc.html ? (
+        // Admin-authored rich text — sanitized at save (DocComposer), styled by .note-html.
+        <div className="note-html text-[15px] leading-relaxed text-foreground/90" dangerouslySetInnerHTML={{ __html: doc.html }} />
+      ) : (
+        <div className="space-y-4">
+          {doc.body.map((block, i) => <Block key={i} block={block} />)}
+        </div>
+      )}
 
       {doc.tags.length > 0 && (
         <div className="mt-8 flex flex-wrap gap-1.5">

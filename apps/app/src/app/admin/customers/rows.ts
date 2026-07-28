@@ -1,20 +1,41 @@
-import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer } from '@/data/adminMock';
+import { ORDERS, TICKETS, CUSTOMER_EXTRA, TIER, type AdminCustomer, type AdminOrder } from '@/data/adminMock';
 import type { CustomerRow, Health } from './CustomersClient';
 
-const TODAY = new Date('2026-06-25T00:00:00');
+/**
+ * Real clock. Was `mockTodayDate()` — 2026-06-24 — against customers whose last_active_at is real and
+ * dated now: `churnDays` came out negative, `Math.max(0, …)` clamped it to 0, and `atRisk`
+ * (churnDays > 30) could therefore NEVER be true. The At-risk KPI, the At-risk segment and the whole
+ * Churn-watch panel were structurally empty — not "no one is at risk", but "we cannot detect risk".
+ *
+ * Server-only (both callers are server pages). Per-call so a long-lived process doesn't freeze today.
+ */
+const todayMs = () => Date.now();
 const CLOSED = ['completed', 'canceled'];
 
-// Derivation shared by the admin Customers page and the manager (pod-scoped) one.
-export function buildCustomerRows(customers: readonly AdminCustomer[]): CustomerRow[] {
+// Derivation shared by the admin Customers page and the manager (pod-scoped) one. `allOrders`
+// defaults to the mock ORDERS (manager surface, still mock); the admin page passes real orders.
+export function buildCustomerRows(
+  customers: readonly AdminCustomer[],
+  allOrders: readonly AdminOrder[] = ORDERS,
+  /**
+   * Real open-ticket count per customer id. Absent → the mock TICKETS join below, which is only correct
+   * for the mock manager surface. For real customers it matched on COMPANY NAME, so Nova / Vértice /
+   * Peak Digital / Lumen — who exist in both the real table and the mock array — would have shown
+   * fabricated ticket counts.
+   */
+  openTicketsById?: ReadonlyMap<string, number>,
+): CustomerRow[] {
   return customers.map((c) => {
-    const orders = ORDERS.filter((o) => o.customer === c.company);
+    const orders = allOrders.filter((o) => o.customer === c.company);
     const activeOrders = orders.filter((o) => !CLOSED.includes(o.status)).length;
-    const ticketRows = TICKETS.filter((t) => t.customer === c.company);
-    const openTickets = ticketRows.filter((t) => t.status === 'open' || t.status === 'pending').length;
+    const ticketRows = openTicketsById ? [] : TICKETS.filter((t) => t.customer === c.company);
+    const openTickets = openTicketsById
+      ? openTicketsById.get(c.id) ?? 0
+      : ticketRows.filter((t) => t.status === 'open' || t.status === 'pending').length;
     const firstOrder = [...orders].sort((a, b) => a.created.localeCompare(b.created))[0];
     const source = firstOrder?.source ?? 'quick';
     const extra = CUSTOMER_EXTRA[c.id] ?? { phone: '—', timezone: '—', memberSince: '2025-01-01', tags: [TIER[c.tier].label] };
-    const churnDays = Math.max(0, Math.round((TODAY.getTime() - new Date(c.lastActive).getTime()) / 86400000));
+    const churnDays = Math.max(0, Math.round((todayMs() - new Date(c.lastActive).getTime()) / 86400000));
     const aov = c.orders ? Math.round(c.spend / c.orders) : 0;
     const atRisk = churnDays > 30;
     const health: Health = atRisk ? 'risk' : churnDays <= 7 && c.orders >= 5 ? 'good' : 'ok';

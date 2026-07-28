@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useToast } from './Toast';
-import { useCredit } from './CreditStore';
-import { Modal } from './Modal';
 import { TeamSettings } from './TeamSettings';
+import { SecurityPanel } from './settings/SecurityPanel';
+import { BillingPanel } from './settings/BillingPanel';
+import { ApiPanel } from './settings/ApiPanel';
+import { createClient } from '@/lib/supabase/client';
+import { updateProfileAction, updateNotifPrefsAction, type ProfileForm, type BillingForm, type NotifPrefs } from '@/app/(portal)/profile.actions';
+import { setAppearanceAction, setAvatarUrlAction, type MySettings } from '@/app/(portal)/settings.actions';
 
 type TabKey = 'profile' | 'security' | 'notif' | 'billing' | 'team' | 'api' | 'appearance';
 
@@ -19,82 +24,81 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'appearance', label: 'Appearance & Language', icon: 'ph-palette' },
 ];
 
-const PLANS = [
-  { key: 'Starter', desc: 'Pay as you go · standard support' },
-  { key: 'Pro', desc: '5% off every order · faster support' },
-  { key: 'VIP', desc: '15% off every order · priority support' },
-  { key: 'Agency', desc: 'Sub-accounts · per-project permissions' },
-];
-
 const INDUSTRIES = ['E-commerce', 'Retail / Supermarket', 'Healthcare / Dental / Clinics', 'Aesthetics / Spa / Beauty', 'Real estate', 'Education / Training', 'Travel / Hospitality', 'Restaurants / F&B', 'Finance / Insurance', 'Technology / Software / SaaS', 'Construction / Interiors', 'Automotive', 'Fashion / Cosmetics', 'Legal / Business consulting', 'Manufacturing / Industrial', 'Logistics / Transportation', 'Agriculture / Food', 'Events / Entertainment'];
 
-/** Controlled form values that persist to localStorage on save. */
-function usePersistedForm<T extends Record<string, string>>(key: string, initial: T) {
+/** Two initials from a name, e.g. "Huy Vo" → "HV". Falls back to "ME". */
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'ME';
+  return (parts[0][0] + (parts[parts.length - 1][0] ?? '')).toUpperCase();
+}
+
+/** Controlled form values seeded from the server; saved via a server action by the caller. */
+function useEditForm<T extends Record<string, string>>(initial: T) {
   const [data, setData] = useState<T>(initial);
-  useEffect(() => {
-    try { const s = localStorage.getItem(key); if (s) setData((d) => ({ ...d, ...(JSON.parse(s) as Partial<T>) })); } catch { /* ignore malformed */ }
-  }, [key]);
   const field = (k: keyof T) => ({
     value: data[k],
     onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setData((d) => ({ ...d, [k]: e.target.value })),
   });
-  const save = () => localStorage.setItem(key, JSON.stringify(data));
-  const reset = () => { setData(initial); localStorage.removeItem(key); };
-  return { field, save, reset };
+  return { data, field };
 }
 
-/** Toggle that remembers its state across reloads when given an `id`. */
-function Switch({ defaultOn = false, id }: { defaultOn?: boolean; id?: string }) {
-  const [on, setOn] = useState(defaultOn);
-  useEffect(() => {
-    if (!id) return;
-    const saved = localStorage.getItem(`heva.set.${id}`);
-    if (saved != null) setOn(saved === '1');
-  }, [id]);
-  const toggle = () => setOn((v) => { const n = !v; if (id) localStorage.setItem(`heva.set.${id}`, n ? '1' : '0'); return n; });
+/** DB-backed notification toggle (persists to the customer's notif_prefs). Defaults on when unset. */
+function NotifSwitch({ id, prefs, onSet }: { id: string; prefs: NotifPrefs; onSet: (id: string, on: boolean) => void }) {
+  const on = prefs[id] ?? true;
+  const toggle = () => onSet(id, !on);
   return (
-    <div
-      className={`switch${on ? ' on' : ''}`}
-      role="switch"
-      aria-checked={on}
-      tabIndex={0}
-      onClick={toggle}
-      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } }}
-    />
+    <div className={`switch${on ? ' on' : ''}`} role="switch" aria-checked={on} tabIndex={0}
+      onClick={toggle} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } }} />
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ initialProfile, initialBilling, initialNotif, initialSettings }: { initialProfile: ProfileForm; initialBilling: BillingForm; initialNotif: NotifPrefs; initialSettings: MySettings }) {
   const [tab, setTab] = useState<TabKey>('profile');
   const toast = useToast();
-  const { balance } = useCredit();
-  const [apiKey, setApiKey] = useState('sk_live_••••••••••••••••8f2a');
-  const [mobileSession, setMobileSession] = useState(true);
-  const [plan, setPlan] = useState('VIP');
-  const [planOpen, setPlanOpen] = useState(false);
-  const planDesc = PLANS.find((p) => p.key === plan)?.desc ?? '';
-  const profile = usePersistedForm('heva.profile', { name: 'Huy Nguyen', email: 'huy@hevashop.com', phone: '+1 (415) 555-0142', company: 'HevaShop JSC', industry: 'E-commerce', website: 'hevashop.com' });
-  const billing = usePersistedForm('heva.billing', { company: 'HevaShop Inc.', taxId: '0312345678', address: '123 Market St, San Francisco, CA' });
+  const router = useRouter();
+  const profile = useEditForm(initialProfile);
+  const [notif, setNotif] = useState<NotifPrefs>(initialNotif);
+  const setNotifPref = (id: string, on: boolean) => {
+    const next = { ...notif, [id]: on };
+    setNotif(next);
+    void updateNotifPrefsAction(next);
+  };
 
-  const saved = (msg: string) => (e: FormEvent) => { e.preventDefault(); toast(msg); };
-  const updatePassword = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const next = String(fd.get('new') ?? '');
-    const confirm = String(fd.get('confirm') ?? '');
-    if (next.length < 8) { toast('New password must be at least 8 characters', 'error'); return; }
-    if (next !== confirm) { toast('Passwords do not match', 'error'); return; }
-    toast('Password updated');
-    e.currentTarget.reset();
+  // Avatar/logo: upload to the Storage 'avatars' bucket (own uid folder), then persist the public URL.
+  const [avatarUrl, setAvatarUrl] = useState(initialSettings.avatarUrl);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const onPhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 2_097_152) { toast('Image must be under 2 MB', 'error'); return; }
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast('Not signed in', 'error'); return; }
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+      if (up.error) { toast(up.error.message, 'error'); return; }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const r = await setAvatarUrlAction(publicUrl);
+      if (!r.ok) { toast(r.error ?? 'Save failed', 'error'); return; }
+      setAvatarUrl(publicUrl);
+      router.refresh(); // re-fetch the layout so the top-bar avatar updates immediately
+      toast('Photo updated');
+    } finally {
+      setUploading(false);
+    }
   };
-  const copyKey = async () => {
-    try { await navigator.clipboard.writeText(apiKey); toast('API key copied'); }
-    catch { toast('Copy failed — select and copy manually', 'error'); }
-  };
-  const regenerateKey = () => {
-    const rand = Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 6)).join('');
-    setApiKey(`sk_live_${'•'.repeat(16)}${rand.slice(-4)}`);
-    toast('API key regenerated — update your integrations');
+  const removePhoto = async () => {
+    const r = await setAvatarUrlAction('');
+    if (!r.ok) { toast(r.error ?? 'Remove failed', 'error'); return; }
+    setAvatarUrl('');
+    router.refresh(); // top-bar avatar falls back to initials
+    toast('Photo removed');
   };
 
   return (
@@ -103,21 +107,25 @@ export function SettingsView() {
       <aside className="lg:sticky lg:top-[84px] h-fit rounded-2xl border border-border bg-card p-2">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`set-tab${tab === t.key ? ' active' : ''}`}>
-            <i className={`ph-bold ${t.icon}`} /> {t.label}
+            <i className={`ph-bold ${t.icon}`} aria-hidden /> {t.label}
           </button>
         ))}
       </aside>
 
       <div>
         {tab === 'profile' && (
-          <form onSubmit={(e) => { e.preventDefault(); profile.save(); toast('Profile saved'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
+          <form onSubmit={async (e) => { e.preventDefault(); const r = await updateProfileAction(profile.data); toast(r.ok ? 'Profile saved' : r.error ?? 'Save failed', r.ok ? 'success' : 'error'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
             <h2 className="display text-lg font-semibold tracking-tight">Profile</h2>
             <p className="text-xs text-muted-foreground">Information shown to advisors and on invoices.</p>
             <div className="mt-5 flex items-center gap-4">
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-bold text-white">HV</span>
+              {avatarUrl
+                // eslint-disable-next-line @next/next/no-img-element -- user-supplied Storage URL, dynamic host
+                ? <img src={avatarUrl} alt="Profile photo" className="h-16 w-16 rounded-full object-cover" />
+                : <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-bold text-white">{initials(profile.data.name)}</span>}
               <div className="flex gap-2">
-                <button type="button" onClick={() => toast('Photo upload coming soon')} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent">Change photo</button>
-                <button type="button" onClick={() => toast('Photo removed')} className="rounded-lg px-3 py-2 text-xs font-semibold text-destructive transition hover:bg-destructive/10">Remove</button>
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" className="hidden" onChange={onPhotoChange} />
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent disabled:opacity-60">{uploading ? 'Uploading…' : 'Change photo'}</button>
+                {avatarUrl && <button type="button" onClick={removePhoto} className="rounded-lg px-3 py-2 text-xs font-semibold text-destructive transition hover:bg-destructive/10">Remove</button>}
               </div>
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -132,40 +140,13 @@ export function SettingsView() {
               <div><label className="lbl">Default website</label><input className="field" {...profile.field('website')} /></div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => { profile.reset(); toast('Changes discarded', 'info'); }} className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => window.location.reload()} className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
               <button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save changes</button>
             </div>
           </form>
         )}
 
-        {tab === 'security' && (
-          <section className="space-y-4">
-            <form onSubmit={updatePassword} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <h2 className="display text-lg font-semibold tracking-tight">Change password</h2>
-              <div className="mt-4 grid gap-4 sm:max-w-md">
-                <div><label className="lbl">Current password</label><input name="current" type="password" required className="field" placeholder="Enter your current password" autoComplete="current-password" /></div>
-                <div><label className="lbl">New password</label><input name="new" type="password" required className="field" placeholder="At least 8 characters" autoComplete="new-password" /></div>
-                <div><label className="lbl">Confirm new password</label><input name="confirm" type="password" required className="field" autoComplete="new-password" /></div>
-              </div>
-              <div className="mt-4"><button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Update password</button></div>
-            </form>
-            <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div><h2 className="display text-base font-semibold tracking-tight">Two-factor authentication (2FA)</h2><p className="text-xs text-muted-foreground">Add security with an OTP code at login.</p></div>
-                <Switch defaultOn id="security.2fa" />
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <h2 className="display text-base font-semibold tracking-tight">Login sessions</h2>
-              <div className="mt-3 space-y-2.5 text-sm">
-                <div className="flex items-center gap-3"><i className="ph-bold ph-desktop text-muted-foreground" /><div className="flex-1"><p className="font-medium">Chrome · macOS</p><p className="text-[11px] text-muted-foreground">San Francisco · This device</p></div><span className="pill pill-good">Current</span></div>
-                {mobileSession
-                  ? <div className="flex items-center gap-3"><i className="ph-bold ph-device-mobile text-muted-foreground" /><div className="flex-1"><p className="font-medium">Safari · iPhone</p><p className="text-[11px] text-muted-foreground">San Francisco · 2 days ago</p></div><button onClick={() => { setMobileSession(false); toast('Signed out of Safari · iPhone'); }} className="text-xs font-semibold text-destructive hover:underline">Sign out</button></div>
-                  : <p className="rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">No other active sessions.</p>}
-              </div>
-            </div>
-          </section>
-        )}
+        {tab === 'security' && <SecurityPanel initialTwoFactor={initialSettings.twoFactor} />}
 
         {tab === 'notif' && (
           <section className="rounded-2xl border border-border bg-card p-5 lg:p-6">
@@ -173,128 +154,49 @@ export function SettingsView() {
             <p className="text-xs text-muted-foreground">Choose the channels and event types you want to receive.</p>
             <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Channels</p>
             <div className="divide-y divide-border">
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Email</p><p className="text-[11px] text-muted-foreground">huy@hevashop.com</p></div><Switch defaultOn id="notif.email" /></div>
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">In-app</p><p className="text-[11px] text-muted-foreground">Bell & notification center</p></div><Switch defaultOn id="notif.inapp" /></div>
-              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Header ticker</p><p className="text-[11px] text-muted-foreground">Scrolling notification bar</p></div><Switch defaultOn id="notif.ticker" /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Email</p><p className="text-[11px] text-muted-foreground">{profile.data.email || 'your email'}</p></div><NotifSwitch id="notif.email" prefs={notif} onSet={setNotifPref} /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">In-app</p><p className="text-[11px] text-muted-foreground">Bell & notification center</p></div><NotifSwitch id="notif.inapp" prefs={notif} onSet={setNotifPref} /></div>
+              <div className="flex items-center justify-between py-3"><div><p className="text-sm font-medium">Header ticker</p><p className="text-[11px] text-muted-foreground">Scrolling notification bar</p></div><NotifSwitch id="notif.ticker" prefs={notif} onSet={setNotifPref} /></div>
             </div>
             <p className="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Event types</p>
             <div className="divide-y divide-border">
-              {[['Order status changes', true], ['Links got indexed', true], ['Weekly report', true], ['Low credit alerts', true], ['Promotional emails', false]].map(([label, on]) => (
-                <div key={label as string} className="flex items-center justify-between py-3"><p className="text-sm font-medium">{label}</p><Switch defaultOn={on as boolean} id={`notif.evt.${(label as string).toLowerCase().replace(/[^a-z]+/g, '-')}`} /></div>
+              {['Order status changes', 'Links got indexed', 'Weekly report', 'Low credit alerts', 'Promotional emails'].map((label) => (
+                <div key={label} className="flex items-center justify-between py-3"><p className="text-sm font-medium">{label}</p><NotifSwitch id={`notif.evt.${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} prefs={notif} onSet={setNotifPref} /></div>
               ))}
             </div>
           </section>
         )}
 
         {tab === 'billing' && (
-          <section className="space-y-4">
-            <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 lg:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-400/20 text-amber-500"><i className="ph-fill ph-crown text-xl" /></span>
-                  <div><p className="display text-lg font-semibold">{plan} plan</p><p className="text-xs text-muted-foreground">{planDesc}</p></div>
-                </div>
-                <button onClick={() => setPlanOpen(true)} className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Manage plan</button>
-              </div>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-primary/20 pt-4">
-                <div><p className="text-xs text-muted-foreground">Credit balance</p><p className="display text-2xl font-semibold tracking-tight">${balance.toLocaleString('en-US')}</p></div>
-                <a href="/credit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-plus" /> Top up credits</a>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div><h2 className="display text-base font-semibold tracking-tight">Auto top-up</h2><p className="text-xs text-muted-foreground">Automatically top up when your balance runs low so orders aren&apos;t interrupted.</p></div>
-                <Switch id="billing.autotopup" />
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 sm:max-w-md">
-                <div><label className="lbl">When balance falls below</label><input className="field" defaultValue="$40" /></div>
-                <div><label className="lbl">Top up</label><input className="field" defaultValue="$199" /></div>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <div className="flex items-center justify-between"><h2 className="display text-base font-semibold tracking-tight">Payment methods</h2><a href="/credit" className="text-xs font-semibold text-primary hover:underline">+ Add</a></div>
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                <i className="ph-bold ph-credit-card text-xl text-primary" />
-                <div className="flex-1 text-sm"><p className="font-medium">Visa •••• 4242</p><p className="text-[11px] text-muted-foreground">Expires 08/27</p></div>
-                <span className="pill pill-good">Default</span>
-              </div>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); billing.save(); toast('Billing details saved'); }} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <h2 className="display text-base font-semibold tracking-tight">Billing information (VAT)</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div><label className="lbl">Company name</label><input className="field" {...billing.field('company')} /></div>
-                <div><label className="lbl">Tax ID</label><input className="field" {...billing.field('taxId')} /></div>
-                <div className="sm:col-span-2"><label className="lbl">Address</label><input className="field" {...billing.field('address')} /></div>
-              </div>
-              <div className="mt-4 flex justify-end"><button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save details</button></div>
-            </form>
-          </section>
+          <BillingPanel plan={initialSettings.plan} initialAutoTopup={initialSettings.autoTopup} initialPaymentMethods={initialSettings.paymentMethods} initialBilling={initialBilling} />
         )}
 
         {tab === 'team' && <TeamSettings />}
 
-        {tab === 'api' && (
-          <section className="space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <h2 className="display text-lg font-semibold tracking-tight">API Key</h2>
-              <p className="text-xs text-muted-foreground">Use this to integrate HevaSEO into your systems.</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <input className="field font-mono" style={{ maxWidth: '24rem' }} value={apiKey} readOnly />
-                <button onClick={copyKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-copy" /> Copy</button>
-                <button onClick={regenerateKey} className="rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-semibold text-destructive transition hover:bg-destructive/10"><i className="ph-bold ph-arrows-clockwise" /> Regenerate</button>
-              </div>
-            </div>
-            <form onSubmit={saved('Webhook saved')} className="rounded-2xl border border-border bg-card p-5 lg:p-6">
-              <h2 className="display text-base font-semibold tracking-tight">Webhook</h2>
-              <p className="text-xs text-muted-foreground">Receive real-time events sent to your URL.</p>
-              <div className="mt-4"><label className="lbl">Endpoint URL</label><input name="endpoint" type="url" required className="field" placeholder="https://yourapp.com/webhooks/hevaseo" /></div>
-              <p className="mt-4 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Outbound events</p>
-              <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="accent-[hsl(var(--primary))]" /> order.created</label>
-                <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="accent-[hsl(var(--primary))]" /> order.completed</label>
-                <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="accent-[hsl(var(--primary))]" /> index.done</label>
-                <label className="flex items-center gap-2"><input type="checkbox" className="accent-[hsl(var(--primary))]" /> credit.low</label>
-              </div>
-              <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => toast('Test event sent to your endpoint')} className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Send test</button><button type="submit" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">Save webhook</button></div>
-            </form>
-          </section>
-        )}
+        {tab === 'api' && <ApiPanel initialApiKeys={initialSettings.apiKeys} initialWebhook={initialSettings.webhook} />}
 
-        {tab === 'appearance' && <AppearancePanel />}
+        {tab === 'appearance' && <AppearancePanel initialLocale={initialSettings.locale} initialTimezone={initialSettings.timezone} />}
       </div>
-
-      {planOpen && (
-        <Modal onClose={() => setPlanOpen(false)} title="Manage plan" subtitle="Switch your subscription tier" icon="ph-crown">
-          {({ close }) => (
-            <div className="space-y-2">
-              {PLANS.map((p) => {
-                const active = p.key === plan;
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => { setPlan(p.key); toast(`Switched to the ${p.key} plan`); close(); }}
-                    className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition ${active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                  >
-                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}><i className="ph-bold ph-crown" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{p.key}</span><span className="block text-[11px] text-muted-foreground">{p.desc}</span></span>
-                    {active && <span className="pill pill-good shrink-0">Current</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </Modal>
-      )}
     </div>
   );
 }
 
-function AppearancePanel() {
+const LANGUAGES = ['English'];
+const TIMEZONES = ['(GMT-8) Los Angeles', '(GMT-5) New York', '(GMT+0) UTC', '(GMT+7) Bangkok / Hanoi', '(GMT+8) Singapore'];
+
+function AppearancePanel({ initialLocale, initialTimezone }: { initialLocale: string; initialTimezone: string }) {
   const { theme, setTheme } = useTheme();
+  const toast = useToast();
   const [mounted, setMounted] = useState(false);
+  const [locale, setLocale] = useState(initialLocale);
+  const [timezone, setTimezone] = useState(initialTimezone);
   useEffect(() => setMounted(true), []);
   const cur = mounted ? theme ?? 'system' : undefined;
+
+  const save = async (next: { locale: string; timezone: string }) => {
+    const r = await setAppearanceAction(next);
+    toast(r.ok ? 'Preferences saved' : r.error ?? 'Save failed', r.ok ? 'success' : 'error');
+  };
 
   const OPTS: { key: string; label: string; icon: string; color: string }[] = [
     { key: 'light', label: 'Light', icon: 'ph-sun', color: 'text-amber-500' },
@@ -312,14 +214,14 @@ function AppearancePanel() {
           const on = cur === o.key;
           return (
             <button key={o.key} onClick={() => setTheme(o.key)} className={`rounded-xl border-2 p-4 text-left transition hover:border-primary/50 ${on ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
-              <i className={`ph-bold ${o.icon} text-xl ${o.color}`} /><p className="mt-2 text-sm font-semibold">{o.label}</p>
+              <i className={`ph-bold ${o.icon} text-xl ${o.color}`} aria-hidden /><p className="mt-2 text-sm font-semibold">{o.label}</p>
             </button>
           );
         })}
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2 sm:max-w-lg">
-        <div><label className="lbl">Language</label><select className="field"><option>English</option></select></div>
-        <div><label className="lbl">Time zone</label><select className="field"><option>(GMT-8) Los Angeles</option><option>(GMT+0) UTC</option></select></div>
+        <div><label className="lbl">Language</label><select className="field" value={locale} onChange={(e) => { setLocale(e.target.value); void save({ locale: e.target.value, timezone }); }}>{LANGUAGES.map((l) => <option key={l}>{l}</option>)}</select></div>
+        <div><label className="lbl">Time zone</label><select className="field" value={TIMEZONES.includes(timezone) ? timezone : ''} onChange={(e) => { setTimezone(e.target.value); void save({ locale, timezone: e.target.value }); }}>{!TIMEZONES.includes(timezone) && <option value="">{timezone || 'Select…'}</option>}{TIMEZONES.map((t) => <option key={t}>{t}</option>)}</select></div>
       </div>
     </section>
   );

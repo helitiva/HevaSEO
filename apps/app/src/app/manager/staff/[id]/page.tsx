@@ -2,24 +2,33 @@ import { notFound } from 'next/navigation';
 import { SKILL_META, SERVICE_SKILL, TIER } from '@/data/adminMock';
 import { buildStaffProfile } from '@/app/admin/staff/[id]/build';
 import { StaffProfileClient } from '@/app/admin/staff/[id]/StaffProfileClient';
-import { managerScope, staffInPod, MANAGER_PERSONA } from '@/lib/managerScope';
+import { ManagerStaffChat } from '@/components/manager/ManagerStaffChat';
+import { getStaff } from '@/data/staff.server';
+import { getStaffThread } from '@/data/staffThread.server';
 
-// Manager staff detail — same profile as admin, but a manager may only open a
-// staffer inside their own pod, and the page is money-blind (the Pay & wallet tab
-// and all pay figures are hidden; impersonation is view-only). Both enforced by
-// the manager ViewerProvider + the pod-ownership guard below.
+export const metadata = { title: 'Staff profile' };
+
+// Manager staff detail — gated to a REAL staffer in the manager's pod (getStaff is RLS-scoped), money-blind
+// (Pay & wallet tab + figures hidden; impersonation view-only). Includes the real manager↔staff chat so the
+// manager can message the staffer directly (they see it on their task detail). The rich profile below is
+// the mock demo view, shown when a mock profile exists for the id.
 export default async function ManagerStaffDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const scope = managerScope(MANAGER_PERSONA);
-  if (!staffInPod(scope, id)) notFound();
+  const staff = await getStaff();
+  const target = staff.find((s) => s.id === id);
+  if (!target) notFound();
 
-  const data = buildStaffProfile(id);
-  if (!data) notFound();
+  const [thread, data] = await Promise.all([getStaffThread(id), Promise.resolve(buildStaffProfile(id))]);
 
   return (
-    <StaffProfileClient
-      insight={data.insight} workload={data.workload} teamAvg={data.teamAvg}
-      skillMeta={SKILL_META} tierMeta={TIER} serviceSkill={SERVICE_SKILL}
-    />
+    <section className="space-y-4">
+      <ManagerStaffChat staffId={id} staffName={target.name} initial={thread} />
+      {data && (
+        <StaffProfileClient
+          insight={data.insight} workload={data.workload} teamAvg={data.teamAvg}
+          skillMeta={SKILL_META} tierMeta={TIER} serviceSkill={SERVICE_SKILL}
+        />
+      )}
+    </section>
   );
 }

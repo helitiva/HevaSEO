@@ -42,13 +42,19 @@ export function CustomerProfileClient(p: Props) {
   const [note, setNote] = useState('');
   const [statusF, setStatusF] = useState('');
   const [toast, setToast] = useState<string | null>(null);
-  const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustAmt, setAdjustAmt] = useState('50');
   const [mixBy, setMixBy] = useState<'value' | 'orders'>('value');
 
   const notify = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
   const addNote = () => { if (!note.trim()) return; setNotes((n) => [{ at: 'just now', body: note.trim() }, ...n]); setNote(''); notify('Internal note added'); };
-  const applyAdjust = () => { const amt = Number(adjustAmt) || 0; setBalance((b) => b + amt); setLedger((l) => [{ at: 'just now', delta: amt, reason: 'Manual adjustment' }, ...l]); notify(`Credit ${amt >= 0 ? '+' : ''}${money(amt)}`); setAdjustOpen(false); };
+  // "Adjust credit" was here. It ran setBalance + setLedger + a toast and NEVER touched
+  // customer_balances or credit_ledger: the balance rose on screen, a "Manual adjustment" line appeared
+  // in the ledger, and a refresh erased both. An admin could believe they had funded an account that
+  // had no money in it — the same shape as the fake wallet top-up already deleted from Finance.
+  //
+  // Granting credit for real needs a service-role action (topup() is the customer's own provider-backed
+  // path, and create_order/topup are revoked from `authenticated` on purpose). That's a feature to build
+  // deliberately, with an audit trail, not a button to leave lying.
 
   const filteredOrders = useMemo(() => (statusF ? p.orders.filter((o) => o.status === statusF) : p.orders), [p.orders, statusF]);
   const statuses = useMemo(() => [...new Set(p.orders.map((o) => o.status))], [p.orders]);
@@ -63,12 +69,12 @@ export function CustomerProfileClient(p: Props) {
       <div className="rounded-2xl border border-border bg-card p-4 lg:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href={`${areaBase}/customers`} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back"><i className="ph-bold ph-arrow-left" /></Link>
+            <Link href={`${areaBase}/customers`} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-accent" title="Back" aria-label="Back to customers"><i className="ph-bold ph-arrow-left" aria-hidden /></Link>
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-base font-bold text-primary">{c.name.split(' ').map((x) => x[0]).join('')}</span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="display text-xl font-bold tracking-tight">{c.name}</span>
-                <span className="inline-flex items-center gap-1" title={`${t.label} customer`}><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} /><span className="text-[11px] font-semibold" style={{ color: t.color }}>{t.label}</span></span>
+                <span className="inline-flex items-center gap-1" title={`${t.label} customer`}><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} aria-hidden /><span className="text-[11px] font-semibold" style={{ color: t.color }}>{t.label}</span></span>
                 <span className={`pill ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
                 {atRisk && <span className="pill pill-warn">churn risk</span>}
               </div>
@@ -77,8 +83,7 @@ export function CustomerProfileClient(p: Props) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a href={`mailto:${c.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" />Email</a>
-            {showMoney && <button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent">Adjust credit</button>}
+            <a href={`mailto:${c.email}`} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" aria-hidden />Email</a>
             {imp.canCustomer && <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user-switch mr-1" aria-hidden />Impersonate</button>}
             <Menu items={[{ icon: 'ph-tag', label: 'Add tag', fn: () => notify('Tag added') }, { icon: 'ph-git-merge', label: 'Merge duplicate', fn: () => notify('Merge — pick a duplicate') }, { icon: 'ph-prohibit', label: 'Suspend', fn: () => notify('Customer suspended'), danger: true }]} />
           </div>
@@ -103,12 +108,12 @@ export function CustomerProfileClient(p: Props) {
               {p.projects.map((pr) => (
                 <div key={pr.name} className="rounded-xl border border-border bg-background/40 p-3">
                   <div className="flex items-center justify-between">
-                    <p className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-globe-hemisphere-west text-primary" /> {pr.name} <span className="font-normal text-muted-foreground">· {pr.site}</span></p>
+                    <p className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-globe-hemisphere-west text-primary" aria-hidden /> {pr.name} <span className="font-normal text-muted-foreground">· {pr.site}</span></p>
                     <span className="text-xs text-muted-foreground">{pr.folders.reduce((s, f) => s + f.orders, 0)} orders</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {pr.folders.map((f) => (
-                      <span key={f.name} className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-xs"><i className="ph-bold ph-folder text-muted-foreground" />{f.name} <b className="text-primary">{f.orders}</b></span>
+                      <span key={f.name} className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-xs"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{f.name} <b className="text-primary">{f.orders}</b></span>
                     ))}
                   </div>
                 </div>
@@ -180,7 +185,7 @@ export function CustomerProfileClient(p: Props) {
 
           {/* Credit & ledger — customer money, hidden from money-blind viewers (managers) */}
           {showMoney && (
-          <Card icon="ph-wallet" title="Credit & ledger" right={<button onClick={() => setAdjustOpen(true)} className="rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent">Adjust</button>}>
+          <Card icon="ph-wallet" title="Credit & ledger">
             <p className="display text-2xl font-bold">{money(balance)}<span className="ml-1 text-xs font-medium text-muted-foreground">balance</span></p>
             <div className="mt-3 space-y-1.5">
               {ledger.slice(0, 6).map((l, i) => (
@@ -203,19 +208,7 @@ export function CustomerProfileClient(p: Props) {
         </div>
       </div>
 
-      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
-      {adjustOpen && (
-        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-          <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setAdjustOpen(false)} />
-          <div className="modal-in relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <p className="display mb-3 text-base font-bold">Adjust credit</p>
-            <label className="text-xs text-muted-foreground">Amount (negative to deduct)</label>
-            <input type="number" value={adjustAmt} onChange={(e) => setAdjustAmt(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-            <p className="mt-2 text-xs text-muted-foreground">Balance {money(balance)} → <b className="text-foreground">{money(balance + (Number(adjustAmt) || 0))}</b></p>
-            <button onClick={applyAdjust} className="mt-3 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground">Apply</button>
-          </div>
-        </div>
-      )}
+      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
     </section>
   );
 }
@@ -242,8 +235,8 @@ function Menu({ items }: { items: { icon: string; label: string; fn: () => void;
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent" aria-label="More"><i className="ph-bold ph-dots-three-outline" /></button>
-      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} /> {i.label}</button>)}</div></>)}
+      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent" aria-label="More"><i className="ph-bold ph-dots-three-outline" aria-hidden /></button>
+      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} aria-hidden /> {i.label}</button>)}</div></>)}
     </div>
   );
 }

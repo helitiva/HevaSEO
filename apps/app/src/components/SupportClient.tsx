@@ -1,48 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Modal } from './Modal';
 import { TicketForm } from './TicketForm';
 import { SpecialistChat } from './SpecialistChat';
+import { TicketDetailDialog } from './support/TicketDetailDialog';
 import { useToast } from './Toast';
-
-type Ticket = { code: string; subject: string; type: string; status: string; pill: string; updated: string; open: boolean };
-
-const SEED_TICKETS: Ticket[] = [
-  { code: '#HV-1042', subject: 'Links not indexed after 5 days', type: 'Technical', status: 'In progress', pill: 'pill-good', updated: '2 hours ago', open: true },
-  { code: '#HV-1039', subject: 'May VAT invoice', type: 'Billing', status: 'Awaiting reply', pill: 'pill-warn', updated: 'Yesterday', open: true },
-  { code: '#HV-1031', subject: 'Advice on an entity + content combo', type: 'Consultation', status: 'Closed', pill: 'closed', updated: '3 days ago', open: false },
-];
+import type { MessageAttachment } from '@/data/mock';
+import {
+  getMyTicketsAction, getTicketDetailAction, createTicketAction, postTicketMessageAction,
+  setTicketStatusAction, rateTicketAction,
+  type Ticket, type TicketDetail, type TicketType, type TicketStatus,
+} from '@/app/(portal)/tickets.actions';
 
 const CONNECT = [
   { k: 'WhatsApp', icon: 'ph-whatsapp-logo', color: '#25D366' },
   { k: 'Messenger', icon: 'ph-messenger-logo', color: '#0084FF' },
 ];
-
-function StatusPill({ t }: { t: Ticket }) {
-  if (t.pill === 'closed') return <span className="pill" style={{ background: '#10b9811f', color: '#059669' }}>● {t.status}</span>;
-  return <span className={`pill ${t.pill}`}>● {t.status}</span>;
+// TicketForm's display types → the DB ticket_type enum.
+const TYPE_MAP: Record<string, TicketType> = { Technical: 'technical', Billing: 'billing', Consultation: 'consultation', Orders: 'technical', Other: 'technical' };
+const STATUS_META: Record<TicketStatus, { label: string; cls: string; style?: React.CSSProperties }> = {
+  open: { label: 'Open', cls: 'pill pill-good' },
+  pending: { label: 'Awaiting reply', cls: 'pill pill-warn' },
+  resolved: { label: 'Resolved', cls: 'pill', style: { background: '#10b9811f', color: '#059669' } },
+  closed: { label: 'Closed', cls: 'pill', style: { background: '#64748b1f', color: '#475569' } },
+};
+const TYPE_LABEL: Record<TicketType, string> = { technical: 'Technical', billing: 'Billing', consultation: 'Consultation' };
+function rel(iso: string | null): string {
+  if (!iso) return '—';
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
 }
-
-function ticketThread(t: Ticket) {
-  return [
-    { mine: true, name: 'You', text: `${t.subject}. Could you take a look?`, time: 'Earlier' },
-    { mine: false, name: 'Olivia Chen', text: t.open ? "Thanks for the details — I'm on it and will update you shortly. 🙌" : 'Glad we could sort this out. Closing the ticket — reach out anytime!', time: t.updated },
-  ];
-}
+const StatusPill = ({ s }: { s: TicketStatus }) => { const m = STATUS_META[s]; return <span className={m.cls} style={m.style}>● {m.label}</span>; };
 
 export function SupportClient() {
   const toast = useToast();
-  const [tickets, setTickets] = useState<Ticket[]>(SEED_TICKETS);
+  const router = useRouter();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [connectOpen, setConnectOpen] = useState(false);
-  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
-  const [reply, setReply] = useState('');
+  const [detail, setDetail] = useState<TicketDetail | null>(null);
   const openCount = tickets.filter((t) => t.open).length;
 
-  const addTicket = (subject: string, type: string) => {
-    const code = `#HV-${Date.now().toString().slice(-4)}`;
-    setTickets((prev) => [{ code, subject, type, status: 'Awaiting reply', pill: 'pill-warn', updated: 'Just now', open: true }, ...prev]);
+  const refresh = useCallback(() => { void getMyTicketsAction().then(setTickets); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  const reloadDetail = useCallback(async (id: string) => { setDetail(await getTicketDetailAction(id)); refresh(); }, [refresh]);
+
+  const addTicket = async (subject: string, type: string, body: string, priority: 'low' | 'med' | 'high', orderCode?: string) => {
+    const r = await createTicketAction(subject, TYPE_MAP[type] ?? 'technical', body, priority, orderCode);
+    if (!r.ok) { toast(r.error, 'error'); return; }
+    toast(`Ticket ${r.ticket.code} opened — we'll reply within business hours`);
+    refresh();
   };
+
+  const openTicket = async (t: Ticket) => setDetail(await getTicketDetailAction(t.id));
+
+  // dialog callbacks — each mutates then reloads the detail + list
+  const onReply = async (body: string, atts: MessageAttachment[]): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await postTicketMessageAction(detail.id, body, atts);
+    if (!r.ok) { toast(r.error ?? 'Could not send', 'error'); return false; }
+    await reloadDetail(detail.id);
+    return true;
+  };
+  const onSetStatus = async (s: TicketStatus): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await setTicketStatusAction(detail.id, s);
+    if (!r.ok) { toast(r.error ?? 'Could not update', 'error'); return false; }
+    toast(s === 'closed' ? 'Ticket closed' : s === 'resolved' ? 'Marked resolved' : 'Ticket reopened', s === 'open' ? undefined : 'info');
+    await reloadDetail(detail.id);
+    return true;
+  };
+  const onRate = async (rating: number, note: string): Promise<boolean> => {
+    if (!detail) return false;
+    const r = await rateTicketAction(detail.id, rating, note);
+    if (!r.ok) { toast(r.error ?? 'Could not submit', 'error'); return false; }
+    toast('Thanks for the feedback!');
+    await reloadDetail(detail.id);
+    return true;
+  };
+  const onOpenOrder = (code: string) => { setDetail(null); router.push(`/orders?order=${code}`, { scroll: false }); };
 
   return (
     <>
@@ -57,24 +98,24 @@ export function SupportClient() {
       {/* quick channels */}
       <section className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SpecialistChat className="channel flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 text-left">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary"><i className="ph-bold ph-chats-circle text-xl" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary"><i className="ph-bold ph-chats-circle text-xl" aria-hidden /></span>
           <span className="block"><span className="block font-semibold">Live chat</span><span className="block text-xs text-muted-foreground">Fastest response · real time</span></span>
-          <span className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-primary">Open chat <i className="ph-bold ph-arrow-right" /></span>
+          <span className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-primary">Open chat <i className="ph-bold ph-arrow-right" aria-hidden /></span>
         </SpecialistChat>
         <a href="tel:+14155550142" className="channel flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-phone-call text-xl" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-phone-call text-xl" aria-hidden /></span>
           <div><p className="font-semibold">Hotline</p><p className="text-xs text-muted-foreground">+1 (415) 555-0142</p></div>
           <span className="mt-auto text-xs font-medium text-muted-foreground">8:00 AM–9:00 PM daily</span>
         </a>
         <a href="mailto:hello@hevaseo.com" className="channel flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/15 text-amber-600"><i className="ph-bold ph-envelope-simple text-xl" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/15 text-amber-600"><i className="ph-bold ph-envelope-simple text-xl" aria-hidden /></span>
           <div><p className="font-semibold">Email</p><p className="text-xs text-muted-foreground">hello@hevaseo.com</p></div>
           <span className="mt-auto text-xs font-medium text-muted-foreground">Reply &lt; 24 hours</span>
         </a>
         <button onClick={() => setConnectOpen(true)} className="channel flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 text-left">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-sky-500/15 text-sky-600"><i className="ph-bold ph-chat-teardrop-dots text-xl" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-sky-500/15 text-sky-600"><i className="ph-bold ph-chat-teardrop-dots text-xl" aria-hidden /></span>
           <div><p className="font-semibold">WhatsApp / Messenger</p><p className="text-xs text-muted-foreground">Connect account</p></div>
-          <span className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-primary">Connect <i className="ph-bold ph-arrow-right" /></span>
+          <span className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-primary">Connect <i className="ph-bold ph-arrow-right" aria-hidden /></span>
         </button>
       </section>
 
@@ -83,7 +124,7 @@ export function SupportClient() {
         <TicketForm onSubmit={addTicket} />
         <div className="flex flex-col gap-4">
           <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-headset text-primary" /> Your advisor</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-headset text-primary" aria-hidden /> Your advisor</p>
             <div className="mt-4 flex items-center gap-3">
               <div className="relative">
                 <span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">OC</span>
@@ -92,7 +133,7 @@ export function SupportClient() {
               <div className="text-sm"><p className="font-semibold leading-tight">Olivia Chen</p><p className="text-[11px] text-muted-foreground">SEO Lead · online</p></div>
             </div>
             <SpecialistChat className="mt-4 w-full rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]">
-              <span className="inline-flex items-center justify-center gap-1.5"><i className="ph-bold ph-chat-circle-dots" /> Message now</span>
+              <span className="inline-flex items-center justify-center gap-1.5"><i className="ph-bold ph-chat-circle-dots" aria-hidden /> Message now</span>
             </SpecialistChat>
           </div>
 
@@ -110,7 +151,7 @@ export function SupportClient() {
             <p className="text-sm font-semibold">Frequently Asked Questions</p>
             <div className="mt-3 space-y-1">
               {['How long until a link gets indexed?', 'How to top up & use credits', 'Refund / cancellation policy'].map((q) => (
-                <a key={q} href="http://localhost:4330/#faq" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-lg px-2 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"><span>{q}</span><i className="ph-bold ph-arrow-up-right" /></a>
+                <a key={q} href="/faq" className="flex items-center justify-between rounded-lg px-2 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"><span>{q}</span><i className="ph-bold ph-arrow-right" aria-hidden /></a>
               ))}
             </div>
           </div>
@@ -128,6 +169,9 @@ export function SupportClient() {
             <span className="pill pill-good">{openCount} open</span>
           </div>
           <div className="mt-4 overflow-x-auto">
+            {tickets.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">No tickets yet — open one above and we’ll reply here.</p>
+            ) : (
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -140,21 +184,24 @@ export function SupportClient() {
               </thead>
               <tbody className="divide-y divide-border">
                 {tickets.map((t) => (
-                  <tr key={t.code} onClick={() => { setReply(''); setActiveTicket(t); }} className="cursor-pointer transition hover:bg-accent/40">
-                    <td className={`py-3 pr-3 font-semibold ${t.open ? 'text-primary' : 'text-muted-foreground'}`}>{t.code}</td>
-                    <td className="px-3 py-3">{t.subject}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{t.type}</td>
-                    <td className="px-3 py-3"><StatusPill t={t} /></td>
-                    <td className="py-3 pl-3 text-right text-muted-foreground">{t.updated}</td>
+                  <tr key={t.id} onClick={() => openTicket(t)} className="cursor-pointer transition hover:bg-accent/40">
+                    <td className={`py-3 pr-3 font-semibold ${t.open ? 'text-primary' : 'text-muted-foreground'}`}>#{t.code}</td>
+                    <td className="px-3 py-3">
+                      {t.priority === 'high' && <span className="mr-1.5 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">Urgent</span>}
+                      {t.subject}
+                      {t.orderCode && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">#{t.orderCode}</span>}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">{TYPE_LABEL[t.type]}</td>
+                    <td className="px-3 py-3"><StatusPill s={t.status} /></td>
+                    <td className="py-3 pl-3 text-right text-muted-foreground">{rel(t.lastReplyAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </div>
       </section>
-
-      <p className="mt-8 text-center text-xs text-muted-foreground">HevaSEO Workspace · Support · sample data</p>
 
       {/* connect channel modal */}
       {connectOpen && (
@@ -163,9 +210,9 @@ export function SupportClient() {
             <div className="space-y-2">
               {CONNECT.map((c) => (
                 <button key={c.k} type="button" onClick={() => { toast(`${c.k} connected — we'll reply there too`); close(); }} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition hover:border-primary/50 hover:bg-accent">
-                  <span className="grid h-10 w-10 place-items-center rounded-lg" style={{ background: `${c.color}1f`, color: c.color }}><i className={`ph-bold ${c.icon} text-xl`} /></span>
+                  <span className="grid h-10 w-10 place-items-center rounded-lg" style={{ background: `${c.color}1f`, color: c.color }}><i className={`ph-bold ${c.icon} text-xl`} aria-hidden /></span>
                   <span className="flex-1"><span className="block text-sm font-semibold">{c.k}</span><span className="block text-[11px] text-muted-foreground">Link your {c.k} to message us there</span></span>
-                  <i className="ph-bold ph-arrow-right text-muted-foreground" />
+                  <i className="ph-bold ph-arrow-right text-muted-foreground" aria-hidden />
                 </button>
               ))}
             </div>
@@ -173,34 +220,16 @@ export function SupportClient() {
         </Modal>
       )}
 
-      {/* ticket detail modal */}
-      {activeTicket && (
-        <Modal onClose={() => setActiveTicket(null)} title={activeTicket.subject} subtitle={`${activeTicket.code} · ${activeTicket.type}`} icon="ph-ticket">
-          {({ close }) => (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs"><StatusPill t={activeTicket} /><span className="text-muted-foreground">Updated {activeTicket.updated}</span></div>
-              <div className="space-y-3">
-                {ticketThread(activeTicket).map((m, i) => (
-                  <div key={i} className={`flex flex-col ${m.mine ? 'items-end' : 'items-start'}`}>
-                    <span className="px-1 text-[10px] font-medium text-muted-foreground">{m.name} · {m.time}</span>
-                    <div className={`mt-0.5 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${m.mine ? 'rounded-tr-sm bg-primary text-primary-foreground' : 'rounded-tl-sm bg-muted text-foreground'}`}>{m.text}</div>
-                  </div>
-                ))}
-              </div>
-              {activeTicket.open ? (
-                <form
-                  onSubmit={(e) => { e.preventDefault(); if (!reply.trim()) return; toast('Reply sent'); setReply(''); close(); }}
-                  className="flex items-end gap-2 border-t border-border pt-3"
-                >
-                  <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder="Write a reply…" className="scrollbar-thin max-h-28 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
-                  <button type="submit" disabled={!reply.trim()} aria-label="Send reply" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"><i className="ph-bold ph-paper-plane-tilt" /></button>
-                </form>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">This ticket is closed. Submit a new one if you still need help.</p>
-              )}
-            </div>
-          )}
-        </Modal>
+      {/* ticket detail — 2-pane dialog */}
+      {detail && (
+        <TicketDetailDialog
+          detail={detail}
+          onClose={() => setDetail(null)}
+          onReply={onReply}
+          onSetStatus={onSetStatus}
+          onRate={onRate}
+          onOpenOrder={onOpenOrder}
+        />
       )}
     </>
   );

@@ -79,9 +79,9 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-600 dark:text-emerald-400" title="Deadlines this month already done"><i className="ph-bold ph-check-circle" />{monthDone} done</span>
-        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-primary" title="Deadlines still to deliver"><i className="ph-bold ph-circle-dashed" />{monthTaskCount - monthDone} to go</span>
-        {hours && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground" title="Scheduled working hours per week"><i className="ph-bold ph-clock" />{weeklyHours}h / week</span>}
+        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-600 dark:text-emerald-400" title="Deadlines this month already done"><i className="ph-bold ph-check-circle" aria-hidden />{monthDone} done</span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-primary" title="Deadlines still to deliver"><i className="ph-bold ph-circle-dashed" aria-hidden />{monthTaskCount - monthDone} to go</span>
+        {hours && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground" title="Scheduled working hours per week"><i className="ph-bold ph-clock" aria-hidden />{weeklyHours}h / week</span>}
       </div>
 
       <div className="grid grid-cols-7 gap-1.5">
@@ -111,7 +111,7 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
               <span className="flex items-center justify-between gap-1">
                 <span className={`text-[11px] font-semibold ${c.isToday ? 'text-primary' : c.inMonth ? 'text-foreground' : 'text-muted-foreground/50'}`}>{c.day}</span>
                 <span className="flex items-center gap-1">
-                  {conflict && <i className="ph-bold ph-warning text-[11px] text-amber-500" title="Deadline on your day off" />}
+                  {conflict && <i className="ph-bold ph-warning text-[11px] text-amber-500" title="Deadline on your day off" aria-hidden />}
                   {items.length > 0 && <span className="rounded-full bg-primary/15 px-1.5 text-[10px] font-bold leading-4 text-primary" title={`${items.length} deadline${items.length === 1 ? '' : 's'}`}>{items.length}</span>}
                 </span>
               </span>
@@ -135,7 +135,7 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
                   const done = DONE.has(t.status);
                   return (
                     <span key={t.id} title={`${t.code} · ${t.service}${done ? ' · done' : ''}`} className={`flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-semibold ${done ? 'bg-muted text-muted-foreground line-through' : TONE[sla?.tone ?? 'neutral']}`}>
-                      {done ? <i className="ph-bold ph-check shrink-0 text-emerald-500" /> : <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: m.color }} aria-hidden />}
+                      {done ? <i className="ph-bold ph-check shrink-0 text-emerald-500" aria-hidden /> : <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: m.color }} aria-hidden />}
                       <span className="truncate">{t.code}</span>
                     </span>
                   );
@@ -151,9 +151,9 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
               {/* availability footer — working hours / day off / leave */}
               {c.inMonth && (onLeave || dayOff || working) && (
                 <p className={`mt-auto hidden items-center gap-1 truncate pt-1 text-[9px] font-medium sm:flex ${onLeave ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                  {onLeave ? <><i className="ph-bold ph-airplane-takeoff" />On leave</>
-                    : dayOff ? <><i className="ph-bold ph-moon" />Day off</>
-                    : <><i className="ph-bold ph-clock" />{wh!.start}–{wh!.end}</>}
+                  {onLeave ? <><i className="ph-bold ph-airplane-takeoff" aria-hidden />On leave</>
+                    : dayOff ? <><i className="ph-bold ph-moon" aria-hidden />Day off</>
+                    : <><i className="ph-bold ph-clock" aria-hidden />{wh!.start}–{wh!.end}</>}
                 </p>
               )}
             </Tag>
@@ -165,21 +165,21 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-destructive/40" /> Overdue</span>
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-amber-500/40" /> Due soon</span>
         <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-primary/30" /> Upcoming</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-check text-emerald-500" /> Done</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-clock" /> Working hours</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-moon" /> Day off</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-airplane-takeoff" /> On leave</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-check text-emerald-500" aria-hidden /> Done</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-clock" aria-hidden /> Working hours</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-moon" aria-hidden /> Day off</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-airplane-takeoff" aria-hidden /> On leave</span>
       </div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" />Tasks sit on their <b className="font-semibold text-foreground">deadline</b> (due date). The badge counts deadlines that day; coloured dots break them down by service. Click a day to see every task.</p>
+      <p className="mt-1.5 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Tasks sit on their <b className="font-semibold text-foreground">deadline</b> (due date). The badge counts deadlines that day; coloured dots break them down by service. Click a day to see every task.</p>
 
       <SlideOver open={panelDate !== null} onClose={() => setPanelDate(null)} title={panelDate ? longDate(panelDate) : ''}>
         <p className="mb-1 text-sm text-muted-foreground">{panelTasks.length} task{panelTasks.length === 1 ? '' : 's'} due {offDays?.has(panelDate ?? '') && <span className="font-semibold text-amber-600 dark:text-amber-400">· on your day off</span>}</p>
-        {panelTasks.length > 1 && <p className="mb-3 text-[11px] text-muted-foreground"><i className="ph-bold ph-sort-ascending" /> Sorted by client priority — highest-rank / most particular first.</p>}
+        {panelTasks.length > 1 && <p className="mb-3 text-[11px] text-muted-foreground"><i className="ph-bold ph-sort-ascending" aria-hidden /> Sorted by client priority — highest-rank / most particular first.</p>}
         <ul className="space-y-2">
           {panelTasks.map((t) => { const m = serviceMeta(t.service); const sla = slaChip(daysToDue(t.deadline, today)); const top = careRankOf(t.customer) === 2; return (
             <li key={t.id}>
               <a href={`/staff/tasks/${t.id}`} target="_blank" rel="noopener noreferrer" title="Opens in a new tab" className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:bg-muted/40 ${top ? 'border-l-[3px] border-l-amber-500 border-border' : 'border-border'}`}>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} /></span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${m.color}1a`, color: m.color }}><i className={`ph-bold ${m.icon}`} aria-hidden /></span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-muted-foreground">{t.code}</span>{t.service}</span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-1.5"><span className="truncate text-xs text-muted-foreground">{t.customer}</span><CareTags company={t.customer} /></span>
@@ -188,7 +188,7 @@ export function DeadlineCalendar({ tasks, initialMonth, today, offDays, hours }:
                   <span className="flex items-center gap-1"><PriorityBadge priority={t.priority} /><StatusBadge status={t.status} /></span>
                   {sla && <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${TONE[sla.tone]}`}>{sla.label}</span>}
                 </span>
-                <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" />
+                <i className="ph-bold ph-arrow-square-out shrink-0 text-muted-foreground" aria-hidden />
               </a>
             </li>
           ); })}

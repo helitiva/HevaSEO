@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
-  ORDERS, SERVICES, STATUSES, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
+  ORDERS, SERVICES, STATUSES, FOLDERS, projectForDomain, folderPathForDomain, managerFor, STAFF_ROLE,
   type Order, type OrderStatus, type ServiceKey,
 } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
@@ -70,25 +70,83 @@ function initials(name: string) {
   return name.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-/** Assigned staff: initials avatar + name + job title. Shared by cards and the list table. */
-function StaffTag({ name, role, className = '' }: { name: string; role?: string; className?: string }) {
+/** Given name only (drop the surname), e.g. "Olivia Chen" → "Olivia". Full name lives in the tooltip. */
+function firstName(name: string) {
+  return name.split(/\s+/)[0] || name;
+}
+
+/** US date "MM/DD/YYYY" → "DD/MM/YY". Leaves anything else untouched. */
+function toDMY(usDate: string): string {
+  const m = usDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[2]}/${m[1]}/${m[3].slice(2)}` : usDate;
+}
+
+/** Compact ETA: "2 days" → "2d". Falls back to the original string when there's no number. */
+function etaShort(eta: string): string {
+  const m = eta.match(/(\d+)/);
+  return m ? `${m[1]}d` : eta;
+}
+
+/** ETA shown compactly ("2d") with the full phrase revealed on hover. */
+function EtaTag({ eta }: { eta: string }) {
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">{initials(name)}</span>
-      <span className="min-w-0 truncate">{name}{role && <span className="text-muted-foreground"> · {role}</span>}</span>
+    <span className="group/eta relative inline-flex items-center gap-1">
+      <i className="ph-bold ph-timer" aria-hidden /> ETA {etaShort(eta)}
+      <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/eta:opacity-100">
+        Estimated Time of Arrival: {eta}
+      </span>
     </span>
   );
 }
 
-/** Manager in charge: amber avatar + name + "Manager" title + a tag that flips to "Reviewing" in review. */
-function ManagerTag({ name, reviewing, className = '' }: { name: string; reviewing: boolean; className?: string }) {
+/** What the specialist actually does on this order — surfaced in the hover card. */
+const STAFF_DUTY: Record<ServiceKey, string> = {
+  backlink: 'Builds and places your backlinks & citations, keeping a safe anchor ratio.',
+  content: 'Researches, writes and optimizes your articles for E-E-A-T.',
+  indexer: 'Submits your links and monitors until they’re indexed.',
+  audit: 'Runs the full technical audit and compiles your report.',
+  optimize: 'Implements the on-site & Core Web Vitals fixes.',
+  keyword: 'Researches and maps your target keyword clusters.',
+  design: 'Designs and builds your pages.',
+};
+const MANAGER_DUTY = 'Oversees the pod and reviews & approves the specialist’s work before it reaches you.';
+
+/** Rich hover card for a person on an order: avatar, full name, title, and what they do here. */
+function PersonTag({ name, title, duty, tone, reviewing = false, avatarOnly = false, className = '' }: { name: string; title: string; duty: string; tone: 'staff' | 'manager'; reviewing?: boolean; avatarOnly?: boolean; className?: string }) {
+  const unassigned = name === 'Unassigned';
+  const avatar = tone === 'manager' ? 'bg-amber-500/15 text-amber-600' : 'bg-primary/15 text-primary';
+  // Solid fill for the compact card avatars so they read clearly (not the washed-out translucent tint).
+  const avatarSolid = tone === 'manager' ? 'bg-amber-500 text-white' : 'bg-primary text-primary-foreground';
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-amber-500/15 text-[9px] font-bold text-amber-600" title="Manager in charge">{initials(name)}</span>
-      <span className="min-w-0 truncate">{name}<span className="text-muted-foreground"> · Manager</span></span>
-      {reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
+    <span className={`group/person relative inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+      <span className={`grid ${avatarOnly ? 'h-6 w-6 text-[10px]' : 'h-5 w-5 text-[9px]'} shrink-0 place-items-center rounded-full font-bold ${unassigned ? 'bg-muted text-muted-foreground' : avatarOnly ? avatarSolid : avatar} ${reviewing ? 'ring-2 ring-amber-500/60' : avatarOnly ? 'ring-2 ring-card' : ''}`}>{initials(name)}</span>
+      {!avatarOnly && <span className="min-w-0 truncate">{firstName(name)}</span>}
+      {!avatarOnly && reviewing && <span className="shrink-0 whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">Reviewing</span>}
+      {!unassigned && (
+        <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 w-60 origin-top-left scale-95 rounded-xl border border-border bg-card p-3 text-left opacity-0 shadow-xl transition-all duration-150 group-hover/person:scale-100 group-hover/person:opacity-100">
+          <span className="flex items-center gap-2.5">
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold ${avatar}`}>{initials(name)}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-foreground">{name}</span>
+              <span className="block truncate text-[11px] font-medium text-muted-foreground">{title}</span>
+            </span>
+          </span>
+          <span className="mt-2 block text-[11px] leading-relaxed text-muted-foreground">{duty}</span>
+          {reviewing && <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-amber-600"><i className="ph-fill ph-circle text-[7px]" aria-hidden /> Currently reviewing your delivery</span>}
+        </span>
+      )}
     </span>
   );
+}
+
+/** Assigned staff — initials + given name; hover shows full name, title & duty. Shared by cards + list. */
+function StaffTag({ name, role, duty, avatarOnly, className = '' }: { name: string; role?: string; duty?: string; avatarOnly?: boolean; className?: string }) {
+  return <PersonTag name={name} title={role ?? 'Specialist'} duty={duty ?? 'Handles the day-to-day work on this order.'} tone="staff" avatarOnly={avatarOnly} className={className} />;
+}
+
+/** Manager in charge — amber avatar; hover shows full name, title & duty (+ Reviewing in review). */
+function ManagerTag({ name, reviewing, avatarOnly, className = '' }: { name: string; reviewing: boolean; avatarOnly?: boolean; className?: string }) {
+  return <PersonTag name={name} title="Account Manager" duty={MANAGER_DUTY} tone="manager" reviewing={reviewing} avatarOnly={avatarOnly} className={className} />;
 }
 
 /** Per-column <td> classes for the list table (used with the column manager). */
@@ -113,32 +171,33 @@ function listCell(id: ColId, o: Order, i: number, est: OrderStatus): ReactNode {
     case 'code': return (
       <>
         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground/70">#{o.id}</span>
-        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" /> {o.date}</span>
+        <span className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-calendar-blank text-muted-foreground/70" aria-hidden /> {toDMY(o.date)}</span>
       </>
     );
     case 'service': return (
       <div className="flex items-center gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} /></span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><i className={`ph-bold ${SERVICES[o.service].icon}`} aria-hidden /></span>
         <div className="min-w-0"><p className="truncate font-semibold leading-tight">{o.title}</p><p className="truncate text-[11px] text-muted-foreground">{o.sub}</p></div>
       </div>
     );
-    case 'domain': return o.domain;
+    case 'domain': return o.siteLabel ?? o.domain;
     case 'project': {
-      const pr = projectForDomain(o.domain);
-      return pr
-        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" />{pr.name}</span>
+      const projName = o.project ?? projectForDomain(o.domain)?.name;
+      return projName
+        ? <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{projName}</span>
         : <span className="text-muted-foreground">—</span>;
     }
     case 'folder': {
-      const path = folderPathForDomain(o.domain);
-      const leaf = path[path.length - 1];
+      const leaf = o.folder
+        ? { name: o.folder, color: folderColorByName(o.folder) }
+        : folderPathForDomain(o.domain).at(-1);
       return leaf
-        ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" />{leaf.name}</span>
+        ? <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: leaf.color }}><i className="ph-bold ph-folder" aria-hidden />{leaf.name}</span>
         : <span className="text-muted-foreground">—</span>;
     }
-    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} />;
+    case 'staff': return <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} />;
     case 'manager': return est === 'planned'
-      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" /> Not assigned</span>
+      ? <span className="inline-flex items-center gap-1.5 text-muted-foreground"><i className="ph-bold ph-user-circle-dashed" aria-hidden /> Not assigned</span>
       : <ManagerTag name={managerFor(o.id)} reviewing={est === 'review'} />;
     case 'status': return <span className="pill" style={{ background: `${STATUSES[est].color}1f`, color: STATUSES[est].color }}>● {STATUSES[est].label}</span>;
     case 'progress': return <span className="bar inline-block w-24 align-middle"><i style={{ width: `${pct(o)}%` }} /></span>;
@@ -152,70 +211,113 @@ function DoneBadge({ done }: { done: boolean }) {
   return <span className="pill pill-good">Done</span>;
 }
 
-/** Compact meta block: project + website·URLs on two lines. */
-function MetaRows({ o, hideProject = false }: { o: Order; hideProject?: boolean }) {
-  const proj = projectForDomain(o.domain);
-  const website = o.multiWeb ? 'Multi-site' : o.domain;
+// Palette for folders that don't carry a stored color (real orders keep only the folder name).
+const FOLDER_HUES = ['#2563eb', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#14b8a6'];
+/** Folder accent color by name: mock folders carry a color; others get a stable hue from the name. */
+function folderColorByName(name: string): string {
+  const mock = FOLDERS.find((f) => f.name === name)?.color;
+  if (mock) return mock;
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return FOLDER_HUES[h % FOLDER_HUES.length];
+}
+
+// The website line's leading icon, by service: indexer submits links, keyword is a research query — the rest
+// are a website/domain (globe).
+const SITE_ICON: Partial<Record<Order['service'], string>> = { indexer: 'ph-link', keyword: 'ph-magnifying-glass' };
+
+/** Compact meta block: website · URLs. (Project moved down to the folder row.) */
+function MetaRows({ o }: { o: Order }) {
+  // Service-aware headline (e.g. "10 articles for site.com") when present; else the exact URL the customer
+  // submitted (site), protocol stripped, falling back to the domain.
+  const website = o.siteLabel ?? (o.multiWeb ? 'Multi-site' : (o.site ?? o.domain).replace(/^https?:\/\//i, '').replace(/\/+$/, ''));
+  const icon = SITE_ICON[o.service] ?? 'ph-globe-simple';
   return (
     <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      {!hideProject && proj && (
-        <p className="flex items-center gap-1.5">
-          <i className="ph-bold ph-stack shrink-0" />
-          <span className="min-w-0 truncate">Project: <span className="font-semibold text-foreground">{proj.name}</span></span>
-        </p>
-      )}
-      <p className="flex items-center gap-1.5">
-        <i className="ph-bold ph-globe-simple shrink-0" />
+      <p className="group/url relative flex items-center gap-1.5">
+        <i className={`ph-bold ${icon} shrink-0`} aria-hidden />
         <span className="min-w-0 truncate font-semibold text-foreground">{website}</span>
-        {o.urls != null && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
+        {/* the siteLabel already encodes the URL count for indexer, so only append it for plain URLs */}
+        {o.urls != null && !o.siteLabel && <span className="shrink-0">· {o.urls.toLocaleString('en-US')} URLs</span>}
+        {/* the chosen package/plan (e.g. "Standard", "A2000") — relocated off the service row to sit here, right-aligned */}
+        {o.sub && (
+          <span className="ml-auto shrink-0 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title={o.sub}>
+            {o.sub.split('·')[0].trim()}
+          </span>
+        )}
+        {/* only shown where it expands a truncated real value (long backlink URL, clipped keyword topic) */}
+        {o.siteHover && (
+          <span role="tooltip" className="pointer-events-none absolute left-0 top-full z-30 mt-1 max-w-[17rem] break-all rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium leading-snug text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/url:opacity-100">
+            {o.siteHover}
+          </span>
+        )}
       </p>
     </div>
   );
 }
 
-/** Folder breadcrumb (parent › child) — its own row at the bottom of the card. */
-function FolderPath({ o }: { o: Order }) {
-  const path = folderPathForDomain(o.domain);
-  if (!path.length) return null;
-  const leaf = path[path.length - 1];
+/** Bottom row: project name › folder. Either can be long, so each truncates independently (…) and shows
+ *  its full value on hover (native title). `showProject` is off when the project is already the headline. */
+function FolderPath({ o, showProject = true }: { o: Order; showProject?: boolean }) {
+  const projName = showProject ? (o.project ?? projectForDomain(o.domain)?.name ?? null) : null;
+  // Real orders carry a single folder name; mock orders resolve the leaf folder from the domain.
+  const leaf = o.folder
+    ? { name: o.folder, color: folderColorByName(o.folder) }
+    : folderPathForDomain(o.domain).at(-1) ?? null;
+  if (!projName && !leaf) return null;
   return (
-    <div className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
-      <i className="ph-bold ph-folder-simple shrink-0" style={{ color: leaf.color }} />
-      <span className="min-w-0 truncate">
-        {path.map((f, i) => (
-          <span key={f.id} className={i === path.length - 1 ? 'font-semibold' : ''} style={i === path.length - 1 ? { color: leaf.color } : undefined}>
-            {i > 0 && <span className="text-muted-foreground/50"> › </span>}
-            {f.name}
-          </span>
-        ))}
-      </span>
-    </div>
-  );
-}
-
-/** Progress bar + created-date / percent footer. */
-function ProgressRow({ o, done, p, showPct = true, showDate = true }: { o: Order; done: boolean; p: number; showPct?: boolean; showDate?: boolean }) {
-  return (
-    <>
-      <div className="bar mt-2"><i style={{ width: `${p}%` }} /></div>
-      {(showDate || showPct) && (
-        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          {showDate ? <span className="inline-flex items-center gap-1"><i className="ph-bold ph-calendar-blank" /> {o.date}</span> : <span />}
-          {showPct && <b className={done ? 'text-emerald-600' : 'text-primary'}>{p}%</b>}
-        </div>
+    <div className="mt-2 flex min-w-0 items-center gap-1.5 border-t border-border/60 pt-2 text-[10px] text-muted-foreground">
+      {leaf && (
+        <span className="inline-flex min-w-0 items-center gap-1 font-semibold" style={{ color: leaf.color }} title={leaf.name}>
+          <i className="ph-bold ph-folder-simple shrink-0" aria-hidden />
+          <span className="truncate">{leaf.name}</span>
+        </span>
       )}
-    </>
-  );
-}
-
-/** Extra row shown only in Detail density: ETA (staff is shown on every card). */
-function DetailRows({ o }: { o: Order }) {
-  return (
-    <div className="space-y-0.5 text-[11px] text-muted-foreground">
-      <p className="flex items-center gap-1.5"><i className="ph-bold ph-timer shrink-0" /> ETA: <span className="font-medium text-foreground">{o.eta}</span></p>
+      {projName && leaf && <i className="ph-bold ph-caret-right shrink-0 text-muted-foreground/40" aria-hidden />}
+      {projName && (
+        <span className="inline-flex min-w-0 items-center gap-1" title={projName}>
+          <i className="ph-bold ph-stack shrink-0" aria-hidden />
+          <span className="truncate font-semibold text-foreground">{projName}</span>
+        </span>
+      )}
     </div>
   );
 }
+
+/** Progress bar with the percent pulled up onto the bar's own row (right end). */
+function ProgressRow({ done, p, showPct = true }: { done: boolean; p: number; showPct?: boolean }) {
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <span className="bar flex-1"><i style={{ width: `${p}%` }} /></span>
+      {showPct && <b className={`shrink-0 text-xs font-bold tabular-nums ${done ? 'text-emerald-600' : 'text-primary'}`}>{p}%</b>}
+    </div>
+  );
+}
+
+/** People + schedule row: staff & manager avatars, start date (DD/MM/YY), and ETA. One line, a size up
+ *  and bolder so it reads as the card's key at-a-glance meta. Avatars carry the rich hover card. */
+function PeopleMetaRow({ o, planned, reviewing, showSchedule }: { o: Order; planned: boolean; reviewing: boolean; showSchedule: boolean }) {
+  return (
+    <div className="mt-2 flex items-center justify-between gap-x-2 text-[12px] font-semibold text-foreground/80">
+      <span className="flex items-center -space-x-1.5">
+        <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} duty={STAFF_DUTY[o.service]} avatarOnly />
+        {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} avatarOnly />}
+      </span>
+      {showSchedule && (
+        <span className="flex items-center gap-x-2 text-muted-foreground">
+          <span className="group/date relative inline-flex items-center gap-1">
+            <i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/date:opacity-100">
+              Start date: {toDMY(o.date)}
+            </span>
+          </span>
+          {o.eta && o.eta !== '—' && <EtaTag eta={o.eta} />}
+        </span>
+      )}
+    </div>
+  );
+}
+
 
 /**
  * Card content. `template` picks the headline emphasis; `density` picks how much
@@ -224,81 +326,105 @@ function DetailRows({ o }: { o: Order }) {
  */
 function cardInner(o: Order, template: CardTemplate, density: CardDensity, done: boolean, p: number, reviewing: boolean, planned: boolean) {
   const compact = density === 'compact';
-  const detail = density === 'detail';
   // Top row: Done badge (when completed), service type tag, service code (right).
+  // The package/plan chip used to live here too; it now sits on the website line (MetaRows), off the service row.
   const topRow = (
     <div className="flex items-center gap-2">
       <DoneBadge done={done} />
       <span className="inline-flex min-w-0 items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
-        <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} />
+        <i className={`ph-bold ${SERVICES[o.service].icon} shrink-0`} aria-hidden />
         <span className="truncate">{SERVICES[o.service].label}</span>
       </span>
-      <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70">#{o.id}</span>
+      {/* delivered-awaiting-review: icon-only hourglass on the top row; label + auto-approve on hover */}
+      {o.awaitingReview && (
+        <span className="group relative ml-auto inline-flex shrink-0 cursor-default items-center justify-center rounded-full bg-amber-500/15 p-1 text-amber-600" aria-label="Awaiting review">
+          <i className="ph-bold ph-hourglass-medium text-[12px]" aria-hidden />
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-full z-20 mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+            <i className="ph-bold ph-hourglass-medium text-amber-600" aria-hidden />Awaiting review{autoApproveLabel(o.deliveredAt) ? ` · ${autoApproveLabel(o.deliveredAt)}` : ''}
+          </span>
+        </span>
+      )}
+      <span className={`${o.awaitingReview ? '' : 'ml-auto'} shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground/70`}>#{o.id}</span>
     </div>
   );
 
+  // The card headline is the campaign / order title the customer set (or the auto "Nth {service} order for
+  // …"); falls back to the service name for legacy/mock orders. Clamped to 2 lines on the balanced card.
+  const headlineText = o.campaign ?? o.title;
   let headline: ReactNode;
   if (template === 'project') {
-    const proj = projectForDomain(o.domain);
+    const projName = o.project ?? projectForDomain(o.domain)?.name;
     headline = (
       <>
-        <h4 className="mt-1.5 truncate text-[15px] font-bold tracking-tight">{proj?.name ?? o.domain}</h4>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.title}</p>
+        <h4 className="mt-1.5 truncate text-[15px] font-bold tracking-tight">{projName ?? o.domain}</h4>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{headlineText}</p>
       </>
     );
   } else if (template === 'progress') {
     headline = (
       <div className="mt-1.5 flex items-end justify-between gap-2">
-        <h4 className="min-w-0 flex-1 truncate text-sm font-semibold">{o.title}</h4>
+        <h4 className="line-clamp-2 min-w-0 flex-1 text-sm font-semibold">{headlineText}</h4>
         <span className={`display shrink-0 text-2xl font-bold leading-none ${done ? 'text-emerald-600' : 'text-primary'}`}>
           {p}<span className="text-xs">%</span>
         </span>
       </div>
     );
   } else {
-    // balanced — service name (title) is the headline.
-    headline = <h4 className="mt-1.5 truncate text-sm font-semibold">{o.title}</h4>;
+    // balanced — the campaign / order title is the headline (max 2 lines, ellipsis).
+    headline = <h4 className="mt-1.5 line-clamp-2 text-sm font-semibold">{headlineText}</h4>;
   }
 
   return (
     <>
       {topRow}
       {headline}
-      <StaffTag name={o.owner} role={STAFF_ROLE[o.service]} className="mt-1.5 text-[11px] font-medium text-foreground/80" />
-      {!planned && <ManagerTag name={managerFor(o.id)} reviewing={reviewing} className="mt-1 text-[11px] font-medium text-foreground/70" />}
-      {!compact && <div className="mt-1.5"><MetaRows o={o} hideProject={template === 'project'} /></div>}
-      {detail && <div className="mt-1.5"><DetailRows o={o} /></div>}
-      <ProgressRow o={o} done={done} p={p} showPct={template !== 'progress'} showDate={!compact} />
-      {!compact && <FolderPath o={o} />}
+      {!compact && <div className="mt-1.5"><MetaRows o={o} /></div>}
+      <ProgressRow done={done} p={p} showPct={template !== 'progress'} />
+      {/* staff + manager avatars · date · ETA, consolidated onto one line */}
+      <PeopleMetaRow o={o} planned={planned} reviewing={reviewing} showSchedule={!compact} />
+      {!compact && <FolderPath o={o} showProject={template !== 'project'} />}
     </>
   );
 }
 
 function OrderCard({ o, template, density = 'standard', preview = false, tint, index = 0, status, onOpen }: { o: Order; template: CardTemplate; density?: CardDensity; preview?: boolean; tint?: string; index?: number; status?: OrderStatus; onOpen?: (id: string) => void }) {
   const eff = status ?? o.status;
-  const done = eff === 'completed';
+  const done = eff === 'completed' && !o.awaitingReview; // delivered-awaiting-review isn't "done" yet
   const p = o.progress ?? (eff === 'completed' ? 100 : eff === 'review' ? 95 : 8);
-  const style: { backgroundColor?: string; borderColor?: string; borderLeft?: string; animationDelay?: string } = {};
+  const style: { backgroundColor?: string; borderColor?: string; animationDelay?: string } = {};
   if (tint) {
-    style.backgroundColor = `${tint}1f`;   // card fill — a touch darker than the column
-    style.borderColor = `${tint}40`;       // card border — same hue, a bit darker than the fill
+    style.backgroundColor = `${tint}40`;        // card fill (~25% of the status hue) — reads clearly colored
+    style.borderColor = `${tint}40`;            // border blends into the fill (no standout outline)
   }
   if (!preview) style.animationDelay = `${Math.min(index, 12) * 40}ms`;   // staggered entrance
   const cls = `kcard block${done ? ' opacity-90' : ''}${preview ? ' pointer-events-none' : ' onav kcard-anim'}`;
   const children = cardInner(o, template, density, done, p, eff === 'review', eff === 'planned');
 
   if (preview) return <div className={cls} style={style}>{children}</div>;
-  return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} w-full text-left`} style={style}>{children}</button>;
+  // relative + hover:z lifts the hovered card (and its person hover-cards) above sibling cards, so the
+  // popover isn't painted over by the next card in the column.
+  return <button type="button" onClick={() => onOpen?.(o.id)} className={`${cls} relative z-0 w-full text-left hover:z-30`} style={style}>{children}</button>;
 }
 
 const SAMPLE: Order = ORDERS.find((o) => o.progress != null) ?? ORDERS[0];
 
-export function OrdersBoard({ initialService = 'all', domain }: { initialService?: ServiceKey | 'all'; domain?: string }) {
-  const router = useRouter();
+// Delivered orders awaiting the customer's approve/send-back decision show an "awaiting review" tag +
+// a countdown to auto-approval (auto_approve_stale_deliveries, 7 days).
+const AUTO_APPROVE_GRACE_DAYS = 7;
+function autoApproveLabel(deliveredAt?: string | null): string | null {
+  if (!deliveredAt) return null;
+  const left = Math.max(0, Math.ceil((new Date(deliveredAt).getTime() + AUTO_APPROVE_GRACE_DAYS * 86_400_000 - Date.now()) / 86_400_000));
+  return left <= 0 ? 'auto-approves today' : `auto-approves in ${left}d`;
+}
+
+export function OrdersBoard({ initialService = 'all', domain, orders }: { initialService?: ServiceKey | 'all'; domain?: string; orders?: Order[] }) {
   const pathname = usePathname();
   const { statusOverrides, addedOrders } = useOrdersStore();
   const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
-  const openOrder = (id: string) => router.push(`${pathname}?order=${id}`, { scroll: false });
+  // Open the detail panel by syncing the URL CLIENT-SIDE (history.pushState) rather than router.push: a
+  // router navigation re-runs the server page (re-fetch + loading.tsx flash + remount), which lost scroll
+  // position and swallowed the next click. pushState updates useSearchParams without a server round-trip.
+  const openOrder = (id: string) => window.history.pushState(null, '', `${pathname}?order=${id}`);
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [svc, setSvc] = useState<ServiceKey | 'all'>(initialService);
@@ -383,8 +509,10 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Session-placed orders (from the Services flow) sit on top of the seed data.
-  const allOrders = useMemo(() => [...addedOrders, ...ORDERS], [addedOrders]);
+  // Session-placed orders (from the Services flow) sit on top of the base orders. `orders` is the
+  // real RLS-scoped read (customer dashboard, inc-3d); falls back to the mock seed where not wired.
+  const baseOrders = orders ?? ORDERS;
+  const allOrders = useMemo(() => [...addedOrders, ...baseOrders], [addedOrders, baseOrders]);
   const domains = useMemo(() => Array.from(new Set(allOrders.map((o) => o.domain))).sort(), [allOrders]);
   // "Now" for the time filter = the most recent order, so "Last 7 days" is relative to real activity.
   const today = useMemo(() => {
@@ -423,7 +551,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
             >
-              <i className="ph-bold ph-layout text-muted-foreground" /> Card design
+              <i className="ph-bold ph-layout text-muted-foreground" aria-hidden /> Card design
             </button>
           )}
           {view === 'list' && (
@@ -433,7 +561,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 aria-expanded={showPresets}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
               >
-                <i className="ph-bold ph-sliders-horizontal text-muted-foreground" /> Presets
+                <i className="ph-bold ph-sliders-horizontal text-muted-foreground" aria-hidden /> Presets
               </button>
               {showPresets && (
                 <>
@@ -446,7 +574,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                         onClick={() => applyPreset(p.cols)}
                         className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition hover:bg-muted"
                       >
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${p.icon}`} /></span>
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${p.icon}`} aria-hidden /></span>
                         <span className="min-w-0">
                           <span className="block text-sm font-medium">{p.label}</span>
                           <span className="block text-[11px] text-muted-foreground">{p.desc}</span>
@@ -465,7 +593,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 aria-expanded={showCols}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent"
               >
-                <i className="ph-bold ph-columns text-muted-foreground" /> Columns
+                <i className="ph-bold ph-columns text-muted-foreground" aria-hidden /> Columns
               </button>
               {showCols && (
                 <>
@@ -489,15 +617,15 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                         onDrop={() => reorderCol(i)}
                         className="group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1.5 text-sm hover:bg-muted active:cursor-grabbing"
                       >
-                        <i className="ph-bold ph-dots-six-vertical text-muted-foreground" />
+                        <i className="ph-bold ph-dots-six-vertical text-muted-foreground" aria-hidden />
                         <input type="checkbox" checked={!hiddenCols.has(id)} disabled={visibleCols.length === 1 && !hiddenCols.has(id)} onChange={() => toggleCol(id)} className="h-3.5 w-3.5 accent-primary disabled:opacity-40" />
                         <span className="flex-1">{COL_LABEL[id]}</span>
                         <span className="flex items-center gap-0.5">
                           <button type="button" aria-label={`Move ${COL_LABEL[id]} up`} disabled={i === 0} onClick={() => moveCol(i, -1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
-                            <i className="ph-bold ph-caret-up text-[11px]" />
+                            <i className="ph-bold ph-caret-up text-[11px]" aria-hidden />
                           </button>
                           <button type="button" aria-label={`Move ${COL_LABEL[id]} down`} disabled={i === colOrder.length - 1} onClick={() => moveCol(i, 1)} className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent">
-                            <i className="ph-bold ph-caret-down text-[11px]" />
+                            <i className="ph-bold ph-caret-down text-[11px]" aria-hidden />
                           </button>
                         </span>
                       </div>
@@ -509,7 +637,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
           )}
           {!domain && (
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-globe-hemisphere-west text-muted-foreground" />
+              <i className="ph-bold ph-globe-hemisphere-west text-muted-foreground" aria-hidden />
               <select value={proj} onChange={(e) => setProj(e.target.value)} aria-label="Filter by project" className="cursor-pointer bg-transparent pr-1 outline-none">
                 <option value="all">All projects</option>
                 {domains.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -517,8 +645,8 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
             </div>
           )}
           <div className="view-toggle flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
-            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" /> Kanban</button>
-            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" /> List</button>
+            <button onClick={() => { setView('kanban'); localStorage.setItem(STORAGE_KEY_VIEW, 'kanban'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'kanban' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-kanban" aria-hidden /> Kanban</button>
+            <button onClick={() => { setView('list'); localStorage.setItem(STORAGE_KEY_VIEW, 'list'); }} className={`rounded-md px-2.5 py-1.5 ${view === 'list' ? 'bg-card shadow-sm' : 'text-muted-foreground'}`}><i className="ph-bold ph-list" aria-hidden /> List</button>
           </div>
         </div>
       </div>
@@ -533,7 +661,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 svc === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-accent'
               }`}
             >
-              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} />
+              <i className={`ph-bold ${k === 'all' ? 'ph-squares-four' : SERVICES[k].icon}`} aria-hidden />
               {k === 'all' ? 'All' : SERVICES[k].label}
             </button>
           ))}
@@ -541,14 +669,14 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
         {view === 'list' && (
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-funnel text-muted-foreground" />
+              <i className="ph-bold ph-funnel text-muted-foreground" aria-hidden />
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')} aria-label="Filter by status" className="cursor-pointer bg-transparent pr-1 outline-none">
                 <option value="all">All statuses</option>
                 {(Object.keys(STATUSES) as OrderStatus[]).map((s) => <option key={s} value={s}>{STATUSES[s].label}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold">
-              <i className="ph-bold ph-calendar-blank text-muted-foreground" />
+              <i className="ph-bold ph-calendar-blank text-muted-foreground" aria-hidden />
               <select value={dateRange} onChange={(e) => setDateRange(Number(e.target.value))} aria-label="Filter by time" className="cursor-pointer bg-transparent pr-1 outline-none">
                 {DATE_RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}
               </select>
@@ -587,14 +715,16 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
             const est = effStatus(o);
             const sc = STATUSES[est];
             const pp = pct(o);
-            const proj = projectForDomain(o.domain);
-            const folderLeaf = folderPathForDomain(o.domain).at(-1);
+            const projName = o.project ?? projectForDomain(o.domain)?.name;
+            const folderLeaf = o.folder
+              ? { name: o.folder, color: folderColorByName(o.folder) }
+              : folderPathForDomain(o.domain).at(-1);
             const show = (id: ColId) => !hiddenCols.has(id);
             return (
               <button key={o.id} onClick={() => openOrder(o.id)} className="kcard onav block w-full text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <DoneBadge done={est === 'completed'} />
-                  {show('service') && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} /> {SERVICES[o.service].label}</span>}
+                  {show('service') && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70"><i className={`ph-bold ${SERVICES[o.service].icon}`} aria-hidden /> {SERVICES[o.service].label}</span>}
                   {show('code') && <span className="font-mono text-[11px] text-muted-foreground">#{o.id}</span>}
                   {show('status') && <span className="pill ml-auto" style={{ background: `${sc.color}1f`, color: sc.color }}>● {sc.label}</span>}
                 </div>
@@ -613,11 +743,11 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                   )}
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" /> {proj?.name ?? o.domain}</span>}
-                  {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
-                  {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" /> {folderLeaf.name}</span>}
-                  {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" /> {o.owner}</span>}
-                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" /> {o.date}</span>}
+                  {show('project') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-stack" aria-hidden /> {projName ?? o.domain}</span>}
+                  {show('domain') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-globe-simple" aria-hidden /> {o.multiWeb ? 'Multi-site' : o.domain}</span>}
+                  {show('folder') && folderLeaf && <span className="inline-flex items-center gap-1.5" style={{ color: folderLeaf.color }}><i className="ph-bold ph-folder" aria-hidden /> {folderLeaf.name}</span>}
+                  {show('staff') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-user" aria-hidden /> {o.owner}</span>}
+                  {show('code') && <span className="inline-flex items-center gap-1.5"><i className="ph-bold ph-calendar-blank" aria-hidden /> {toDMY(o.date)}</span>}
                 </div>
                 {show('progress') && (
                   <div className="mt-2 flex items-center gap-2">
@@ -693,7 +823,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                 <p className="text-xs text-muted-foreground">Pick how much each card shows (density) and which field it emphasizes (layout).</p>
               </div>
               <button onClick={closeModal} aria-label="Close" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent">
-                <i className="ph-bold ph-x" />
+                <i className="ph-bold ph-x" aria-hidden />
               </button>
             </div>
 
@@ -722,7 +852,7 @@ export function OrdersBoard({ initialService = 'all', domain }: { initialService
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5 text-sm font-semibold">
                         {t.label}
-                        {active && <i className="ph-fill ph-check-circle text-primary" />}
+                        {active && <i className="ph-fill ph-check-circle text-primary" aria-hidden />}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">{t.desc}</p>

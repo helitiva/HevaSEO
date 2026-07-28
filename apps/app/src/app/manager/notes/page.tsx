@@ -1,6 +1,8 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { NotesClient } from '@/app/staff/notes/NotesClient';
 
+export const metadata = { title: 'Notes' };
+
 // Manager's private notebook — same notes feature as staff, but its own storage
 // (namespaced by area in notesStore) so a manager's notes are separate from any
 // staffer's.

@@ -93,8 +93,8 @@ const steps = [
         </div>
       </div>
 
-      <!-- how it works -->
-      <ol class="mt-5 grid gap-3 sm:grid-cols-3">
+      <!-- how it works (hidden on the payment/success step, where the left rail shows the steps) -->
+      <ol id="order-hero-steps" class="mt-5 grid gap-3 sm:grid-cols-3">
         {howItWorks.map((s, i) => (
           <li class="relative flex flex-col rounded-2xl border border-border bg-card/70 p-4">
             <span class="absolute right-3 top-3 font-display text-xs font-bold text-muted-foreground/40">{`0${i + 1}`}</span>
@@ -125,8 +125,6 @@ const steps = [
   <section class="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
     <form id="order-form" novalidate>
       <input type="hidden" name="service" value={service.slug} />
-      <!-- honeypot: real users never fill this -->
-      <input type="text" name="company_url" tabindex="-1" autocomplete="off" aria-hidden="true" class="pointer-events-none absolute -left-[9999px] h-0 w-0 opacity-0" />
 
       <!-- Step 1: choose package — full width so the cards breathe -->
       <div class="rounded-3xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 lg:p-7">
@@ -363,26 +361,177 @@ const steps = [
       </div>
     </form>
 
-    <!-- ============ SUCCESS ============ -->
-    <div id="order-success" class="hidden">
-      <div class="mx-auto max-w-xl rounded-3xl border border-border bg-card p-8 text-center shadow-xl shadow-foreground/5 lg:p-12">
-        <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-          <i class="ph-fill ph-check-circle text-3xl"></i>
-        </span>
-        <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
-        <p class="mt-3 text-muted-foreground">
-          Thanks! We've logged your <strong id="success-plan" class="text-foreground">request</strong>.
-          A specialist will confirm the scope and final price within 24h — no charge until you approve.
-        </p>
-        <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> is on its way, with your <b class="font-semibold text-foreground">dashboard login</b> to follow progress.</span></li>
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
-          <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file.</span></li>
-        </ul>
-        <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
-          <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
+    <!-- ============ PAYMENT (step 2) ============ -->
+    <div id="order-payment" class="hidden scroll-mt-28">
+      <div class="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)_360px]">
+        <!-- left: detailed 3-step progress (step 2 = Pay, highlighted) -->
+        <aside class="lg:sticky lg:top-24 lg:self-start">
+          <button type="button" id="pay-back" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"><i class="ph-bold ph-arrow-left"></i> Back to order</button>
+          <p class="mb-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">How it works</p>
+          <ol class="space-y-3">
+            <!-- step 1 — done -->
+            <li class="rounded-2xl border border-border bg-card/60 p-4">
+              <div class="flex items-center gap-2.5">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-bold ph-check"></i></span>
+                <p class="text-sm font-semibold text-foreground">Submit order info</p>
+                <span class="ml-auto text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Done</span>
+              </div>
+              <ul class="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-check-circle mt-0.5 shrink-0 text-primary"></i><span>Plan &amp; project brief captured</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-user mt-0.5 shrink-0 text-primary"></i><span>Account created with just your email</span></li>
+              </ul>
+            </li>
+            <!-- step 2 — Pay (current) -->
+            <li id="step-pay" class="rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10">
+              <div class="flex items-center gap-2.5">
+                <span id="step-pay-icon" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><i class="ph-bold ph-credit-card"></i></span>
+                <p id="step-pay-title" class="text-sm font-semibold text-primary">Pay</p>
+                <span id="step-pay-badge" class="ml-auto rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">You're here</span>
+              </div>
+              <p class="mt-2 text-xs leading-relaxed text-muted-foreground">Secure payment to confirm your order.</p>
+              <ul class="mt-2.5 space-y-1.5 border-t border-primary/20 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-credit-card mt-0.5 shrink-0 text-primary"></i><span>Card, PayPal, or Apple / Google Pay</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-arrow-counter-clockwise mt-0.5 shrink-0 text-primary"></i><span>One-time charge — refundable before a specialist accepts</span></li>
+              </ul>
+            </li>
+            <!-- step 3 — upcoming -->
+            <li id="step-delivered" class="rounded-2xl border border-border bg-card/60 p-4 opacity-70">
+              <div class="flex items-center gap-2.5">
+                <span id="step-delivered-icon" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground"><i class="ph-bold ph-package"></i></span>
+                <p class="text-sm font-semibold text-foreground">Delivered — two ways</p>
+                <span id="step-delivered-badge" class="ml-auto"></span>
+              </div>
+              <ul class="mt-2.5 space-y-1.5 border-t border-border/60 pt-2.5 text-xs leading-relaxed text-muted-foreground">
+                <li class="flex items-start gap-2"><i class="ph-bold ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track live in your dashboard</span></li>
+                <li class="flex items-start gap-2"><i class="ph-bold ph-link mt-0.5 shrink-0 text-primary"></i><span>Report URL + downloadable file</span></li>
+              </ul>
+            </li>
+          </ol>
+        </aside>
+
+        <!-- center: payment form (swaps to the Order received card on success) -->
+        <div>
+        <div id="pay-form-card" class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 lg:p-7">
+          <h2 class="font-display text-lg font-bold tracking-tight md:text-xl">Payment details</h2>
+
+          <!-- payment method -->
+          <p class="mt-5 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Payment method</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" data-method="card" class="pay-method flex items-center justify-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary transition"><i class="ph-bold ph-credit-card text-base"></i> Card</button>
+            <button type="button" data-method="paypal" class="pay-method flex items-center justify-center gap-1.5 rounded-lg border-2 border-border bg-background px-3 py-2.5 text-sm font-bold text-muted-foreground transition hover:border-primary/40"><span class="text-[#003087]">Pay</span><span class="text-[#0070e0]">Pal</span></button>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" id="pay-applepay" class="flex items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"><i class="ph-fill ph-apple-logo text-base"></i> Pay</button>
+            <button type="button" id="pay-gpay" class="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold transition hover:bg-accent"><span class="font-bold"><span class="text-[#4285f4]">G</span> Pay</span></button>
+          </div>
+
+          <div class="my-4 flex items-center gap-3 text-[11px] text-muted-foreground"><span class="h-px flex-1 bg-border"></span> or pay with card <span class="h-px flex-1 bg-border"></span></div>
+
+          <!-- card fields -->
+          <div id="pay-card-fields" class="space-y-3">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">Card number</label>
+              <input id="pay-card" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Expiry</label><input id="pay-exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+              <div><label class="mb-1 block text-xs font-medium text-muted-foreground">CVC</label><input id="pay-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" class="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            </div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Name on card</label><input id="pay-name" autocomplete="cc-name" placeholder="Full name" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+          </div>
+
+          <!-- paypal panel -->
+          <div id="pay-paypal-panel" class="hidden rounded-xl border border-border bg-background p-5 text-center">
+            <p class="text-2xl font-bold"><span class="text-[#003087]">Pay</span><span class="text-[#0070e0]">Pal</span></p>
+            <p class="mt-2 text-sm text-muted-foreground">You'll be redirected to PayPal to complete payment, then sent right back here.</p>
+          </div>
+
+          <!-- billing info -->
+          <p class="mt-6 mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Billing information</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Billing name</label><input id="bill-name" autocomplete="name" placeholder="Jane Doe" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Company (optional)</label><input id="bill-company" autocomplete="organization" placeholder="Your brand" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Address</label><input id="bill-address" autocomplete="street-address" placeholder="123 Market St" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">City</label><input id="bill-city" autocomplete="address-level2" placeholder="San Francisco" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div><label class="mb-1 block text-xs font-medium text-muted-foreground">Postal code</label><input id="bill-postal" autocomplete="postal-code" placeholder="94105" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div class="col-span-2"><label class="mb-1 block text-xs font-medium text-muted-foreground">Country</label>
+              <select id="bill-country" autocomplete="country-name" class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20">
+                <option value="">Select country…</option>
+                <option>United States</option><option>United Kingdom</option><option>Canada</option><option>Australia</option><option>Vietnam</option><option>Singapore</option><option>Germany</option><option>France</option><option>India</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
+            <input type="checkbox" id="pay-save" checked class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary" />
+            <span class="text-muted-foreground">Save my billing details to my dashboard so I don't have to re-enter them next time.</span>
+          </label>
+
+          <p id="pay-error" class="mt-4 hidden rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive"></p>
+
+          <button type="button" id="pay-submit" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-px hover:bg-primary/90 active:scale-[0.99]">
+            <i class="ph-bold ph-lock-simple"></i> Pay <span id="pay-amount">—</span>
+          </button>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-lock-simple text-emerald-500"></i> Payments secured by <b class="text-foreground">Stripe</b> · we never store your card details</p>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex h-5 items-center rounded bg-[#1434cb] px-1.5 text-[9px] font-bold tracking-wide text-white">VISA</span>
+              <span class="inline-flex h-5 items-center rounded bg-[#eb001b] px-1.5 text-[9px] font-bold tracking-wide text-white">MC</span>
+              <span class="inline-flex h-5 items-center rounded bg-[#1f72cd] px-1.5 text-[9px] font-bold tracking-wide text-white">AMEX</span>
+            </div>
+          </div>
         </div>
+
+        <!-- order received — replaces the payment form in this column on success -->
+        <div id="order-success" class="mx-auto hidden max-w-xl scroll-mt-28 rounded-3xl border border-border bg-card p-8 text-center shadow-xl shadow-foreground/5 lg:p-10">
+          <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"><i class="ph-fill ph-check-circle text-3xl"></i></span>
+          <h2 class="mt-6 font-display text-2xl font-bold tracking-tight md:text-3xl">Order received</h2>
+          <p class="mt-3 text-muted-foreground">Thanks! Your order <strong id="success-code" class="text-foreground">—</strong> (<span id="success-plan">request</span>) is confirmed and paid.</p>
+          <div id="success-creds" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left text-sm">
+            <p class="font-semibold text-foreground">Your new dashboard login</p>
+            <p class="mt-1 text-muted-foreground">Email: <b id="cred-email" class="text-foreground">—</b></p>
+            <p class="text-muted-foreground">Temporary password: <code id="cred-pass" class="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">—</code></p>
+            <p class="mt-2 text-xs text-muted-foreground">Please change it after your first sign-in.</p>
+          </div>
+          <div id="success-existing" class="mx-auto mt-5 hidden max-w-md rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">This order was added to your <b class="text-foreground">existing account</b> — sign in with your usual password to track it.</div>
+          <ul class="mx-auto mt-6 max-w-md space-y-2.5 rounded-2xl border border-border bg-muted/40 p-5 text-left text-sm text-muted-foreground">
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-envelope-simple mt-0.5 shrink-0 text-primary"></i><span>A <b class="font-semibold text-foreground">confirmation email</b> with your <b class="font-semibold text-foreground">order details</b> and <b class="font-semibold text-foreground">dashboard login</b> is on its way.</span></li>
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-gauge mt-0.5 shrink-0 text-primary"></i><span>Track the project <b class="font-semibold text-foreground">live in your dashboard</b> from confirmation to delivery.</span></li>
+            <li class="flex items-start gap-2.5"><i class="ph-fill ph-package mt-0.5 shrink-0 text-primary"></i><span>Get the finished report <b class="font-semibold text-foreground">two ways</b> — in the dashboard, or a report URL plus a downloadable file in your email.</span></li>
+          </ul>
+          <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a id="success-login" href="/#dashboard" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90">Go to dashboard <i class="ph-bold ph-arrow-right"></i></a>
+            <a href={service.servicePath} class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-medium transition hover:bg-accent hover:text-accent-foreground">Back to {service.name}</a>
+          </div>
+        </div>
+        </div>
+
+        <!-- right: order details (service · plan · upsell add-ons · total) -->
+        <aside class="lg:sticky lg:top-24 lg:self-start">
+          <div class="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5">
+            <div class="flex items-center gap-2.5 border-b border-border pb-4">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i class={`ph-bold ${service.icon}`}></i></span>
+              <div><p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Order details</p><p class="text-sm font-semibold text-foreground">{service.name}</p></div>
+            </div>
+            <div class="mt-4 space-y-3 text-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div><p id="pay-plan" class="font-medium text-foreground">—</p><p id="pay-plan-sub" class="text-xs text-muted-foreground"></p></div>
+                <span id="pay-plan-price" class="shrink-0 font-medium text-foreground"></span>
+              </div>
+              <!-- what the chosen plan includes -->
+              <ul id="pay-detail-features" class="space-y-1.5 text-xs leading-relaxed text-muted-foreground"></ul>
+              <div id="pay-detail-addons-wrap" class="hidden border-t border-border pt-3">
+                <p class="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-primary"><i class="ph-fill ph-plus-circle"></i> Add-ons</p>
+                <ul id="pay-detail-addons" class="space-y-1.5"></ul>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between border-t border-border pt-4">
+              <span class="text-sm font-semibold text-foreground">Total due today</span>
+              <span id="pay-total" class="font-display text-2xl font-bold tracking-tight text-primary">—</span>
+            </div>
+            <p class="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground"><i class="ph-bold ph-arrow-counter-clockwise mt-0.5 shrink-0 text-primary"></i> One-time charge — cancel before a specialist accepts for a full refund.</p>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -729,23 +878,214 @@ const steps = [
       setUsageMode('paste');
     }
 
+    // The public quick-checkout endpoint (apps/app runs on :4500 in this workspace — matches the Stripe
+    // webhook forward target). Override per-env with PUBLIC_CHECKOUT_URL (e.g. the deployed app origin).
+    const CHECKOUT_URL = import.meta.env.PUBLIC_CHECKOUT_URL || 'http://127.0.0.1:4500/api/public/checkout';
+    const payPanel = document.getElementById('order-payment');
+    const paySubmit = document.getElementById('pay-submit') as HTMLButtonElement | null;
+    const payErr = document.getElementById('pay-error');
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value || '';
+    let pending: {
+      serviceSlug: string; packageId?: string; qty?: number;
+      addonPicks: Record<string, string>; email: string; name: string; planName: string;
+    } | null = null;
+
+    function reveal(el: HTMLElement | null) {
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' }); // scroll-mt-28 keeps it clear of the sticky header
+    }
+    // On success the center column swaps form → Order received; the left rail keeps showing (Pay → done,
+    // Delivered → up next), so the whole 3-col stays in place.
+    function advanceStepperToDelivered() {
+      const sp = document.getElementById('step-pay');
+      if (sp) sp.className = 'rounded-2xl border border-border bg-card/60 p-4';
+      const spi = document.getElementById('step-pay-icon');
+      if (spi) { spi.className = 'grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'; spi.innerHTML = '<i class="ph-bold ph-check"></i>'; }
+      const spt = document.getElementById('step-pay-title'); if (spt) spt.className = 'text-sm font-semibold text-foreground';
+      const spb = document.getElementById('step-pay-badge'); if (spb) { spb.textContent = 'Done'; spb.className = 'ml-auto text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400'; }
+      const sd = document.getElementById('step-delivered');
+      if (sd) sd.className = 'rounded-2xl border-2 border-primary bg-primary/[0.06] p-4 shadow-sm shadow-primary/10';
+      const sdi = document.getElementById('step-delivered-icon');
+      if (sdi) sdi.className = 'grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground';
+      const sdb = document.getElementById('step-delivered-badge');
+      if (sdb) sdb.innerHTML = '<span class="whitespace-nowrap rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Coming soon</span>';
+    }
+    function showSuccess() {
+      form.classList.add('hidden');
+      document.getElementById('order-hero-steps')?.classList.add('hidden');
+      document.getElementById('pay-form-card')?.classList.add('hidden'); // swap center: form → Order received
+      document.getElementById('pay-back')?.classList.add('hidden');
+      advanceStepperToDelivered();
+      document.getElementById('order-success')?.classList.remove('hidden');
+      payPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // celebratory confetti burst on a confirmed order (self-contained canvas, no deps).
+    function burstConfetti() {
+      const c = document.createElement('canvas');
+      c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999';
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      document.body.appendChild(c);
+      const ctx = c.getContext('2d'); if (!ctx) { c.remove(); return; }
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+      const parts = Array.from({ length: 160 }, () => ({
+        x: c.width / 2, y: c.height * 0.28,
+        vx: (Math.random() - 0.5) * 14, vy: Math.random() * -15 - 4,
+        r: Math.random() * 6 + 3, col: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.35,
+      }));
+      let t = 0;
+      (function frame() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        parts.forEach((p) => {
+          p.vy += 0.3; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.col; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6); ctx.restore();
+        });
+        if (++t < 170) requestAnimationFrame(frame); else c.remove();
+      })();
+    }
+
+    // payment-method tabs (Card / PayPal); Apple/G Pay are express buttons.
+    let payMethod = 'card';
+    const methodBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.pay-method'));
+    function setMethod(m: string) {
+      payMethod = m;
+      methodBtns.forEach((b) => {
+        const on = b.dataset.method === m;
+        b.classList.remove('border-primary', 'bg-primary/5', 'border-border', 'bg-background');
+        b.classList.add(on ? 'border-primary' : 'border-border', on ? 'bg-primary/5' : 'bg-background');
+      });
+      document.getElementById('pay-card-fields')?.classList.toggle('hidden', m !== 'card');
+      document.getElementById('pay-paypal-panel')?.classList.toggle('hidden', m !== 'paypal');
+    }
+    methodBtns.forEach((b) => b.addEventListener('click', () => setMethod(b.dataset.method || 'card')));
+
+    // Step 1 — validate the order, then move to the PAYMENT step. Nothing is charged here.
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      // honeypot — silently treat as success to not tip off bots
-      const hp = form.querySelector<HTMLInputElement>('input[name="company_url"]');
-      if (!hp?.value && !form.reportValidity()) return;
+      if (!form.reportValidity()) return;
 
+      const fd = new FormData(form);
       const selected = radios.find((r) => r.checked);
-      const successPlan = document.getElementById('success-plan');
-      if (successPlan && selected) {
-        successPlan.textContent = (selected.dataset.name || '') + ' · ' + (selected.dataset.priceLabel || '');
+      const qtyEl = (document.getElementById('bulk-count') || document.getElementById('usage-count')) as HTMLInputElement | null;
+      const addonPicks: Record<string, string> = {};
+      bumpBoxes.filter((b) => b.checked).forEach((b) => { addonPicks[b.value] = b.dataset.tier || 'default'; });
+      pending = {
+        serviceSlug: String(fd.get('service') || ''),
+        packageId: selected?.value,
+        qty: qtyEl ? Number(qtyEl.value) : undefined,
+        addonPicks,
+        email: String(fd.get('email') || ''),
+        name: String(fd.get('name') || ''),
+        planName: selected?.dataset.name || '',
+      };
+      const total = (document.getElementById('os-total')?.textContent || '').trim();
+      const planEl = document.getElementById('pay-plan'); if (planEl) planEl.textContent = pending.planName || 'Your order';
+      const totalEl = document.getElementById('pay-total'); if (totalEl) totalEl.textContent = total || '—';
+      const amtEl = document.getElementById('pay-amount'); if (amtEl) amtEl.textContent = total || '';
+      // plan price + a sub-line (qty for bulk/usage services)
+      const planPriceEl = document.getElementById('pay-plan-price');
+      if (planPriceEl) planPriceEl.textContent = selected?.dataset.price ? '$' + selected.dataset.price : (selected?.dataset.priceLabel || '');
+      const planSubEl = document.getElementById('pay-plan-sub');
+      const qtyOut = (document.getElementById('bulk-qty-out') || document.getElementById('usage-qty-out'))?.textContent?.trim();
+      if (planSubEl) planSubEl.textContent = qtyEl && qtyOut ? `${qtyOut} ${qtyEl.id === 'bulk-count' ? 'units' : 'links'}` : '';
+      // chosen upsell add-ons → detailed list with prices
+      const addonPrice = (b: HTMLInputElement) => {
+        const sel = form.querySelector<HTMLSelectElement>(`[data-addon-select="${b.value}"]`);
+        if (sel && sel.options[sel.selectedIndex]) return Number(sel.options[sel.selectedIndex].dataset.price || 0);
+        return Number(b.dataset.price || 0);
+      };
+      const chosen = bumpBoxes.filter((b) => b.checked);
+      const ul = document.getElementById('pay-detail-addons');
+      if (ul) {
+        ul.innerHTML = chosen.map((b) =>
+          `<li class="flex items-center justify-between gap-3"><span class="text-muted-foreground">${b.dataset.name || 'Add-on'}</span><span class="font-medium text-foreground">+$${addonPrice(b)}</span></li>`,
+        ).join('');
       }
+      document.getElementById('pay-detail-addons-wrap')?.classList.toggle('hidden', chosen.length === 0);
+      // what the chosen plan includes (features from the selected package)
+      const featUl = document.getElementById('pay-detail-features');
+      if (featUl) {
+        let feats: string[] = [];
+        try { feats = JSON.parse(selected?.dataset.features || '[]'); } catch { feats = []; }
+        featUl.innerHTML = feats.map((f) =>
+          `<li class="flex items-start gap-2"><i class="ph-bold ph-check-circle mt-0.5 shrink-0 text-emerald-500"></i><span>${f}</span></li>`,
+        ).join('');
+      }
+      // prefill billing + cardholder from the details they already gave
+      const nm = String(fd.get('name') || '');
+      (document.getElementById('bill-name') as HTMLInputElement | null)?.setAttribute('value', nm);
+      const billName = document.getElementById('bill-name') as HTMLInputElement | null; if (billName && !billName.value) billName.value = nm;
+      const payName = document.getElementById('pay-name') as HTMLInputElement | null; if (payName && !payName.value) payName.value = nm;
+      const billCo = document.getElementById('bill-company') as HTMLInputElement | null;
+      if (billCo && !billCo.value) billCo.value = String(fd.get('company') || '');
+
       form.classList.add('hidden');
-      const success = document.getElementById('order-success');
-      if (success) {
-        success.classList.remove('hidden');
-        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      document.getElementById('order-hero-steps')?.classList.add('hidden'); // the left rail shows the steps now
+      reveal(payPanel);
     });
+
+    document.getElementById('pay-back')?.addEventListener('click', () => {
+      payPanel?.classList.add('hidden');
+      document.getElementById('order-hero-steps')?.classList.remove('hidden');
+      form.classList.remove('hidden');
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Step 2 — pay via the (mock) gateway → the server prices + charges + materializes the order.
+    const showErr = (m: string) => { if (payErr) { payErr.textContent = m; payErr.classList.remove('hidden'); } };
+    async function doPay(viaWallet = false) {
+      if (!pending) return;
+      const billing = {
+        name: val('bill-name'), company: val('bill-company'), address: val('bill-address'),
+        city: val('bill-city'), postal: val('bill-postal'),
+        country: (document.getElementById('bill-country') as HTMLSelectElement | null)?.value || '',
+      };
+      if (!billing.name.trim() || !billing.address.trim() || !billing.city.trim() || !billing.postal.trim() || !billing.country) {
+        showErr('Please complete your billing information.'); return;
+      }
+      if (!viaWallet && payMethod === 'card') {
+        const card = val('pay-card').replace(/\s/g, '');
+        if (card.length < 12 || !/^\d{2}\/?\d{2}$/.test(val('pay-exp')) || val('pay-cvc').length < 3 || !val('pay-name').trim()) {
+          showErr('Please enter your card details to pay.'); return;
+        }
+      }
+      payErr?.classList.add('hidden');
+      const label = paySubmit ? paySubmit.innerHTML : '';
+      if (paySubmit) { paySubmit.disabled = true; paySubmit.innerHTML = 'Processing…'; }
+      try {
+        const saveBilling = (document.getElementById('pay-save') as HTMLInputElement | null)?.checked ?? false;
+        const res = await fetch(CHECKOUT_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...pending, billing, saveBilling }),
+        });
+        const data = await res.json();
+        if (!data.ok) { showErr(data.error || 'Payment failed — please try again.'); if (paySubmit) { paySubmit.disabled = false; paySubmit.innerHTML = label; } return; }
+
+        const codeEl = document.getElementById('success-code'); if (codeEl) codeEl.textContent = data.orderCode;
+        const planEl = document.getElementById('success-plan'); if (planEl) planEl.textContent = pending.planName + ' · $' + data.amount;
+        const loginA = document.getElementById('success-login') as HTMLAnchorElement | null;
+        if (loginA && data.account?.loginUrl) loginA.href = data.account.loginUrl;
+        if (data.account?.tempPassword) {
+          const ce = document.getElementById('cred-email'); const cp = document.getElementById('cred-pass');
+          if (ce) ce.textContent = data.account.email;
+          if (cp) cp.textContent = data.account.tempPassword;
+          document.getElementById('success-creds')?.classList.remove('hidden');
+        } else {
+          document.getElementById('success-existing')?.classList.remove('hidden');
+        }
+        showSuccess();
+        burstConfetti();
+      } catch {
+        showErr('Network error — please try again.');
+        if (paySubmit) { paySubmit.disabled = false; paySubmit.innerHTML = label; }
+      }
+    }
+
+    paySubmit?.addEventListener('click', () => doPay(false));
+    document.getElementById('pay-applepay')?.addEventListener('click', () => doPay(true));
+    document.getElementById('pay-gpay')?.addEventListener('click', () => doPay(true));
   }
 </script>

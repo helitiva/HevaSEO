@@ -1,21 +1,25 @@
 import { ThemeToggle } from './ThemeToggle';
 import { NotifTicker } from './NotifTicker';
 import { CreditButton } from './CreditButton';
+import { BroadcastBell } from './broadcast/BroadcastBell';
+import { AccountMenu } from './auth/AccountMenu';
 
-export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: { company: string; initials: string } }) {
-  const initials = identity?.initials ?? 'HV';
+export function Topbar({ onMenu, identity, avatarUrl, initials: realInitials }: { onMenu?: () => void; identity?: { company: string; initials: string }; avatarUrl?: string; initials?: string }) {
+  const initials = identity?.initials ?? realInitials ?? 'HV';
+  // impersonation shows the amber initials avatar, not the signed-in admin's photo
+  const photo = identity ? undefined : (avatarUrl || undefined);
   return (
-    <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-7">
+    <header className="sticky top-0 z-40 flex h-[68px] items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl lg:px-5">
       <button
         onClick={onMenu}
         aria-label="Open menu"
         className="grid h-10 w-10 place-items-center rounded-lg border border-border text-foreground lg:hidden"
       >
-        <i className="ph-bold ph-list text-lg" />
+        <i className="ph-bold ph-list text-lg" aria-hidden />
       </button>
 
       <div className="hidden w-1/3 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:flex">
-        <i className="ph-bold ph-magnifying-glass" />
+        <i className="ph-bold ph-magnifying-glass" aria-hidden />
         <input
           aria-label="Search"
           className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
@@ -29,16 +33,8 @@ export function Topbar({ onMenu, identity }: { onMenu?: () => void; identity?: {
 
       <CreditButton />
       <ThemeToggle />
-      <button
-        aria-label="Notifications"
-        className="relative grid h-10 w-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent"
-      >
-        <i className="ph-bold ph-bell text-lg" />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
-      </button>
-      <span title={identity ? `Impersonating ${identity.company}` : undefined} className={`grid h-10 w-10 place-items-center rounded-lg text-sm font-bold text-white shadow-md ${identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : 'bg-gradient-to-br from-brand-500 to-brand-700'}`}>
-        {initials}
-      </span>
+      <BroadcastBell />
+      <AccountMenu initials={initials} avatarUrl={photo} title={identity ? `Impersonating ${identity.company}` : undefined} accentClass={identity ? 'bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-400/50' : undefined} />
     </header>
   );
 }

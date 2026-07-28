@@ -8,6 +8,9 @@ import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
 import { impersonate } from '@/lib/impersonation';
 import { type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy } from '@/lib/viewer';
+import { addCreatedStaff, useCreatedStaff } from '@/data/staffAccountsStore';
+import { createStaffMemberAction } from '@/app/admin/staff/staff.actions';
+import { OutboxButton } from '@/components/admin/accounts/OutboxDrawer';
 
 export interface ActiveOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus;
@@ -27,6 +30,7 @@ export interface StaffVM {
   pendingFines: number; appliedFines: number;
   rewardsUnlocked: number; rewardsTotal: number;
   firstPassRate: number; avgRating: number | null;
+  isNew?: boolean; // admin-provisioned this session — no analytics yet
 }
 export interface ManagerVM {
   id: string; name: string; title: string; email: string;
@@ -45,8 +49,30 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
   const money = useMoney();
   const showMoney = useShowMoney();
   const allSkills = Object.keys(skillMeta);
+  // admin-provisioned staff (this session, persisted in localStorage)
+  const createdStaff = useCreatedStaff();
   // editable staff attributes (active / capacity / skills / identity)
   const [staff, setStaff] = useState<StaffVM[]>(initialStaff);
+
+  // Merge created staff into the editable roster as they appear in the store, without
+  // clobbering in-session edits to existing rows. New rows render a "pending" state.
+  useEffect(() => {
+    setStaff((list) => {
+      const have = new Set(list.map((s) => s.id));
+      const fresh = createdStaff
+        .filter((c) => !have.has(c.id))
+        .map<StaffVM>((c) => ({
+          id: c.id, name: c.name, role: c.role || 'Specialist', email: c.email,
+          since: c.createdAt.slice(0, 10), tz: 'GMT+7', skills: c.skills, capacity: c.capacity, active: true,
+          composite: 0, quality: 0, onTime: 0, throughput: 0, trend: [0, 0, 0, 0, 0, 0, 0, 0],
+          load: 0, overdue: 0, dueSoon: 0, valueInFlight: 0, completed: 0, activeOrders: [],
+          managerId: null, managerName: null,
+          tier: 'Starter', rank: null, monthlyPay: 0, walletBalance: 0, pendingFines: 0, appliedFines: 0,
+          rewardsUnlocked: 0, rewardsTotal: 0, firstPassRate: 0, avgRating: null, isNew: true,
+        }));
+      return fresh.length ? [...list, ...fresh] : list;
+    });
+  }, [createdStaff]);
   // every in-flight order, flattened with the staff it was originally assigned to
   const flatOrders = useMemo(() => initialStaff.flatMap((s) => s.activeOrders.map((o) => ({ order: o, home: s.name }))), [initialStaff]);
   // live placement of each order → enables reassigning between staff on this page
@@ -64,6 +90,8 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
   const [panelId, setPanelId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [invited, setInvited] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [log, setLog] = useState<{ id: string; at: string; text: string; icon: string }[]>([]);
 
@@ -91,17 +119,18 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
     record(`${s.name} ${has ? 'lost' : 'gained'} ${skillMeta[skill].label} skill`, 'ph-certificate');
   };
   const reassign = (orderId: string, toName: string, code: string) => { setPlacement((p) => ({ ...p, [orderId]: toName })); record(`Reassigned ${code} → ${toName}`, 'ph-arrows-left-right'); };
-  const addStaff = (data: { name: string; role: string; capacity: number; skills: string[] }) => {
-    const vm: StaffVM = {
-      id: `s${Date.now()}`, name: data.name, role: data.role || 'Specialist', email: `${data.name.split(' ')[0].toLowerCase()}@hevaseo.com`,
-      since: '2026-06-25', tz: 'GMT+7', skills: data.skills, capacity: data.capacity, active: true,
-      composite: 0, quality: 0, onTime: 0, throughput: 0, trend: [0, 0, 0, 0, 0, 0, 0, 0],
-      load: 0, overdue: 0, dueSoon: 0, valueInFlight: 0, completed: 0, activeOrders: [],
-      managerId: null, managerName: null,
-      tier: 'Starter', rank: null, monthlyPay: 0, walletBalance: 0, pendingFines: 0, appliedFines: 0,
-      rewardsUnlocked: 0, rewardsTotal: 0, firstPassRate: 0, avgRating: null,
-    };
-    setStaff((l) => [...l, vm]); setAddOpen(false); record(`Added ${vm.name} to the team`, 'ph-user-plus');
+  // inc-E23 — real provisioning: create_staff_member makes a SHADOW profile + staff_details + wallet;
+  // the person claims it by signing up with the same email. The overlay add keeps the new member visible
+  // in this (mock-display) roster immediately; the credential panel is replaced by an invite confirmation.
+  const addStaff = async (data: { name: string; email: string; role: string; capacity: number; skills: string[] }) => {
+    if (adding) return;
+    setAdding(true);
+    const res = await createStaffMemberAction({ name: data.name, email: data.email, roleLabel: data.role, capacity: data.capacity, skills: data.skills });
+    setAdding(false);
+    if (!res.ok) { setToast(res.error); record(`Could not add ${data.name}: ${res.error}`, 'ph-warning-circle'); return; }
+    addCreatedStaff({ id: `s${Date.now()}`, name: data.name, email: data.email, role: data.role, capacity: data.capacity, skills: data.skills, createdAt: new Date().toISOString() });
+    setInvited({ email: data.email, tempPassword: res.tempPassword });
+    record(`Added ${data.name} — share their temporary password`, 'ph-user-plus');
   };
 
   // ---- bulk selection ----
@@ -182,6 +211,7 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/admin/staff/leave" className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"><i className="ph-bold ph-airplane-takeoff mr-1" aria-hidden />Leave requests</Link>
+          <OutboxButton />
           <button onClick={() => setAddOpen(true)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-user-plus mr-1" aria-hidden />Add staff</button>
         </div>
       </div>
@@ -357,7 +387,7 @@ export function StaffClient({ initialStaff, managers, skillMeta }: Props) {
             onToggleActive={() => toggleActive(panel)} onCapacity={(n) => setCapacity(panel, n)} onToggleSkill={(k) => toggleSkill(panel, k)} onReassign={reassign} />
         </SlideOver>
       )}
-      {addOpen && <AddStaffModal allSkills={allSkills} skillMeta={skillMeta} onClose={() => setAddOpen(false)} onSave={addStaff} />}
+      {addOpen && <AddStaffModal allSkills={allSkills} skillMeta={skillMeta} invited={invited} busy={adding} onClose={() => { setAddOpen(false); setInvited(null); }} onSave={addStaff} />}
       {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl">{toast}</div>}
     </section>
   );
@@ -410,7 +440,7 @@ function Spark({ data, color = 'hsl(var(--primary))', w = 132, h = 36 }: { data:
 
 function Medal({ rank }: { rank: number }) {
   const c = rank === 0 ? '#f59e0b' : rank === 1 ? '#94a3b8' : '#b45309';
-  return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} />;
+  return <i className="ph-fill ph-medal" style={{ color: c }} title={`#${rank + 1} by score`} aria-hidden />;
 }
 function StepBtn({ dir, onClick }: { dir: 'down' | 'up'; onClick: () => void }) {
   return <button onClick={(e) => { e.stopPropagation(); onClick(); }} aria-label={dir === 'down' ? 'Decrease capacity' : 'Increase capacity'} className="grid h-5 w-5 place-items-center rounded border border-border text-[10px] text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className={`ph-bold ${dir === 'down' ? 'ph-minus' : 'ph-plus'}`} aria-hidden /></button>;
@@ -432,6 +462,7 @@ function StaffCard({ s, medal, skillMeta, selected, onSelect, onManage, onToggle
             {medal !== undefined && medal < 3 && <Medal rank={medal} />}
           </div>
           <p className="truncate text-xs text-muted-foreground">{s.role}</p>
+          {s.isNew && <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"><i className="ph-bold ph-sparkle" aria-hidden />New · pending first activity</span>}
           {s.managerName && <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground"><i className="ph-bold ph-user-circle-gear shrink-0" aria-hidden />{s.managerName}</p>}
         </div>
         <div className="text-right">
@@ -553,9 +584,9 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
-        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
-        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
-        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" aria-hidden /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next staff" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" aria-hidden /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} aria-hidden />{copied ? 'Copied' : 'Copy'}</button>
       </div>
       <div className="flex items-center gap-3">
         <Avatar name={s.name} size={48} />
@@ -652,7 +683,7 @@ function ManagePanel({ s, skillMeta, allSkills, teammates, prev, next, onNav, on
       {imp.canStaff && <button onClick={() => impersonate(s.id, imp.viewOnly ? 'view' : 'act')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold transition hover:border-primary/50 hover:text-primary" title={imp.viewOnly ? `View ${s.name}’s portal (read-only)` : `Open the staff portal as ${s.name}`}><i className="ph-bold ph-user-switch" aria-hidden />{imp.viewOnly ? 'View as' : 'Impersonate'} {s.name.split(' ')[0]}</button>}
       <div className="flex items-stretch gap-2">
         <Link href={`/admin/staff/${s.id}`} className="flex-1 rounded-lg bg-primary py-2 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/90">Open full profile →</Link>
-        <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+        <a href={`/admin/staff/${s.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid shrink-0 place-items-center rounded-lg border border-border px-3 hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
       </div>
     </div>
   );
@@ -678,34 +709,55 @@ function Due({ d }: { d: number }) {
   return <span className={`shrink-0 text-[11px] font-medium ${tone}`}>{d < 0 ? `${-d}d over` : d === 0 ? 'today' : `${d}d`}</span>;
 }
 
-function AddStaffModal({ allSkills, skillMeta, onClose, onSave }: { allSkills: string[]; skillMeta: SkillMeta; onClose: () => void; onSave: (d: { name: string; role: string; capacity: number; skills: string[] }) => void }) {
+function AddStaffModal({ allSkills, skillMeta, invited, busy, onClose, onSave }: { allSkills: string[]; skillMeta: SkillMeta; invited: { email: string; tempPassword: string } | null; busy: boolean; onClose: () => void; onSave: (d: { name: string; email: string; role: string; capacity: number; skills: string[] }) => void }) {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [capacity, setCapacity] = useState(5);
   const [skills, setSkills] = useState<string[]>([]);
   const inp = 'w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary';
   const toggle = (k: string) => setSkills((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
+  const emailValid = /.+@.+\..+/.test(email.trim());
+  const canSave = name.trim().length > 1 && emailValid;
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <div className="order-backdrop absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <p className="display mb-4 text-base font-bold">Add staff member</p>
-        <div className="space-y-3">
-          <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sara N." className={inp} /></label>
-          <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Role</span><input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. SEO Specialist" className={inp} /></label>
-          <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Capacity (concurrent slots)</span><input type="number" min={1} max={20} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className={`${inp} w-28`} /></label>
-          <div><span className="mb-1 block text-xs font-semibold text-muted-foreground">Skills</span>
-            <div className="flex flex-wrap gap-1.5">
-              {allSkills.map((k) => { const on = skills.includes(k); const m = skillMeta[k];
-                return <button key={k} type="button" onClick={() => toggle(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} aria-hidden />{m.label}</button>;
-              })}
+        <p className="display mb-4 text-base font-bold">{invited ? 'Staff added' : 'Add staff member'}</p>
+        {invited ? (
+          <>
+            <div className="space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3">
+              <p className="text-sm text-muted-foreground"><b className="text-foreground">{invited.email}</b> is set up as staff. Share these first-login credentials securely — they change the password on first sign-in.</p>
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm">
+                <span className="text-muted-foreground">Temp password</span>
+                <span className="select-all font-semibold text-foreground">{invited.tempPassword}</span>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
-          <button onClick={() => name.trim() && onSave({ name: name.trim(), role: role.trim(), capacity, skills })} disabled={!name.trim()} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Add member</button>
-        </div>
+            <div className="mt-5 flex justify-end">
+              <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-check" aria-hidden /> Done</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Name</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sara N." className={inp} /></label>
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Email (login)</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. sara@hevaseo.com" className={inp} />{email && !emailValid && <span className="mt-1 block text-[11px] text-rose-500">Enter a valid email.</span>}</label>
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Role title</span><input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. SEO Specialist" className={inp} /></label>
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-muted-foreground">Capacity (concurrent slots)</span><input type="number" min={1} max={20} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className={`${inp} w-28`} /></label>
+              <div><span className="mb-1 block text-xs font-semibold text-muted-foreground">Skills</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {allSkills.map((k) => { const on = skills.includes(k); const m = skillMeta[k];
+                    return <button key={k} type="button" onClick={() => toggle(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${on ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}><i className={`ph-${on ? 'fill' : 'bold'} ${on ? m.icon : 'ph-plus'}`} style={on ? { color: m.color } : undefined} aria-hidden />{m.label}</button>;
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+              <button onClick={() => canSave && onSave({ name: name.trim(), email: email.trim(), role: role.trim(), capacity, skills })} disabled={!canSave || busy} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"><i className={`ph-bold ${busy ? 'ph-circle-notch animate-spin' : 'ph-user-plus'}`} aria-hidden /> {busy ? 'Adding…' : 'Add member'}</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

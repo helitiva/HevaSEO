@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState } from '@/components/staff/EmptyState';
-import { FORMAT_META, audienceMeta, type StaffDoc, type DocFormat } from '@/data/staffDocs';
+import { FORMAT_META, audienceMeta, audiencesOf, type StaffDoc, type DocFormat } from '@/data/staffDocs';
 import { usePortalBase } from '@/lib/portalBase';
 
 interface SkillChip { key: string; label: string; icon: string; color: string }
@@ -10,7 +10,7 @@ interface SkillChip { key: string; label: string; icon: string; color: string }
 const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-export function DocsClient({ docs, skillChips }: { docs: StaffDoc[]; skillChips: SkillChip[] }) {
+export function DocsClient({ docs, skillChips, showScopeBanner = true }: { docs: StaffDoc[]; skillChips: SkillChip[]; showScopeBanner?: boolean }) {
   const [query, setQuery] = useState('');
   const [format, setFormat] = useState<DocFormat | 'all'>('all');
 
@@ -38,20 +38,22 @@ export function DocsClient({ docs, skillChips }: { docs: StaffDoc[]; skillChips:
 
   return (
     <>
-      {/* Scope banner — makes the access rule visible, not silent */}
-      <div className="kcard mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-dashed bg-muted/40 text-xs">
-        <i className="ph-bold ph-lock-key text-primary" aria-hidden />
-        <span className="text-muted-foreground">You can read docs for</span>
-        <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
-          <i className="ph-fill ph-users-three text-muted-foreground" aria-hidden /> All staff
-        </span>
-        {skillChips.map((k) => (
-          <span key={k.key} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
-            <i className={`ph-fill ${k.icon}`} style={{ color: k.color }} aria-hidden /> {k.label}
+      {/* Scope banner — makes the staff skill-gate visible, not silent. Hidden for customer/manager. */}
+      {showScopeBanner && (
+        <div className="kcard mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-dashed bg-muted/40 text-xs">
+          <i className="ph-bold ph-lock-key text-primary" aria-hidden />
+          <span className="text-muted-foreground">You can read docs for</span>
+          <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
+            <i className="ph-fill ph-users-three text-muted-foreground" aria-hidden /> All staff
           </span>
-        ))}
-        <span className="text-muted-foreground">— docs for other specialties stay hidden.</span>
-      </div>
+          {skillChips.map((k) => (
+            <span key={k.key} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-semibold">
+              <i className={`ph-fill ${k.icon}`} style={{ color: k.color }} aria-hidden /> {k.label}
+            </span>
+          ))}
+          <span className="text-muted-foreground">— docs for other specialties stay hidden.</span>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -126,17 +128,18 @@ function FilterChip({ active, onClick, label, icon }: { active: boolean; onClick
 function DocCard({ doc }: { doc: StaffDoc }) {
   const base = usePortalBase();
   const fmt = FORMAT_META[doc.format];
-  const aud = audienceMeta(doc.audience);
+  const auds = audiencesOf(doc);
   return (
     <Link href={`${base}/docs/${doc.id}`} className="kcard group flex h-full flex-col gap-2 !cursor-pointer">
       <div className="flex items-start justify-between gap-2">
-        <span
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
-          style={{ backgroundColor: `${aud.color}1a`, color: aud.color }}
-        >
-          <i className={`ph-fill ${aud.icon}`} aria-hidden /> {aud.label}
+        <span className="flex flex-wrap items-center gap-1">
+          {auds.map((a) => { const m = audienceMeta(a); return (
+            <span key={a} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `${m.color}1a`, color: m.color }}>
+              <i className={`ph-fill ${m.icon}`} aria-hidden /> {m.label}
+            </span>
+          ); })}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <i className={`ph-bold ${fmt.icon}`} aria-hidden /> {fmt.label}
         </span>
       </div>

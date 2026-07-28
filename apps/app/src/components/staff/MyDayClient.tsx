@@ -227,7 +227,7 @@ export function MyDayClient({ greeting, capacity, everHadTasks, initialFocus, ov
                 <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm">
                   <i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden />
                   <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search my tasks…  (press /)" aria-label="Search my tasks" className="w-full bg-transparent outline-none" />
-                  {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground" /></button>}
+                  {query && <button onClick={() => setQuery('')} aria-label="Clear search"><i className="ph-bold ph-x text-muted-foreground" aria-hidden /></button>}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {STATUS_CHIPS.map((c) => {

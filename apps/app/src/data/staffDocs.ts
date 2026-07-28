@@ -5,10 +5,17 @@
 // leak a doc, because they never receive one outside the viewer's permitted set.
 import { SKILL_META } from './adminMock';
 
-// A doc's audience. Concrete skills mirror the SKILL_META taxonomy; `general` = every
-// staffer AND every manager; `manager` = managers only (ops playbooks staff don't see).
-// Admin decides per-doc whether managers and staff overlap by choosing the audience.
-export type DocAudience = keyof typeof SKILL_META | 'general' | 'manager';
+// A doc's audience tag. Concrete skills mirror the SKILL_META taxonomy; `general` = every
+// staffer AND every manager; `manager` = managers only (ops playbooks); `customer` = the
+// client portal (tutorials/tips admin publishes to users).
+//
+// A doc can target MORE THAN ONE audience (admin distributes one doc to, say, staff +
+// customers). Seeds carry a single `audience`; admin-created docs carry `audiences[]`.
+// Always read a doc's targets through `audiencesOf()` so both shapes work.
+export type DocAudience = keyof typeof SKILL_META | 'general' | 'manager' | 'customer';
+
+// All audience tags an admin can distribute to, in display order (for the compose form).
+export const DISTRIBUTABLE_AUDIENCES: DocAudience[] = ['customer', 'general', 'manager', 'keyword', 'backlink', 'content', 'optimize'];
 export type DocFormat = 'guide' | 'sop' | 'checklist' | 'template' | 'policy' | 'video';
 
 export interface DocResource { kind: 'link' | 'file' | 'video'; url: string; label: string }
@@ -25,16 +32,24 @@ export type DocBlock =
 export interface StaffDoc {
   id: string;
   title: string;
-  audience: DocAudience;
+  audience: DocAudience; // primary/legacy single audience (always set)
+  audiences?: DocAudience[]; // multi-target distribution (admin-created docs); falls back to [audience]
   format: DocFormat;
   summary: string;
   tags: string[];
   author: string;
   updatedAt: string; // ISO date
   readMins: number;
-  body: DocBlock[];
+  body: DocBlock[]; // structured blocks (built-in seeds)
+  html?: string; // sanitized rich-text HTML (admin-authored docs); when set, the reader renders this
   resources: DocResource[];
   pinned?: boolean;
+  system?: boolean; // true for built-in seeds (read-only); false/undefined for admin-created
+}
+
+// The audiences a doc is distributed to — multi-target if set, else the single seed audience.
+export function audiencesOf(doc: StaffDoc): DocAudience[] {
+  return doc.audiences && doc.audiences.length ? doc.audiences : [doc.audience];
 }
 
 export const FORMAT_META: Record<DocFormat, { label: string; icon: string }> = {
@@ -50,6 +65,7 @@ export const FORMAT_META: Record<DocFormat, { label: string; icon: string }> = {
 export function audienceMeta(audience: DocAudience): { label: string; icon: string; color: string } {
   if (audience === 'general') return { label: 'All staff', icon: 'ph-users-three', color: '#64748b' };
   if (audience === 'manager') return { label: 'Managers', icon: 'ph-user-circle-gear', color: '#0ea5e9' };
+  if (audience === 'customer') return { label: 'Customers', icon: 'ph-user', color: '#22c55e' };
   return SKILL_META[audience] ?? { label: audience, icon: 'ph-circle', color: '#64748b' };
 }
 
@@ -325,44 +341,105 @@ export const DOCS: StaffDoc[] = [
     ],
     resources: [],
   },
+
+  // —— Customers (the client portal) ——
+  {
+    id: 'd-getting-started', title: 'Getting started with HevaSEO', audience: 'customer', format: 'guide',
+    summary: 'How to place an order, track progress, approve deliverables and top up credit — your first 10 minutes.',
+    tags: ['getting-started', 'orders', 'tutorial'], author: 'HevaSEO Team', updatedAt: '2026-06-26', readMins: 4, pinned: true,
+    body: [
+      { type: 'p', text: 'Welcome! Here’s the quickest path from signing in to seeing results land in your dashboard.' },
+      { type: 'h', text: 'Place your first order' },
+      { type: 'ol', items: [
+        'Open Browse services and pick the service that matches your goal.',
+        'Choose a package, fill in the brief (the more detail, the better the result), and confirm.',
+        'Track it live on the Orders board as it moves through delivery.',
+      ] },
+      { type: 'callout', tone: 'tip', text: 'A clear brief — target pages, keywords, and brand voice — is the single biggest lever on quality.' },
+      { type: 'h', text: 'Approve & give feedback' },
+      { type: 'p', text: 'When a deliverable is ready you’ll get it in the order. Review it, approve, or request a tweak — your feedback goes straight to the specialist.' },
+    ],
+    resources: [{ kind: 'link', url: 'https://example.com/help', label: 'Help center' }],
+  },
+  {
+    id: 'd-brief-tips', title: 'How to write a brief that gets great results', audience: 'customer', format: 'guide',
+    summary: 'Five things to include in every order brief so the work comes back right the first time.',
+    tags: ['briefs', 'tips', 'quality'], author: 'HevaSEO Team', updatedAt: '2026-06-20', readMins: 3, pinned: true,
+    body: [
+      { type: 'ul', items: [
+        'Target URL(s) — the exact page(s) you want to rank or improve.',
+        'Primary keywords or the outcome you’re chasing.',
+        'Audience & brand voice — who reads this and how it should sound.',
+        'Any must-include or must-avoid points (claims, competitors, compliance).',
+        'Examples you like — a link or two speaks louder than a paragraph.',
+      ] },
+      { type: 'callout', tone: 'info', text: 'Not sure? Start an order anyway and add notes — your specialist will ask if anything’s unclear.' },
+    ],
+    resources: [],
+  },
+  {
+    id: 'd-reading-results', title: 'Understanding your SEO results', audience: 'customer', format: 'guide',
+    summary: 'What the deliverables mean, realistic timelines, and how to read the wins.',
+    tags: ['results', 'reporting', 'tutorial'], author: 'HevaSEO Team', updatedAt: '2026-06-12', readMins: 5,
+    body: [
+      { type: 'p', text: 'SEO compounds. Some changes (on-page, technical fixes) show up in weeks; authority and rankings build over months.' },
+      { type: 'ul', items: [
+        'On-page & content — live immediately; indexing follows within days.',
+        'Backlinks — value accrues as pages are crawled and trusted.',
+        'Technical fixes — often the fastest measurable win (speed, crawlability).',
+      ] },
+      { type: 'callout', tone: 'tip', text: 'Top up credit ahead of time so your specialist never pauses mid-program waiting on funds.' },
+    ],
+    resources: [],
+  },
 ];
 
-// ── Access gate ─────────────────────────────────────────────────────────────
-// A staffer may read a doc when it is `general` or its audience is one of their skills.
+// ── Access gates ──────────────────────────────────────────────────────────────
+// One audience-match per role, all reading a doc's targets through audiencesOf so a
+// multi-target admin doc reaches every audience it was distributed to. The list/reader
+// views funnel through these, so a doc outside the viewer's audience can't render.
+
+// A staffer reads `general` docs + any doc tagged with one of their skills.
 export function canRead(doc: StaffDoc, skills: string[]): boolean {
-  return doc.audience === 'general' || skills.includes(doc.audience);
+  return audiencesOf(doc).some((a) => a === 'general' || skills.includes(a));
+}
+// A manager reads `manager` + `general` docs.
+export function canReadManager(doc: StaffDoc): boolean {
+  return audiencesOf(doc).some((a) => a === 'manager' || a === 'general');
+}
+// A customer reads `customer` docs only.
+export function canReadCustomer(doc: StaffDoc): boolean {
+  return audiencesOf(doc).includes('customer');
 }
 
-// The full set a staffer is allowed to see — pinned first, then newest. Pages only ever
-// receive THIS list, so an out-of-specialty doc can't render even by mistake.
-export function docsForStaff(skills: string[]): StaffDoc[] {
-  return DOCS
-    .filter((d) => canRead(d, skills))
-    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt));
+// Pinned first, then newest. Shared sort so every audience list is ordered the same.
+function byPinnedThenNewest(a: StaffDoc, b: StaffDoc): number {
+  return Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt);
 }
 
-// Permission-checked lookup. Returns undefined for a doc the staffer may not read OR that
-// doesn't exist — the page treats both the same (notFound), so existence never leaks.
-export function docForStaff(id: string, skills: string[]): StaffDoc | undefined {
-  const doc = DOCS.find((d) => d.id === id);
+// Audience views operate on a `docs` argument (seeds + any admin-created docs from the
+// store), so newly distributed docs reach their audience. Callers pass the merged list.
+export function docsForStaff(docs: StaffDoc[], skills: string[]): StaffDoc[] {
+  return docs.filter((d) => canRead(d, skills)).sort(byPinnedThenNewest);
+}
+export function docsForManager(docs: StaffDoc[]): StaffDoc[] {
+  return docs.filter(canReadManager).sort(byPinnedThenNewest);
+}
+export function docsForCustomer(docs: StaffDoc[]): StaffDoc[] {
+  return docs.filter(canReadCustomer).sort(byPinnedThenNewest);
+}
+
+// Permission-checked single-doc lookups. Undefined when the doc doesn't exist OR the
+// viewer may not read it — pages treat both as notFound, so existence never leaks.
+export function docForStaff(docs: StaffDoc[], id: string, skills: string[]): StaffDoc | undefined {
+  const doc = docs.find((d) => d.id === id);
   return doc && canRead(doc, skills) ? doc : undefined;
 }
-
-// ── Manager access gate ──────────────────────────────────────────────────────
-// A manager reads `manager` docs (ops playbooks) plus `general` docs shared with
-// everyone. They never receive skill-specialty docs. Same data-layer gate shape
-// as staff, so a manager page can't render a doc outside this set by mistake.
-export function canReadManager(doc: StaffDoc): boolean {
-  return doc.audience === 'manager' || doc.audience === 'general';
-}
-
-export function docsForManager(): StaffDoc[] {
-  return DOCS
-    .filter(canReadManager)
-    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt));
-}
-
-export function docForManager(id: string): StaffDoc | undefined {
-  const doc = DOCS.find((d) => d.id === id);
+export function docForManager(docs: StaffDoc[], id: string): StaffDoc | undefined {
+  const doc = docs.find((d) => d.id === id);
   return doc && canReadManager(doc) ? doc : undefined;
+}
+export function docForCustomer(docs: StaffDoc[], id: string): StaffDoc | undefined {
+  const doc = docs.find((d) => d.id === id);
+  return doc && canReadCustomer(doc) ? doc : undefined;
 }

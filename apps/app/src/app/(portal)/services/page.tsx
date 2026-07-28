@@ -27,7 +27,7 @@ export default function ServicesPage() {
               <p className="mt-1 flex-1 text-[13px] leading-relaxed text-muted-foreground">{SERVICE_BLURBS[k]}</p>
               <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary">
                 {live ? 'Order now' : 'Coming soon'}
-                {live && <i className="ph-bold ph-arrow-right transition group-hover:translate-x-0.5" />}
+                {live && <i className="ph-bold ph-arrow-right transition group-hover:translate-x-0.5" aria-hidden />}
               </span>
             </>
           );

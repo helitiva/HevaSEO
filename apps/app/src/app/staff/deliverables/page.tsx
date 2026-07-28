@@ -4,6 +4,8 @@ import { DeliverablesClient } from './DeliverablesClient';
 import { myDeliverables, deliverableStats } from '@/data/staffMock';
 import { currentStaffId } from '@/lib/currentStaff';
 
+export const metadata = { title: 'Deliverables' };
+
 export default async function DeliverablesPage() {
   const sid = await currentStaffId();
   const rows = myDeliverables(sid);

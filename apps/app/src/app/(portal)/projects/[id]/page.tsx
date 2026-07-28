@@ -1,12 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ORDERS, STATUSES, folderPathForDomain, type Order, type OrderStatus } from '@/data/mock';
+import { STATUSES, folderPathForDomain, type Order, type OrderStatus } from '@/data/mock';
 import { OrdersBoard } from '@/components/OrdersBoard';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
 import { useOrdersStore } from '@/components/OrdersStore';
 import { useProjects } from '@/components/ProjectsStore';
+import { getProjectOrdersAction } from '@/app/(portal)/order.actions';
 
 const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 function favColor(s: string) {
@@ -28,14 +30,22 @@ const STATUS_PILL: Record<'planned' | 'progress' | 'completed', { label: string;
 
 export default function ProjectDetailPage() {
   const id = useParams().id as string;
-  const { addedOrders, statusOverrides } = useOrdersStore();
+  const { statusOverrides } = useOrdersStore();
   const { projects } = useProjects();
   const project = projects.find((p) => p.id === id);
+
+  // Real orders linked to THIS project (order_details.project_id), not a mock domain match.
+  const [linkedOrders, setLinkedOrders] = useState<Order[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void getProjectOrdersAction(id).then((rows) => { if (alive) setLinkedOrders(rows); });
+    return () => { alive = false; };
+  }, [id]);
 
   if (!project) {
     return (
       <div className="grid place-items-center py-20 text-center">
-        <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" /></span>
+        <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent text-accent-foreground"><i className="ph-bold ph-folder-dashed text-xl" aria-hidden /></span>
         <p className="mt-3 font-semibold">Project not found</p>
         <Link href="/projects" className="mt-1 text-sm text-primary hover:underline">← Back to projects</Link>
       </div>
@@ -43,15 +53,18 @@ export default function ProjectDetailPage() {
   }
 
   const effStatus = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
-  const orders = [...addedOrders, ...ORDERS].filter((o) => o.domain === project.domain);
+  const orders = linkedOrders;
   const count = (s: OrderStatus) => orders.filter((o) => effStatus(o) === s).length;
   const totalCost = orders.reduce((a, o) => a + o.cost, 0);
   const path = folderPathForDomain(project.domain);
   const sp = STATUS_PILL[project.status];
+  // Projects are titled by domain, but domain is optional (e.g. the "Uncategorized" catch-all) — fall back
+  // to the name so a project is never shown blank.
+  const label = project.domain || project.name;
 
   const Stat = ({ label, value, color }: { label: string; value: number; color?: string }) => (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      {color ? <span className="h-2 w-2 rounded-full" style={{ background: color }} /> : <i className="ph-bold ph-stack text-muted-foreground" />}
+      {color ? <span className="h-2 w-2 rounded-full" style={{ background: color }} /> : <i className="ph-bold ph-stack text-muted-foreground" aria-hidden />}
       <span className="text-muted-foreground">{label}</span>
       <b className="font-semibold text-foreground">{value}</b>
     </span>
@@ -62,33 +75,33 @@ export default function ProjectDetailPage() {
       {/* breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         <Link href="/projects" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" aria-label="Back to projects">
-          <i className="ph-bold ph-arrow-left" />
+          <i className="ph-bold ph-arrow-left" aria-hidden />
         </Link>
         <nav className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
           <Link href="/projects" className="hover:text-foreground">Projects</Link>
           {path.map((f) => (
             <span key={f.id} className="flex items-center gap-1.5">
-              <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" />
+              <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" aria-hidden />
               <span style={{ color: f.color }}>{f.name}</span>
             </span>
           ))}
-          <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" />
-          <span className="font-semibold text-foreground">{project.domain}</span>
+          <i className="ph-bold ph-caret-right text-[10px] text-muted-foreground/60" aria-hidden />
+          <span className="font-semibold text-foreground">{label}</span>
         </nav>
       </div>
 
       {/* project header */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(project.domain) }}>{initials(project.domain)}</span>
-          <h1 className="display text-xl font-semibold tracking-tight">{project.domain}</h1>
-          <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" /></a>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: favColor(label) }}>{initials(label)}</span>
+          <h1 className="display text-xl font-semibold tracking-tight">{label}</h1>
+          {project.domain && <a href={`https://${project.domain}`} target="_blank" rel="noopener noreferrer" title="Visit site" aria-label="Visit site" className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>}
           <span className="pill" style={{ background: `${sp.color}1f`, color: sp.color }}>● {sp.label}</span>
           <QuickOrderButton label="Order a service" projectDomain={project.domain} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]" />
         </div>
 
         <p className="mt-3 flex gap-1.5 text-sm text-muted-foreground">
-          <i className="ph-bold ph-note-pencil mt-0.5 shrink-0" />
+          <i className="ph-bold ph-note-pencil mt-0.5 shrink-0" aria-hidden />
           <span>{project.note}</span>
         </p>
 
@@ -99,16 +112,17 @@ export default function ProjectDetailPage() {
           <Stat label="In review" value={count('review')} color={STATUSES.review.color} />
           <Stat label="Completed" value={count('completed')} color={STATUSES.completed.color} />
           <span className="inline-flex items-center gap-1.5 text-sm sm:ml-auto">
-            <i className="ph-bold ph-wallet text-muted-foreground" />
+            <i className="ph-bold ph-wallet text-muted-foreground" aria-hidden />
             <span className="text-muted-foreground">Total cost</span>
             <b className="font-semibold text-foreground">${totalCost.toLocaleString('en-US')}</b>
           </span>
         </div>
       </div>
 
-      {/* orders for this project — reuses the board (List / Kanban / card design) */}
+      {/* orders for this project — reuses the board (List / Kanban / card design), fed the project's REAL
+          linked orders (order_details.project_id), not a mock domain match. */}
       <section className="mt-5">
-        <OrdersBoard domain={project.domain} />
+        <OrdersBoard orders={orders} />
       </section>
     </>
   );

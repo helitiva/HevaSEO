@@ -3,12 +3,16 @@ import { StaffClient } from '@/app/admin/staff/StaffClient';
 import { buildStaffVMs, buildManagerVMs } from '@/app/admin/staff/build';
 import { SKILL_META } from '@/data/adminMock';
 import { managerScope, MANAGER_PERSONA } from '@/lib/managerScope';
+import { getStaff } from '@/data/staff.server';
 
-// Manager Staff — only this manager's pod. Same roster client, money-blind
-// (pay/wallet columns hidden) and impersonation is view-only for managers.
-export default function ManagerStaffPage() {
+export const metadata = { title: 'My staff' };
+
+// Manager Staff — REAL staff roster (getStaff is RLS-scoped to the manager's pod, money-blind: pay/wallet
+// columns hidden). Impersonation is view-only for managers. The manager's own identity card stays from the
+// persona (identity only, not cleared data).
+export default async function ManagerStaffPage() {
   const scope = managerScope(MANAGER_PERSONA);
-  const staff = buildStaffVMs(scope.staff);
+  const staff = buildStaffVMs(await getStaff());
   const managers = scope.manager ? buildManagerVMs([scope.manager]) : [];
   return (
     <section>

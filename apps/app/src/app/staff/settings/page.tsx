@@ -4,6 +4,8 @@ import { STAFF, SKILL_META } from '@/data/adminMock';
 import { CURRENT_STAFF, MY_AVAILABILITY } from '@/data/staffMock';
 import { currentStaffId } from '@/lib/currentStaff';
 
+export const metadata = { title: 'Settings' };
+
 export default async function SettingsPage() {
   const sid = await currentStaffId();
   const s = STAFF.find((x) => x.id === sid);

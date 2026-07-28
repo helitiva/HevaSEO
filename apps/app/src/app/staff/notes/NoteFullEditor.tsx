@@ -1,4 +1,6 @@
 'use client';
+
+import { NoteSaveError } from '@/components/NoteSaveError';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -6,13 +8,15 @@ import { usePortalBase } from '@/lib/portalBase';
 import { useNotes } from '@/data/notesStore';
 import { NoteFormBody, draftFrom, emptyDraft, canSaveDraft, cleanDraft, type Draft } from './NoteComposer';
 import { newNoteId, nowIso } from '@/data/staffNotes';
+import { useStaffViewOnly } from '@/lib/staffView';
 
 // Full-page note editor — the docs-style alternative to the modal composer. Shares NoteFormBody
 // and the same store, so a note saved here shows up everywhere (list, modal, full reader).
 export function NoteFullEditor({ id }: { id?: string }) {
   const router = useRouter();
+  const viewOnly = useStaffViewOnly();
   const base = usePortalBase();
-  const { notes, ready, mutate } = useNotes();
+  const { notes, ready, mutate , error: saveError, clearError } = useNotes();
   const existing = id ? notes.find((n) => n.id === id) ?? null : null;
 
   // Seed instantly from whatever the store has on first render (seed notes are present on SSR, so
@@ -27,7 +31,7 @@ export function NoteFullEditor({ id }: { id?: string }) {
 
   const notFound = !!id && ready && !existing;
   const loading = !!id && !ready && !existing; // a session-only note before the store hydrates
-  const canSave = canSaveDraft(draft);
+  const canSave = canSaveDraft(draft) && !viewOnly;
 
   function save() {
     if (!canSave) return;
@@ -47,6 +51,7 @@ export function NoteFullEditor({ id }: { id?: string }) {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <NoteSaveError error={saveError} onDismiss={clearError} />
       <div className="mb-4 flex items-center justify-between gap-2">
         <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
           <i className="ph-bold ph-arrow-left" aria-hidden /> {id ? 'Back to note' : 'Back to notes'}
@@ -73,14 +78,20 @@ export function NoteFullEditor({ id }: { id?: string }) {
           </div>
           <div className="mt-4 flex items-center justify-end gap-2">
             <Link href={backHref} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</Link>
-            <button
-              type="button"
-              onClick={save}
-              disabled={!canSave}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
-            >
-              <i className="ph-bold ph-check" aria-hidden /> {id ? 'Save changes' : 'Create note'}
-            </button>
+            {viewOnly ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-muted-foreground">
+                <i className="ph-bold ph-lock-simple" aria-hidden /> View only — saving disabled
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={save}
+                disabled={!canSave}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
+              >
+                <i className="ph-bold ph-check" aria-hidden /> {id ? 'Save changes' : 'Create note'}
+              </button>
+            )}
           </div>
         </>
       )}

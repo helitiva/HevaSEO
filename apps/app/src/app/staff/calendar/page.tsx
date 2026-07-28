@@ -6,6 +6,8 @@ import { currentStaffId } from '@/lib/currentStaff';
 import { TODAY } from '@/lib/staff';
 import { monthOf } from '@/lib/calendar';
 
+export const metadata = { title: 'Calendar' };
+
 export default async function CalendarPage() {
   const dated = myTasks(await currentStaffId()).filter((t) => t.deadline);
   // Open on the month of the soonest deadline (fallback to today's month).

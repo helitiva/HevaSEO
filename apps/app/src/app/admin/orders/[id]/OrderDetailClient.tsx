@@ -1,12 +1,21 @@
 'use client';
 
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatBadge';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { statusLabel, TIER, type OrderStatus, type Priority } from '@/data/adminMock';
 import { useMoney, useShowMoney, useAreaBase } from '@/lib/viewer';
+import { UUID_RE } from '@/lib/orderMap';
+import { useOrderMessages } from '@/lib/useOrderMessages';
+import { postOrderMessageAction } from '@/app/staff/tasks/message.actions';
+import { assignOrderAction, getEligibleStaffAction, type EligibleStaff } from '@/app/admin/assignment/assign.actions';
 import { Checklist } from './Checklist';
+
+// Intake labels already surfaced by the Scope block (Project/Folder/Site) — filtered out of the customer
+// submission list so the merged card doesn't show them twice.
+const SCOPE_DUP_LABELS = new Set(['project', 'folder', 'site', 'website']);
 
 interface StaffLite { name: string; composite: number; quality: number; onTime: number; openLoad: number; capacity: number; skills: string[] }
 interface CustLite { id: string; name: string; email: string; status: string; tier: keyof typeof TIER; spend: number; orders: number; balance: number }
@@ -20,6 +29,11 @@ export interface OrderDetailProps {
   bundle: { id: string; code: string; service: string; pkg: string; customer: string; value: number; status: OrderStatus }[];
   eligibleStaff: StaffLite[]; initialActivity: Activity[];
   prev?: { id: string; code: string }; next?: { id: string; code: string };
+  // When provided (admin real-order surfaces), state transitions persist via the advance_order RPC.
+  // Absent on mock surfaces → local-only behaviour.
+  advanceAction?: (orderId: string, to: OrderStatus) => Promise<{ ok: true } | { ok: false; error: string }>;
+  // MONEY: when provided, Cancel persists via cancel_order (refund − 5% fee). Absent → local-only.
+  cancelAction?: (orderId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 // 6 named stages; each order status maps to one stage.
@@ -61,7 +75,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [balance, setBalance] = useState<number>(p.cust?.balance ?? 0);
   const [debited, setDebited] = useState<boolean>(!['new', 'canceled'].includes(p.order.status));
   const [activity, setActivity] = useState<Activity[]>(p.initialActivity);
-  const [messages, setMessages] = useState<{ who: string; body: string; internal: boolean }[]>([
+  const [messages, setMessages] = useState<{ who: string; body: string; internal: boolean; attachments?: import('@/data/mock').MessageAttachment[] }[]>([
     { who: 'You', body: 'Confirmed scope with the client; prioritise the money pages.', internal: true },
     { who: p.cust?.name ?? p.order.customer, body: 'Looking forward to the first draft — thanks!', internal: false },
   ]);
@@ -69,36 +83,110 @@ export function OrderDetailClient(p: OrderDetailProps) {
   const [toast, setToast] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; onYes: () => void } | null>(null);
   const [picker, setPicker] = useState(false);
+  // Real staff for the picker, loaded when it opens. p.eligibleStaff is built from the adminMock STAFF
+  // constant and carries no real ids, so it can label a button but can never assign anyone.
+  const [pickable, setPickable] = useState<EligibleStaff[] | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  useEffect(() => {
+    if (!picker || pickable) return;
+    let live = true;
+    void getEligibleStaffAction(p.order.service, p.order.id)
+      .then((rows) => { if (live) setPickable(rows); })
+      .catch(() => { if (live) setPickable([]); });
+    return () => { live = false; };
+  }, [picker, pickable, p.order.service, p.order.id]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   const [msg, setMsg] = useState('');
   const [msgInternal, setMsgInternal] = useState(true);
+  // inc-E31 — real order thread for real orders (admin all / pod-manager pod, via RLS); mock otherwise.
+  const realThread = UUID_RE.test(p.order.id);
+  const { comments: realMsgs, reload: reloadMsgs } = useOrderMessages(realThread ? p.order.id : null);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundAmt, setRefundAmt] = useState(String(p.order.value));
   const [staffNotes, setStaffNotes] = useState<{ body: string; at: string }[]>([{ body: "Use the client's brand voice; avoid mentioning competitors by name.", at: `${p.today} 09:00` }]);
   const [staffNote, setStaffNote] = useState('');
 
   const o = p.order;
+  // Intake fields NOT already shown in the merged Scope block (Project / Folder / Site) — avoids repeating
+  // the same values twice now that Scope + Customer intake are one card.
+  const extraBrief = p.brief.filter((f) => !SCOPE_DUP_LABELS.has(f.label.trim().toLowerCase()));
   const nowStamp = `${p.today} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   function notify(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
   function log(action: string, change: string) { setActivity((a) => [{ id: `${Date.now()}`, at: nowStamp, action, change }, ...a]); }
 
-  function transition(to: OrderStatus, extra?: string) {
+  async function transition(to: OrderStatus, extra?: string) {
     const from = status;
+    // Real persistence for non-cancel transitions when wired (admin real orders). Cancel is the money
+    // path (refund) — kept local here and handled by its own slice. On RPC failure, surface and bail.
+    if (p.advanceAction && to !== 'canceled') {
+      const res = await p.advanceAction(o.id, to);
+      if (!res.ok) { notify(`Couldn't update: ${res.error}`); return; }
+    }
     setStatus(to);
     log('transition', `${o.code} ${from}→${to}${extra ? ` (${extra})` : ''}`);
     if (to === 'confirmed' && !debited) { setDebited(true); setBalance((b) => b - o.value); notify(`Confirmed · ${money(o.value)} credit debited`); }
     else if (to === 'canceled') { if (debited) { setBalance((b) => b + o.value); } notify('Order canceled' + (debited ? ` · ${money(o.value)} refunded` : '')); }
     else notify(`Moved to ${statusLabel[to]}`);
   }
+  const CANCEL_FEE_PCT = 0.05; // mirrors cancel_fee_pct() in the DB (anti-spam)
+  // Cancel = money path. When wired, persist via cancel_order (server does refund − fee + ledger);
+  // reflect the net refund locally for instant feedback. Otherwise fall back to the local mock.
+  async function doCancel() {
+    const from = status;
+    if (p.cancelAction) {
+      const res = await p.cancelAction(o.id);
+      if (!res.ok) { notify(`Couldn't cancel: ${res.error}`); return; }
+      const fee = Math.round(o.value * CANCEL_FEE_PCT * 100) / 100;
+      setStatus('canceled');
+      if (debited) setBalance((b) => b + o.value - fee);
+      log('transition', `${o.code} ${from}→canceled`);
+      notify('Order canceled' + (debited ? ` · ${money(o.value - fee)} refunded (5% fee)` : ''));
+      return;
+    }
+    transition('canceled');
+  }
   function act(a: Act) {
     if (a.assign) { setPicker(true); return; }
     if (a.note) { setNoteOpen(true); return; }
-    if (a.danger) { setConfirm({ title: `${a.label} this order?`, body: a.to === 'canceled' && debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition(a.to); setConfirm(null); } }); return; }
+    if (a.danger) { setConfirm({ title: `${a.label} this order?`, body: a.to === 'canceled' && debited ? `${money(o.value)} will be refunded to credit, minus a 5% fee.` : 'This cannot be undone.', onYes: () => { void doCancel(); setConfirm(null); } }); return; }
     transition(a.to);
   }
-  function assignTo(name: string) { setStaff(name); setPicker(false); if (status === 'confirmed') transition('assigned', `→ ${name}`); else { log('assign', `${o.code} → ${name}`); notify(`Assigned to ${name}`); } }
-  function sendMsg() { if (!msg.trim()) return; setMessages((m) => [...m, { who: 'You', body: msg.trim(), internal: msgInternal }]); setMsg(''); notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
+  /**
+   * Assign for real. This used to be `setStaff(name)` + a toast — and, when the order was 'confirmed',
+   * it ALSO called transition('assigned'), which is a real advance_order. So the DB ended up in
+   * state='assigned' with assignee_id still NULL: the order looked assigned, showed a staff name until
+   * you refreshed, and then sat in Command Center's "Unassigned" column forever.
+   *
+   * assign_order does BOTH jobs — it sets assignee_id and moves new/confirmed → assigned — so it is the
+   * only call needed here. Calling transition() as well would be the old bug in a new shape.
+   */
+  function assignTo(s: EligibleStaff) {
+    if (assigning) return;
+    setAssigning(true);
+    void assignOrderAction(p.order.id, s.id).then((r) => {
+      setAssigning(false);
+      if (!r.ok) { notify(r.error); return; }
+      setStaff(s.name);
+      if (status === 'new' || status === 'confirmed') setStatus('assigned');
+      setPicker(false);
+      log('assign', `${o.code} → ${s.name}`);
+      notify(`Assigned to ${s.name}`);
+    });
+  }
+  function sendMsg() {
+    const body = msg.trim();
+    if (!body) return;
+    setMessages((m) => [...m, { who: 'You', body, internal: msgInternal }]); // optimistic
+    setMsg('');
+    if (realThread) {
+      void postOrderMessageAction(p.order.id, body, msgInternal).then((r) => {
+        if (!r.ok) { notify(r.error); return; }
+        reloadMsgs(); notify(msgInternal ? 'Internal note added' : 'Message sent to customer');
+      });
+    } else { notify(msgInternal ? 'Internal note added' : 'Message sent to customer'); }
+  }
+  const shownMessages = realThread ? realMsgs.map((c) => ({ who: c.author, body: c.text, internal: Boolean(c.internal), attachments: c.attachments })) : messages;
   function sendStaffNote() { if (!staffNote.trim()) return; setStaffNotes((n) => [...n, { body: staffNote.trim(), at: nowStamp }]); setStaffNote(''); log('note', `${o.code} note to staff`); notify(`Note sent to ${staff ?? 'staff (unassigned)'}`); }
   function doRefund() { const amt = Math.max(0, Number(refundAmt) || 0); setBalance((b) => b + amt); log('refund', `${o.code} refund ${money(amt)}`); notify(`Refunded ${money(amt)}`); setRefundOpen(false); }
 
@@ -118,11 +206,11 @@ export function OrderDetailClient(p: OrderDetailProps) {
           {/* compact header card */}
           <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={`${areaBase}/orders`} className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders"><i className="ph-bold ph-arrow-left" /></Link>
+            <Link href={`${areaBase}/orders`} className="grid h-7 w-7 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-accent" title="Back to orders" aria-label="Back to orders"><i className="ph-bold ph-arrow-left" aria-hidden /></Link>
             <span className="display text-xl font-bold tracking-tight">{o.code}</span>
             <span className="text-xs font-semibold text-muted-foreground">#{o.seq}</span>
             <PriorityBadge priority={priority} /><StatusBadge status={status} />
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} /> {banner.text}</span>
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${banner.cls}`}><i className={`ph-bold ${banner.icon}`} aria-hidden /> {banner.text}</span>
         </div>
 
           <div className="scrollbar-thin mt-3 min-w-0 overflow-x-auto"><ProgressTracker status={status} /></div>
@@ -130,21 +218,30 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <p className="text-xs text-muted-foreground">{o.service} · {o.pkg} · {money(o.value)} · {p.cust?.name ?? o.customer} · {ageDays}d ago</p>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-xs">
-                {p.prev ? <Link href={`${areaBase}/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`}><i className="ph-bold ph-caret-left" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" /></span>}
-                {p.next ? <Link href={`${areaBase}/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`}><i className="ph-bold ph-caret-right" /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" /></span>}
+                {p.prev ? <Link href={`${areaBase}/orders/${p.prev.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Prev · ${p.prev.code}`} aria-label={`Previous order: ${p.prev.code}`}><i className="ph-bold ph-caret-left" aria-hidden /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-left" aria-hidden /></span>}
+                {p.next ? <Link href={`${areaBase}/orders/${p.next.id}`} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title={`Next · ${p.next.code}`} aria-label={`Next order: ${p.next.code}`}><i className="ph-bold ph-caret-right" aria-hidden /></Link> : <span className="grid h-7 w-7 place-items-center rounded-lg border border-border/50 text-muted-foreground/40"><i className="ph-bold ph-caret-right" aria-hidden /></span>}
               </div>
               {primary && <button onClick={() => act(primary)} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">{primary.label}</button>}
               {others.map((a) => <button key={a.label} onClick={() => act(a)} className={`rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition hover:bg-accent ${a.danger ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{a.label}</button>)}
               <MoreMenu onAssign={() => setPicker(true)} onRefund={() => setRefundOpen(true)} canRefund={showMoney}
-                onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `Credit of ${money(o.value)} will be refunded.` : 'This cannot be undone.', onYes: () => { transition('canceled'); setConfirm(null); } })}
+                onCancel={() => setConfirm({ title: 'Cancel this order?', body: debited ? `${money(o.value)} will be refunded to credit, minus a 5% fee.` : 'This cannot be undone.', onYes: () => { void doCancel(); setConfirm(null); } })}
                 canCancel={!['completed', 'canceled'].includes(status)} />
             </div>
           </div>
           </div>
 
-          <Card icon="ph-package" title="Scope">
+          {/* Scope + the customer's full intake, merged — the two used to repeat Project / Site / Target URL /
+              Folder / plan. Scope essentials (editable) up top, the customer's non-duplicate fields below. */}
+          <Card icon="ph-package" title="Scope & customer intake">
+            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
+              <i className="ph-bold ph-folders text-primary" aria-hidden />
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" aria-hidden />{p.folder}</span>
+              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" aria-hidden />
+              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-stack text-muted-foreground" aria-hidden />{p.project}</span>
+            </div>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <Field label="Project" value={`${o.customer} — SEO program`} />
+              <Field label="Project" value={p.project} />
               <Field label="Service" value={`${o.service} · ${o.pkg}`} />
               <Field label="Site" value={p.site} />
               <Field label="Target URL" value={<a href={`https://${p.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://{p.site}</a>} />
@@ -163,22 +260,17 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <div className="mt-4 border-t border-border pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Package · {money(o.value)}</p>
               <p className="mt-0.5 text-sm font-semibold">{o.service} · {o.pkg}</p>
-              <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" />{x}</li>)}</ul>
+              <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">{p.included.map((x) => <li key={x} className="flex gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden />{x}</li>)}</ul>
             </div>
-          </Card>
-
-          <Card icon="ph-note-pencil" title="Customer intake — full submission">
-            <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border bg-background/40 px-3 py-2 text-sm">
-              <i className="ph-bold ph-folders text-primary" />
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filed under</span>
-              <span className="font-semibold">{p.project}</span>
-              <i className="ph-bold ph-caret-right text-xs text-muted-foreground" />
-              <span className="inline-flex items-center gap-1 font-semibold"><i className="ph-bold ph-folder text-muted-foreground" />{p.folder}</span>
-            </div>
-            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{p.brief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
+            {extraBrief.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-note-pencil text-primary" aria-hidden /> Customer submission</p>
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">{extraBrief.map((f) => <Field key={f.label} label={f.label} value={f.value} />)}</div>
+              </div>
+            )}
             {p.addons.length > 0 && (
               <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
-                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" /> Upsells added at checkout</p>
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-plus-circle" aria-hidden /> Upsells added at checkout</p>
                 <div className="space-y-1 text-sm">
                   {p.addons.map((a) => <div key={a.name} className="flex justify-between"><span>{a.name} <span className="text-muted-foreground">· {a.tier}</span></span><span className="font-semibold">+{money(a.price)}</span></div>)}
                   <div className="mt-1 flex justify-between border-t border-emerald-500/20 pt-1 font-semibold"><span>Upsell total</span><span>{money(p.addonsTotal)}</span></div>
@@ -212,7 +304,7 @@ export function OrderDetailClient(p: OrderDetailProps) {
             </div>
 
             <div className="mt-4 rounded-xl border border-border bg-background/40 p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-note text-primary" /> Notes to staff {staff ? <span className="text-foreground">· {staff}</span> : <span>· unassigned</span>}</p>
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><i className="ph-bold ph-note text-primary" aria-hidden /> Notes to staff {staff ? <span className="text-foreground">· {staff}</span> : <span>· unassigned</span>}</p>
               <div className="space-y-1.5">
                 {staffNotes.map((n, i) => (
                   <div key={i} className="rounded-lg border border-border bg-card p-2 text-sm">
@@ -231,14 +323,14 @@ export function OrderDetailClient(p: OrderDetailProps) {
             <p className="mb-2 mt-4 text-xs font-semibold text-muted-foreground">Deliverables</p>
             {submitted ? (
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/40 p-3">
-                <div className="flex items-center gap-3"><i className="ph-bold ph-file-text text-2xl text-primary" /><div><p className="text-sm font-medium">{o.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {staff ?? '—'}</p></div></div>
+                <div className="flex items-center gap-3"><i className="ph-bold ph-file-text text-2xl text-primary" aria-hidden /><div><p className="text-sm font-medium">{o.code}-report-v1.pdf</p><p className="text-[11px] text-muted-foreground">submitted by {staff ?? '—'}</p></div></div>
                 {status === 'delivered' && <div className="flex gap-2"><button onClick={() => transition('approved')} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Approve</button><button onClick={() => setNoteOpen(true)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold">Request changes</button></div>}
               </div>
             ) : <p className="text-sm text-muted-foreground">Awaiting submission from staff.</p>}
           </Card>
 
           <Card icon="ph-chats-circle" title="Messages">
-            <div className="space-y-2">{messages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} />)}</div>
+            <div className="space-y-2">{shownMessages.map((m, i) => <Msg key={i} who={m.who} body={m.body} internal={m.internal} attachments={m.attachments} />)}</div>
             <div className="mt-3 flex items-center gap-2">
               <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMsg()} placeholder="Write a message…" className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               <label className="flex items-center gap-1 text-xs text-muted-foreground"><input type="checkbox" checked={msgInternal} onChange={(e) => setMsgInternal(e.target.checked)} className="accent-primary" /> internal</label>
@@ -283,17 +375,22 @@ export function OrderDetailClient(p: OrderDetailProps) {
       </div>
 
       {/* overlays */}
-      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
+      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
 
       {picker && (
         <Overlay onClose={() => setPicker(false)} title="Assign staff">
           <p className="mb-3 text-xs text-muted-foreground">Suggested for <b className="text-foreground">{o.service}</b> · ranked by score & availability.</p>
-          <div className="space-y-2">{p.eligibleStaff.map((s) => (
-            <button key={s.name} onClick={() => assignTo(s.name)} className="flex w-full items-center justify-between rounded-xl border border-border bg-background/40 p-3 text-left transition hover:border-primary/50">
-              <div><p className="font-semibold">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.quality}% quality · {s.onTime}% on-time · {s.openLoad}/{s.capacity} load · {s.skills.join(', ')}</p></div>
-              <span className="display text-lg font-bold text-primary">{s.composite}</span>
-            </button>
-          ))}</div>
+          <div className="space-y-2">
+            {pickable === null && <p className="py-4 text-center text-sm text-muted-foreground">Loading staff…</p>}
+            {pickable?.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No active staff available for this service.</p>}
+            {pickable?.map((s) => (
+              <button key={s.id} onClick={() => assignTo(s)} disabled={assigning}
+                className="flex w-full items-center justify-between rounded-xl border border-border bg-background/40 p-3 text-left transition hover:border-primary/50 disabled:opacity-50">
+                <div><p className="font-semibold">{s.name}</p><p className="text-[11px] text-muted-foreground">{s.quality}% quality · {s.onTime}% on-time · {s.openLoad}/{s.capacity} load · {s.skills.join(', ')}</p></div>
+                <span className="display text-lg font-bold text-primary">{s.composite}</span>
+              </button>
+            ))}
+          </div>
         </Overlay>
       )}
 
@@ -349,14 +446,14 @@ function MoreMenu({ onAssign, onRefund, onCancel, canCancel, canRefund = true }:
   ];
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent" aria-label="More actions"><i className="ph-bold ph-dots-three-outline" /></button>
-      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} /> {i.label}</button>)}</div></>)}
+      <button onClick={() => setOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-lg border border-border transition hover:bg-accent" aria-label="More actions"><i className="ph-bold ph-dots-three-outline" aria-hidden /></button>
+      {open && (<><div className="fixed inset-0 z-10" onClick={() => setOpen(false)} /><div className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl">{items.map((i) => <button key={i.label} onClick={() => { i.fn(); setOpen(false); }} className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition hover:bg-muted ${i.danger ? 'text-destructive' : ''}`}><i className={`ph-bold ${i.icon} ${i.danger ? '' : 'text-muted-foreground'}`} aria-hidden /> {i.label}</button>)}</div></>)}
     </div>
   );
 }
 
 function ProgressTracker({ status }: { status: OrderStatus }) {
-  if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" /> Order canceled</span>;
+  if (status === 'canceled') return <span className="pill pill-warn"><i className="ph-bold ph-x-circle" aria-hidden /> Order canceled</span>;
   const idx = STAGE_OF[status];
   const changes = status === 'changes_requested';
   return (
@@ -365,7 +462,7 @@ function ProgressTracker({ status }: { status: OrderStatus }) {
         <Fragment key={s.label}>
           {i > 0 && <span className={`mx-1.5 mt-3 h-0.5 flex-1 ${i <= idx ? 'bg-primary' : 'bg-border'}`} />}
           <div className="flex shrink-0 flex-col items-center gap-1">
-            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" /> : i + 1}</span>
+            <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${i < idx ? 'bg-primary text-primary-foreground' : i === idx ? 'border-2 border-primary text-primary' : 'border border-border text-muted-foreground'}`}>{i < idx ? <i className="ph-bold ph-check" aria-hidden /> : i + 1}</span>
             <span className={`whitespace-nowrap text-[10px] ${i === idx ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{s.label}{changes && i === idx ? ' ·changes' : ''}</span>
           </div>
         </Fragment>
@@ -379,7 +476,7 @@ function Overlay({ title, children, onClose }: { title: string; children: ReactN
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <div className="order-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="modal-in relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between"><p className="display text-base font-bold">{title}</p><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" /></button></div>
+        <div className="mb-3 flex items-center justify-between"><p className="display text-base font-bold">{title}</p><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent" aria-label="Close"><i className="ph-bold ph-x" aria-hidden /></button></div>
         {children}
       </div>
     </div>
@@ -403,6 +500,6 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border bg-background/40 p-2"><p className="display text-base font-bold capitalize leading-none">{value}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{label}</p></div>;
 }
-function Msg({ who, body, internal }: { who: string; body: string; internal: boolean }) {
-  return <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}><p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p><p className="text-sm">{body}</p></div>;
+function Msg({ who, body, internal, attachments }: { who: string; body: string; internal: boolean; attachments?: import('@/data/mock').MessageAttachment[] }) {
+  return <div className={`rounded-xl border p-2.5 ${internal ? 'border-amber-500/30 bg-amber-500/[0.06]' : 'border-border bg-background/40'}`}><p className="flex items-center gap-1.5 text-[11px] font-semibold">{who}{internal && <span className="pill pill-warn">internal</span>}</p><p className="text-sm">{body}</p><MessageAttachments items={attachments} /></div>;
 }

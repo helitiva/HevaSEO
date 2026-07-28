@@ -17,6 +17,9 @@ import {
   type RatingPoint, type CustomerWork, type RevisionReason,
 } from '@/lib/staff';
 import { currentStaffId } from '@/lib/currentStaff';
+import { mockTodayDate } from '@/lib/today';
+
+export const metadata = { title: 'Performance' };
 
 // The staffer's own standing: scorecard, earnings (their OWN pay — customer prices stay hidden),
 // team ranking by performance, and the customers they're caring for.
@@ -741,7 +744,7 @@ function PenaltyCell({ pen }: { pen: ReturnType<typeof taskPenalty> }) {
 // Tenure label from a join date → "3y 7mo".
 function tenureSince(since: string): string {
   const start = new Date(`${since}T00:00:00`);
-  const now = new Date('2026-06-26T00:00:00');
+  const now = mockTodayDate();
   let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   if (now.getDate() < start.getDate()) months -= 1;
   const y = Math.floor(months / 12);

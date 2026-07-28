@@ -27,7 +27,7 @@ export function BulkKeywordList({ bulk, onCount }: { bulk: SvcBulk; onCount: (n:
       onClick={() => setMode(m)}
       className={`rounded-md px-3 py-1.5 transition ${mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
     >
-      <i className={`ph-bold ${icon} mr-1`} />{label}
+      <i className={`ph-bold ${icon} mr-1`} aria-hidden />{label}
     </button>
   );
 
@@ -35,7 +35,7 @@ export function BulkKeywordList({ bulk, onCount }: { bulk: SvcBulk; onCount: (n:
     <div className="rounded-2xl border border-primary/30 bg-primary/[0.05] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-list-bullets text-primary" /> Keyword list — one {bulk.unit} per row</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-list-bullets text-primary" aria-hidden /> Keyword list — one {bulk.unit} per row</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {mode === 'rows'
               ? rowsCount > 0 ? `${rowsCount} ${rowsCount === 1 ? bulk.unit : bulk.unitPlural} — one per keyword row.` : 'Add a keyword to each row — one article per row.'
@@ -67,22 +67,22 @@ export function BulkKeywordList({ bulk, onCount }: { bulk: SvcBulk; onCount: (n:
                 <input value={k} onChange={(e) => setKw(i, e.target.value)} name="kw_keyword" placeholder="best running shoes for flat feet" className={cell} />
                 <input name="kw_internal" placeholder="/related-page" className={cell} />
                 <input name="kw_reference" type="url" placeholder="https://ref.com/article" className={cell} />
-                <button type="button" onClick={() => removeRow(i)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-rose-400/50 hover:text-rose-500" aria-label="Remove row"><i className="ph-bold ph-x" /></button>
+                <button type="button" onClick={() => removeRow(i)} className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition hover:border-rose-400/50 hover:text-rose-500" aria-label="Remove row"><i className="ph-bold ph-x" aria-hidden /></button>
               </div>
             ))}
           </div>
-          <button type="button" onClick={addRow} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/5"><i className="ph-bold ph-plus" /> Add article</button>
+          <button type="button" onClick={addRow} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/5"><i className="ph-bold ph-plus" aria-hidden /> Add article</button>
         </div>
       ) : (
         <div className="mt-3">
           <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] p-3 text-[11px] leading-relaxed text-muted-foreground">
-            <i className="ph-fill ph-info mt-0.5 shrink-0 text-primary" />
+            <i className="ph-fill ph-info mt-0.5 shrink-0 text-primary" aria-hidden />
             <span>
               Fill keywords & clusters using {bulk.sampleUrl ? (<a href={bulk.sampleUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">our sample Google Sheet</a>) : 'our template'}. If you share a Sheet link, <b className="font-semibold text-foreground">grant access to hello@hevaseo.com</b>.
             </span>
           </div>
           <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-background p-4 transition hover:border-primary/50">
-            <i className="ph-bold ph-table text-2xl text-primary" />
+            <i className="ph-bold ph-table text-2xl text-primary" aria-hidden />
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{fileName || 'Upload your .xlsx / .csv'}</span><span className="block text-[11px] text-muted-foreground">Matching our template columns.</span></span>
             <input type="file" name="keywords_file" accept=".xlsx,.xls,.csv" className="sr-only" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? '')} />
             <span className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Browse</span>

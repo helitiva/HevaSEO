@@ -68,6 +68,19 @@ export interface Order {
   urls?: number;
   /** true when the order spans several websites (indexer multi-site) */
   multiWeb?: boolean;
+  /** project + folder name captured at order time (real orders carry these; mock orders resolve by domain) */
+  project?: string;
+  folder?: string;
+  /** optional campaign / order title (defaults to "Nth {service} order for {domain}"); shown as the card headline */
+  campaign?: string;
+  /** the exact website URL the customer submitted in the brief (shown on the card) */
+  site?: string;
+  /** service-aware card headline for the website line (e.g. "10 articles for site.com", "1,000 URLs from
+   *  3 domains", "KR for dental clinics"). Derived per service; falls back to site/domain. */
+  siteLabel?: string;
+  /** full text revealed on hover for the website line — only set where the label is a truncated real value
+   *  worth expanding (a long backlink target URL, a clipped keyword topic). Absent ⇒ no tooltip. */
+  siteHover?: string;
   status: OrderStatus;
   priority: Priority;
   progress: number | null;
@@ -80,6 +93,10 @@ export interface Order {
   invoice: string | null;
   /** the brief the customer submitted at order time (captured from the order form) */
   intake?: IntakeField[];
+  /** delivered work awaiting the customer's approve/send-back decision (real `delivered` state) */
+  awaitingReview?: boolean;
+  /** ISO timestamp the order entered `delivered` — drives the auto-approve countdown */
+  deliveredAt?: string | null;
 }
 
 /** One answer from the order-time brief. `full` spans the full width when rendered. */
@@ -114,6 +131,8 @@ export interface Project {
   status: 'progress' | 'completed' | 'planned';
   note: string;
   updated: string;
+  /** archived projects are hidden from active folders and listed under the Archive rail entry */
+  archived?: boolean;
   tags: Partial<Record<ServiceKey, { plan: number; run: number; done: number }>>;
 }
 
@@ -171,7 +190,7 @@ export function folderForDomain(domain: string): { name: string; color: string }
 
 // ── Order detail (slide-over panel) ───────────────────────────────────────────
 /** A file or external link delivered within a deliverable revision. */
-export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; }
+export interface DeliverableFile { kind: 'file' | 'link'; name: string; meta?: string; url?: string; }
 /** One submitted version of a deliverable — staff submits, customer approves or asks for changes. */
 export interface DeliverableRevision {
   version: string;                               // 'v1', 'v2', 'v3', 'final'
@@ -182,7 +201,8 @@ export interface DeliverableRevision {
   feedback?: string;                             // customer's feedback (esp. when changes were requested)
 }
 export interface Deliverable { name: string; status: 'approved' | 'review' | 'rejected'; date: string; revisions: DeliverableRevision[]; }
-export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; }
+export interface MessageAttachment { kind: 'image' | 'video'; url: string; name: string; }
+export interface OrderComment { author: string; initials: string; text: string; time: string; internal?: boolean; attachments?: MessageAttachment[]; }
 export interface Activity { label: string; date: string; }
 
 const DELIVERABLES: Record<string, Deliverable[]> = {

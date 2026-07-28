@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Donut } from './Donut';
 import { TICKET_STATS } from '@/data/adminMock';
+import type { SupportStats as SupportStatsData } from '@/data/analytics.server';
 
-export function SupportStats() {
-  const t = TICKET_STATS;
+// `stats` (real, getSupportStats) overrides the mock ticket counts when provided.
+export function SupportStats({ stats }: { stats?: SupportStatsData } = {}) {
+  const t = stats ?? TICKET_STATS;
   const segs = [
     { label: 'Open', value: t.open, color: '#f59e0b' },
     { label: 'Pending', value: t.pending, color: '#a78bfa' },
@@ -15,7 +17,7 @@ export function SupportStats() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-lifebuoy text-primary" /> Support</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-lifebuoy text-primary" aria-hidden /> Support</p>
         <Link href="/admin/tickets" className="text-xs font-semibold text-primary hover:underline">Inbox →</Link>
       </div>
 
@@ -43,7 +45,7 @@ export function SupportStats() {
 function Stat({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-background/40 p-2.5">
-      <i className={`ph-bold ${icon} text-primary`} />
+      <i className={`ph-bold ${icon} text-primary`} aria-hidden />
       <p className="display mt-0.5 text-lg font-bold leading-none">{value}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>

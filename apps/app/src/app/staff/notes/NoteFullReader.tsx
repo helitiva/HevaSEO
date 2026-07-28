@@ -1,4 +1,6 @@
 'use client';
+
+import { NoteSaveError } from '@/components/NoteSaveError';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePortalBase } from '@/lib/portalBase';
@@ -13,7 +15,7 @@ const fmtFull = (iso: string) =>
 export function NoteFullReader({ id }: { id: string }) {
   const router = useRouter();
   const base = usePortalBase();
-  const { notes, ready, mutate } = useNotes();
+  const { notes, ready, mutate , error: saveError, clearError } = useNotes();
   const note = notes.find((n) => n.id === id) ?? null;
 
   if (ready && !note) {
@@ -35,6 +37,7 @@ export function NoteFullReader({ id }: { id: string }) {
 
   return (
     <article className="mx-auto max-w-3xl">
+      <NoteSaveError error={saveError} onDismiss={clearError} />
       <div className="mb-4 flex items-center justify-between gap-2">
         <Link href={`${base}/notes`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground">
           <i className="ph-bold ph-arrow-left" aria-hidden /> Back to notes

@@ -1,8 +1,12 @@
-import { TICKETS, STAFF, TIER } from '@/data/adminMock';
+import { STAFF, TIER } from '@/data/adminMock';
 import { TicketsClient } from './TicketsClient';
 import { buildTicketRows } from './rows';
+import { getAgentTicketsAction } from './actions';
 
-export default function TicketsPage() {
+export const metadata = { title: 'Tickets' };
+
+export default async function TicketsPage() {
   const staff = STAFF.filter((s) => s.active).map((s) => s.name);
-  return <TicketsClient rows={buildTicketRows(TICKETS)} avgFirstResponseH={1.8} staff={staff} tierMeta={TIER} agent="Mai T." />;
+  const tickets = await getAgentTicketsAction(); // real customer tickets (RLS: admin all / staff assigned)
+  return <TicketsClient rows={buildTicketRows(tickets)} avgFirstResponseH={1.8} staff={staff} tierMeta={TIER} agent="Mai T." />;
 }

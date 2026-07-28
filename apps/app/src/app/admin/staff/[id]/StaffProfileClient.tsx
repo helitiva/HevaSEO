@@ -11,14 +11,17 @@ import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { WorkActivityChart } from '@/components/staff/WorkActivityChart';
 import { DeadlineCalendar, type CalTask } from '@/components/staff/DeadlineCalendar';
 import { monthOf } from '@/lib/calendar';
-import { statusLabel, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
+import { statusLabel, GIG_RATE, GIG_PACKAGES, type OrderStatus, type Priority, type Tier } from '@/data/adminMock';
 import { useMoney, useShowMoney, useImpersonatePolicy, useAreaBase } from '@/lib/viewer';
+import { usePayOverride, usePayPresets, effectivePay, gigPay, gigRateOf, gigKey, type PayPreset } from '@/lib/payOverrides';
+import { packagePrice, servicePriceRange } from '@/lib/gigPricing';
 import { ACTIVITY_TYPE_META, PENALTY_RULES } from '@/data/staffMock';
 import type { StaffInsight } from '@/data/adminStaffInsight';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META, PAYOUT_METHOD_META, PAYOUT_STATUS_META, WALLET_KIND_META } from '@/lib/staffFinance';
 import { COMMISSION_TIERS } from '@/lib/staff';
 import { REWARD_KIND_META } from '@/lib/staffRewards';
 import { impersonate } from '@/lib/impersonation';
+import { MOCK_TODAY, mockTodayDate } from '@/lib/today';
 
 export interface ProfileOrder {
   id: string; code: string; service: string; pkg: string; status: OrderStatus;
@@ -76,6 +79,10 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
   const toggleSkill = (k: string) => { const has = skills.includes(k); setSkills((x) => (has ? x.filter((y) => y !== k) : [...x, k])); notify(`${has ? 'Removed' : 'Added'} ${skillMeta[k].label} skill`); };
   const toggleActive = () => { setActive((a) => !a); notify(active ? 'Paused — excluded from auto-routing' : 'Reactivated'); };
   const eligible = useMemo(() => Object.entries(serviceSkill).filter(([, sk]) => skills.includes(sk)).map(([svc]) => svc), [skills, serviceSkill]);
+  // Effective monthly pay, with any admin pay-override applied (shared with Finance › Payouts),
+  // so the header KPI and Overview match the editable Compensation card on the Pay tab.
+  const { override: payOverride } = usePayOverride(insight.id);
+  const payDue = effectivePay({ base: s.payroll.base, rate: s.payroll.rate, basis: s.payroll.basis, gigCounts: s.payroll.gigCounts, bonus: s.payroll.bonus }, payOverride).total;
 
   return (
     <section className="space-y-4">
@@ -115,7 +122,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
         <Kpi icon="ph-seal-check" label="Quality" value={`${s.quality}%`} sub={`avg ${teamAvg.quality}%`} tone={s.quality >= teamAvg.quality ? 'good' : undefined} />
         <Kpi icon="ph-clock" label="On-time" value={`${s.onTime}%`} tone={s.onTime < 85 ? 'warn' : undefined} sub={`avg ${teamAvg.onTime}%`} />
         <Kpi icon="ph-gauge" label="Utilization" value={`${util}%`} tone={over ? 'warn' : util < 50 ? undefined : 'good'} sub={`${workload.load}/${capacity} slots`} />
-        {showMoney && <Kpi icon="ph-wallet" label="Pay / month" value={money(s.payroll.due)} sub={`base ${money(s.payroll.base)} + comm`} />}
+        {showMoney && <Kpi icon="ph-wallet" label="Pay / month" value={money(payDue)} sub={payOverride ? 'custom · salary+gig+comm' : 'salary + gig + comm'} />}
         {showMoney && <Kpi icon="ph-hand-coins" label="Wallet" value={money(s.wallet.balance)} sub={`${money(s.wallet.available)} withdrawable`} tone={s.penalties.pendingCount > 0 ? 'warn' : undefined} />}
       </div>
 
@@ -129,7 +136,7 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
         ))}
       </div>
 
-      {tab === 'overview' && <OverviewTab s={s} workload={workload} capacity={capacity} util={util} over={over} teamAvg={teamAvg} tierMeta={tierMeta} setCap={setCap} skills={skills} skillMeta={skillMeta} allSkills={allSkills} toggleSkill={toggleSkill} eligible={eligible} />}
+      {tab === 'overview' && <OverviewTab s={s} payDue={payDue} workload={workload} capacity={capacity} util={util} over={over} teamAvg={teamAvg} tierMeta={tierMeta} setCap={setCap} skills={skills} skillMeta={skillMeta} allSkills={allSkills} toggleSkill={toggleSkill} eligible={eligible} />}
       {tab === 'performance' && <PerformanceTab s={s} teamAvg={teamAvg} />}
       {tab === 'pay' && showMoney && <PayTab s={s} />}
       {tab === 'conduct' && <ConductTab s={s} />}
@@ -141,8 +148,8 @@ export function StaffProfileClient({ insight, workload, teamAvg, skillMeta, tier
 }
 
 /* ───────────────────────── Overview ───────────────────────── */
-function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, setCap, skills, skillMeta, allSkills, toggleSkill, eligible }: {
-  s: StaffInsight; workload: Workload; capacity: number; util: number; over: boolean; teamAvg: TeamAvg;
+function OverviewTab({ s, payDue, workload, capacity, util, over, teamAvg, tierMeta, setCap, skills, skillMeta, allSkills, toggleSkill, eligible }: {
+  s: StaffInsight; payDue: number; workload: Workload; capacity: number; util: number; over: boolean; teamAvg: TeamAvg;
   tierMeta: TierMeta; setCap: (n: number) => void; skills: string[]; skillMeta: SkillMeta; allSkills: string[]; toggleSkill: (k: string) => void; eligible: string[];
 }) {
   const money = useMoney();
@@ -168,7 +175,7 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
 
         {showMoney ? (
         <Card icon="ph-wallet" title="Money snapshot">
-          <Row label="Pay this cycle" value={<b>{money(s.payroll.due)}</b>} />
+          <Row label="Pay this cycle" value={<b>{money(payDue)}</b>} />
           <Row label="Commission wallet" value={money(s.wallet.balance)} />
           <Row label="Withdrawable now" value={money(s.wallet.available)} />
           {s.wallet.clearing > 0 && <Row label="Still clearing" value={<span className="text-amber-600">{money(s.wallet.clearing)}</span>} />}
@@ -211,7 +218,7 @@ function OverviewTab({ s, workload, capacity, util, over, teamAvg, tierMeta, set
   );
 }
 
-const PROFILE_TODAY = '2026-06-24';
+const PROFILE_TODAY = MOCK_TODAY;
 
 // Active workload — list (with deadline-window detail) or a month calendar of the staffer's
 // deadlines. The calendar reuses the same DeadlineCalendar the staff portal uses.
@@ -412,6 +419,252 @@ function PerformanceTab({ s, teamAvg }: { s: StaffInsight; teamAvg: TeamAvg }) {
   );
 }
 
+// The gig services an admin can price (the gig-rate catalog).
+const GIG_SERVICES = Object.keys(GIG_RATE);
+
+/* Set-pay editor — fixed salary + commission rate + bonus + per-SERVICE gig rates, plus saveable
+   pay presets. Writes the per-staff override shared with Finance › Payouts (lib/payOverrides). */
+function CompensationEditor({ staffId, payroll }: { staffId: string; payroll: StaffInsight['payroll'] }) {
+  const money = useMoney();
+  const { override, save, clear } = usePayOverride(staffId);
+  const { presets, addPreset, removePreset } = usePayPresets();
+  const [editing, setEditing] = useState(false);
+  const seed = { base: payroll.base, rate: payroll.rate, basis: payroll.basis, gigCounts: payroll.gigCounts, bonus: payroll.bonus };
+  const eff = effectivePay(seed, override);
+  const countOfService = (svc: string) => payroll.gigCounts.filter((g) => g.service === svc).reduce((a, g) => a + g.count, 0);
+  const countOfPkg = (svc: string, pkg: string) => payroll.gigCounts.find((g) => g.service === svc && g.pkg === pkg)?.count ?? 0;
+
+  const [dBase, setDBase] = useState(payroll.base);
+  const [dRate, setDRate] = useState(Math.round(payroll.rate * 100));
+  const [dBonus, setDBonus] = useState(payroll.bonus);
+  const [dGig, setDGig] = useState<Record<string, number>>({});                 // service → rate
+  const [dPkg, setDPkg] = useState<Record<string, number>>({});                 // `${service}::${pkg}` → rate
+  const [gigMode, setGigMode] = useState<'service' | 'package'>('service');
+
+  const seedGig = (g?: Record<string, number>) => Object.fromEntries(GIG_SERVICES.map((s) => [s, g?.[s] ?? GIG_RATE[s]]));
+  const hasPkg = (m?: Record<string, number>) => !!m && Object.keys(m).length > 0;
+  const startEdit = () => {
+    setDBase(eff.base); setDRate(eff.ratePct); setDBonus(eff.bonus);
+    setDGig(seedGig(override?.gigRates)); setDPkg({ ...(override?.gigPkgRates ?? {}) });
+    setGigMode(hasPkg(override?.gigPkgRates) ? 'package' : 'service'); setEditing(true);
+  };
+  const applyPreset = (p: PayPreset) => {
+    setDBase(p.base); setDRate(p.rate); setDBonus(p.bonus);
+    setDGig(seedGig(p.gigRates)); setDPkg({ ...(p.gigPkgRates ?? {}) });
+    if (hasPkg(p.gigPkgRates)) setGigMode('package');
+  };
+  const saveEdit = () => {
+    save({ base: Math.max(0, dBase), rate: Math.max(0, Math.min(100, dRate)), bonus: Math.max(0, dBonus), gigRates: dGig, gigPkgRates: hasPkg(dPkg) ? dPkg : undefined });
+    setEditing(false);
+  };
+  const saveAsPreset = () => {
+    const name = window.prompt('Name this pay preset (e.g. "Senior writer", "Junior link builder"):');
+    if (name?.trim()) addPreset({ name: name.trim(), base: dBase, rate: dRate, bonus: dBonus, gigRates: dGig, gigPkgRates: hasPkg(dPkg) ? dPkg : undefined });
+  };
+
+  const previewCommission = Math.round(payroll.basis * (dRate / 100) * 100) / 100;
+  const previewGig = gigPay(payroll.gigCounts, dGig, dPkg);
+  const previewTotal = dBase + previewGig + previewCommission + dBonus;
+
+  const inp = 'w-full bg-transparent px-2 py-1.5 text-sm font-semibold tabular-nums outline-none';
+  const Field = (label: string, node: ReactNode, hint?: string) => (
+    <div>
+      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">{label}</label>
+      {node}
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
+
+  return (
+    <Card icon="ph-receipt" title="Compensation"
+      right={editing ? <span className="text-xs text-muted-foreground">editing</span> : (
+        <div className="flex items-center gap-2">
+          {override && <span className="pill pill-warn" title="A custom override is set">custom</span>}
+          <button onClick={startEdit} className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent"><i className="ph-bold ph-pencil-simple" aria-hidden />Set pay</button>
+        </div>
+      )}>
+      {!editing ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stack label="Base salary" value={money(eff.base)} sub="fixed monthly" />
+            <Stack label="Gig pay" value={money(eff.gig)} sub={`${payroll.completedOrders} gigs · per service`} />
+            <Stack label="Commission" value={money(eff.commission)} sub={`${eff.ratePct}% × ${money(payroll.basis)}`} />
+            <Stack label="Bonus" value={money(eff.bonus)} sub="this cycle" />
+          </div>
+          {payroll.gigCounts.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {payroll.gigCounts.map((g) => (
+                <span key={`${g.service}::${g.pkg}`} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {g.service}{g.pkg && g.pkg !== '—' ? ` · ${g.pkg}` : ''} <span className="font-semibold text-foreground">{g.count} × {money(gigRateOf(g.service, g.pkg, override?.gigRates, override?.gigPkgRates))}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+            <span className="text-sm font-semibold">Total due this month</span>
+            <span className="display text-2xl font-bold text-primary">{money(eff.total)}</span>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Saved here (salary, rate, bonus &amp; per-service gig rates) — reflected in Finance › Payouts for this staffer.</p>
+        </>
+      ) : (
+        <div className="space-y-3">
+          {/* presets bar */}
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-bookmarks text-primary" aria-hidden />Presets</span>
+            {presets.length === 0 && <span className="text-[11px] text-muted-foreground">none saved yet — set the pay below, then “Save as preset”.</span>}
+            {presets.map((p) => (
+              <span key={p.id} className="group inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-0.5 text-xs">
+                <button onClick={() => applyPreset(p)} className="font-semibold hover:text-primary" title={`Apply: salary ${money(p.base)} · ${p.rate}% · bonus ${money(p.bonus)}`}>{p.name}</button>
+                <button onClick={() => removePreset(p.id)} aria-label="Remove preset" className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><i className="ph-bold ph-x text-[10px]" aria-hidden /></button>
+              </span>
+            ))}
+            <button onClick={saveAsPreset} className="ml-auto inline-flex items-center gap-1 rounded-lg border border-dashed border-border px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5"><i className="ph-bold ph-plus" aria-hidden />Save as preset</button>
+          </div>
+
+          {/* salary / rate / bonus */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Field('Fixed salary', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
+                <DecimalInput value={dBase} min={0} onChange={setDBase} className={inp} ariaLabel="Fixed salary" />
+              </div>
+            ), `role default ${money(payroll.base)}`)}
+            {Field('Commission rate', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <DecimalInput value={dRate} min={0} max={100} onChange={setDRate} className={inp} ariaLabel="Commission rate (percent)" />
+                <span className="shrink-0 border-l border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">%</span>
+              </div>
+            ), `× ${money(payroll.basis)} billable = ${money(previewCommission)}`)}
+            {Field('Bonus', (
+              <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+                <span className="shrink-0 border-r border-border bg-muted px-2 py-1.5 text-sm text-muted-foreground">$</span>
+                <DecimalInput value={dBonus} min={0} onChange={setDBonus} className={inp} ariaLabel="Bonus" />
+              </div>
+            ), 'one-off this cycle')}
+          </div>
+
+          {/* gig rates — per service, or advanced per package */}
+          <div className="rounded-xl border border-border bg-muted/20 p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><i className="ph-bold ph-package text-primary" aria-hidden />Gig pay — rate per {gigMode}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">{payroll.completedOrders} gigs · gig pay <span className="font-semibold text-foreground">{money(previewGig)}</span></span>
+                <div className="inline-flex rounded-lg border border-border p-0.5 text-[11px] font-semibold">
+                  {(['service', 'package'] as const).map((m) => (
+                    <button key={m} type="button" onClick={() => setGigMode(m)} className={`rounded-md px-2 py-0.5 transition ${gigMode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{m === 'package' ? 'Package · advanced' : 'Service'}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {gigMode === 'service' ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {GIG_SERVICES.map((svc) => {
+                  const c = countOfService(svc);
+                  const range = servicePriceRange(svc);
+                  return (
+                    <div key={svc} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium" title={svc}>{svc}</span>
+                        {range && <span className="text-[10px] text-muted-foreground">sells {range[0] === range[1] ? money(range[0]) : `${money(range[0])}–${money(range[1])}`}</span>}
+                      </div>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                      <RateInput value={dGig[svc] ?? GIG_RATE[svc]} onChange={(v) => setDGig((g) => ({ ...g, [svc]: v }))} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {GIG_SERVICES.filter((svc) => GIG_PACKAGES.some((p) => p.service === svc)).map((svc) => {
+                  const svcRate = dGig[svc] ?? GIG_RATE[svc];
+                  const range = servicePriceRange(svc);
+                  return (
+                    <div key={svc} className="rounded-lg border border-border bg-background/50 p-2">
+                      <div className="mb-1.5 flex items-center justify-between px-0.5">
+                        <span className="text-sm font-semibold">{svc}</span>
+                        <span className="text-[10px] text-muted-foreground">{range && <>sells {range[0] === range[1] ? money(range[0]) : `${money(range[0])}–${money(range[1])}`} · </>}service rate ${svcRate} · faded = inherits it</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {GIG_PACKAGES.filter((p) => p.service === svc).map(({ pkg }) => {
+                          const key = gigKey(svc, pkg);
+                          const c = countOfPkg(svc, pkg);
+                          const custom = dPkg[key] !== undefined;
+                          const price = packagePrice(svc, pkg);
+                          return (
+                            <div key={key} className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${c > 0 ? 'border-border bg-background' : 'border-dashed border-border/60'}`}>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-medium" title={pkg}>{pkg === '—' ? 'Standard' : pkg}</span>
+                                {price != null && <span className="mt-0.5 block text-sm font-medium text-muted-foreground">sells {money(price)}</span>}
+                              </div>
+                              <span className="shrink-0 text-[11px] text-muted-foreground">{c} gig{c === 1 ? '' : 's'}</span>
+                              <RateInput value={dPkg[key] ?? svcRate} muted={!custom} onChange={(v) => setDPkg((m) => ({ ...m, [key]: v }))} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {gigMode === 'package' && <p className="mt-2 text-[10px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Packages left at the faded service rate inherit it; type to set a package-specific rate.</p>}
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+            <span className="text-sm font-semibold">New total this month <span className="font-normal text-muted-foreground">· salary {money(dBase)} + gig {money(previewGig)} + comm {money(previewCommission)} + bonus {money(dBonus)}</span></span>
+            <span className="display text-xl font-bold text-primary">{money(previewTotal)}</span>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {override && <button onClick={() => { clear(); setEditing(false); }} className="mr-auto text-xs font-semibold text-muted-foreground hover:text-destructive">Reset to role default</button>}
+            <button onClick={() => setEditing(false)} className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-accent">Cancel</button>
+            <button onClick={saveEdit} className="rounded-lg bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">Save pay</button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// Compact $-prefixed rate input used by the gig-pay grids. `muted` = an inherited (not yet
+// customised) rate, shown faded. Accepts decimal cents (e.g. 5.25).
+function RateInput({ value, onChange, muted }: { value: number; onChange: (v: number) => void; muted?: boolean }) {
+  return (
+    <div className={`flex w-20 shrink-0 items-center overflow-hidden rounded-md border bg-background focus-within:border-primary ${muted ? 'border-dashed border-border/60' : 'border-border'}`}>
+      <span className="shrink-0 border-r border-border bg-muted px-1.5 py-1 text-xs text-muted-foreground">$</span>
+      <DecimalInput value={value} min={0} onChange={onChange} ariaLabel="Gig rate" className={`w-full bg-transparent px-1.5 py-1 text-right text-xs font-semibold tabular-nums outline-none ${muted ? 'text-muted-foreground' : ''}`} />
+    </div>
+  );
+}
+
+// Decimal-friendly number field. A controlled `<input type="number">` coerced through Number()
+// drops a trailing "." mid-typing, so you can't type "5.25". This keeps a string buffer while
+// editing (so decimals type cleanly), emits the parsed number on every valid keystroke, and
+// normalises + clamps on blur. Re-syncs when the external value changes (e.g. a preset applied).
+function DecimalInput({ value, onChange, min, max, className, ariaLabel }: { value: number; onChange: (v: number) => void; min?: number; max?: number; className?: string; ariaLabel?: string }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    // Only overwrite the buffer when the prop diverges from what's typed (avoids clobbering "5.").
+    if (Number(text) !== value) setText(Number.isFinite(value) ? String(value) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handle = (raw: string) => {
+    setText(raw);
+    if (raw.trim() === '' || raw === '.' || raw === '-' || raw.endsWith('.')) return; // mid-typing
+    const n = Number(raw);
+    if (!Number.isNaN(n)) onChange(n);
+  };
+  const blur = () => {
+    let n = Number(text);
+    if (Number.isNaN(n)) n = 0;
+    if (min != null) n = Math.max(min, n);
+    if (max != null) n = Math.min(max, n);
+    onChange(n);
+    setText(String(n));
+  };
+  return <input type="text" inputMode="decimal" value={text} onChange={(e) => handle(e.target.value)} onBlur={blur} aria-label={ariaLabel} className={className} />;
+}
+
 /* ───────────────────────── Pay & wallet ───────────────────────── */
 function PayTab({ s }: { s: StaffInsight }) {
   const money = useMoney();
@@ -421,17 +674,7 @@ function PayTab({ s }: { s: StaffInsight }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="min-w-0 space-y-4 lg:col-span-2">
-        <Card icon="ph-receipt" title="Payroll this cycle" right={<span className="text-xs text-muted-foreground">{p.lastPaidAt ? `last paid ${p.lastPaidAt}` : 'not yet paid'}</span>}>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Stack label="Base salary" value={money(p.base)} sub="fixed monthly" />
-            <Stack label="Commission" value={money(p.commission)} sub={`${p.completedOrders} billable · ${Math.round(p.rate * 100)}% rate`} />
-            <Stack label="Bonus" value={money(p.bonus)} sub="admin-entered" />
-          </div>
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className="text-sm font-semibold">Total due this month</span>
-            <span className="display text-2xl font-bold text-primary">{money(p.due)}</span>
-          </div>
-        </Card>
+        <CompensationEditor staffId={s.id} payroll={p} />
 
         <Card icon="ph-chart-bar" title="Earnings history" right={<span className="text-xs text-muted-foreground">YTD {money(e.ytd)}</span>}>
           <div className="flex items-end gap-2 sm:gap-3">
@@ -706,7 +949,7 @@ function TierLadder({ s }: { s: StaffInsight }) {
 
 function tenureFrom(since: string): string {
   const start = new Date(`${since}T00:00:00`);
-  const now = new Date('2026-06-26T00:00:00');
+  const now = mockTodayDate();
   const months = Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()));
   return months >= 12 ? `${Math.floor(months / 12)}y ${months % 12}m` : `${months}m`;
 }

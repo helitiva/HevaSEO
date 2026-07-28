@@ -43,7 +43,7 @@ export function SlideOver({ open, onClose, title, children, widthClass = 'max-w-
       <div ref={panelRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`order-panel scrollbar-thin absolute inset-y-0 right-0 w-full ${widthClass} overflow-y-auto border-l border-border bg-card p-5 shadow-2xl outline-none`}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="display text-lg font-bold">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" /></button>
+          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-x" aria-hidden /></button>
         </div>
         {children}
       </div>

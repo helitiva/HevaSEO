@@ -26,7 +26,13 @@
       "Bash(cat *)",
       "Bash(node *)",
       "Bash(mkdir *)",
-      "Bash(curl -s *)"
+      "Bash(curl -s *)",
+      "Bash(npx *)",
+      "Bash(docker *)",
+      "Bash(pkill *)",
+      "Bash(cp *)",
+      "Bash(git fetch *)",
+      "Bash(rm -f *)"
     ],
     "deny": [
       "Bash(rm -rf *)",

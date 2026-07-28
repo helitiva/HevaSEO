@@ -7,6 +7,7 @@ export const STAFF_NAV: StaffNavSection[] = [
     { label: 'My Tasks', href: '/staff/tasks', icon: 'ph-kanban' },
     { label: 'Calendar', href: '/staff/calendar', icon: 'ph-calendar-dots' },
     { label: 'Deliverables', href: '/staff/deliverables', icon: 'ph-file-arrow-up' },
+    { label: 'Inbox', href: '/staff/inbox', icon: 'ph-tray' },
   ]},
   { title: 'Knowledge', items: [
     { label: 'Docs', href: '/staff/docs', icon: 'ph-books' },

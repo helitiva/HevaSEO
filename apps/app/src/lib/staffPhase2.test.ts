@@ -27,11 +27,12 @@ describe('rankByComposite', () => {
 
 describe('myEarnings (own pay, no customer-pricing leak)', () => {
   const e = myEarnings('s3');
-  it('returns the staffer’s own aggregates with take-home = base + commission + bonus', () => {
+  it('returns the staffer’s own aggregates with take-home = base + gig + commission + bonus', () => {
     expect(e).not.toBeNull();
     expect(typeof e!.base).toBe('number');
+    expect(typeof e!.gig).toBe('number');
     expect(typeof e!.commission).toBe('number');
-    expect(e!.takeHome).toBe(e!.base + e!.commission + e!.bonus);
+    expect(e!.takeHome).toBe(e!.base + e!.gig + e!.commission + e!.bonus);
   });
   it('NEVER exposes basis or rate (those would reveal customer revenue)', () => {
     expect(Object.keys(e!)).not.toContain('basis');

@@ -30,7 +30,7 @@ export function ExportTransactionsButton({ rows }: { rows: Tx[] }) {
     downloadBlob('heva-credit-transactions.csv', [header.join(','), ...lines].join('\n'), 'text/csv;charset=utf-8');
     toast(`Exported ${rows.length} transactions`);
   };
-  return <button onClick={handle} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"><i className="ph-bold ph-download-simple" /> Export CSV</button>;
+  return <button onClick={handle} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"><i className="ph-bold ph-download-simple" aria-hidden /> Export CSV</button>;
 }
 
 /** Open a print-ready invoice (browser "Save as PDF" produces the PDF). */
@@ -72,5 +72,5 @@ export function InvoicePdfButton({ invoice }: { invoice: Invoice }) {
     toast(`Invoice ${invoice.no} ready`);
     setTimeout(() => iframe.remove(), 1000);
   };
-  return <button onClick={handle} className="pdf-btn inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><i className="ph-bold ph-file-pdf" /> PDF</button>;
+  return <button onClick={handle} className="pdf-btn inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><i className="ph-bold ph-file-pdf" aria-hidden /> PDF</button>;
 }

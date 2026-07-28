@@ -1,7 +1,9 @@
 // Period payroll explorer data for the admin Finance → Payouts tab.
-// Lets an admin pick a month or quarter and see, per staffer, how base salary + commission + bonus
-// stacked up and what penalties were withheld that period — netting to take-home. Built from the
-// per-staff monthly earnings series (now generated for the whole team) + the penalty record.
+// Lets an admin pick a month or quarter and see, per staffer, how base salary + gig pay + commission
+// + bonus stacked up and what penalties were withheld that period — netting to take-home. Built from
+// the per-staff monthly earnings series (now generated for the whole team) + the penalty record.
+// Mirrors the cycle-comp formula in lib/payOverrides.ts effectivePay (base + gig + commission + bonus).
+// Note: the historical mock only models gig for the current cycle, so past months contribute gig = 0.
 import { STAFF } from './adminMock';
 import { earningsHistory, myPenalties } from './staffMock';
 
@@ -12,12 +14,12 @@ export type PayGran = 'month' | 'quarter';
 
 export interface StaffPayLine {
   staffId: string; staff: string; role: string; active: boolean;
-  base: number; commission: number; bonus: number;
+  base: number; gig: number; commission: number; bonus: number;
   penalties: number;      // applied fines withheld this period (positive number)
-  net: number;            // base + commission + bonus − penalties
+  net: number;            // base + gig + commission + bonus − penalties
   tasks: number;          // billable tasks completed in the period (commission driver)
 }
-export interface PayPeriodTotals { base: number; commission: number; bonus: number; penalties: number; net: number; tasks: number }
+export interface PayPeriodTotals { base: number; gig: number; commission: number; bonus: number; penalties: number; net: number; tasks: number }
 export interface PayPeriod {
   key: string; label: string; from: string; to: string;
   lines: StaffPayLine[];
@@ -61,16 +63,18 @@ export function buildPayrollPeriods(gran: PayGran): PayPeriod[] {
     const lines: StaffPayLine[] = series.map(({ s, months }) => {
       const inP = months.filter((m) => monthSet.has(m.month));
       const base = inP.reduce((a, m) => a + m.base, 0);
+      const gig = inP.reduce((a, m) => a + (m.gig ?? 0), 0); // 0 for historical months (mock models gig only for the current cycle)
       const commission = inP.reduce((a, m) => a + m.commission, 0);
       const bonus = inP.reduce((a, m) => a + m.bonus, 0);
       const tasks = inP.reduce((a, m) => a + m.tasks, 0);
       const penalties = appliedPenaltiesIn(s.id, monthSet);
-      return { staffId: s.id, staff: s.name, role: s.role, active: s.active, base, commission, bonus, penalties, net: base + commission + bonus - penalties, tasks };
+      return { staffId: s.id, staff: s.name, role: s.role, active: s.active, base, gig, commission, bonus, penalties, net: base + gig + commission + bonus - penalties, tasks };
     });
     return {
       key: g.key, label: g.label, from: g.months[0], to: g.months[g.months.length - 1], lines,
       totals: {
-        base: sumBy(lines, (l) => l.base), commission: sumBy(lines, (l) => l.commission),
+        base: sumBy(lines, (l) => l.base), gig: sumBy(lines, (l) => l.gig),
+        commission: sumBy(lines, (l) => l.commission),
         bonus: sumBy(lines, (l) => l.bonus), penalties: sumBy(lines, (l) => l.penalties),
         net: sumBy(lines, (l) => l.net), tasks: sumBy(lines, (l) => l.tasks),
       },

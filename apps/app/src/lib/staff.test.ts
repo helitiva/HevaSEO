@@ -359,7 +359,8 @@ describe('staff mock track record (Huy / s3)', () => {
     const h = earningsHistory();
     expect(h).toHaveLength(6);
     expect(h[h.length - 1].label).toBe('Jun');
-    expect(h[h.length - 1].takeHome).toBe(h[h.length - 1].base + h[h.length - 1].commission + h[h.length - 1].bonus);
+    const last = h[h.length - 1];
+    expect(last.takeHome).toBe(last.base + (last.gig ?? 0) + last.commission + last.bonus);
   });
 });
 

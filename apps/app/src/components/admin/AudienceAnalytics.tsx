@@ -2,6 +2,17 @@ import { Donut } from './Donut';
 import { MiniBars } from './MiniBars';
 import { USER_KPIS, USER_STATS, DAU_SERIES, RETENTION, FUNNEL, type DauPoint, type UserKpi } from '@/data/adminMock';
 
+/**
+ * DEMO DATA — and labelled as such in the UI, deliberately.
+ *
+ * Everything else on this page is now real (see analytics.server.ts). This panel cannot be: DAU/WAU,
+ * retention cohorts and the activation funnel need a product-events pipeline, and no such table exists
+ * — the only *_events table in the schema is broadcast_events, which tracks broadcast delivery, not
+ * sessions. Deriving "DAU" from, say, orders.created_at would be inventing a metric and dressing it as
+ * measured, which is exactly the failure mode the rest of this cleanup removed.
+ *
+ * So it stays mock and says so. When an events source lands, make it real and drop the badge.
+ */
 export function AudienceAnalytics() {
   const u = USER_STATS;
   const nrSegs = [
@@ -12,9 +23,13 @@ export function AudienceAnalytics() {
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
-        <i className="ph-bold ph-users text-primary" />
+        <i className="ph-bold ph-users text-primary" aria-hidden />
         <h2 className="display text-lg font-bold tracking-tight">Audience</h2>
         <span className="text-xs text-muted-foreground">user growth &amp; engagement</span>
+        <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/5 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
+          title="DAU, retention and funnel need a product-events pipeline, which this system doesn't have yet. Every other figure on this page is real.">
+          <i className="ph-bold ph-flask" aria-hidden />Demo data
+        </span>
       </div>
 
       {/* user KPI tiles */}
@@ -26,7 +41,7 @@ export function AudienceAnalytics() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-pulse text-primary" /> Active users</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-pulse text-primary" aria-hidden /> Active users</p>
             <div className="flex gap-4 text-xs">
               <span><span className="text-muted-foreground">DAU</span> <b>{u.dau.toLocaleString('en-US')}</b></span>
               <span><span className="text-muted-foreground">WAU</span> <b>{u.wau.toLocaleString('en-US')}</b></span>
@@ -38,7 +53,7 @@ export function AudienceAnalytics() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-switch text-primary" /> New vs returning</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-user-switch text-primary" aria-hidden /> New vs returning</p>
           <div className="flex items-center gap-4">
             <Donut segs={nrSegs} centerValue={`${u.returningPct}%`} centerLabel="returning" size={116} />
             <div className="space-y-1.5 text-xs">
@@ -60,7 +75,7 @@ export function AudienceAnalytics() {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-arrows-clockwise text-primary" /> Retention curve</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-arrows-clockwise text-primary" aria-hidden /> Retention curve</p>
             <p className="text-xs text-muted-foreground">D30 <span className="font-semibold text-foreground">{u.retention30}%</span> · churn {u.churn30}%</p>
           </div>
           <div className="flex items-end justify-between gap-2" style={{ height: 150 }}>
@@ -75,7 +90,7 @@ export function AudienceAnalytics() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-funnel text-primary" /> Conversion funnel</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-funnel text-primary" aria-hidden /> Conversion funnel</p>
           <div className="space-y-2.5">
             {FUNNEL.map((f, i) => {
               const pct = Math.round((f.value / FUNNEL[0].value) * 100);
@@ -108,7 +123,7 @@ function UserTile({ kpi }: { kpi: UserKpi }) {
           <p className="text-xs font-semibold text-muted-foreground">{kpi.label}</p>
           <p className="display mt-1 text-2xl font-bold tracking-tight">{kpi.value}</p>
         </div>
-        <i className={`ph-bold ${kpi.icon} text-lg text-primary`} />
+        <i className={`ph-bold ${kpi.icon} text-lg text-primary`} aria-hidden />
       </div>
       <div className="mt-auto flex items-end justify-between gap-2 pt-2">
         <MiniBars data={kpi.trend} />

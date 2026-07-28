@@ -15,7 +15,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
   return (
     <aside
       id="sidebar"
-      className={`flex w-52 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl${open ? ' open' : ''}`}
+      className={`flex w-48 shrink-0 flex-col border-r border-border bg-card/80 backdrop-blur-xl${open ? ' open' : ''}`}
     >
       <div className="flex h-[68px] items-center gap-2 border-b border-border px-4">
         <Logo />
@@ -24,7 +24,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
           aria-label="Close menu"
           className="ml-auto grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-accent lg:hidden"
         >
-          <i className="ph-bold ph-x" />
+          <i className="ph-bold ph-x" aria-hidden />
         </button>
       </div>
 
@@ -44,7 +44,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                   onClick={onClose}
                   className={`nav-item${active ? ' active' : ''}`}
                 >
-                  <i className={`ph-bold ${item.icon}`} /> {item.label}
+                  <i className={`ph-bold ${item.icon}`} aria-hidden /> {item.label}
                   {item.badge && (
                     <span className="ml-auto rounded-full bg-primary/15 px-1.5 text-[10px] font-bold text-primary">
                       {item.badge}

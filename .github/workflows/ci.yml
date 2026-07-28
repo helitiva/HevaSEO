@@ -1,0 +1,171 @@
+name: ci
+
+# Everything below already existed and already passed — nothing ran it.
+#
+# On 2026-07-17 a migration changed run_payroll's signature. 0320_fn_run_payroll_test.sql went red
+# immediately and stayed red for two hours, through several more commits, until someone happened to run
+# the suite by hand. 623 database tests and 405 unit tests, and the only automated check in the repo was
+# doc coverage. A test nobody runs is a comment.
+on:
+  push:
+    branches: [main, 'fix/**', 'feat/**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: types · unit · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # `packageManager` in package.json is what pins pnpm — action-setup@v4 reads it and errors with
+      # "No pnpm version is specified" without it. Keeping the version there rather than here means
+      # corepack pins the same pnpm for every contributor, not just for CI.
+      - uses: pnpm/action-setup@v4
+      # 22, not 20: package.json declares engines.node >=22, and installing under 20 warns
+      # "Unsupported engine" on every job. CI should run what the repo says it needs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Types first: it's the fastest signal and it catches the shape breaks (a fn signature change, a
+      # column added to a row type) that unit tests only notice by accident.
+      - name: typecheck
+        run: pnpm --filter @heva/app exec tsc --noEmit
+
+      - name: unit tests
+        run: pnpm --filter @heva/app exec vitest run
+
+      # The build is its own check: `next build` type-checks pages and server actions that tsc --noEmit
+      # on the app project doesn't reach the same way.
+      - name: build
+        run: pnpm --filter @heva/app build
+
+  db:
+    name: pgTAP (RLS + money functions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # This job is the one that matters most. The money lives in SECURITY DEFINER functions and RLS
+      # policies — create_order, accept_quote, run_payroll, post_staff_pay — and none of it is reachable
+      # from a unit test. These are the tests that assert a leaked quote link can't drain a wallet and
+      # that payroll can't pay twice.
+      # This also proves every migration applies cleanly to an empty database: a migration that only
+      # works against one laptop's accumulated state fails right here instead of on the next person's.
+      # (Deliberately NOT `supabase db reset` — that command wipes a real dev database, and a CI file is
+      # the first place someone copies a command from.)
+      # Only the database. The first run of this job died starting `inbucket` — the local mail catcher —
+      # because port 54324 was already taken on the runner. pgTAP talks to Postgres over psql and needs
+      # none of it: not a mail server, not the Studio UI, not the edge runtime, not analytics. Excluding
+      # them removes the port conflict *and* the reason it existed, rather than retrying until the runner
+      # happens to have a free port.
+      - name: start supabase db (applies all migrations from scratch)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
+
+      - name: pgTAP
+        run: supabase test db
+
+  e2e:
+    name: E2E (live Supabase — auth · RLS · money · payroll)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      # Node 22, not 20: the suite drives Supabase through @supabase/ssr, whose realtime-js needs a
+      # native WebSocket (Node ≥22) or it throws at client construction.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # apps/app/scripts/e2e drives the REAL stack — Auth + RLS + SECURITY DEFINER money/provisioning
+      # fns — as a browser client would, across all 5 roles: the order lifecycle, cancel-refund, the
+      # wallet invariant (balance == SUM(ledger)), payouts, penalties and idempotent payroll. It is the
+      # live twin of the pgTAP suite, and until now nothing ran it.
+      #
+      # `supabase start` on the runner's fresh volume applies migrations AND seed.sql (db.seed.enabled),
+      # so the five demo accounts (password demo1234) and the seed tenant exist for login(). Same service
+      # exclusions as the db job — the suite talks only to the Postgres/PostgREST API, never a browser or
+      # the Next app, so no mail/studio/edge/analytics containers are needed. NOT `supabase db reset`.
+      - name: start supabase (migrations + seed from scratch)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
+
+      - name: run live E2E across all 5 roles
+        run: |
+          J=$(supabase status -o json)
+          export SMOKE_URL=http://127.0.0.1:54321
+          export SMOKE_ANON=$(node -e "console.log(JSON.parse(process.argv[1]).ANON_KEY)" "$J")
+          export SMOKE_SVC=$(node -e "console.log(JSON.parse(process.argv[1]).SERVICE_ROLE_KEY)" "$J")
+          pnpm --filter @heva/app test:e2e
+
+  ui:
+    name: Playwright (UI smoke — 5 roles · RBAC · console)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # This job runs the REAL Next app in a browser. Unlike the e2e job (which talks to Postgres
+      # directly), the UI needs the app built + served with the local Supabase env, so:
+      #   supabase start (migrations + seed) → export its keys → build → serve on :4500 → Playwright.
+      # Scope: the stable smoke specs only — login across all 5 roles, RBAC bounces, per-role nav-route
+      # health, console cleanliness, surface renders. The larger journey/verify-* specs assume a pristine
+      # single-run seed and mutate as they go; they stay a local tool (`pnpm --filter @heva/app test:ui`)
+      # rather than a CI gate, so this job is a reliable green, not a flaky one.
+      - name: start supabase (migrations + seed)
+        run: supabase start -x studio,inbucket,imgproxy,edge-runtime,functions,analytics,vector
+
+      - name: export local Supabase env for the app
+        run: |
+          J=$(supabase status -o json)
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(node -e "console.log(JSON.parse(process.argv[1]).ANON_KEY)" "$J")" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(node -e "console.log(JSON.parse(process.argv[1]).SERVICE_ROLE_KEY)" "$J")" >> "$GITHUB_ENV"
+          # the smoke specs stub window.grecaptcha, so any non-empty site key is fine — the widget path
+          # just needs to render.
+          echo "NEXT_PUBLIC_RECAPTCHA_SITE_KEY=ci-smoke-key" >> "$GITHUB_ENV"
+
+      - name: install playwright chromium
+        run: pnpm --filter @heva/app exec playwright install --with-deps chromium
+
+      - name: build the app
+        run: pnpm --filter @heva/app build
+
+      # One step: a backgrounded process does NOT survive into the next Actions step (each `run` is a
+      # fresh shell), so the server must be started and used in the same shell. Playwright's webServer
+      # config (reuseExistingServer) then reuses this :4500 rather than starting `next dev`.
+      - name: serve the built app + run UI smoke
+        env:
+          # The smoke drives the REAL login form against this production build with a stubbed widget;
+          # the server-side reCAPTCHA check (lib/captcha) would fail-closed without real Google keys.
+          # Test-only bypass — never set in an actual deployment.
+          RECAPTCHA_BYPASS: '1'
+        run: |
+          pnpm --filter @heva/app start &
+          APP_PID=$!
+          for i in $(seq 1 60); do curl -sf http://localhost:4500/login >/dev/null && break; sleep 2; done
+          pnpm --filter @heva/app exec playwright test auth surfaces console-sweep staff-smoke manager-smoke --reporter=line
+          RESULT=$?
+          kill $APP_PID 2>/dev/null || true
+          exit $RESULT

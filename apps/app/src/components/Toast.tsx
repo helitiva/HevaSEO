@@ -27,7 +27,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           const color = t.type === 'success' ? 'text-emerald-600' : t.type === 'error' ? 'text-rose-600' : 'text-primary';
           return (
             <div key={t.id} className="toast-in pointer-events-auto flex items-center gap-2.5 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium shadow-xl">
-              <i className={`ph-fill ${icon} text-lg ${color}`} />
+              <i className={`ph-fill ${icon} text-lg ${color}`} aria-hidden />
               {t.message}
             </div>
           );

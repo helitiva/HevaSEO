@@ -3,18 +3,35 @@ import { OrdersBoard } from '@/components/OrdersBoard';
 import { DashboardTop } from '@/components/DashboardTop';
 import { SpecialistChat } from '@/components/SpecialistChat';
 import { QuickOrderButton } from '@/components/QuickOrderButton';
+import { DeliveredReview } from '@/components/DeliveredReview';
 import { ACTIVITY } from '@/data/mock';
+import { getMyOrders, getMyDeliveredOrders } from '@/data/orders.server';
+import { getMyActivity } from '@/data/activity.server';
+import { getMyProjects } from '@/data/projects.server';
+import { getServerSession } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Overview' };
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [orders, delivered, realActivity, projects, session] = await Promise.all([
+    getMyOrders(), getMyDeliveredOrders(), getMyActivity(), getMyProjects(), getServerSession(),
+  ]); // RLS-scoped
+  const activity = realActivity.length ? realActivity : ACTIVITY; // real feed; mock only when there's none yet
+  const activeProjects = projects.filter((p) => !p.archived && p.status !== 'completed').length; // in-flight
+
   return (
     <>
-      <DashboardTop />
+      <DashboardTop realOrders={orders} today={new Date().toISOString()} name={session?.name} activeProjects={activeProjects} />
+
+      {delivered.length > 0 && (
+        <section className="mt-5">
+          <DeliveredReview orders={delivered} />
+        </section>
+      )}
 
       {/* ORDERS */}
       <section className="mt-5">
-        <OrdersBoard />
+        <OrdersBoard orders={orders} />
       </section>
 
       {/* ACTIVITY + SPECIALIST */}
@@ -25,7 +42,7 @@ export default function DashboardPage() {
             <button className="text-xs font-semibold text-primary hover:underline">All</button>
           </div>
           <div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            {ACTIVITY.map((a, i) => (
+            {activity.map((a, i) => (
               <div key={i} className="flex gap-3">
                 <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground"><i className={`ph-bold ${a.icon}`} /></span>
                 <div>
@@ -49,7 +66,7 @@ export default function DashboardPage() {
           <SpecialistChat className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90" />
           <div className="mt-3 grid gap-2">
             <QuickOrderButton label="Create new order" icon="ph-plus text-primary" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent" />
-            <Link href="/credit" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" /> Top up credits</Link>
+            <Link href="/credit" className="flex items-center gap-2 rounded-lg border border-border py-2 pl-3 text-sm font-medium transition hover:bg-accent"><i className="ph-bold ph-wallet text-primary" aria-hidden /> Top up credits</Link>
           </div>
         </div>
       </section>

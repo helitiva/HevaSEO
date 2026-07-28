@@ -2,6 +2,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { NotificationsClient } from './NotificationsClient';
 import { STAFF_NOTIFICATIONS } from '@/data/staffMock';
 
+export const metadata = { title: 'Notifications' };
+
 export default function NotificationsPage() {
   return (
     <section>

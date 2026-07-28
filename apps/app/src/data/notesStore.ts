@@ -1,60 +1,72 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
-import { SEED_NOTES, type StaffNote } from './staffNotes';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { type StaffNote } from './staffNotes';
+import { getMyNotesAction, upsertNoteAction, deleteNoteAction } from './notes.actions';
 
-// One source of truth for notes shared by the list, the modal, and the full-page routes.
-// Backed by localStorage so edits persist across navigation and stay in sync between surfaces
-// (a real app would use a server + query cache; this is the Phase-0 mock equivalent).
-//
-// The notebook is PRIVATE per surface: the manager portal (/manager/notes) keeps its own
-// notes, separate from the staff portal, by namespacing the storage key on the URL area.
+// DB-backed notebook (RLS + owner-scoped upsert/delete fns). One source of truth shared by the list,
+// the modal and the full-page routes; the {notes, ready, mutate} API is unchanged so callers don't move.
+// The notebook is PRIVATE per surface (staff / manager / admin / customer), matched to the URL area.
 const EVT = 'heva:notes-changed';
 
-function notesKey(): string {
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/manager')) {
-    return 'heva:manager:notes:v1';
-  }
-  return 'heva:staff:notes:v1';
-}
-
-function read(): StaffNote[] {
-  if (typeof window === 'undefined') return SEED_NOTES;
-  try {
-    const raw = window.localStorage.getItem(notesKey());
-    return raw ? (JSON.parse(raw) as StaffNote[]) : SEED_NOTES;
-  } catch {
-    return SEED_NOTES;
-  }
-}
-
-function write(notes: StaffNote[]): void {
-  try { window.localStorage.setItem(notesKey(), JSON.stringify(notes)); } catch { /* quota / private mode — ignore */ }
-  window.dispatchEvent(new Event(EVT)); // notify other hook instances in this tab
+function surfaceFor(): string {
+  const p = typeof window !== 'undefined' ? window.location.pathname : '';
+  if (p.startsWith('/admin')) return 'admin';
+  if (p.startsWith('/manager')) return 'manager';
+  if (p.startsWith('/staff')) return 'staff';
+  return 'customer';
 }
 
 export function useNotes() {
-  const [notes, setNotes] = useState<StaffNote[]>(SEED_NOTES); // SSR-safe seed; hydrated on mount
+  const [notes, setNotes] = useState<StaffNote[]>([]);
   const [ready, setReady] = useState(false);
+  /** Last write failure, for the UI to show. Null while everything has saved. */
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<StaffNote[]>([]);
+  ref.current = notes;
+  const surface = typeof window !== 'undefined' ? surfaceFor() : 'customer';
 
   useEffect(() => {
-    setNotes(read());
-    setReady(true);
-    const sync = () => setNotes(read());
-    window.addEventListener(EVT, sync);          // same-tab updates
-    window.addEventListener('storage', sync);    // other-tab updates
-    return () => {
-      window.removeEventListener(EVT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+    let alive = true;
+    const load = () => { void getMyNotesAction(surface).then((xs) => { if (alive) { setNotes(xs); setReady(true); } }); };
+    load();
+    window.addEventListener(EVT, load);           // same-tab updates from other hook instances
+    return () => { alive = false; window.removeEventListener(EVT, load); };
+  }, [surface]);
 
+  /**
+   * Apply the transform optimistically, then reconcile with the DB — and ROLL BACK if the DB says no.
+   *
+   * This used to be `void Promise.all(ops).then(() => dispatch)`: no result check, no .catch. Both
+   * actions return {ok, error} and both were discarded, so a rejected write was an unhandled rejection
+   * and the note stayed on screen looking saved. The user found out on the next reload, when their
+   * writing was simply gone. Optimistic UI without rollback isn't optimistic, it's dishonest.
+   */
   const mutate = useCallback((fn: (xs: StaffNote[]) => StaffNote[]) => {
-    const next = fn(read());
-    write(next);
+    const prev = ref.current;
+    const next = fn(prev);
     setNotes(next);
+    setError(null);
+    const prevById = new Map(prev.map((n) => [n.id, n]));
+    const nextIds = new Set(next.map((n) => n.id));
+    const ops: Promise<{ ok: boolean; error?: string }>[] = [];
+    for (const n of next) {
+      const before = prevById.get(n.id);
+      if (!before || JSON.stringify(before) !== JSON.stringify(n)) ops.push(upsertNoteAction(surfaceFor(), n));
+    }
+    for (const p of prev) if (!nextIds.has(p.id)) ops.push(deleteNoteAction(p.id));
+    if (!ops.length) return;
+
+    const undo = (msg: string) => { setNotes(prev); ref.current = prev; setError(msg); };
+    void Promise.all(ops)
+      .then((results) => {
+        const failed = results.find((r) => !r.ok);
+        if (failed) { undo(failed.error ?? 'Could not save — your change was undone.'); return; }
+        window.dispatchEvent(new Event(EVT));
+      })
+      .catch((e: unknown) => undo(e instanceof Error ? e.message : 'Could not save — your change was undone.'));
   }, []);
 
-  return { notes, ready, mutate };
+  return { notes, ready, mutate, error, clearError: () => setError(null) };
 }
 
 // Single-note lookup that stays reactive to store changes.

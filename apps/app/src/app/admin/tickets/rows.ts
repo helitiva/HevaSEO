@@ -4,10 +4,17 @@ import {
 } from '@/data/adminMock';
 
 // Fixed "now" so the mock SLA math is deterministic in the demo.
-const NOW = new Date('2026-06-25T14:00:00');
-const TODAY = new Date('2026-06-25T00:00:00');
-const hoursSince = (iso: string) => (NOW.getTime() - new Date(iso).getTime()) / 3_600_000;
-const daysSince = (iso: string) => Math.round((TODAY.getTime() - new Date(iso).getTime()) / 86_400_000);
+/**
+ * Real clock. Was mockTodayAt('14:00') / mockTodayDate() — 2026-06-24 — against real tickets: `waited`
+ * went negative, so `slaLeft = 24 − (−550) ≈ 574` and `breached` was always false. The "Breaching SLA"
+ * KPI sat at 0 and rows advertised "574h left". Latent only because there are no tickets yet.
+ *
+ * Server-only (both callers are server pages).
+ */
+const NOW = () => new Date();
+const TODAY = () => new Date();
+const hoursSince = (iso: string) => (NOW().getTime() - new Date(iso).getTime()) / 3_600_000;
+const daysSince = (iso: string) => Math.round((TODAY().getTime() - new Date(iso).getTime()) / 86_400_000);
 const PRI_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
 const STATUS_RANK: Record<string, number> = { open: 0, pending: 1, resolved: 2, closed: 3 };
 

@@ -65,8 +65,8 @@ describe('buildStaffInsight', () => {
       // score breakdown reconciles to the headline composite
       const sum = insight.breakdown.segments.reduce((a, seg) => a + seg.points, 0);
       expect(Math.abs(sum - s.composite)).toBeLessThanOrEqual(1);
-      // pay: total due = base + commission + bonus
-      expect(insight.payroll.due).toBe(insight.payroll.base + insight.payroll.commission + insight.payroll.bonus);
+      // pay: total due = base + gig + commission + bonus
+      expect(insight.payroll.due).toBe(insight.payroll.base + insight.payroll.gig + insight.payroll.commission + insight.payroll.bonus);
       // rank is within the team
       expect(insight.rank!.rank).toBeGreaterThanOrEqual(1);
       expect(insight.rank!.rank).toBeLessThanOrEqual(STAFF.length);

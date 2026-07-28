@@ -30,7 +30,7 @@ const fmtShort = (iso: string) => `${Number(iso.slice(8))} ${MONTHS[Number(iso.s
 const initialsOf = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 const hueOf = (name: string) => { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 
-export function TaskDetailPanel({ task: t, today }: { task: PanelTask; today: string }) {
+export function TaskDetailPanel({ task: t, today, client: clientProp }: { task: PanelTask; today: string; client?: ClientSummary }) {
   const meta = serviceMeta(t.service);
   const done = DONE.has(t.status);
   const deadline = t.deadline;
@@ -38,7 +38,8 @@ export function TaskDetailPanel({ task: t, today }: { task: PanelTask; today: st
   const span = start && deadline ? Math.max(1, diffD(start, deadline) + 1) : null;
   const overdue = !done && !!deadline && deadline < today;
   const sla = !done && deadline ? slaChip(daysToDue(deadline, today)) : null;
-  const client = clientSummary(t.customer);
+  // Real client dossier passed in (tasks board); the mock summary is only the fallback (calendar).
+  const client = clientProp ?? clientSummary(t.customer);
   return (
     <div className="space-y-4">
       {/* task summary */}

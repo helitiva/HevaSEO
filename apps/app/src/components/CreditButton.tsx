@@ -17,7 +17,7 @@ export function CreditButton() {
         aria-label="Top up credits"
         className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold transition hover:border-primary/50 hover:bg-accent sm:flex"
       >
-        <i className="ph-bold ph-wallet text-primary" /> ${balance.toLocaleString('en-US')}
+        <i className="ph-bold ph-wallet text-primary" aria-hidden /> ${balance.toLocaleString('en-US')}
       </button>
 
       {open && (

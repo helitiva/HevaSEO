@@ -8,6 +8,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
     { label: 'Assignment', href: '/admin/assignment', icon: 'ph-flow-arrow' },
     { label: 'Review', href: '/admin/review', icon: 'ph-seal-check' },
     { label: 'Tickets', href: '/admin/tickets', icon: 'ph-lifebuoy' },
+    { label: 'Broadcasts', href: '/admin/broadcasts', icon: 'ph-megaphone' },
   ]},
   { title: 'People', items: [
     { label: 'Customers', href: '/admin/customers', icon: 'ph-users' },
@@ -17,7 +18,12 @@ export const ADMIN_NAV: AdminNavSection[] = [
   { title: 'Business', items: [
     { label: 'Finance', href: '/admin/finance', icon: 'ph-wallet' },
     { label: 'Catalog', href: '/admin/catalog', icon: 'ph-tag' },
+    { label: 'Affiliates', href: '/admin/affiliate', icon: 'ph-megaphone' },
     { label: 'Analytics', href: '/admin/analytics', icon: 'ph-chart-line-up' },
+  ]},
+  { title: 'Knowledge', items: [
+    { label: 'Docs', href: '/admin/docs', icon: 'ph-books' },
+    { label: 'Notes', href: '/admin/notes', icon: 'ph-note-pencil' },
   ]},
   { title: 'System', items: [
     { label: 'Audit log', href: '/admin/audit', icon: 'ph-scroll' },

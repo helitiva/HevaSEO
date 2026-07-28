@@ -1,0 +1,21 @@
+name: doc-coverage
+
+# Fails only on NEW code↔docs drift (vs scripts/crawl/doc-coverage.baseline.json):
+# a route or exported behavior added without a mention in docs/FEATURES.md. Accept
+# intentional gaps with `pnpm doc-coverage:accept` (re-snapshots the baseline).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  doc-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Scripts use only Node builtins — no install step needed.
+      - name: Check doc coverage
+        run: node scripts/crawl/manifest.mjs && node scripts/crawl/doc-coverage.mjs --ci

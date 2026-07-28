@@ -1,26 +1,22 @@
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DocsClient } from './DocsClient';
-import { docsForStaff } from '@/data/staffDocs';
-import { STAFF, SKILL_META } from '@/data/adminMock';
+import { DocsLibrary } from '@/components/docs/DocsLibrary';
+import { STAFF } from '@/data/adminMock';
 import { currentStaffId } from '@/lib/currentStaff';
+import { getDocs } from '@/data/docs.server';
 
-// Knowledge base. Admin/managers publish technical docs; each staffer sees ONLY the docs for
-// their specialty (+ general). The skill-scoping happens in docsForStaff — a backlink writer
-// never receives content docs here.
+export const metadata = { title: 'Docs' };
+
+// Knowledge base. Admin publishes docs to chosen audiences; each staffer sees ONLY the docs for their
+// specialty (+ general). The skill-scoping is enforced by RLS server-side (Lane C inc-C2: getDocs reads
+// the docs table gated by the JWT `skills` claim) — a backlink writer never receives keyword docs here.
+// `skills` is still passed for the banner chips (cosmetic; matches the same staff_details seed).
 export default async function DocsPage() {
-  const sid = await currentStaffId();
+  const [sid, docs] = await Promise.all([currentStaffId(), getDocs()]);
   const me = STAFF.find((s) => s.id === sid);
-  const skills = me?.skills ?? [];
-  const docs = docsForStaff(skills);
-  const skillChips = skills.map((k) => ({ key: k, ...SKILL_META[k] }));
-
   return (
     <section>
-      <PageHeader
-        title="Docs"
-        subtitle="Technical docs published for your specialty — read-only"
-      />
-      <DocsClient docs={docs} skillChips={skillChips} />
+      <PageHeader title="Docs" subtitle="Technical docs published for your specialty — read-only" />
+      <DocsLibrary audience="staff" skills={me?.skills ?? []} docs={docs} />
     </section>
   );
 }

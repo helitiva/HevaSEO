@@ -2,8 +2,22 @@
 export type OrderStatus = 'new'|'confirmed'|'assigned'|'in_progress'|'internal_review'|'delivered'|'changes_requested'|'approved'|'completed'|'canceled';
 export type Priority = 'low'|'med'|'high';
 
+/** The mock's "now". Orders/deliverables cluster here; single source for date math. */
+export { MOCK_TODAY } from '@/lib/today';
+/** Order statuses that still consume a delivery slot (not terminal). */
+export const ACTIVE_ORDER_STATUS: ReadonlySet<OrderStatus> = new Set([
+  'assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered',
+]);
+
 export interface AdminOrder {
   id: string; code: string; customer: string; service: string; pkg: string;
+  /**
+   * The customer's real id. Optional because the mock ORDERS below have none — and that absence is the
+   * point: joining a real order to customer facts by COMPANY NAME (customerByCompany) silently matched
+   * real "Nova"/"Vértice"/"Peak Digital"/"Lumen" against the mock customers of the same name. Join on
+   * this instead.
+   */
+  customerId?: string | null;
   status: OrderStatus; priority: Priority; source: 'quick'|'dashboard';
   value: number; staff: string | null; deadline: string | null; created: string;
 }
@@ -31,7 +45,7 @@ export type TicketType = 'technical'|'billing'|'consultation';
 export type TicketChannel = 'portal'|'whatsapp'|'messenger'|'email';
 export type TicketStatus = 'open'|'pending'|'resolved'|'closed';
 export type SlaTier = 'urgent'|'standard';
-export interface TicketMessage { from: 'customer'|'staff'; author: string; text: string; at: string; }
+export interface TicketMessage { from: 'customer'|'staff'; author: string; text: string; at: string; attachments?: import('@/data/mock').MessageAttachment[]; }
 export interface AdminTicket {
   id: string; code: string; subject: string;
   customer: string; customerId: string | null;
@@ -102,12 +116,36 @@ export const ORDERS: AdminOrder[] = [
   { id: 'o38', code: 'CNT-1038', customer: 'Lumen', service: 'Content', pkg: '5 articles', status: 'approved', priority: 'med', source: 'dashboard', value: 60, staff: 'Huy N.', deadline: '2026-06-23', created: '2026-06-16' },
 ];
 
+// When each assigned order was routed to a staffer. Derived deterministically from `created` (a
+// stand-in for a real assigned_at column) so the manager-performance "time-to-assign" signal has a
+// gap to measure: how quickly the owning manager routes incoming work. Unassigned orders are absent.
+export const ORDER_ASSIGNED_AT: Record<string, string> = Object.fromEntries(
+  ORDERS.filter((o) => o.staff !== null).map((o) => {
+    // Stable 0–2 day routing lag keyed off the order id, capped at the deadline.
+    const lag = (o.id.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)) % 3;
+    const at = new Date(`${o.created}T00:00:00Z`);
+    at.setUTCDate(at.getUTCDate() + lag);
+    return [o.id, at.toISOString().slice(0, 10)] as const;
+  }),
+);
+
 // ---- Deliverable Review (module 4): versioned submissions per order ----
+export interface DeliverableAsset { kind: 'file' | 'link'; fileName: string | null; url: string | null }
 export interface AdminDeliverable {
   id: string; orderId: string; version: number; kind: 'file' | 'link';
   fileName: string | null; url: string | null; note: string; staff: string;
   status: 'submitted' | 'approved' | 'changes_requested';
   submittedAt: string; reviewedAt: string | null; reviewNote: string | null;
+  files?: DeliverableAsset[]; // all attached assets (file(s) + link(s)); kind/fileName/url mirror files[0]. Optional on legacy mock rows.
+  viewedAt?: string | null; // when the customer first opened the delivered work (null = not yet viewed)
+  editCount?: number; // staff-only: how many times this version was corrected in place before the customer viewed it
+}
+
+/** All assets on a deliverable — real rows carry `files`; legacy/mock rows synthesize one from kind/fileName/url. */
+export function deliverableAssets(d: AdminDeliverable): DeliverableAsset[] {
+  if (d.files && d.files.length) return d.files;
+  if (d.url || d.fileName) return [{ kind: d.kind, fileName: d.fileName, url: d.url }];
+  return [];
 }
 export const DELIVERABLES: AdminDeliverable[] = [
   // CNT-1004 — re-submission (v1 was sent back, v2 awaiting review)
@@ -359,8 +397,9 @@ export const STAFF: AdminStaff[] = [
 // the manager-tier admin accounts; see ADMIN_SETTINGS.admins.)
 export interface AdminManager { id: string; name: string; email: string; title: string; rank: string; skills: string[]; }
 export const MANAGERS: AdminManager[] = [
-  { id: 'mgr1', name: 'Sofia Marin', email: 'sofia@hevaseo.com', title: 'Operations Manager', rank: 'Senior Manager', skills: ['keyword', 'backlink'] },
-  { id: 'mgr2', name: 'Ken Rivera',  email: 'ken@hevaseo.com',   title: 'Delivery Manager',   rank: 'Lead Manager',   skills: ['content', 'optimize'] },
+  { id: 'mgr1', name: 'Sofia Marin',   email: 'sofia@hevaseo.com', title: 'Operations Manager',          rank: 'Senior Manager', skills: ['keyword', 'backlink'] },
+  { id: 'mgr2', name: 'Ken Rivera',    email: 'ken@hevaseo.com',   title: 'Delivery Manager',            rank: 'Lead Manager',   skills: ['content', 'optimize'] },
+  { id: 'mgr3', name: 'Nadia Okonkwo', email: 'nadia@hevaseo.com', title: 'Quality & Analytics Manager', rank: 'Manager',        skills: ['optimize', 'keyword'] },
 ];
 // Account-level note about a client / their project, shown to whoever works their orders.
 export const CLIENT_NOTE: Record<string, string> = {
@@ -373,8 +412,9 @@ export const CLIENT_NOTE: Record<string, string> = {
 };
 // Which manager owns which staff member (staff id → manager id).
 export const STAFF_MANAGER: Record<string, string> = {
-  s1: 'mgr1', s2: 'mgr1', s5: 'mgr1',  // Sofia — search & links pod
-  s3: 'mgr2', s4: 'mgr2', s6: 'mgr2',  // Ken — content & optimization pod
+  s1: 'mgr1', s2: 'mgr1',  // Sofia — search & links pod
+  s3: 'mgr2', s4: 'mgr2',  // Ken — content pod
+  s5: 'mgr3', s6: 'mgr3',  // Nadia — analytics & quality pod (Tom is paused)
 };
 export const managerOf = (staffId: string): AdminManager | null =>
   MANAGERS.find((m) => m.id === STAFF_MANAGER[staffId]) ?? null;
@@ -787,15 +827,19 @@ export const INVOICES: Invoice[] = [
   { id: 'inv8', code: 'INV-2035', customer: 'Peak Digital', customerId: 'c5', issued: '2026-05-25', due: '2026-06-09', amount: 79, status: 'paid', orderCodes: ['KW-1007'] },
 ];
 
-// Staff payroll — fixed monthly salary + commission on billable (delivered+)
-// work + an admin-entered bonus. Total due = base + commission + bonus.
+// Staff payroll — fixed monthly salary + GIG PAY (a flat piece-rate per delivered gig, by
+// service) + commission on billable work + an admin-entered bonus.
+// Total due = base + gig + commission + bonus.
 export interface Payout {
   staffId: string; staff: string; role: string; active: boolean;
   completedOrders: number; basis: number; rate: number;
   base: number;        // fixed monthly salary
+  gigUnits: number;    // count of billable gigs delivered
+  gig: number;         // sum of GIG_RATE[service] over those gigs (piece-rate pay)
+  gigCounts: { service: string; pkg: string; count: number }[]; // billable gigs grouped by service+package
   commission: number;  // round(basis × rate)
   bonus: number;       // admin-entered, 0 by default
-  due: number;         // base + commission + bonus
+  due: number;         // base + gig + commission + bonus
   lastPaidAt: string | null;
 }
 export const PAYABLE_STATES: OrderStatus[] = ['delivered', 'internal_review', 'approved', 'completed'];
@@ -808,17 +852,78 @@ export const BASE_SALARY: Record<string, number> = {
   'Senior SEO Specialist': 1200, 'Backlink Specialist': 950, 'Content Lead': 1300,
   'Content Specialist': 900, 'SEO Analyst': 900, 'Link Builder': 700,
 };
+// Gig pay — a flat amount a staffer earns for each delivered gig, by service. Piece-rate on
+// top of salary (e.g. a backlink package pays $5, a content gig $3, an audit $2). Keyed by the
+// order's `service`; an unlisted service pays the default. Editable per service in the future.
+export const GIG_RATE: Record<string, number> = {
+  Backlink: 5, Content: 3, Keyword: 4, Optimization: 4, Audit: 2, Indexer: 2, 'Web Design': 8,
+};
+export const GIG_RATE_DEFAULT = 3;
+export const gigRateFor = (service: string): number => GIG_RATE[service] ?? GIG_RATE_DEFAULT;
+// Every distinct (service, package) combination that exists in the order data — the catalog of
+// gigs an admin can price individually in the "advanced" per-package pay mode. Derived from the
+// orders so package names match exactly what gigs are tagged with.
+export const GIG_PACKAGES: { service: string; pkg: string }[] = Object.values(
+  ORDERS.reduce<Record<string, { service: string; pkg: string }>>((m, o) => {
+    const k = `${o.service}::${o.pkg}`;
+    if (!m[k]) m[k] = { service: o.service, pkg: o.pkg };
+    return m;
+  }, {}),
+).sort((a, b) => a.service.localeCompare(b.service) || a.pkg.localeCompare(b.pkg));
 export const PAYOUTS: Payout[] = STAFF.map((s) => {
   const work = ORDERS.filter((o) => o.staff === s.name && PAYABLE_STATES.includes(o.status));
   const basis = work.reduce((a, o) => a + o.value, 0);
+  const gig = work.reduce((a, o) => a + gigRateFor(o.service), 0);
+  const gigCounts = Object.values(
+    work.reduce<Record<string, { service: string; pkg: string; count: number }>>((m, o) => {
+      const k = `${o.service}::${o.pkg}`;
+      if (!m[k]) m[k] = { service: o.service, pkg: o.pkg, count: 0 };
+      m[k].count += 1; return m;
+    }, {}),
+  ).sort((a, b) => b.count - a.count);
   const rate = PAYOUT_RATE[s.role] ?? 0.28;
   const base = BASE_SALARY[s.role] ?? 800;
   const commission = Math.round(basis * rate);
   const bonus = 0;
   return {
     staffId: s.id, staff: s.name, role: s.role, active: s.active,
-    completedOrders: work.length, basis, rate, base, commission, bonus,
-    due: base + commission + bonus, lastPaidAt: '2026-06-05',
+    completedOrders: work.length, basis, rate, base, gigUnits: work.length, gig, gigCounts, commission, bonus,
+    due: base + gig + commission + bonus, lastPaidAt: '2026-06-05',
+  };
+});
+
+// Manager payroll — fixed salary + commission on the value of orders their POD handles,
+// plus a bonus that is a % of the bonuses the admin awards their pod's staff (so a manager
+// shares in the upside they coach their team to). Total due = base + commission + bonus,
+// where bonus is computed live in the UI from the current staff bonuses.
+export interface ManagerPayout {
+  managerId: string; manager: string; title: string; rank: string;
+  podStaff: number;        // headcount in the pod
+  podGig: number;          // total gig pay earned by the pod's staff (override basis)
+  podCommission: number;   // total commission earned by the pod's staff (override basis)
+  gigPct: number;          // fraction of the pod's gig pay paid to the manager
+  commPct: number;         // fraction of the pod's commission paid to the manager
+  commission: number;      // round(podGig × gigPct + podCommission × commPct) — the manager's override
+  base: number;            // fixed monthly salary
+  due: number;             // base + commission
+  lastPaidAt: string | null;
+}
+export const MANAGER_BASE_SALARY: Record<string, number> = { 'Senior Manager': 1800, 'Lead Manager': 1600 };
+// A manager earns an OVERRIDE on what their pod's STAFF earn: a % of the pod's gig pay and a % of
+// the pod's commission. Not tied to order value, and managers have NO KPI/delivery bonus.
+export const MANAGER_GIG_PCT = 0.10;  // 10% of the pod's gig pay
+export const MANAGER_COMM_PCT = 0.15; // 15% of the pod's commission
+export const MANAGER_PAYOUTS: ManagerPayout[] = MANAGERS.map((m) => {
+  const podPayouts = PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === m.id);
+  const podGig = podPayouts.reduce((a, p) => a + p.gig, 0);
+  const podCommission = podPayouts.reduce((a, p) => a + p.commission, 0);
+  const commission = Math.round(podGig * MANAGER_GIG_PCT + podCommission * MANAGER_COMM_PCT);
+  const base = MANAGER_BASE_SALARY[m.rank] ?? 1500;
+  return {
+    managerId: m.id, manager: m.name, title: m.title, rank: m.rank,
+    podStaff: podPayouts.length, podGig, podCommission,
+    gigPct: MANAGER_GIG_PCT, commPct: MANAGER_COMM_PCT,
+    commission, base, due: base + commission, lastPaidAt: '2026-06-05',
   };
 });
 
@@ -841,7 +946,7 @@ export const FINANCE = {
   netMtd: REVENUE_ANALYTICS.netMtd,
   refundsMtd: REVENUE_ANALYTICS.refundsMtd,
   walletLiability: CUSTOMERS.reduce((a, c) => a + c.balance, 0),
-  payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0),
+  payoutsDue: PAYOUTS.reduce((a, p) => a + p.due, 0) + MANAGER_PAYOUTS.reduce((a, m) => a + m.due, 0),
   outstandingAr: INVOICES.filter((i) => i.status !== 'paid').reduce((a, i) => a + i.amount, 0),
 };
 
@@ -894,11 +999,14 @@ export interface LeaveRequest {
   id: string; staffId: string; staffName: string; role: string;
   from: string; to: string; days: number; reason: string;
   status: LeaveStatus; requestedAt: string;
+  // When the owning manager acted on it (null while pending). Drives the
+  // leave-decision latency in the manager-performance "responsiveness" lever.
+  decidedAt: string | null;
 }
 export const LEAVE_REQUESTS: LeaveRequest[] = [
-  { id: 'lv1', staffId: 's2', staffName: 'Linh P.', role: 'Backlink Specialist', from: '2026-07-03', to: '2026-07-07', days: 5, reason: 'Family trip — planned months ago.', status: 'pending', requestedAt: '2026-06-25' },
-  { id: 'lv2', staffId: 's4', staffName: 'Diego R.', role: 'Content Specialist', from: '2026-06-30', to: '2026-06-30', days: 1, reason: 'Medical appointment in the afternoon.', status: 'pending', requestedAt: '2026-06-26' },
-  { id: 'lv3', staffId: 's5', staffName: 'Aria K.', role: 'SEO Analyst', from: '2026-07-14', to: '2026-07-18', days: 5, reason: 'Annual leave.', status: 'pending', requestedAt: '2026-06-24' },
-  { id: 'lv4', staffId: 's1', staffName: 'Mai T.', role: 'Senior SEO Specialist', from: '2026-06-19', to: '2026-06-20', days: 2, reason: 'Conference attendance.', status: 'approved', requestedAt: '2026-06-12' },
-  { id: 'lv5', staffId: 's6', staffName: 'Tom B.', role: 'Link Builder', from: '2026-06-10', to: '2026-06-14', days: 5, reason: 'Personal time.', status: 'declined', requestedAt: '2026-06-02' },
+  { id: 'lv1', staffId: 's2', staffName: 'Linh P.', role: 'Backlink Specialist', from: '2026-07-03', to: '2026-07-07', days: 5, reason: 'Family trip — planned months ago.', status: 'pending', requestedAt: '2026-06-25', decidedAt: null },
+  { id: 'lv2', staffId: 's4', staffName: 'Diego R.', role: 'Content Specialist', from: '2026-06-30', to: '2026-06-30', days: 1, reason: 'Medical appointment in the afternoon.', status: 'pending', requestedAt: '2026-06-26', decidedAt: null },
+  { id: 'lv3', staffId: 's5', staffName: 'Aria K.', role: 'SEO Analyst', from: '2026-07-14', to: '2026-07-18', days: 5, reason: 'Annual leave.', status: 'pending', requestedAt: '2026-06-24', decidedAt: null },
+  { id: 'lv4', staffId: 's1', staffName: 'Mai T.', role: 'Senior SEO Specialist', from: '2026-06-19', to: '2026-06-20', days: 2, reason: 'Conference attendance.', status: 'approved', requestedAt: '2026-06-12', decidedAt: '2026-06-13' },
+  { id: 'lv5', staffId: 's6', staffName: 'Tom B.', role: 'Link Builder', from: '2026-06-10', to: '2026-06-14', days: 5, reason: 'Personal time.', status: 'declined', requestedAt: '2026-06-02', decidedAt: '2026-06-05' },
 ];

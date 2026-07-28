@@ -4,28 +4,61 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { SlideOver } from '@/components/shared/SlideOver';
 import type { AuditEntry, AuditCategory, AuditEntity } from '@/data/adminMock';
+import { MOCK_TODAY, mockTodayAt } from '@/lib/today';
 
 type CatMeta = Record<AuditCategory, { label: string; icon: string; color: string }>;
 type EntMeta = Record<AuditEntity, { label: string; icon: string; href: string | null }>;
 interface Kpis { total: number; today: number; actors: number; destructive: number; topEntity: string }
-interface Props { events: AuditEntry[]; categoryMeta: CatMeta; entityMeta: EntMeta; kpis: Kpis }
+interface Props {
+  events: AuditEntry[]; categoryMeta: CatMeta; entityMeta: EntMeta; kpis: Kpis;
+  /** 'today' on the caller's clock — real (UTC) for admin, MOCK_TODAY for the mock manager view. */
+  today: string;
+  /** true when these rows come from audit_log. Gates the controls real data can never satisfy. */
+  isReal: boolean;
+}
 
-const TODAY = '2026-06-24';
-const NOW = new Date('2026-06-24T09:30:00');
-const dayLabel = (d: string) => (d === TODAY ? 'Today' : d === '2026-06-23' ? 'Yesterday' : new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+// The clock is a parameter now, not a module constant. It was `mockTodayAt('09:30')` — fine while every
+// row was mock and dated 2026-06-24, fatally wrong against real rows dated now: every `mins` came out
+// NEGATIVE, hit the `< 1` branch, and the whole log rendered "just now".
 const initials = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase();
-const rel = (at: string) => {
-  const mins = Math.round((NOW.getTime() - new Date(at.replace(' ', 'T')).getTime()) / 60000);
+const dayOf = (today: string) => (d: string) => {
+  if (d === today) return 'Today';
+  const y = new Date(`${today}T00:00:00Z`); y.setUTCDate(y.getUTCDate() - 1);
+  if (d === y.toISOString().slice(0, 10)) return 'Yesterday';
+  return new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+const relTo = (now: Date) => (at: string) => {
+  const mins = Math.round((now.getTime() - new Date(`${at.replace(' ', 'T')}:00Z`).getTime()) / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   const h = Math.floor(mins / 60); if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 };
 const isOffHours = (at: string) => { const hh = +at.slice(11, 13); return hh < 8 || hh >= 20; };
-// Tamper-evident chain: each event's hash folds in the previous hash.
-function djb2(s: string): string { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(16).padStart(8, '0'); }
+// NOTE: there was a "tamper-evident hash chain" here. It was deleted, not ported, because it could not
+// ever fail: a djb2 (non-cryptographic, 32-bit) hash was folded client-side, at render, over the very
+// rows on screen. Tamper with a row and the chain is simply recomputed over the tampered row — still
+// "intact". audit_log stores no hash, so there was nothing to verify against. A green "verified" badge
+// that is true by construction is worse than no badge: it is a false assurance on the one surface whose
+// entire job is assurance.
+//
+// Doing this for real needs storage, not UI: a hash column on audit_log written by a trigger that folds
+// in the previous row's hash, and a server-side verifier that re-walks the chain. Until that exists,
+// the page says only what it can back up.
 
-export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
+export function AuditClient({ events, categoryMeta, entityMeta, kpis, today, isReal }: Props) {
+  const TODAY = today;
+  const dayLabel = dayOf(today);
+  // real rows carry a real timestamp; the mock view keeps its 09:30 vantage point so its ages read right
+  const rel = relTo(isReal ? new Date() : mockTodayAt('09:30:00'));
+  // Controls real data cannot satisfy, hidden rather than shipped broken: nothing emits field-level
+  // diffs, and no action we write maps to the destructive or auth categories — so "Field edits",
+  // "Destructive" and "Auth" would always return an empty list. A filter that can only ever say
+  // "no results" teaches the reader nothing except to distrust the page.
+  const PRESETS = ([['all', 'All', 'ph-tray'], ['today', 'Today', 'ph-calendar-dot'], ['flagged', 'Flagged', 'ph-flag'],
+    ['edits', 'Field edits', 'ph-git-diff'], ['destructive', 'Destructive', 'ph-warning-octagon'],
+    ['auth', 'Auth', 'ph-shield-check'], ['admin', 'Admin actions', 'ph-user-gear']] as const)
+    .filter(([k]) => !(isReal && (k === 'edits' || k === 'destructive' || k === 'auth')));
   const [fEntity, setFEntity] = useState(''); const [fActor, setFActor] = useState(''); const [fCat, setFCat] = useState('');
   const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [search, setSearch] = useState('');
   const [onlyDiff, setOnlyDiff] = useState(false);
@@ -33,14 +66,6 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
   const [selId, setSelId] = useState<string | null>(null);
 
   const flagged = (e: AuditEntry) => e.category === 'destructive' || e.action === 'impersonate' || (e.category === 'auth' && isOffHours(e.at));
-  // tamper-evident hash chain (computed over chronological order)
-  const chain = useMemo(() => {
-    const asc = [...events].sort((a, b) => a.at.localeCompare(b.at));
-    const m = new Map<string, { seq: number; hash: string; prev: string }>();
-    let prev = '00000000';
-    asc.forEach((e, i) => { const h = djb2(prev + e.at + e.actor + e.entity + e.action + e.change); m.set(e.id, { seq: i + 1, hash: h, prev }); prev = h; });
-    return m;
-  }, [events]);
 
   const entities = useMemo(() => [...new Set(events.map((e) => e.entity))], [events]);
   const actors = useMemo(() => [...new Set(events.map((e) => e.actor))], [events]);
@@ -127,14 +152,13 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         <div>
           <h1 className="display text-2xl font-bold tracking-tight">Audit log</h1>
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">Every state-changing action, who did it and when.
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-lock-key" />append-only</span>
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600" title="Each entry's hash folds in the previous one — any edit breaks the chain"><i className="ph-bold ph-shield-check" />chain intact · {chain.size} entries</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><i className="ph-bold ph-lock-key" aria-hidden />append-only</span>
             <span className="text-[11px]">· times UTC+0</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportCsv} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />CSV</button>
-          <button onClick={exportJson} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-brackets-curly mr-1" />JSON</button>
+          <button onClick={exportCsv} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />CSV</button>
+          <button onClick={exportJson} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-brackets-curly mr-1" aria-hidden />JSON</button>
         </div>
       </div>
 
@@ -142,19 +166,21 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         <Kpi icon="ph-calendar-check" label="Events today" value={String(kpis.today)} />
         <Kpi icon="ph-stack" label="Total events" value={String(kpis.total)} />
         <Kpi icon="ph-users" label="Active actors" value={String(kpis.actors)} />
-        <Kpi icon="ph-warning-octagon" label="Destructive" value={String(kpis.destructive)} tone={kpis.destructive ? 'warn' : undefined} />
+        {/* No real action maps to the destructive category, so against audit_log this tile is a
+            permanent 0 that reads as "nothing bad happened" rather than "we don't track that". */}
+        {!isReal && <Kpi icon="ph-warning-octagon" label="Destructive" value={String(kpis.destructive)} tone={kpis.destructive ? 'warn' : undefined} />}
         <Kpi icon="ph-trophy" label="Most-changed" value={kpis.topEntity} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
         <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          {([['all', 'All', 'ph-tray'], ['today', 'Today', 'ph-calendar-dot'], ['flagged', 'Flagged', 'ph-flag'], ['edits', 'Field edits', 'ph-git-diff'], ['destructive', 'Destructive', 'ph-warning-octagon'], ['auth', 'Auth', 'ph-shield-check'], ['admin', 'Admin actions', 'ph-user-gear']] as const).map(([k, label, icon]) => (
+          {PRESETS.map(([k, label, icon]) => (
             <button key={k} onClick={() => applyPreset(k)} className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${preset === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/50'}`}><i className={`ph-bold ${icon}`} />{label}</button>
           ))}
         </div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"><i className="ph-bold ph-magnifying-glass text-muted-foreground" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search change, entity, actor…" className="w-full bg-transparent outline-none" /></div>
+          <div className="flex min-w-[12rem] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"><i className="ph-bold ph-magnifying-glass text-muted-foreground" aria-hidden /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search change, entity, actor…" className="w-full bg-transparent outline-none" /></div>
           <select value={fEntity} onChange={(e) => setFEntity(e.target.value)} className={`${sel} capitalize`}><option value="">All entities</option>{entities.map((x) => <option key={x} value={x}>{entityMeta[x].label}</option>)}</select>
           <select value={fActor} onChange={(e) => setFActor(e.target.value)} className={sel}><option value="">All actors</option>{actors.map((x) => <option key={x} value={x}>{x}</option>)}</select>
           <select value={fCat} onChange={(e) => setFCat(e.target.value)} className={`${sel} capitalize`}><option value="">All categories</option>{cats.map((x) => <option key={x} value={x}>{categoryMeta[x].label}</option>)}</select>
@@ -176,9 +202,9 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
                       <button onClick={(ev) => { ev.stopPropagation(); setFActor(e.actor); }} title={`Filter by ${e.actor}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground transition hover:ring-2 hover:ring-primary/40">{initials(e.actor)}</button>
                       <button onClick={(ev) => { ev.stopPropagation(); setFEntity(e.entity); }} title={`Filter to ${entityMeta[e.entity].label}`} className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold transition hover:ring-2 hover:ring-primary/30" style={{ background: `${cm.color}1f`, color: cm.color }}><i className={`ph-bold ${entityMeta[e.entity].icon}`} />{entityMeta[e.entity].label}</button>
                       <span className="min-w-0 flex-1 truncate text-sm"><b className="font-medium">{e.actor}</b> <span className="text-muted-foreground">{e.change}</span></span>
-                      {flagged(e) && <i className="ph-fill ph-flag shrink-0 text-xs text-amber-500" title="Flagged — unusual action (destructive / off-hours / impersonation)" />}
-                      {e.diff && <i className="ph-bold ph-git-diff shrink-0 text-xs text-muted-foreground" title="Has field changes" />}
-                      {href && <i className="ph-bold ph-arrow-up-right shrink-0 text-xs text-muted-foreground" />}
+                      {flagged(e) && <i className="ph-fill ph-flag shrink-0 text-xs text-amber-500" title="Flagged — unusual action (destructive / off-hours / impersonation)" aria-hidden />}
+                      {e.diff && <i className="ph-bold ph-git-diff shrink-0 text-xs text-muted-foreground" title="Has field changes" aria-hidden />}
+                      {href && <i className="ph-bold ph-arrow-up-right shrink-0 text-xs text-muted-foreground" aria-hidden />}
                     </div>
                   );
                 })}
@@ -189,7 +215,7 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         </div>
 
         <aside className="rounded-2xl border border-border bg-card p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" /> Activity breakdown</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-chart-bar text-primary" aria-hidden /> Activity breakdown</p>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">By category</p>
           <div className="space-y-1.5">
             {catCounts.map(({ c, n }) => { const cm = categoryMeta[c]; return (
@@ -216,16 +242,16 @@ export function AuditClient({ events, categoryMeta, entityMeta, kpis }: Props) {
         <SlideOver open onClose={() => setSelId(null)} title={selected.entityCode ?? selected.action}>
           <EventDetail e={selected} categoryMeta={categoryMeta} entityMeta={entityMeta} related={events.filter((x) => x.entityId && x.entityId === selected.entityId && x.id !== selected.id)} onSelect={setSelId} entityHref={entityHref}
             onActor={() => { setSelId(null); setFActor(selected.actor); }} onDrill={() => selected.entityCode && drillEntity(selected.entityCode)}
-            integrity={chain.get(selected.id) ?? null} isFlagged={flagged(selected)} />
+            isFlagged={flagged(selected)} />
         </SlideOver>
       )}
     </section>
   );
 }
 
-function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHref, onActor, onDrill, integrity, isFlagged }: {
+function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHref, onActor, onDrill, isFlagged }: {
   e: AuditEntry; categoryMeta: CatMeta; entityMeta: EntMeta; related: AuditEntry[]; onSelect: (id: string) => void; entityHref: (e: AuditEntry) => string | null; onActor: () => void; onDrill: () => void;
-  integrity: { seq: number; hash: string; prev: string } | null; isFlagged: boolean;
+  isFlagged: boolean;
 }) {
   const cm = categoryMeta[e.category]; const em = entityMeta[e.entity]; const href = entityHref(e);
   return (
@@ -236,7 +262,7 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
         {href && <Link href={href} className="ml-auto text-xs font-semibold text-primary hover:underline">Open {em.label.toLowerCase()} →</Link>}
       </div>
 
-      {isFlagged && <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs font-semibold text-amber-700"><i className="ph-fill ph-flag mr-1" />Flagged — unusual action (destructive, off-hours, or impersonation). Worth a second look.</div>}
+      {isFlagged && <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs font-semibold text-amber-700"><i className="ph-fill ph-flag mr-1" aria-hidden />Flagged — unusual action (destructive, off-hours, or impersonation). Worth a second look.</div>}
 
       <p className="text-sm">{e.change}</p>
 
@@ -256,7 +282,7 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
             {e.diff.map((d) => (
               <div key={d.field} className="rounded-lg border border-border p-2 text-sm">
                 <p className="text-[11px] font-semibold text-muted-foreground">{d.field}</p>
-                <div className="flex items-center gap-2"><span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive line-through">{d.from}</span><i className="ph-bold ph-arrow-right text-xs text-muted-foreground" /><span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-600">{d.to}</span></div>
+                <div className="flex items-center gap-2"><span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive line-through">{d.from}</span><i className="ph-bold ph-arrow-right text-xs text-muted-foreground" aria-hidden /><span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-xs text-emerald-600">{d.to}</span></div>
               </div>
             ))}
           </div>
@@ -270,15 +296,6 @@ function EventDetail({ e, categoryMeta, entityMeta, related, onSelect, entityHre
         </div>
       )}
 
-      {integrity && (
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Integrity · hash chain</p>
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
-            <div className="flex items-center justify-between"><span className="font-semibold text-emerald-600"><i className="ph-bold ph-shield-check mr-1" />Chain entry #{integrity.seq}</span><span className="text-muted-foreground">verified</span></div>
-            <div className="mt-1.5 space-y-0.5 font-mono text-[11px] text-muted-foreground"><div className="flex justify-between gap-3"><span>hash</span><span className="truncate text-foreground">{integrity.hash}</span></div><div className="flex justify-between gap-3"><span>prev</span><span className="truncate">{integrity.prev}</span></div></div>
-          </div>
-        </div>
-      )}
 
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">

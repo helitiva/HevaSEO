@@ -5,7 +5,8 @@
 // rewards). Admin legitimately sees money — unlike the staff surface, there is no money-leak
 // invariant here — so payroll (base/commission/bonus/due, which derives from order value) and the
 // commission wallet are shown side by side.
-import { STAFF, PAYOUTS, ORDERS, managerOf, type OrderStatus, type Priority } from './adminMock';
+import { STAFF, PAYOUTS, ORDERS, managerOf, type OrderStatus, type Priority, type AdminStaff } from './adminMock';
+import { mockTodayDate } from '@/lib/today';
 import {
   workHistory, myWorkStats, earningsHistory, myEarningsSummary, myFinance, myPenalties, myRewards,
   myPayoutMethods, myPayouts, buildActivity,
@@ -27,8 +28,9 @@ import { rewardsEarned, rewardsOnOffer, type Reward } from '@/lib/staffRewards';
 const REWARDS_MONTH = '2026-06';
 
 export interface StaffPayroll {
-  base: number; commission: number; bonus: number; due: number;
-  rate: number; completedOrders: number; lastPaidAt: string | null;
+  base: number; gig: number; commission: number; bonus: number; due: number;
+  rate: number; basis: number; completedOrders: number; lastPaidAt: string | null;
+  gigCounts: { service: string; pkg: string; count: number }[];
 }
 export interface StaffWallet { balance: number; available: number; clearing: number }
 export interface StaffPenaltyBlock { summary: PenaltySummary; pendingCount: number; items: StaffPenalty[] }
@@ -102,8 +104,9 @@ export function buildStaffInsight(staffId: string): StaffInsight | null {
     revisions: revisionReasons(history),
     customers: tasksByCustomer(history),
     payroll: {
-      base: payout?.base ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
-      due: payout?.due ?? 0, rate: payout?.rate ?? 0, completedOrders: payout?.completedOrders ?? 0,
+      base: payout?.base ?? 0, gig: payout?.gig ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
+      due: payout?.due ?? 0, rate: payout?.rate ?? 0, basis: payout?.basis ?? 0, completedOrders: payout?.completedOrders ?? 0,
+      gigCounts: payout?.gigCounts ?? [],
       lastPaidAt: payout?.lastPaidAt ?? null,
     },
     wallet: { balance: fin.balance, available: fin.available, clearing: fin.clearing },
@@ -118,6 +121,54 @@ export function buildStaffInsight(staffId: string): StaffInsight | null {
       pendingCount: fin.pendingFines,
       items: penalties,
     },
+    rewards: {
+      list: rewards, earned: rewardsEarned(rewards), onOffer: rewardsOnOffer(rewards),
+      unlocked: rewards.filter((r) => r.unlocked).length, total: rewards.length,
+    },
+  };
+}
+
+// inc — real staff insight: identity + perf top-line from getStaff (staff_details) are REAL; the narrative
+// sub-sections (work history / ratings / pay / conduct) come from the same mock helpers, which return
+// empty/zero for a real profile id that isn't in the mock roster — so the profile OPENS with real header
+// + honest empty states instead of 404. (Full real track-record/pay/conduct = the deferred perf feature.)
+export function buildStaffInsightReal(rs: AdminStaff): StaffInsight {
+  const staffId = rs.id;
+  const history = workHistory(staffId);
+  const fin = myFinance(staffId);
+  const penalties = myPenalties(staffId);
+  const rewards = myRewards(staffId);
+  const payout = PAYOUTS.find((p) => p.staffId === staffId);
+  const mgr = managerOf(staffId);
+  const breakdown = scoreBreakdown({ quality: rs.quality, onTime: rs.onTime, throughput: rs.throughput }, rs.composite);
+  return {
+    id: rs.id, name: rs.name, role: rs.role, email: rs.email, since: rs.since, tz: rs.tz,
+    active: rs.active, skills: rs.skills,
+    managerId: mgr?.id ?? null, managerName: mgr?.name ?? null,
+    composite: rs.composite, quality: rs.quality, onTime: rs.onTime, throughput: rs.throughput, trend: rs.trend,
+    rank: rankByComposite(STAFF.map((x) => ({ id: x.id, composite: x.composite })), staffId),
+    tier: commissionTierFor(rs.composite),
+    breakdown,
+    lever: improvementLever({ quality: rs.quality, onTime: rs.onTime }),
+    stats: myWorkStats(staffId),
+    streak: firstPassStreak(history),
+    ratings: ratingTrend(history),
+    history,
+    revisions: revisionReasons(history),
+    customers: tasksByCustomer(history),
+    payroll: {
+      base: payout?.base ?? 0, gig: payout?.gig ?? 0, commission: payout?.commission ?? 0, bonus: payout?.bonus ?? 0,
+      due: payout?.due ?? 0, rate: payout?.rate ?? 0, basis: payout?.basis ?? 0, completedOrders: payout?.completedOrders ?? 0,
+      gigCounts: payout?.gigCounts ?? [], lastPaidAt: payout?.lastPaidAt ?? null,
+    },
+    wallet: { balance: fin.balance, available: fin.available, clearing: fin.clearing },
+    earnings: myEarningsSummary(staffId),
+    earningsSeries: earningsHistory(staffId),
+    methods: myPayoutMethods(staffId),
+    payouts: [...myPayouts(staffId)].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+    ledger: buildLedger(fin.credits, penalties, fin.payouts).slice(0, 12),
+    activity: buildActivity(staffId),
+    penalties: { summary: summarisePenalties(penalties, REWARDS_MONTH), pendingCount: fin.pendingFines, items: penalties },
     rewards: {
       list: rewards, earned: rewardsEarned(rewards), onOffer: rewardsOnOffer(rewards),
       unlocked: rewards.filter((r) => r.unlocked).length, total: rewards.length,
@@ -148,7 +199,7 @@ export interface StaffRosterSignals {
   upcoming: UpcomingTask[]; // those due-soon items, soonest first
 }
 
-const ROSTER_TODAY = new Date('2026-06-24T00:00:00');
+const ROSTER_TODAY = mockTodayDate();
 const ROSTER_ACTIVE = new Set<OrderStatus>(['assigned', 'in_progress', 'internal_review', 'changes_requested', 'delivered']);
 const rosterDueIn = (d: string | null): number | null => (d ? Math.round((new Date(d).getTime() - ROSTER_TODAY.getTime()) / 86400000) : null);
 export function rosterSignals(staffId: string): StaffRosterSignals | null {

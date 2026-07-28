@@ -5,20 +5,21 @@ import { useRouter } from 'next/navigation';
 import { resolveAddOns, type AddOn, type AddOnTier } from '@heva/catalog';
 import { BulkKeywordList } from './BulkKeywordList';
 import { UsageLinkList } from './UsageLinkList';
-import { useOrdersStore } from './OrdersStore';
 import { useProjects } from './ProjectsStore';
 import { useToast } from './Toast';
-import { FOLDERS, PROJECTS, MEMBERSHIP_DISCOUNT, type IntakeField, type Order } from '@/data/mock';
+import { MEMBERSHIP_DISCOUNT, type IntakeField } from '@/data/mock';
+import { UUID_RE } from '@/lib/orderMap';
 import type { SvcCatalog, SvcField, SvcPackage } from '@/data/services';
+import { placeOrderAction } from '@/app/(portal)/order.actions';
 
 type ProjectOption = { name: string; domain: string };
 
 const AUTO = '__auto';
 const NEW_PROJECT = '__new';
+const NEW_FOLDER = '__newfolder';
 const RAND_ADJ = ['Lumen', 'Apex', 'Nova', 'Vertex', 'Quartz', 'Cobalt', 'Harbor', 'Summit', 'Atlas', 'Cedar', 'Orbit', 'Pioneer'];
 const RAND_NOUN = ['Labs', 'Media', 'Group', 'Studio', 'Works', 'Digital', 'Collective', 'Ventures'];
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const cleanDomain = (raw: string) => raw.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase();
 const randomProjectName = () => `${pick(RAND_ADJ)} ${pick(RAND_NOUN)}`;
 
@@ -103,10 +104,12 @@ function captureFields(fields: SvcField[], fd: FormData, labelPrefix = ''): Inta
   return out;
 }
 
-export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string }) {
+export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain, isVip = false }: { catalog: SvcCatalog; onPlaced?: () => void; stacked?: boolean; presetDomain?: string; isVip?: boolean }) {
   const router = useRouter();
-  const { addOrder } = useOrdersStore();
-  const { projects: storeProjects } = useProjects();
+  const { projects: allStoreProjects, folders: storeFolders } = useProjects();
+  // The brief's Project picker only offers ACTIVE projects — deleted ones are already gone from the DB,
+  // and archived ones (moved to Archive) must not resurface here either.
+  const storeProjects = allStoreProjects.filter((p) => !p.archived);
   const projects: ProjectOption[] = storeProjects.map((p) => ({ name: p.name, domain: p.domain }));
   const toast = useToast();
   // When the order is started from inside a project (e.g. the project detail page),
@@ -122,9 +125,11 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
   // Project + folder assignment. Default is "auto" — we pick one for them and they
   // can rename / move it later. They can also target an existing project or a new one.
   const [proj, setProj] = useState<string>(presetProj ? presetProj.domain : AUTO);
-  const [folderId, setFolderId] = useState<string>(presetProj ? presetProj.folder : AUTO);
-  const [newDomain, setNewDomain] = useState('');
+  const [folderId, setFolderId] = useState<string>(presetProj ? (storeFolders.find((f) => f.id === presetProj.folder)?.id ?? AUTO) : AUTO);
   const [newName, setNewName] = useState('');
+  const [autoName, setAutoName] = useState(true); // name the project after the website domain
+  const [newFolderName, setNewFolderName] = useState('');
+  const [orderTitle, setOrderTitle] = useState(''); // optional campaign / order title
   const [qty, setQty] = useState(catalog.usage?.defaultQty ?? catalog.bulk?.defaultQty ?? 1);
   // Usage pricing: rate from the highest tier whose `min` the count meets.
   const usageRate = (() => {
@@ -161,41 +166,56 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
   const total = subtotal - bulkDiscount + bumpsSum;
   // VIP membership perk — 15% off, applied only to numeric totals (not "Consult"/"Custom quote" plans).
   const hasNumericTotal = isUsage || !plan?.priceLabel;
-  const vipOff = hasNumericTotal ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT)) : 0;
+  // VIP perk applies only to real VIP-tier customers (server reprices the same way — inc-B3).
+  const vipOff = isVip && hasNumericTotal ? (isUsage ? Math.round(total * MEMBERSHIP_DISCOUNT * 100) / 100 : Math.round(total * MEMBERSHIP_DISCOUNT)) : 0;
   const finalTotal = total - vipOff;
   const subtotalText = isUsage ? `$${total.toFixed(2)}` : `$${total}`;
   const totalText = isUsage ? `$${finalTotal.toFixed(2)}` : (plan?.priceLabel ?? `$${finalTotal}`);
+  // A plan the catalog gives a priceLabel to has no total to charge — placing it asks for a quote, and
+  // the server does exactly that (order.actions.ts gates on hasNumericTotal). The button has to say so:
+  // "Place order" on a 'from $79' plan promises an order at $79, and neither half is true.
+  const isQuotePlan = !hasNumericTotal;
+  const submitLabel = isQuotePlan ? 'Request a quote' : 'Place order';
 
-  /** Resolve the order's project + folder from the picker, auto-generating when left on "Auto". */
-  function resolveAssignment() {
-    const randFolder = () => pick(FOLDERS).id;
-    let domain: string, projectName: string, fid: string, auto = false;
+  /** Resolve the order's project + folder from the picker. The project is named after the website domain
+   *  (from the Website URL field) unless the customer set a custom name; the folder is a brand-new one
+   *  (created by name on submit), the picked one, or an auto default bucket. */
+  function resolveAssignment(websiteUrl: string) {
+    const urlDomain = cleanDomain(websiteUrl || '');
+    const folder = folderId === NEW_FOLDER
+      ? { id: '', name: newFolderName.trim() || 'New folder' }
+      : folderId !== AUTO
+        ? { id: folderId, name: storeFolders.find((f) => f.id === folderId)?.name ?? 'Uncategorized' }
+        : { id: '', name: 'Uncategorized' }; // auto → default bucket (find-or-created server-side)
+
+    // A project's domain is ONLY ever a real website the customer typed — never fabricated. When no website is
+    // given the project has no domain and is titled by name/topic instead, so no fake domain leaks into the
+    // card, its headline, or the tooltip.
+    let domain: string, projectName: string, auto = false, isNew = false;
     if (proj === NEW_PROJECT) {
-      const d = cleanDomain(newDomain);
-      projectName = newName.trim() || d || randomProjectName();
-      domain = d || `${slug(projectName)}.com`;
-      fid = folderId !== AUTO ? folderId : randFolder();
+      isNew = true;
+      domain = urlDomain; // '' when no website entered
+      projectName = (autoName && urlDomain) ? urlDomain : (newName.trim() || urlDomain || randomProjectName());
     } else if (proj !== AUTO && proj !== '') {
-      const ep = PROJECTS.find((p) => p.domain === proj);
+      const ep = storeProjects.find((p) => p.domain === proj);
       domain = proj;
       projectName = ep?.name ?? proj;
-      fid = folderId !== AUTO ? folderId : (ep?.folder ?? randFolder());
     } else {
       auto = true;
-      projectName = randomProjectName();
-      domain = `${slug(projectName)}.com`;
-      fid = folderId !== AUTO ? folderId : randFolder();
+      domain = urlDomain; // '' when no website entered
+      projectName = urlDomain || randomProjectName();
     }
-    return { domain, projectName, folderName: FOLDERS.find((f) => f.id === fid)?.name ?? 'Uncategorized', auto };
+    return { domain, projectName, folderId: folder.id, folderName: folder.name, auto, isNew, newFolder: folderId === NEW_FOLDER };
   }
 
-  function place(e: FormEvent<HTMLFormElement>) {
+  const [placing, setPlacing] = useState(false);
+  async function place(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     if (!form.reportValidity()) return;
     const fd = new FormData(form);
-    const asg = resolveAssignment();
-    const id = `${catalog.orderCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // The project domain comes from the Website URL the customer entered (single source, no duplicate field).
+    const asg = resolveAssignment(String(fd.get('website') ?? ''));
     // Capture the brief the customer just filled in — assignment, plan, service fields, add-on fields.
     const intake: IntakeField[] = [
       { label: 'Project', value: asg.projectName === asg.domain ? asg.domain : `${asg.projectName} · ${asg.domain}`, full: true },
@@ -204,39 +224,45 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
       ...captureFields(catalog.fields, fd),
       ...chosen.flatMap(({ addon, tier }) => captureFields(tier.fields ?? [], fd, addon.name)),
     ];
-    const order: Order = {
-      id,
-      date: todayUS(),
-      title: catalog.orderTitle,
-      service: catalog.key,
-      domain: asg.domain,
-      sub: isUsage
-        ? `${qty.toLocaleString('en-US')} ${catalog.usage!.unitPlural} · $${usageRate.toFixed(3)}/${catalog.usage!.unit}`
-        : `${catalog.bulk ? `${qty} × ` : ''}${plan?.name} · ${plan?.summary}${chosen.length ? ` · +${chosen.length} add-on${chosen.length > 1 ? 's' : ''}` : ''}`,
-      status: 'planned',
-      priority: 'med',
-      progress: null,
-      detail: 'Awaiting kickoff',
-      eta: isUsage ? 'By volume' : (plan?.sla ?? ''),
-      owner: 'Unassigned',
-      cost: finalTotal,
-      pay: 'pending',
-      invoice: null,
-      intake,
-    };
-    addOrder(order);
-    toast(`Order #${id} placed — it's on your board`, 'success');
-    // Inside the quick-order slide-over we just close it (already on the board);
-    // on the standalone /services/[svc] page we navigate to the board.
+    // Usage services (Indexer) collect their URLs via UsageLinkList, not catalog.fields — persist them so the
+    // card can show "N URLs from [domain] / M domains". Prefer the pasted list, else the sheet link.
+    if (isUsage) {
+      const submitted = String(fd.get('links') ?? '').trim() || String(fd.get('links_sheet') ?? '').trim();
+      if (submitted) intake.push({ label: 'Submitted URLs', value: submitted, full: true });
+    }
+    // Real placement: the server reprices + debits credit via create_order (the client price is only
+    // an estimate). The order then shows up on the board via the real RLS-scoped read.
+    setPlacing(true);
+    const res = await placeOrderAction({
+      serviceKey: catalog.key, packageId: planId, qty, addonPicks: picks,
+      project: asg.projectName, folder: asg.folderName,
+      // the server find-or-creates the REAL project/folder rows and FKs the order to them (inc — project wiring)
+      projectDomain: asg.domain, folderId: UUID_RE.test(asg.folderId) ? asg.folderId : null,
+      // campaign title (blank → server auto "Nth {service} order for {domain}") + the submitted site URL
+      title: orderTitle.trim() || undefined, site: String(fd.get('website') ?? '').trim() || undefined,
+      brief: intake,
+    });
+    setPlacing(false);
+    if (!res.ok) { toast(res.error, 'error'); return; }
+    // A 'Consult' plan doesn't place an order — it asks for a quote, and nothing is charged. Saying
+    // "Order … placed — credit charged" here would be two lies in one line.
+    if ('quoteRequested' in res) {
+      toast(res.message, 'success');
+      if (onPlaced) onPlaced();
+      router.refresh();
+      return;
+    }
+    toast(`Order ${res.code} placed — credit charged`, 'success');
     if (onPlaced) onPlaced();
     else router.push('/orders');
+    router.refresh();
   }
 
   const renderCard = (p: SvcPackage) => {
     const active = p.id === planId;
     const radioDot = (
       <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 ${active ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-transparent'}`}>
-        <i className="ph-bold ph-check text-[9px]" />
+        <i className="ph-bold ph-check text-[9px]" aria-hidden />
       </span>
     );
 
@@ -261,12 +287,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
             </div>
             <div className="shrink-0 text-right">
               <div className="display text-lg font-bold tracking-tight">{p.priceLabel ?? `$${p.price}`}</div>
-              <div className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" />{p.sla}</div>
+              <div className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" aria-hidden />{p.sla}</div>
             </div>
           </div>
           <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 border-t border-border/70 pt-3 text-[11px] text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
             {p.features.map((ft) => (
-              <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 shrink-0 text-primary" /><span>{ft}</span></li>
+              <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 shrink-0 text-primary" aria-hidden /><span>{ft}</span></li>
             ))}
           </ul>
         </label>
@@ -290,10 +316,10 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
         </div>
         <p className="display mt-1.5 pl-6 text-xl font-bold leading-none tracking-tight">{p.priceLabel ?? `$${p.price}`}</p>
         <p className="mt-1.5 pl-6 text-[11px] text-muted-foreground">{p.summary}</p>
-        <p className="mt-1 pl-6 text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" />{p.sla}</p>
+        <p className="mt-1 pl-6 text-[11px] font-medium text-muted-foreground"><i className="ph-bold ph-clock mr-1 text-primary" aria-hidden />{p.sla}</p>
         <ul className="mt-2.5 space-y-1.5 border-t border-border/70 pl-6 pt-2.5 text-[11px] text-muted-foreground">
           {p.features.map((ft) => (
-            <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 text-primary" /><span>{ft}</span></li>
+            <li key={ft} className="flex items-start gap-1.5"><i className="ph-bold ph-check mt-0.5 text-primary" aria-hidden /><span>{ft}</span></li>
           ))}
         </ul>
       </label>
@@ -323,7 +349,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
               {catalog.groups.map((g) => (
                 <div key={g.id}>
                   <div className="flex items-center gap-2">
-                    {g.icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${g.icon}`} /></span>}
+                    {g.icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><i className={`ph-bold ${g.icon}`} aria-hidden /></span>}
                     <div>
                       <p className="text-sm font-semibold">{g.title}</p>
                       {g.subtitle && <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>}
@@ -345,7 +371,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
 
         {/* brief */}
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-note-pencil text-primary" /> Project brief</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-note-pencil text-primary" aria-hidden /> Project brief</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {/* project + folder assignment — defaults to auto, editable later */}
             <div className="flex flex-col gap-3 sm:col-span-2">
@@ -366,28 +392,44 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
                   <label className="text-xs font-semibold">Folder</label>
                   <select value={folderId} onChange={(e) => setFolderId(e.target.value)} className={ctrlCls}>
                     <option value={AUTO}>🎲 Auto</option>
-                    {FOLDERS.map((f) => <option key={f.id} value={f.id}>{f.parentId ? '— ' : ''}{f.name}</option>)}
+                    {storeFolders.map((f) => <option key={f.id} value={f.id}>{f.parentId ? '— ' : ''}{f.name}</option>)}
+                    <option value={NEW_FOLDER}>＋ New folder…</option>
                   </select>
                 </div>
               </div>
               {proj === NEW_PROJECT && (
-                <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">Website domain</label>
-                    <input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="example.com" className={ctrlCls} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">Project name<span className="ml-1 font-normal text-muted-foreground">(optional)</span></label>
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Defaults to the domain" className={ctrlCls} />
-                  </div>
+                <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
+                  <label className="flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={autoName} onChange={(e) => setAutoName(e.target.checked)} className="accent-primary" />
+                    Auto — name the project after my website domain
+                  </label>
+                  {autoName ? (
+                    <p className="text-[11px] text-muted-foreground">We&apos;ll use the domain from your Website URL below (e.g. dantri.com).</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold">Project name</label>
+                      <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Acme rebrand" className={ctrlCls} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {folderId === NEW_FOLDER && (
+                <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-3">
+                  <label className="text-xs font-semibold">New folder name</label>
+                  <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="e.g. Client work, Q3 campaigns" className={ctrlCls} />
+                  <p className="text-[11px] text-muted-foreground">The project will be filed straight into this folder.</p>
                 </div>
               )}
               {proj === AUTO && (
                 <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                  <i className="ph-bold ph-info mt-px shrink-0 text-primary" />
+                  <i className="ph-bold ph-info mt-px shrink-0 text-primary" aria-hidden />
                   We&apos;ll create a project{folderId === AUTO ? ' in a folder' : ''} for this order — rename or move it anytime in Projects.
                 </p>
               )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold">Campaign / order title <span className="font-normal text-muted-foreground">(optional)</span></label>
+                <input value={orderTitle} onChange={(e) => setOrderTitle(e.target.value)} placeholder="Leave blank — we'll title it e.g. “1st Backlink order for yoursite.com”" className={ctrlCls} />
+              </div>
             </div>
             {catalog.fields.map(field)}
           </div>
@@ -399,12 +441,12 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
         {/* add-on details — revealed for ticked upsells (uses the chosen tier's fields) */}
         {chosen.some((c) => c.tier.fields && c.tier.fields.length > 0) && (
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.04] p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-plus-circle text-emerald-600" /> Add-on details</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-plus-circle text-emerald-600" aria-hidden /> Add-on details</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">A couple of extras for the add-ons you picked — we reuse the project &amp; contact details, so nothing&apos;s asked twice.</p>
             <div className="mt-4 space-y-4">
               {chosen.filter((c) => c.tier.fields && c.tier.fields.length > 0).map(({ addon, tier }) => (
                 <div key={addon.id} className="rounded-xl border border-border bg-card p-3.5">
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold"><i className={`ph-bold ${addon.icon} text-primary`} /> {addon.name} · {tier.name}</p>
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold"><i className={`ph-bold ${addon.icon} text-primary`} aria-hidden /> {addon.name} · {tier.name}</p>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
                     {tier.fields!.map(field)}
                   </div>
@@ -419,7 +461,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
       <aside className="h-max lg:sticky lg:top-4">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border bg-muted/40 px-5 py-3">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-receipt text-primary" /> Order summary</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-receipt text-primary" aria-hidden /> Order summary</p>
           </div>
           <div className="px-5 py-4">
             <div className="flex items-baseline justify-between gap-3">
@@ -437,18 +479,18 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
                 </div>
                 <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
                   {catalog.included.slice(0, 3).map((b) => (
-                    <li key={b.title} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" /><span>{b.title}</span></li>
+                    <li key={b.title} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden /><span>{b.title}</span></li>
                   ))}
                 </ul>
               </>
             ) : (
               <>
                 <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                  <i className="ph-bold ph-clock text-primary" /> Delivery {plan?.sla}
+                  <i className="ph-bold ph-clock text-primary" aria-hidden /> Delivery {plan?.sla}
                 </p>
                 <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
                   {(plan?.features ?? []).slice(0, 4).map((ft) => (
-                    <li key={ft} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" /><span>{ft}</span></li>
+                    <li key={ft} className="flex items-start gap-2"><i className="ph-fill ph-check-circle mt-0.5 shrink-0 text-primary" aria-hidden /><span>{ft}</span></li>
                   ))}
                 </ul>
               </>
@@ -467,7 +509,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
 
             {addons.length > 0 && (
               <div className="mt-4 border-t border-border pt-3">
-                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary"><i className="ph-fill ph-plus-circle" /> Add &amp; save — checkout-only</p>
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary"><i className="ph-fill ph-plus-circle" aria-hidden /> Add &amp; save — checkout-only</p>
                 <div className="mt-2 space-y-2">
                   {addons.map((a) => {
                     const on = a.id in picks;
@@ -518,7 +560,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
               {vipOff > 0 && (
                 <>
                   {!catalog.bulk && <div className="flex items-center justify-between text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{subtotalText}</span></div>}
-                  <div className="flex items-center justify-between text-[13px] font-semibold text-amber-600"><span className="inline-flex items-center gap-1.5"><i className="ph-fill ph-crown" /> VIP member −15%</span><span>−${vipOff}</span></div>
+                  <div className="flex items-center justify-between text-[13px] font-semibold text-amber-600"><span className="inline-flex items-center gap-1.5"><i className="ph-fill ph-crown" aria-hidden /> VIP member −15%</span><span>−${vipOff}</span></div>
                 </>
               )}
               <div className="flex items-center justify-between pt-0.5">
@@ -528,14 +570,21 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
             </div>
             {saved > 0 && !plan?.priceLabel && (
               <div className="mt-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-600">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white"><i className="ph-fill ph-seal-percent text-[11px]" /></span>
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white"><i className="ph-fill ph-seal-percent text-[11px]" aria-hidden /></span>
                 You save ${saved}{savedBase > 0 ? ` (${Math.round((saved / savedBase) * 100)}%)` : ''}
               </div>
             )}
             <button type="submit" className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:-translate-y-px hover:bg-primary/90 active:scale-[.98]">
-              Place order <i className="ph-bold ph-arrow-right" />
+              {submitLabel} <i className="ph-bold ph-arrow-right" aria-hidden />
             </button>
-            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">No charge yet — a specialist confirms scope &amp; final price within 24h.</p>
+            {/* This said "No charge yet — a specialist confirms scope & final price within 24h" on EVERY
+                plan, including the ones create_order debits the moment you click. Half the customers
+                were told the opposite of what happens to their money. */}
+            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
+              {isQuotePlan
+                ? 'No charge — a specialist prices this and sends you a quote to accept.'
+                : `Your credit is charged when you place this order — ${totalText} today.`}
+            </p>
           </div>
         </div>
       </aside>
@@ -547,7 +596,7 @@ export function ServiceOrder({ catalog, onPlaced, stacked = false, presetDomain 
           <p className="display text-lg font-bold leading-none">{totalText}</p>
         </div>
         <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[.98]">
-          Place order <i className="ph-bold ph-arrow-right" />
+          {submitLabel} <i className="ph-bold ph-arrow-right" aria-hidden />
         </button>
       </div>
     </form>

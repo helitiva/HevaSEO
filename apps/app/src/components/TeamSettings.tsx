@@ -50,7 +50,7 @@ export function TeamSettings() {
     <section className="rounded-2xl border border-border bg-card p-5 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="display text-lg font-semibold tracking-tight">Team</h2><p className="text-xs text-muted-foreground">Invite teammates to help manage projects &amp; orders.</p></div>
-        <button onClick={() => setInviteOpen(true)} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-user-plus" /> Invite member</button>
+        <button onClick={() => setInviteOpen(true)} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 active:scale-[.98]"><i className="ph-bold ph-user-plus" aria-hidden /> Invite member</button>
       </div>
 
       <div className="mt-5 space-y-2.5">
@@ -61,13 +61,13 @@ export function TeamSettings() {
             <RolePill role={m.role} />
             {m.role !== 'Owner' && (
               <span className="relative">
-                <button onClick={() => setMenuFor((v) => (v === m.id ? null : m.id))} aria-label="Member options" className="text-muted-foreground transition hover:text-foreground"><i className="ph-bold ph-dots-three-vertical" /></button>
+                <button onClick={() => setMenuFor((v) => (v === m.id ? null : m.id))} aria-label="Member options" className="text-muted-foreground transition hover:text-foreground"><i className="ph-bold ph-dots-three-vertical" aria-hidden /></button>
                 {menuFor === m.id && (
                   <>
                     <span className="fixed inset-0 z-40" onClick={() => setMenuFor(null)} />
                     <span className="absolute right-0 z-50 mt-1 block w-44 rounded-xl border border-border bg-card p-1 shadow-xl">
-                      <button onClick={() => toggleRole(m.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-muted"><i className="ph-bold ph-shield-check text-muted-foreground" /> Make {m.role === 'Admin' ? 'Member' : 'Admin'}</button>
-                      <button onClick={() => removeMember(m.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-destructive transition hover:bg-destructive/10"><i className="ph-bold ph-user-minus" /> Remove</button>
+                      <button onClick={() => toggleRole(m.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-muted"><i className="ph-bold ph-shield-check text-muted-foreground" aria-hidden /> Make {m.role === 'Admin' ? 'Member' : 'Admin'}</button>
+                      <button onClick={() => removeMember(m.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-destructive transition hover:bg-destructive/10"><i className="ph-bold ph-user-minus" aria-hidden /> Remove</button>
                     </span>
                   </>
                 )}
@@ -95,7 +95,7 @@ export function TeamSettings() {
               </div>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={close} className="rounded-lg border border-border px-3.5 py-2 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-                <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-paper-plane-tilt" /> Send invite</button>
+                <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /> Send invite</button>
               </div>
             </form>
           )}

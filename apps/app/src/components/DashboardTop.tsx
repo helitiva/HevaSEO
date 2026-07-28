@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ORDERS, PROJECTS, SERVICES, type Order, type OrderStatus, type ServiceKey } from '@/data/mock';
+import { ORDERS, SERVICES, type Order, type OrderStatus, type ServiceKey } from '@/data/mock';
 import { useOrdersStore } from './OrdersStore';
 import { CountUp } from './CountUp';
 import { QuickOrderButton } from './QuickOrderButton';
 
-const TODAY = new Date('2026-06-25T00:00:00');
+// TODAY is intentionally derived at call time (inside the component via useMemo) to avoid
+// a module-scope frozen date. This const is kept only for the range filter memo dep.
+// Do NOT use a module-scope `const TODAY = ...` here; it would freeze at server start.
 const RANGES = [
   { days: 7, label: 'Last 7 days' },
   { days: 30, label: 'Last 30 days' },
@@ -22,22 +24,44 @@ const parseUS = (d: string): Date | null => {
   return m ? new Date(+m[3], +m[1] - 1, +m[2]) : null;
 };
 
-export function DashboardTop() {
+// `orders` is the real RLS-scoped read (customer's own, inc-3e); falls back to the mock seed where
+// not wired. `name` + `activeProjects` are real (server session + getMyProjects); tier stays mock.
+export function DashboardTop({ realOrders, today: todayIso, name, activeProjects = 0 }: {
+  realOrders?: Order[];
+  /** The signed-in customer's display name (server session). The greeting shows the first token. */
+  name?: string;
+  /** Real count of the customer's in-flight projects (not archived, not completed). */
+  activeProjects?: number;
+  /**
+   * Real today (ISO), computed on the SERVER and passed in.
+   *
+   * It was `mockTodayDate()` — 2026-06-24 — filtering orders that are real and dated now. `(today - d)`
+   * came out NEGATIVE, so `<= range` was true for everything: the 7d / 30d / 90d switcher looked like it
+   * worked and showed the same full list at every setting.
+   *
+   * A prop rather than `new Date()` here because this is a client component that Next also
+   * server-renders: computing it on both sides can land the two renders on opposite sides of a range
+   * boundary and produce different HTML.
+   */
+  today: string;
+}) {
   const { addedOrders, statusOverrides } = useOrdersStore();
   const [range, setRange] = useState(90);
   const [open, setOpen] = useState(false);
   const statusOf = (o: Order): OrderStatus => statusOverrides[o.id] ?? o.status;
 
+  // Compute the current date inside the render cycle so the filter window advances correctly.
+  const today = useMemo(() => new Date(todayIso), [todayIso]);
+
   const orders = useMemo(() => {
-    const all = [...addedOrders, ...ORDERS];
+    const all = [...addedOrders, ...(realOrders ?? ORDERS)];
     if (!range) return all;
-    return all.filter((o) => { const d = parseUS(o.date); return d ? (TODAY.getTime() - d.getTime()) / 86400000 <= range : true; });
-  }, [addedOrders, range]);
+    return all.filter((o) => { const d = parseUS(o.date); return d ? (today.getTime() - d.getTime()) / 86400000 <= range : true; });
+  }, [addedOrders, realOrders, range, today]);
 
   const total = orders.length;
   const completed = orders.filter((o) => statusOf(o) === 'completed').length;
   const inProgress = orders.filter((o) => statusOf(o) === 'progress' || statusOf(o) === 'review').length;
-  const activeProjects = PROJECTS.filter((p) => p.status === 'progress').length;
 
   // Service mix (top services + Other) for the legend + segmented bar.
   const mix = useMemo(() => {
@@ -51,6 +75,7 @@ export function DashboardTop() {
   }, [orders]);
 
   const rangeLabel = RANGES.find((r) => r.days === range)?.label ?? 'Last 90 days';
+  const firstName = name?.trim().split(/\s+/)[0] || 'there';
 
   return (
     <>
@@ -60,12 +85,12 @@ export function DashboardTop() {
             <h1 className="display text-2xl font-semibold tracking-tight md:text-3xl">Overview</h1>
             <span className="pill pill-live"><span /> Live</span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Hi Huy 👋 · {activeProjects} active project{activeProjects === 1 ? '' : 's'} · updated 2 minutes ago</p>
+          <p className="mt-1 text-sm text-muted-foreground">Hi {firstName} 👋 · {activeProjects} active project{activeProjects === 1 ? '' : 's'} · updated 2 minutes ago</p>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="relative">
             <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm font-medium shadow-sm transition hover:bg-accent">
-              <i className="ph-bold ph-calendar-blank" /> {rangeLabel} <i className="ph-bold ph-caret-down text-muted-foreground" />
+              <i className="ph-bold ph-calendar-blank" aria-hidden /> {rangeLabel} <i className="ph-bold ph-caret-down text-muted-foreground" aria-hidden />
             </button>
             {open && (
               <>
@@ -73,7 +98,7 @@ export function DashboardTop() {
                 <div className="absolute right-0 z-50 mt-1.5 w-44 rounded-xl border border-border bg-card p-1 shadow-xl">
                   {RANGES.map((r) => (
                     <button key={r.days} onClick={() => { setRange(r.days); setOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm transition hover:bg-muted ${range === r.days ? 'font-semibold text-primary' : ''}`}>
-                      {r.label}{range === r.days && <i className="ph-bold ph-check" />}
+                      {r.label}{range === r.days && <i className="ph-bold ph-check" aria-hidden />}
                     </button>
                   ))}
                 </div>
@@ -89,7 +114,7 @@ export function DashboardTop() {
         <div className="kpi kpi-glass">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-400/30 text-amber-600"><i className="ph-fill ph-crown" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-400/30 text-amber-600"><i className="ph-fill ph-crown" aria-hidden /></span>
             <span className="pill" style={{ background: '#f59e0b1f', color: '#d97706' }}>VIP</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Membership tier</p>
@@ -107,7 +132,7 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-package" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-package" aria-hidden /></span>
             <span className="pill pill-good">{range ? rangeLabel.replace('Last ', '') : 'All'}</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Services ordered</p>
@@ -133,7 +158,7 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-check-circle" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600"><i className="ph-bold ph-check-circle" aria-hidden /></span>
             <span className="pill pill-good">{completed} done</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">Order progress</p>
@@ -151,16 +176,14 @@ export function DashboardTop() {
         <div className="kpi">
           <div className="kpi-glow" />
           <div className="flex items-center justify-between">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-timer" /></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary"><i className="ph-bold ph-timer" aria-hidden /></span>
             <span className="pill pill-good">On time</span>
           </div>
           <p className="mt-2 text-xs font-medium text-muted-foreground">On-time completion rate</p>
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-            <div className="flex items-end gap-4">
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight"><CountUp value={96} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">All time</p></div>
-              <div><p className="display text-2xl font-semibold leading-none tracking-tight text-emerald-600"><CountUp value={100} suffix="%" /></p><p className="mt-1 text-[11px] text-muted-foreground">This week</p></div>
-            </div>
-            <div className="ring hidden min-[480px]:block" style={{ ['--p' as string]: 96 }}><b>96%</b></div>
+          {/* TODO(backend): derive from real completion data — order records don't carry an onTime flag yet */}
+          <div className="mt-auto flex flex-col justify-end gap-1.5 pt-2">
+            <p className="display text-2xl font-semibold leading-none tracking-tight">—</p>
+            <p className="text-[11px] text-muted-foreground">Available once order delivery data is connected</p>
           </div>
         </div>
       </section>

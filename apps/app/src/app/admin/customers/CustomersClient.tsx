@@ -6,9 +6,11 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { SlideOver } from '@/components/shared/SlideOver';
 import { StatusBadge } from '@/components/shared/StatBadge';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
+import { PartnerHoverCard } from '@/components/admin/PartnerHoverCard';
+import { referrerOf } from '@/data/adminAffiliate';
 import { impersonateCustomer } from '@/lib/impersonation';
 import { TIER, type OrderStatus, type Tier } from '@/data/adminMock';
-import { useMoney, useShowMoney } from '@/lib/viewer';
+import { useMoney, useShowMoney, useAreaBase, useImpersonatePolicy } from '@/lib/viewer';
 
 export type Health = 'good' | 'ok' | 'risk';
 
@@ -61,9 +63,26 @@ const initials = (n: string) => n.split(' ').map((x) => x[0]).join('').slice(0, 
 const joined = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 const ago = (d: number) => (d <= 0 ? 'today' : d === 1 ? '1d ago' : `${d}d ago`);
 
+// "Referred by @partner" — shows the acquiring affiliate (if any), with a hover dossier
+// and one-click open of their dashboard. Renders nothing for organically-acquired customers.
+function ReferrerTag({ customerId, className = '' }: { customerId: string; className?: string }) {
+  const ref = referrerOf(customerId);
+  if (!ref) return null;
+  return (
+    <span className={`flex items-center gap-1 text-[11px] text-muted-foreground ${className}`}>
+      <i className="ph-bold ph-megaphone shrink-0 text-primary/70" aria-hidden />
+      via{' '}
+      <PartnerHoverCard affiliateId={ref.id}>
+        <span className="font-medium text-primary hover:underline">{ref.handle}</span>
+      </PartnerHoverCard>
+    </span>
+  );
+}
+
 export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const money = useMoney();
   const showMoney = useShowMoney();
+  const base = useAreaBase(); // /admin for admins, /manager for managers → links stay in-area
   const [query, setQuery] = useState('');
   const [seg, setSeg] = useState('all');
   const [sort, setSort] = useState<SortKey>(showMoney ? 'ltv' : 'orders');
@@ -129,7 +148,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
   const panelIdx = panelId ? filtered.findIndex((c) => c.id === panelId) : -1;
   const prevCust = panelIdx > 0 ? filtered[panelIdx - 1] : null;
   const nextCust = panelIdx >= 0 && panelIdx < filtered.length - 1 ? filtered[panelIdx + 1] : null;
-  const copyCustLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}/admin/customers?customer=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const copyCustLink = (id: string) => { try { void navigator.clipboard?.writeText(`${window.location.origin}${base}/customers?customer=${id}`); } catch { /* noop */ } setCopied(true); setTimeout(() => setCopied(false), 1500); };
   useEffect(() => { const id = new URLSearchParams(window.location.search).get('customer'); if (id && rows.some((c) => c.id === id)) setPanelId(id); }, [rows]);
   useEffect(() => { const url = new URL(window.location.href); if (panelId) url.searchParams.set('customer', panelId); else url.searchParams.delete('customer'); window.history.replaceState(null, '', `${url.pathname}${url.search}`); }, [panelId]);
   useEffect(() => {
@@ -165,8 +184,8 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         subtitle={`${kpis.total} accounts · ${kpis.claimed} claimed · ${kpis.shadow} shadow`}
         actions={
           <>
-            <button onClick={() => notify(`Exported ${filtered.length} customers · CSV`)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Export</button>
-            <button onClick={() => notify('New customer — form coming soon')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-plus mr-1" />Add customer</button>
+            <button onClick={() => notify(`Exported ${filtered.length} customers · CSV`)} className="rounded-lg border border-border px-2.5 py-1.5 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />Export</button>
+            <button onClick={() => notify('New customer — form coming soon')} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-plus mr-1" aria-hidden />Add customer</button>
           </>
         }
       />
@@ -184,8 +203,8 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       {/* Insight bento */}
       <div className="rounded-2xl border border-border bg-card">
         <button onClick={() => setBentoOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-3 text-sm font-semibold">
-          <span className="flex items-center gap-2"><i className="ph-bold ph-chart-pie-slice text-primary" /> Insights</span>
-          <i className={`ph-bold ph-caret-down transition ${bentoOpen ? 'rotate-180' : ''}`} />
+          <span className="flex items-center gap-2"><i className="ph-bold ph-chart-pie-slice text-primary" aria-hidden /> Insights</span>
+          <i className={`ph-bold ph-caret-down transition ${bentoOpen ? 'rotate-180' : ''}`} aria-hidden />
         </button>
         {bentoOpen && (
           <div className="grid gap-4 border-t border-border p-5 lg:grid-cols-3">
@@ -197,7 +216,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                   return (
                     <button key={tier} onClick={() => setSeg(tier)} className="block w-full text-left">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} />{t.label}</span>
+                        <span className="flex items-center gap-1.5 font-medium"><i className={`ph-fill ${t.icon}`} style={{ color: t.color }} aria-hidden />{t.label}</span>
                         <span className="text-muted-foreground">{count} · <b className="text-foreground">{pct}%</b></span>
                       </div>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: t.color }} /></div>
@@ -214,7 +233,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                   const t = TIER[c.tier];
                   return (
                     <li key={c.id}>
-                      <Link href={`/admin/customers/${c.id}`} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50">
+                      <Link href={`${base}/customers/${c.id}`} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-muted/50">
                         <span className="w-4 shrink-0 text-center text-xs font-bold text-muted-foreground">{i + 1}</span>
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">{initials(c.name)}</span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name} <span className="font-normal text-muted-foreground">· {c.company}</span></span>
@@ -235,15 +254,15 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                     <li key={c.id} className="flex items-center gap-2.5">
                       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/10 text-[11px] font-bold text-red-500">{initials(c.name)}</span>
                       <div className="min-w-0 flex-1">
-                        <Link href={`/admin/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
+                        <Link href={`${base}/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">{c.name}</Link>
                         <p className="text-[11px] text-muted-foreground">{ago(c.churnDays)} · {money(c.spend)} LTV</p>
                       </div>
-                      <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" /></a>
+                      <a href={`mailto:${c.email}`} aria-label={`Email ${c.name}`} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden /></a>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="grid place-items-center py-6 text-center"><i className="ph-bold ph-confetti mb-1 text-xl text-emerald-500" /><p className="text-sm text-muted-foreground">No one at risk right now.</p></div>
+                <div className="grid place-items-center py-6 text-center"><i className="ph-bold ph-confetti mb-1 text-xl text-emerald-500" aria-hidden /><p className="text-sm text-muted-foreground">No one at risk right now.</p></div>
               )}
             </Panel>
           </div>
@@ -254,7 +273,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
-            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, company or email…" className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" />
           </div>
           <select value={sort} onChange={(e) => pickSort(e.target.value as SortKey)} className="rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
@@ -284,9 +303,9 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm">
           <span className="font-semibold">{selected.size} selected</span>
           <span className="flex-1" />
-          <button onClick={() => bulk('Email sent')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" />Email</button>
-          <button onClick={() => bulk('Tag added')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-tag mr-1" />Add tag</button>
-          <button onClick={() => bulk('Exported')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" />Export</button>
+          <button onClick={() => bulk('Email sent')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple mr-1" aria-hidden />Email</button>
+          <button onClick={() => bulk('Tag added')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-tag mr-1" aria-hidden />Add tag</button>
+          <button onClick={() => bulk('Exported')} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold hover:bg-accent"><i className="ph-bold ph-download-simple mr-1" aria-hidden />Export</button>
           <button onClick={clearSel} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
         </div>
       )}
@@ -294,7 +313,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
       {/* Results */}
       {filtered.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-border bg-card py-16 text-center">
-          <i className="ph-bold ph-users mb-2 text-2xl text-muted-foreground" />
+          <i className="ph-bold ph-users mb-2 text-2xl text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">No customers match your filters.</p>
           <button onClick={() => { setQuery(''); setSeg('all'); }} className="mt-2 text-xs font-semibold text-primary hover:underline">Clear filters</button>
         </div>
@@ -332,6 +351,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                             <span className={`pill shrink-0 ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">{c.company} · {c.email}</span>
+                          <ReferrerTag customerId={c.id} className="mt-0.5" />
                         </span>
                       </span>
                     </td>
@@ -367,6 +387,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5"><CustomerHoverCard customer={c.id}><span className="truncate font-semibold">{c.name}</span></CustomerHoverCard><i className={`ph-fill ${t.icon} text-xs`} style={{ color: t.color }} title={t.label} /></span>
                       <span className="block truncate text-xs text-muted-foreground">{c.company}</span>
+                      <ReferrerTag customerId={c.id} className="mt-0.5" />
                     </span>
                   </span>
                   <span className={`pill shrink-0 ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
@@ -378,7 +399,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs">
                   <span className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${h.dot}`} /><span className={`font-medium ${h.text}`}>{h.label}</span></span>
-                  <span className="text-muted-foreground">{ago(c.churnDays)}{c.openTickets > 0 && <> · <i className="ph-bold ph-lifebuoy" /> {c.openTickets}</>}</span>
+                  <span className="text-muted-foreground">{ago(c.churnDays)}{c.openTickets > 0 && <> · <i className="ph-bold ph-lifebuoy" aria-hidden /> {c.openTickets}</>}</span>
                 </div>
               </div>
             );
@@ -390,11 +411,11 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
           <span className="text-muted-foreground">{filtered.length} results · page {curPage} of {pageCount}</span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-left" /></button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={curPage === 1} aria-label="Previous page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-left" aria-hidden /></button>
             {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
               <button key={p} onClick={() => setPage(p)} aria-label={`Page ${p}`} aria-current={curPage === p ? 'page' : undefined} className={`grid h-8 w-8 place-items-center rounded-lg border text-xs font-semibold transition ${curPage === p ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'}`}>{p}</button>
             ))}
-            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={curPage === pageCount} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-right" /></button>
+            <button onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={curPage === pageCount} aria-label="Next page" className="grid h-8 w-8 place-items-center rounded-lg border border-border hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><i className="ph-bold ph-caret-right" aria-hidden /></button>
           </div>
         </div>
       )}
@@ -403,7 +424,7 @@ export function CustomersClient({ rows }: { rows: CustomerRow[] }) {
         {panelCust && <CustomerPanel c={panelCust} notify={notify} prev={prevCust} next={nextCust} onNav={setPanelId} onCopy={() => copyCustLink(panelCust.id)} copied={copied} />}
       </SlideOver>
 
-      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" />{toast}</div>}
+      {toast && <div className="toast-in fixed bottom-4 right-4 z-[80] rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-xl"><i className="ph-bold ph-check-circle mr-1.5 text-emerald-500" aria-hidden />{toast}</div>}
     </section>
   );
 }
@@ -412,14 +433,16 @@ const MIX_COLOR = ['#2563eb', '#10b981', '#38bdf8', '#a78bfa', '#f59e0b', '#fb92
 
 function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: CustomerRow; notify: (m: string) => void; prev: CustomerRow | null; next: CustomerRow | null; onNav: (id: string) => void; onCopy: () => void; copied: boolean }) {
   const money = useMoney();
+  const base = useAreaBase();
+  const canImpersonateCustomer = useImpersonatePolicy().canCustomer; // managers can't → hide the button
   const t = TIER[c.tier]; const h = HEALTH[c.health];
   const mixSum = c.mix.reduce((s, m) => s + m.value, 0) || 1;
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" /></button>
-        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" /></button>
-        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} />{copied ? 'Copied' : 'Copy'}</button>
+        <button onClick={() => prev && onNav(prev.id)} disabled={!prev} title="Previous (k)" aria-label="Previous customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-left" aria-hidden /></button>
+        <button onClick={() => next && onNav(next.id)} disabled={!next} title="Next (j)" aria-label="Next customer" className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent disabled:opacity-30"><i className="ph-bold ph-caret-right" aria-hidden /></button>
+        <button onClick={onCopy} title="Copy shareable link" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"><i className={`ph-bold ${copied ? 'ph-check text-emerald-500' : 'ph-link-simple'}`} aria-hidden />{copied ? 'Copied' : 'Copy'}</button>
       </div>
       {/* identity */}
       <div className="flex items-start gap-3">
@@ -427,23 +450,26 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="display text-lg font-bold tracking-tight">{c.name}</span>
-            <i className={`ph-fill ${t.icon}`} style={{ color: t.color }} title={`${t.label} tier`} />
+            <i className={`ph-fill ${t.icon}`} style={{ color: t.color }} title={`${t.label} tier`} aria-hidden />
             <span className={`pill ${c.status === 'claimed' ? 'pill-live' : 'pill'}`}>{c.status}</span>
             {c.atRisk && <span className="pill pill-warn">churn risk</span>}
           </div>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{c.company} · member since {joined(c.memberSince)}</p>
+          <ReferrerTag customerId={c.id} className="mt-1" />
           {c.tags.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{c.tags.map((tag) => <span key={tag} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{tag}</span>)}</div>}
         </div>
       </div>
 
       {/* actions */}
-      <div className="grid grid-cols-2 gap-2">
-        <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" />Email</a>
-        <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" />Impersonate</button>
+      <div className={`grid ${canImpersonateCustomer ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
+        <a href={`mailto:${c.email}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-envelope-simple" aria-hidden />Email</a>
+        {canImpersonateCustomer && (
+          <button onClick={() => impersonateCustomer(c.id)} title={`Open the customer portal as ${c.company}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-semibold hover:bg-accent"><i className="ph-bold ph-user-switch" aria-hidden />Impersonate</button>
+        )}
       </div>
       <div className="flex items-center gap-2">
-        <Link href={`/admin/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" />Open full profile</Link>
-        <a href={`/admin/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" /></a>
+        <Link href={`${base}/customers/${c.id}`} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><i className="ph-bold ph-user" aria-hidden />Open full profile</Link>
+        <a href={`${base}/customers/${c.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-[38px] w-11 shrink-0 place-items-center rounded-lg border border-border hover:bg-accent"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
       </div>
 
       {/* KPI grid */}
@@ -486,7 +512,7 @@ function CustomerPanel({ c, notify, prev, next, onNav, onCopy, copied }: { c: Cu
         {c.recentOrders.length ? (
           <div className="space-y-1.5">
             {c.recentOrders.map((o) => (
-              <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm hover:bg-muted/50">
+              <Link key={o.id} href={`${base}/orders/${o.id}`} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm hover:bg-muted/50">
                 <span className="min-w-0 flex-1 truncate"><span className="font-medium">{o.code}</span> <span className="text-muted-foreground">· {o.service}</span></span>
                 <StatusBadge status={o.status} />
                 <span className="shrink-0 font-semibold tabular-nums">{money(o.value)}</span>
@@ -546,23 +572,27 @@ function SortHead({ label, col, align, sort, dir, onSort }: { label: string; col
     <th onClick={() => onSort(col)} className={`cursor-pointer select-none p-3 hover:text-foreground ${align === 'right' ? 'text-right' : ''} ${active ? 'text-foreground' : ''}`}>
       <span className="inline-flex items-center gap-1">
         {label}
-        {active ? <i className={`ph-bold ${dir === 'asc' ? 'ph-arrow-up' : 'ph-arrow-down'} text-[10px] text-primary`} /> : <i className="ph-bold ph-arrows-down-up text-[10px] opacity-30" />}
+        {active ? <i className={`ph-bold ${dir === 'asc' ? 'ph-arrow-up' : 'ph-arrow-down'} text-[10px] text-primary`} aria-hidden /> : <i className="ph-bold ph-arrows-down-up text-[10px] opacity-30" aria-hidden />}
       </span>
     </th>
   );
 }
 function RowMenu({ c, notify, onView }: { c: CustomerRow; notify: (m: string) => void; onView: () => void }) {
   const [open, setOpen] = useState(false);
+  const base = useAreaBase();
+  const showMoney = useShowMoney();
+  const canImpersonateCustomer = useImpersonatePolicy().canCustomer;
+  // Managers are money-blind and can't impersonate customers → hide 'Adjust credit' + 'Impersonate'.
   const items = [
     { icon: 'ph-sidebar', label: 'Quick view', fn: onView },
-    { icon: 'ph-arrow-square-out', label: 'Full profile', href: `/admin/customers/${c.id}` },
+    { icon: 'ph-arrow-square-out', label: 'Full profile', href: `${base}/customers/${c.id}` },
     { icon: 'ph-envelope-simple', label: 'Email', fn: () => notify(`Email · ${c.name}`) },
-    { icon: 'ph-user-switch', label: 'Impersonate', fn: () => impersonateCustomer(c.id) },
-    { icon: 'ph-wallet', label: 'Adjust credit', fn: () => notify(`Adjust credit · ${c.name}`) },
+    ...(canImpersonateCustomer ? [{ icon: 'ph-user-switch', label: 'Impersonate', fn: () => impersonateCustomer(c.id) }] : []),
+    ...(showMoney ? [{ icon: 'ph-wallet', label: 'Adjust credit', fn: () => notify(`Adjust credit · ${c.name}`) }] : []),
   ];
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Actions"><i className="ph-bold ph-dots-three-outline" /></button>
+      <button onClick={() => setOpen((v) => !v)} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-accent" aria-label="Actions"><i className="ph-bold ph-dots-three-outline" aria-hidden /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />

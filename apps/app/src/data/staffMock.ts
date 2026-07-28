@@ -8,6 +8,7 @@ import {
   type OrderStatus, type Priority, type AdminDeliverable, type Tier,
 } from './adminMock';
 import { workStats as computeWorkStats, summariseEarnings, firstPassStreak, rankByComposite, type WorkItem, type MonthEarning } from '@/lib/staff';
+import { mockTodayDate } from '@/lib/today';
 import {
   walletBalance, availableToWithdraw, clearingTotal, pendingPenaltyCount,
   type WalletEntry, type StaffPenalty, type PayoutMethod, type PayoutRequest, type PenaltyRule,
@@ -29,7 +30,7 @@ export interface StaffTask {
   brief: { label: string; value: string }[]; // full customer intake from checkout
 }
 
-export interface StaffMessage { who: string; body: string; internal: boolean; at: string; }
+export interface StaffMessage { who: string; body: string; internal: boolean; at: string; attachments?: import('@/data/mock').MessageAttachment[]; }
 
 // The signed-in staff member (mock). Swapped for the session user when auth lands.
 export const CURRENT_STAFF = { id: 's3', name: 'Huy N.', role: 'Content Lead' };
@@ -107,7 +108,7 @@ export function deliverableStats(staffId: string = CURRENT_STAFF.id): Deliverabl
 // take-home — never the Payout's `basis`/`rate`, so commission can't be reverse-engineered into
 // the customer revenue behind it. This is the one place money is intentionally shown to staff.
 export interface StaffEarnings {
-  base: number; commission: number; bonus: number; takeHome: number;
+  base: number; gig: number; gigUnits: number; commission: number; bonus: number; takeHome: number;
   lastPaid: { month: string; amount: number } | null;
 }
 export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | null {
@@ -119,7 +120,7 @@ export function myEarnings(staffId: string = CURRENT_STAFF.id): StaffEarnings | 
   const lastPaid = past
     ? { month: past.note?.split(' ')[0] ?? past.at.slice(0, 7), amount: Math.abs(past.amount) }
     : null;
-  return { base: p.base, commission: p.commission, bonus: p.bonus, takeHome: p.due, lastPaid };
+  return { base: p.base, gig: p.gig, gigUnits: p.gigUnits, commission: p.commission, bonus: p.bonus, takeHome: p.due, lastPaid };
 }
 
 // ---- Customers the staffer is actively caring for (derived from their board; no money) ----
@@ -252,12 +253,15 @@ export const statusLabel: Record<OrderStatus, string> = {
 };
 
 // Columns staff actually work through (no New/Confirmed — that's admin intake).
-export const BOARD_COLUMNS: { status: OrderStatus; label: string }[] = [
+// `also` folds extra statuses into a column so no task silently disappears from the board (e.g. an
+// approved/completed order has no dedicated column — it belongs under Done).
+export const BOARD_COLUMNS: { status: OrderStatus; label: string; also?: OrderStatus[] }[] = [
   { status: 'assigned', label: 'Assigned' },
   { status: 'in_progress', label: 'In progress' },
   { status: 'internal_review', label: 'In review' },
   { status: 'changes_requested', label: 'Changes requested' },
   { status: 'delivered', label: 'Delivered' },
+  { status: 'approved', label: 'Done', also: ['completed'] },
 ];
 
 // ---- Availability: working hours, time off, and the away-handoff policy ----
@@ -542,7 +546,7 @@ export const activeWorkload = (staffId: string = CURRENT_STAFF.id): number =>
 
 // ---- Monthly earnings history (current month = real PAYOUTS; prior months seeded) ----
 const MONTH_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const EARNINGS_NOW = new Date('2026-06-26T00:00:00');
+const EARNINGS_NOW = mockTodayDate();
 // Small deterministic hash so prior-month figures are stable across renders.
 function earnSeed(key: string): number {
   let h = 0x811c9dc5;
@@ -562,7 +566,7 @@ export function earningsHistory(staffId: string = CURRENT_STAFF.id, months = 6):
     const tasks = archive.filter((a) => a.completedAt.slice(0, 7) === ym).length;
     if (i === 0 && current) {
       // current month: the authoritative live payout (matches the Earnings card)
-      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base: current.base, commission: current.commission, bonus: current.bonus, takeHome: current.takeHome, tasks });
+      out.push({ month: ym, label: MONTH_LABEL[d.getMonth()], base: current.base, gig: current.gig, commission: current.commission, bonus: current.bonus, takeHome: current.takeHome, tasks });
     } else {
       const seed = earnSeed(`${staffId}-${ym}`);
       // commission tracks that month's task volume, with a little organic jitter
@@ -588,7 +592,7 @@ const ACT_TYPES = ['Content', 'Keyword', 'Optimization', 'Backlink', 'Audit', 'I
 const ACT_PAY: Record<string, number> = { Content: 22, Keyword: 18, Optimization: 35, Backlink: 30, Audit: 15, Indexer: 8 };
 const ACT_WEIGHT: Record<string, number> = { Content: 5, Keyword: 2, Optimization: 2, Backlink: 1, Audit: 1, Indexer: 1 };
 const ACT_WSUM = ACT_TYPES.reduce((a, t) => a + ACT_WEIGHT[t], 0);
-const ACT_NOW = new Date('2026-06-26T00:00:00Z');
+const ACT_NOW = mockTodayDate();
 const MS_DAY = 86_400_000;
 
 function actSlices(staffId: string, seedKey: string, intensity: number): ActivitySlice[] {

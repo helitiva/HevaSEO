@@ -28,7 +28,7 @@ export function StaffSidebar({ open, onClose }: { open: boolean; onClose: () => 
             <div className="space-y-0.5">
               {section.items.map((i) => (
                 <Link key={i.href} href={i.href} onClick={onClose} className={`nav-item ${isActive(i.href) ? 'active' : ''}`}>
-                  <i className={`ph-bold ${i.icon}`} /> {i.label}
+                  <i className={`ph-bold ${i.icon}`} aria-hidden /> {i.label}
                 </Link>
               ))}
             </div>

@@ -4,15 +4,25 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SlideOver } from '@/components/shared/SlideOver';
-import { CashflowChart } from '@/components/admin/finance/CashflowChart';
+import { WithdrawalRequests } from '@/components/admin/finance/WithdrawalRequests';
+import { AdminPenalties } from '@/components/admin/finance/AdminPenalties';
+import { AdminPayroll } from '@/components/admin/finance/AdminPayroll';
+import type { AdminPayoutRequest } from '@/data/adminPayouts.server';
+import type { AdminPenalty, WalletStaff } from '@/data/adminPenalties.server';
+import type { PayrollRun } from '@/data/adminPayroll.server';
 import {
-  FINANCE, TRANSACTIONS, INVOICES, PAYOUTS, CASHFLOW, CUSTOMERS, ORDERS,
-  TX_KIND, TX_METHOD, INVOICE_STATUS, PAYABLE_STATES, PAYOUT_RATE, TIER, money,
-  type Transaction, type TxKind, type Invoice, type InvoiceStatus, type Payout,
-  type AdminOrder, type AdminCustomer,
+  FINANCE, TRANSACTIONS, PAYOUTS, MANAGER_PAYOUTS, STAFF_MANAGER, CUSTOMERS, ORDERS,
+  TX_KIND, TX_METHOD, PAYABLE_STATES, PAYOUT_RATE, GIG_RATE, TIER, money,
+  type Transaction, type Payout, type ManagerPayout, type AdminOrder, type AdminCustomer,
 } from '@/data/adminMock';
 import { StaffHoverCard } from '@/components/admin/StaffHoverCard';
+import { gigPay } from '@/lib/payOverrides';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
+import { CompPayroll } from '@/components/admin/finance/CompPayroll';
+import type { PayrollPreview } from '@/data/adminComp';
+import type { FinanceKpis, RevenueBook, RevenueDay } from '@/data/adminRevenue';
+import type { CustomerWallet, LedgerEntry, LedgerKind, PaymentReceipt } from '@/data/adminLedger.server';
+import { RevenueSplitChart } from '@/components/admin/finance/RevenueSplitChart';
 import { buildPayrollPeriods, currentPenalties, type PayGran, type PayPeriod } from '@/data/adminPayroll';
 import { myPenalties } from '@/data/staffMock';
 import { PENALTY_TYPE_META, PENALTY_STATUS_META } from '@/lib/staffFinance';
@@ -23,8 +33,23 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'transactions', label: 'Transactions', icon: 'ph-arrows-left-right' },
   { key: 'wallets', label: 'Wallets', icon: 'ph-wallet' },
   { key: 'payouts', label: 'Payouts', icon: 'ph-hand-coins' },
-  { key: 'invoices', label: 'Invoices', icon: 'ph-file-text' },
+  // 'invoices' is the URL key (kept — it's linkable), but these rows are RECEIPTS for money already
+  // taken, not bills we're chasing. Prepaid business: nobody can owe us.
+  { key: 'invoices', label: 'Payments', icon: 'ph-receipt' },
 ];
+
+/** Name a movement by what it IS: a debit with no order is an adjustment, not an order. */
+function movementLabel(e: { kind: LedgerKind; orderCode: string | null }): string {
+  return e.kind === 'debit' && !e.orderCode ? 'Credit adjustment' : LEDGER_KIND[e.kind].label;
+}
+
+/** How each real ledger movement reads to a finance admin. `flow` is in/out of the customer WALLET. */
+const LEDGER_KIND: Record<LedgerKind, { label: string; icon: string; flow: 'in' | 'out'; hint: string }> = {
+  topup:      { label: 'Top-up',       icon: 'ph-arrow-circle-down',  flow: 'in',  hint: 'Cash in — becomes credit we owe as work' },
+  debit:      { label: 'Order placed',  icon: 'ph-receipt',            flow: 'out', hint: 'Credit spent on an order — not new cash, not yet revenue' },
+  refund:     { label: 'Refund',        icon: 'ph-arrow-u-down-left',  flow: 'in',  hint: 'Credit returned to the wallet' },
+  cancel_fee: { label: 'Cancellation fee', icon: 'ph-prohibit',        flow: 'out', hint: 'Fee charged against credit on cancellation' },
+};
 
 // localStorage-backed state for the admin's in-session finance actions
 // (mark-paid, payroll overrides, invoice actions, wallet top-ups). No backend
@@ -50,11 +75,13 @@ function usePersistedState<T>(key: string, initial: T) {
   return [state, setState] as const;
 }
 
-export function FinanceClient() {
+export function FinanceClient({ payoutRequests = [], penalties = [], walletStaff = [], payrollRuns = [], compPreview, kpis, days = [], reconcile, ledger = [], payments = [], wallets = [] }: { payoutRequests?: AdminPayoutRequest[]; penalties?: AdminPenalty[]; walletStaff?: WalletStaff[]; payrollRuns?: PayrollRun[]; compPreview?: PayrollPreview; kpis?: FinanceKpis; days?: RevenueDay[]; reconcile?: RevenueBook['reconcile']; ledger?: LedgerEntry[]; payments?: PaymentReceipt[]; wallets?: CustomerWallet[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const tab = (params.get('tab') as TabKey) ?? 'overview';
+  // the KPI band is server-computed from the real book; zeros (not mock figures) if it's ever absent
+  const k: FinanceKpis = kpis ?? { grossMtd: 0, refundsMtd: 0, netMtd: 0, walletLiability: 0, payoutsDue: 0, depositsMtd: 0, paymentsInFlight: 0 };
   const setTab = (k: TabKey) => {
     const next = new URLSearchParams(params.toString());
     if (k === 'overview') next.delete('tab'); else next.set('tab', k);
@@ -72,12 +99,17 @@ export function FinanceClient() {
 
       {/* KPI band */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi icon="ph-currency-dollar" label="Gross · MTD" value={money(f.grossMtd)} tone="good" hint="before refunds" />
-        <Kpi icon="ph-chart-line-up" label="Net · MTD" value={money(f.netMtd)} tone="good" hint="after refunds" />
-        <Kpi icon="ph-wallet" label="Wallet liability" value={money(f.walletLiability)} hint="prepaid customer credit" />
-        <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(f.refundsMtd)} hint="3% of gross" />
-        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(f.payoutsDue)} tone="warn" hint="salary + commission" />
-        <Kpi icon="ph-receipt" label="Outstanding AR" value={money(f.outstandingAr)} tone="warn" hint="unpaid invoices" />
+        {/* Real, from the ASC 606 book. "Gross" is RECOGNIZED revenue (work delivered this month) — not cash
+            in and not orders placed; "Wallet liability" is prepaid credit we still owe as work. */}
+        <Kpi icon="ph-currency-dollar" label="Gross · MTD" value={money(k.grossMtd)} tone="good" hint="revenue recognized on delivery" />
+        <Kpi icon="ph-chart-line-up" label="Net · MTD" value={money(k.netMtd)} tone="good" hint="after refunds" />
+        <Kpi icon="ph-wallet" label="Wallet liability" value={money(k.walletLiability)} hint="prepaid customer credit" />
+        <Kpi icon="ph-arrow-u-down-left" label="Refunds · MTD" value={money(k.refundsMtd)} hint="credit refunded" />
+        <Kpi icon="ph-hand-coins" label="Payouts due" value={money(k.payoutsDue)} tone="warn" hint="staff + managers" />
+        {/* Was "Outstanding AR", which counted every top-up receipt as a customer debt — in a prepaid
+            business AR is structurally $0. Cash collected is the number that actually belongs next to
+            gross: the same money, before we've earned it. */}
+        <Kpi icon="ph-arrow-circle-down" label="Deposits · MTD" value={money(k.depositsMtd)} hint="cash collected — not revenue" />
       </div>
 
       {/* Tabs */}
@@ -85,36 +117,81 @@ export function FinanceClient() {
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition ${tab === t.key ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-            <i className={`ph-bold ${t.icon}`} />{t.label}
+            <i className={`ph-bold ${t.icon}`} aria-hidden />{t.label}
           </button>
         ))}
       </div>
 
       <div className="page-anim">
-        {tab === 'overview' && <OverviewTab />}
-        {tab === 'transactions' && <TransactionsTab />}
-        {tab === 'wallets' && <WalletsTab />}
-        {tab === 'payouts' && <PayoutsTab />}
-        {tab === 'invoices' && <InvoicesTab />}
+        {tab === 'overview' && <OverviewTab k={k} days={days} ledger={ledger} reconcile={reconcile} />}
+        {tab === 'transactions' && <TransactionsTab ledger={ledger} />}
+        {tab === 'wallets' && <WalletsTab wallets={wallets} ledger={ledger} />}
+        {tab === 'payouts' && <div className="space-y-4">{compPreview && <CompPayroll preview={compPreview} />}<WithdrawalRequests requests={payoutRequests} /><AdminPenalties penalties={penalties} staff={walletStaff} /><AdminPayroll runs={payrollRuns} staff={walletStaff} /><PayoutsTab /></div>}
+        {tab === 'invoices' && <PaymentsTab payments={payments} />}
       </div>
     </section>
   );
 }
 
 /* ---------------------------------------------------------------- Overview */
-function OverviewTab() {
-  const recent = [...TRANSACTIONS].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-  const overdue = INVOICES.filter((i) => i.status === 'overdue');
-  const pending = TRANSACTIONS.filter((t) => t.status === 'pending');
-  const totalIn = CASHFLOW.reduce((s, d) => s + d.in, 0);
-  const totalOut = CASHFLOW.reduce((s, d) => s + d.out, 0);
-  const net = totalIn - totalOut;
-  const flowMax = Math.max(totalIn, totalOut, 1);
+/**
+ * The books, proving themselves. getRevenueBook() has always computed this identity and nothing ever
+ * rendered it — an accounting check that runs and is thrown away protects no one.
+ *
+ * It is also the tripwire for the failure mode this data layer is most exposed to: every finance query
+ * is an unbounded select against PostgREST's max_rows=1000, which TRUNCATES silently rather than
+ * erroring. If the ledger ever outgrows that, the totals go quietly wrong — and this line is what turns
+ * "quietly" into a red banner.
+ */
+function ReconcileStrip({ r }: { r: RevenueBook['reconcile'] }) {
+  const gap = round2(r.expected - r.deferred);
+  const Term = ({ label, value, sign }: { label: string; value: number; sign?: string }) => (
+    <span className="flex items-baseline gap-1">
+      {sign && <span className="text-muted-foreground/60">{sign}</span>}
+      <span className="tabular-nums font-semibold text-foreground">{money(value)}</span>
+      <span className="text-muted-foreground">{label}</span>
+    </span>
+  );
+  return (
+    <div className={`rounded-2xl border px-4 py-3 text-[11px] ${r.ok ? 'border-border bg-card' : 'border-rose-500/50 bg-rose-500/5'}`}>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <span className={`flex items-center gap-1.5 text-xs font-semibold ${r.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+          <i className={`ph-bold ${r.ok ? 'ph-check-circle' : 'ph-warning-octagon'}`} aria-hidden />
+          {r.ok ? 'Books tie out' : 'Books do NOT tie out'}
+        </span>
+        <span className="text-muted-foreground/50">·</span>
+        <Term label="deposited" value={r.deposits} />
+        <Term label="recognized" value={r.recognized} sign="−" />
+        {r.nonOrderSpend > 0 && <Term label="non-order spend" value={r.nonOrderSpend} sign="−" />}
+        {r.cancelFees > 0 && <Term label="cancellation fees" value={r.cancelFees} sign="−" />}
+        <span className="text-muted-foreground/60">=</span>
+        <Term label="deferred (owed as work)" value={r.deferred} />
+        {!r.ok && <span className="font-semibold text-rose-600">· off by {money(Math.abs(gap))}</span>}
+      </div>
+      {!r.ok && (
+        <p className="mt-1.5 text-rose-700">
+          Cash in doesn&apos;t reconcile to what we owe. Every figure on this page is suspect until this clears —
+          suspect truncated reads (PostgREST caps at 1,000 rows), or a ledger movement the book doesn&apos;t model yet.
+        </p>
+      )}
+    </div>
+  );
+}
 
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+function OverviewTab({ k, days, ledger, reconcile }: { k: FinanceKpis; days: RevenueDay[]; ledger: LedgerEntry[]; reconcile?: RevenueBook['reconcile'] }) {
+  const recent = ledger.slice(0, 6); // already newest-first from the server
+  const winDeposits = days.reduce((s, d) => s + d.deposits, 0);
+  const winRecognized = days.reduce((s, d) => s + d.recognized, 0);
+  const winMax = Math.max(winDeposits, winRecognized, 1);
+
+  // Every alert must be a real thing an admin can act on. Two used to be theatre: "$20,080 in unsettled
+  // invoices" (every settled top-up receipt miscounted as a debt) and "1 pending payment · $200" (an
+  // adminMock row). Both are gone. An empty alert row now genuinely means nothing needs attention.
   const alerts = [
-    overdue.length ? { icon: 'ph-warning-circle', tone: 'bad' as const, text: `${overdue.length} overdue invoice${overdue.length > 1 ? 's' : ''} · ${money(overdue.reduce((a, i) => a + i.amount, 0))}`, href: '?tab=invoices' } : null,
-    pending.length ? { icon: 'ph-hourglass-medium', tone: 'warn' as const, text: `${pending.length} pending payment${pending.length > 1 ? 's' : ''} · ${money(pending.reduce((a, t) => a + t.amount, 0))}`, href: '?tab=transactions' } : null,
-    FINANCE.payoutsDue ? { icon: 'ph-hand-coins', tone: 'warn' as const, text: `${money(FINANCE.payoutsDue)} in staff payouts due`, href: '?tab=payouts' } : null,
+    k.paymentsInFlight ? { icon: 'ph-hourglass-medium', tone: 'warn' as const, text: `${money(k.paymentsInFlight)} in payments awaiting confirmation`, href: '?tab=invoices' } : null,
+    k.payoutsDue ? { icon: 'ph-hand-coins', tone: 'warn' as const, text: `${money(k.payoutsDue)} in staff payouts due`, href: '?tab=payouts' } : null,
   ].filter(Boolean) as { icon: string; tone: 'bad' | 'warn'; text: string; href: string }[];
 
   return (
@@ -124,50 +201,57 @@ function OverviewTab() {
           {alerts.map((a, i) => (
             <Link key={i} href={a.href} scroll={false}
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:brightness-105 ${a.tone === 'bad' ? 'border-rose-500/40 bg-rose-500/5 text-rose-600' : 'border-amber-500/40 bg-amber-500/5 text-amber-700'}`}>
-              <i className={`ph-bold ${a.icon}`} />{a.text}<i className="ph-bold ph-arrow-right opacity-60" />
+              <i className={`ph-bold ${a.icon}`} aria-hidden />{a.text}<i className="ph-bold ph-arrow-right opacity-60" aria-hidden />
             </Link>
           ))}
         </div>
       )}
 
-      <CashflowChart data={CASHFLOW} />
+      {reconcile && <ReconcileStrip r={reconcile} />}
+
+      {/* real: deposits (cash in, a liability) vs revenue recognized on delivery — replaces a generated
+          "cashflow in vs out" that was pure adminMock */}
+      <RevenueSplitChart days={days} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" /> Net flow · 30d</p>
+          {/* Was "Net flow · 30d" off a generated CASHFLOW mock. There is no real cash-OUT ledger to draw
+              from, so this shows the split that IS real and matters: cash taken in vs revenue actually earned. */}
+          <p className="mb-4 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-scales text-primary" aria-hidden /> Cash vs earned · {days.length}d</p>
           <div className="space-y-3">
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Money in</span>
-                <span className="font-semibold tabular-nums text-emerald-600">+{money(totalIn)}</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-sky-500" />Deposits in</span>
+                <span className="font-semibold tabular-nums text-sky-600">+{money(winDeposits)}</span>
               </div>
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(totalIn / flowMax) * 100}%` }} />
+                <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${(winDeposits / winMax) * 100}%` }} />
               </div>
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" />Money out</span>
-                <span className="font-semibold tabular-nums text-rose-500">−{money(totalOut)}</span>
+                <span className="flex items-center gap-1.5 font-medium"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Revenue earned</span>
+                <span className="font-semibold tabular-nums text-emerald-600">{money(winRecognized)}</span>
               </div>
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-rose-500 transition-all" style={{ width: `${(totalOut / flowMax) * 100}%` }} />
+                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(winRecognized / winMax) * 100}%` }} />
               </div>
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-sm">
-            <span className="text-muted-foreground">Net</span>
-            <span className={`font-bold tabular-nums ${net >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{net >= 0 ? '+' : '−'}{money(Math.abs(net))}</span>
+            <span className="text-muted-foreground">Held against work owed</span>
+            <span className="font-bold tabular-nums text-foreground">{money(winDeposits - winRecognized)}</span>
           </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-primary" /> Recent transactions</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-clock-counter-clockwise text-primary" aria-hidden /> Recent transactions</p>
             <Link href="?tab=transactions" scroll={false} className="text-xs font-semibold text-primary hover:underline">All →</Link>
           </div>
           <ul className="divide-y divide-border/60">
-            {recent.map((t) => <RecentRow key={t.id} t={t} />)}
+            {recent.map((e) => <RecentRow key={e.id} e={e} />)}
+            {recent.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">No money has moved yet.</li>}
           </ul>
         </div>
       </div>
@@ -175,60 +259,67 @@ function OverviewTab() {
   );
 }
 
-function RecentRow({ t }: { t: Transaction }) {
-  const meta = TX_KIND[t.kind];
+function RecentRow({ e }: { e: LedgerEntry }) {
+  const meta = LEDGER_KIND[e.kind];
   return (
     <li className="flex items-center gap-3 py-2.5 text-sm">
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} /></span>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} aria-hidden /></span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{t.party} <span className="text-muted-foreground">· {meta.label}</span></p>
-        <p className="text-[11px] text-muted-foreground">{t.at}{t.orderCode ? ` · ${t.orderCode}` : ''}</p>
+        <p className="truncate font-medium">{e.customer} <span className="text-muted-foreground">· {movementLabel(e)}</span></p>
+        <p className="text-[11px] text-muted-foreground">{stamp(e.at)}{e.orderCode ? ` · ${e.orderCode}` : ''}</p>
       </div>
-      <Amount n={t.amount} status={t.status} />
+      <LedgerAmount n={e.amount} />
     </li>
   );
 }
 
 /* ------------------------------------------------------------ Transactions */
-const KIND_FILTERS: { key: TxKind | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' }, { key: 'top_up', label: 'Top-ups' }, { key: 'charge', label: 'Payments' },
-  { key: 'refund', label: 'Refunds' }, { key: 'payout', label: 'Payouts' }, { key: 'adjustment', label: 'Adjustments' },
+// The real credit ledger. Note what ISN'T here versus the mock it replaces: no Method and no Status
+// column. credit_ledger records movements that have already happened, so "pending"/"failed" rows
+// cannot exist — a ledger row IS settled. Payment method lives on the receipt (Payments tab), not
+// on the movement.
+const KIND_FILTERS: { key: LedgerKind | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' }, { key: 'topup', label: 'Top-ups' }, { key: 'debit', label: 'Orders' },
+  { key: 'refund', label: 'Refunds' }, { key: 'cancel_fee', label: 'Fees' },
 ];
 
-const TX_DATES = TRANSACTIONS.map((t) => t.at.slice(0, 10)).sort();
-const TX_MIN = TX_DATES[0];
-const TX_MAX = TX_DATES[TX_DATES.length - 1];
-
-function TransactionsTab() {
-  const [kind, setKind] = useState<TxKind | 'all'>('all');
+function TransactionsTab({ ledger }: { ledger: LedgerEntry[] }) {
+  const [kind, setKind] = useState<LedgerKind | 'all'>('all');
   const [party, setParty] = useState('');
   const [search, setSearch] = useState('');
-  const [from, setFrom] = useState(TX_MIN);
-  const [to, setTo] = useState(TX_MAX);
-  const [selected, setSelected] = useState<Transaction | null>(null);
+  const [selected, setSelected] = useState<LedgerEntry | null>(null);
 
-  const parties = useMemo(() => [...new Set(TRANSACTIONS.map((t) => t.party))].sort(), []);
-  const rows = useMemo(() => [...TRANSACTIONS]
-    .sort((a, b) => b.at.localeCompare(a.at))
-    .filter((t) => {
-      const day = t.at.slice(0, 10);
-      return (kind === 'all' || t.kind === kind)
-        && (!party || t.party === party)
-        && day >= from && day <= to
-        && (!search.trim() || `${t.party} ${t.note} ${t.orderCode ?? ''}`.toLowerCase().includes(search.toLowerCase()));
-    }),
-    [kind, party, search, from, to]);
-  // Keep cash and revenue separate — a wallet charge spends credit that was
-  // already counted at top-up, so summing both would double-count the same money.
-  const topUps = rows.filter((t) => t.kind === 'top_up' && t.status !== 'failed').reduce((a, t) => a + t.amount, 0);
-  const revenue = rows.filter((t) => t.kind === 'charge').reduce((a, t) => a + t.amount, 0);
-  const sumOut = rows.filter((t) => t.amount < 0).reduce((a, t) => a + t.amount, 0);
+  // the pickable range is whatever the ledger actually spans — an empty ledger must not produce
+  // `undefined` bounds, which would silently filter every row out
+  const [min, max] = useMemo(() => {
+    const days = ledger.map((e) => e.at.slice(0, 10)).sort();
+    const today = new Date().toISOString().slice(0, 10);
+    return [days[0] ?? today, days[days.length - 1] ?? today];
+  }, [ledger]);
+  const [from, setFrom] = useState(min);
+  const [to, setTo] = useState(max);
+
+  const parties = useMemo(() => [...new Set(ledger.map((e) => e.customer))].sort(), [ledger]);
+  const rows = useMemo(() => ledger.filter((e) => {
+    const day = e.at.slice(0, 10);
+    return (kind === 'all' || e.kind === kind)
+      && (!party || e.customer === party)
+      && day >= from && day <= to
+      && (!search.trim() || `${e.customer} ${e.orderCode ?? ''} ${e.reference ?? ''}`.toLowerCase().includes(search.toLowerCase()));
+  }), [ledger, kind, party, search, from, to]);
+
+  // Three separate numbers, never added together. Cash in is real money arriving. Credit spent is the
+  // SAME money being committed to an order — counting it as income again would double-count it, and it
+  // isn't revenue either way (that's earned on delivery — see the Overview chart).
+  const cashIn = rows.filter((e) => e.kind === 'topup').reduce((a, e) => a + e.amount, 0);
+  const creditSpent = rows.filter((e) => e.kind === 'debit').reduce((a, e) => a + Math.abs(e.amount), 0);
+  const returned = rows.filter((e) => e.kind === 'refund').reduce((a, e) => a + e.amount, 0);
 
   const exportCsv = () => {
     downloadCsv(
       `transactions_${from}_to_${to}.csv`,
-      ['Date', 'Type', 'Party', 'Order', 'Method', 'Status', 'Amount', 'Note'],
-      rows.map((t) => [t.at, TX_KIND[t.kind].label, t.party, t.orderCode ?? '', TX_METHOD[t.method].label, t.status, t.amount, t.note]),
+      ['Date', 'Type', 'Customer', 'Order', 'Amount', 'Reference'],
+      rows.map((e) => [stamp(e.at), movementLabel(e), e.customer, e.orderCode ?? '', e.amount, e.reference ?? '']),
     );
   };
 
@@ -242,367 +333,292 @@ function TransactionsTab() {
           ))}
         </div>
         <select value={party} onChange={(e) => setParty(e.target.value)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary">
-          <option value="">All parties</option>
+          <option value="">All customers</option>
           {parties.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <div className="inline-flex items-center gap-1 rounded-lg border border-border p-1 text-xs">
-          <input type="date" value={from} min={TX_MIN} max={to} onChange={(e) => setFrom(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
+          <input type="date" value={from} min={min} max={to} onChange={(e) => setFrom(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
           <span className="text-muted-foreground">→</span>
-          <input type="date" value={to} min={from} max={TX_MAX} onChange={(e) => setTo(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
+          <input type="date" value={to} min={from} max={max} onChange={(e) => setTo(e.target.value)} className="w-[7.5rem] rounded bg-transparent px-1 outline-none" />
         </div>
         <div className="relative ml-auto min-w-[12rem] flex-1 sm:flex-none">
-          <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search party, note, order…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
+          <i className="ph-bold ph-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground" aria-hidden />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, order, ref…" className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 text-xs outline-none focus:border-primary" />
         </div>
         <button onClick={exportCsv} disabled={rows.length === 0}
           title="Download the filtered transactions as CSV"
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">
-          <i className="ph-bold ph-download-simple" />Export CSV
+          <i className="ph-bold ph-download-simple" aria-hidden />Export CSV
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
-        <span>{rows.length} transactions</span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-emerald-600" />Top-ups <span className="font-semibold text-emerald-600">{money(topUps)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-receipt text-emerald-600" />Revenue <span className="font-semibold text-emerald-600">{money(revenue)}</span></span>
-        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-up text-rose-500" />Out <span className="font-semibold text-rose-500">{money(Math.abs(sumOut))}</span></span>
+        <span>{rows.length} movement{rows.length !== 1 ? 's' : ''}</span>
+        <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-circle-down text-sky-600" aria-hidden />Cash in <span className="font-semibold text-sky-600">{money(cashIn)}</span></span>
+        <span className="flex items-center gap-1" title="Credit committed to orders — the same money as the top-up, not new income">
+          <i className="ph-bold ph-receipt text-muted-foreground" aria-hidden />Credit spent <span className="font-semibold text-foreground">{money(creditSpent)}</span></span>
+        {returned > 0 && <span className="flex items-center gap-1"><i className="ph-bold ph-arrow-u-down-left text-amber-600" aria-hidden />Refunded <span className="font-semibold text-amber-600">{money(returned)}</span></span>}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Date</th><th className="p-3">Type</th><th className="p-3">Party</th>
-              <th className="p-3">Method</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th><th className="p-3" aria-hidden />
+              <th className="p-3">Date <span className="font-normal normal-case opacity-60" title="The ledger is kept and filtered in UTC">(UTC)</span></th>
+              <th className="p-3">Type</th><th className="p-3">Customer</th>
+              <th className="p-3">Order</th><th className="p-3 text-right">Amount</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => {
-              const meta = TX_KIND[t.kind];
+            {rows.map((e) => {
+              const meta = LEDGER_KIND[e.kind];
               return (
-                <tr key={t.id} onClick={() => setSelected(t)}
-                  role="button" tabIndex={0} aria-label={`${meta.label} · ${t.party} · ${money(Math.abs(t.amount))}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(t); } }}
+                <tr key={e.id} onClick={() => setSelected(e)}
+                  role="button" tabIndex={0} aria-label={`${meta.label} · ${e.customer} · ${money(Math.abs(e.amount))}`}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(e); } }}
                   className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
-                  <td className="whitespace-nowrap p-3 text-muted-foreground">{t.at}</td>
-                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} />{meta.label}</span></td>
-                  <td className="p-3"><span className="font-medium">{t.party}</span>{t.orderCode && <span className="text-muted-foreground"> · {t.orderCode}</span>}</td>
-                  <td className="p-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><i className={`ph-bold ${TX_METHOD[t.method].icon}`} />{TX_METHOD[t.method].label}</span></td>
-                  <td className="p-3"><TxStatusPill status={t.status} /></td>
-                  <td className="p-3 text-right"><Amount n={t.amount} status={t.status} /></td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
+                  <td className="whitespace-nowrap p-3 text-muted-foreground">{stamp(e.at)}</td>
+                  <td className="p-3"><span className="inline-flex items-center gap-1.5 font-medium"><i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />{movementLabel(e)}</span></td>
+                  <td className="p-3 font-medium">{e.customer}</td>
+                  <td className="p-3 text-muted-foreground">{e.orderCode ?? '—'}</td>
+                  <td className="p-3 text-right"><LedgerAmount n={e.amount} /></td>
+                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions match.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transactions match.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? TX_KIND[selected.kind].label : ''}>
-        {selected && <TxDetail t={selected} />}
+      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? LEDGER_KIND[selected.kind].label : ''}>
+        {selected && <TxDetail e={selected} />}
       </SlideOver>
     </div>
   );
 }
 
-function TxDetail({ t }: { t: Transaction }) {
-  const meta = TX_KIND[t.kind];
-  const cust = t.partyId && t.partyId.startsWith('c') ? CUSTOMERS.find((c) => c.id === t.partyId) : null;
+function TxDetail({ e }: { e: LedgerEntry }) {
+  const meta = LEDGER_KIND[e.kind];
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <span className={`grid h-12 w-12 place-items-center rounded-xl ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon} text-xl`} /></span>
+        <span className={`grid h-12 w-12 place-items-center rounded-xl ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon} text-xl`} aria-hidden /></span>
         <div>
-          <p className="display text-2xl font-bold leading-none"><Amount n={t.amount} status={t.status} /></p>
-          <p className="mt-1 text-xs text-muted-foreground">{meta.label} · {t.at}</p>
+          <p className="display text-2xl font-bold leading-none"><LedgerAmount n={e.amount} /></p>
+          <p className="mt-1 text-xs text-muted-foreground">{meta.label} · {stamp(e.at)}</p>
         </div>
-        <div className="ml-auto"><TxStatusPill status={t.status} /></div>
       </div>
+
+      <p className="rounded-lg border border-border bg-background/40 p-3 text-sm text-muted-foreground">{meta.hint}</p>
 
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <KV label="Party" value={t.party} />
-        <KV label="Method" value={TX_METHOD[t.method].label} />
-        <KV label="Reference" value={t.id.toUpperCase()} />
-        <KV label="Linked order" value={t.orderCode ?? '—'} />
-      </div>
-
-      <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Note</p>
-        <p className="rounded-lg border border-border bg-background/40 p-3 text-sm">{t.note}</p>
+        <KV label="Customer" value={e.customer} />
+        <KV label="Linked order" value={e.orderCode ?? '—'} />
+        <KV label="Ledger entry" value={e.id.slice(0, 8)} />
+        <KV label="Provider ref" value={e.reference ?? '—'} />
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
-        {cust && (
+        {e.customerId && (
           <>
-            <Link href={`/admin/customers/${cust.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" />Customer profile</Link>
-            <a href={`/admin/customers/${cust.id}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" /></a>
+            <Link href={`/admin/customers/${e.customerId}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
+            <a href={`/admin/customers/${e.customerId}`} target="_blank" rel="noopener noreferrer" title="Open profile in a new tab" aria-label="Open profile in a new tab" className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground hover:text-primary"><i className="ph-bold ph-arrow-square-out" aria-hidden /></a>
           </>
         )}
-        {t.orderCode && <Link href="/admin/orders" className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" />View order</Link>}
+        {e.orderCode && <Link href={`/admin/orders?q=${encodeURIComponent(e.orderCode)}`} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-accent"><i className="ph-bold ph-package" aria-hidden />View order</Link>}
       </div>
     </div>
   );
 }
 
 /* ---------------------------------------------------------------- Wallets */
-// Admin-granted wallet credit (session-only — no backend yet).
-type AdminTopup = { id: string; customerId: string; amount: number; at: string; note: string };
-function nowStamp(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function WalletsTab() {
-  const [selected, setSelected] = useState<AdminCustomer | null>(null);
-  const [topups, setTopups] = usePersistedState<AdminTopup[]>('walletTopups', []);
-  const [topup, setTopup] = useState<{ open: boolean; presetId?: string }>({ open: false });
-
-  const addedFor = (id: string) => topups.filter((t) => t.customerId === id).reduce((a, t) => a + t.amount, 0);
-  const balanceOf = (c: AdminCustomer) => c.balance + addedFor(c.id);
-  const sessionTxFor = (id: string): Transaction[] => topups
-    .filter((t) => t.customerId === id)
-    .map((t): Transaction => ({ id: t.id, at: t.at, kind: 'top_up', amount: t.amount, party: CUSTOMERS.find((c) => c.id === id)?.company ?? '', partyId: id, method: 'manual', status: 'settled', orderCode: null, note: t.note }))
-    .sort((a, b) => b.at.localeCompare(a.at));
-
-  const addCredit = (customerId: string, amount: number, note: string) => {
-    setTopups((s) => [...s, { id: `atu-${Date.now()}`, customerId, amount, at: nowStamp(), note: note.trim() || 'Admin trial credit' }]);
-    setTopup({ open: false });
-    const c = CUSTOMERS.find((x) => x.id === customerId);
-    if (c) setSelected(c);
-  };
-
-  const rows = [...CUSTOMERS].filter((c) => balanceOf(c) > 0).sort((a, b) => balanceOf(b) - balanceOf(a));
-  const sessionAdded = topups.reduce((a, t) => a + t.amount, 0);
-  const baseTopped = TRANSACTIONS.filter((t) => t.kind === 'top_up' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const liability = FINANCE.walletLiability + sessionAdded;
-  const maxBal = Math.max(...rows.map((c) => balanceOf(c)), 1);
+/**
+ * Real prepaid wallets, from customer_balances — the same rows getRevenueBook sums for the
+ * "Wallet liability" KPI, so the two can no longer disagree.
+ *
+ * They did disagree, loudly: this tab used to render adminMock CUSTOMERS and announce "7 customers
+ * holding $2,460 in prepaid credit" directly beneath a KPI band that correctly said $19,728.98. It
+ * listed people who don't exist ("Jane Doe · Acme Co · $320") while the real Jane Doe's wallet held
+ * $19,728.98 under a different company.
+ *
+ * The "Top up a customer" button is gone rather than rewired. It appended to localStorage: it looked
+ * like granting credit, showed a green "+$50" chip, and never touched a wallet — an admin could believe
+ * they'd funded an account that had no money in it. Granting credit for real needs a service-role
+ * action (the existing topup() fn is the customer's own provider-backed path); that's a feature to
+ * build deliberately, not a button to leave lying.
+ */
+function WalletsTab({ wallets, ledger }: { wallets: CustomerWallet[]; ledger: LedgerEntry[] }) {
+  const [selected, setSelected] = useState<CustomerWallet | null>(null);
+  const holders = wallets.filter((w) => w.balance !== 0);
+  const liability = holders.reduce((s, w) => s + w.balance, 0);
+  const toppedUp = ledger.filter((e) => e.kind === 'topup').reduce((s, e) => s + e.amount, 0);
+  const maxBal = Math.max(...holders.map((w) => Math.abs(w.balance)), 1);
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="px-1 text-xs text-muted-foreground">{rows.length} customers holding {money(liability)} in prepaid credit · {money(baseTopped + sessionAdded)} topped up to date. Click a row for the ledger.</p>
-        <button onClick={() => setTopup({ open: true })}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:brightness-110">
-          <i className="ph-bold ph-plus-circle" />Top up a customer
-        </button>
-      </div>
+      <p className="px-1 text-xs text-muted-foreground">
+        {holders.length} customer{holders.length !== 1 ? 's' : ''} holding <b className="text-foreground">{money(liability)}</b> in prepaid
+        credit · {money(toppedUp)} topped up to date. Click a row for the ledger.
+        {wallets.length > holders.length && <span className="opacity-70"> · {wallets.length - holders.length} with an empty wallet hidden.</span>}
+      </p>
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="p-3">Customer</th><th className="p-3">Tier</th><th className="p-3">Lifetime spend</th>
-              <th className="p-3">Wallet balance</th><th className="p-3">Last active</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
+              <th className="p-3">Wallet balance</th><th className="p-3">Last active</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => {
-              const bal = balanceOf(c);
-              const added = addedFor(c.id);
-              return (
-                <tr key={c.id} onClick={() => setSelected(c)}
-                  role="button" tabIndex={0} aria-label={`View wallet ledger for ${c.company}`}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); } }}
-                  className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
-                  <td className="p-3"><CustomerHoverCard customer={c.id}><Link href={`/admin/customers/${c.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{c.name}</Link></CustomerHoverCard><span className="text-muted-foreground"> · {c.company}</span></td>
-                  <td className="p-3 capitalize text-muted-foreground">{c.tier}</td>
-                  <td className="p-3">{money(c.spend)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold tabular-nums">{money(bal)}</span>
-                      {added > 0 && <span className="rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-600">+{money(added)}</span>}
-                      <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${(bal / maxBal) * 100}%` }} /></span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-muted-foreground">{c.lastActive}</td>
-                  <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setTopup({ open: true, presetId: c.id })}
-                      className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent">Top up</button>
-                  </td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No customers hold prepaid credit yet. Use “Top up a customer” to grant trial credit.</td></tr>}
+            {holders.map((w) => (
+              <tr key={w.id} onClick={() => setSelected(w)}
+                role="button" tabIndex={0} aria-label={`View wallet ledger for ${w.company || w.name}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(w); } }}
+                className="cursor-pointer border-b border-border/50 transition hover:bg-muted/40 focus:outline-none focus-visible:bg-primary/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary">
+                <td className="p-3">
+                  <CustomerHoverCard customer={w.id}><Link href={`/admin/customers/${w.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{w.name}</Link></CustomerHoverCard>
+                  {w.company && <span className="text-muted-foreground"> · {w.company}</span>}
+                </td>
+                <td className="p-3 capitalize text-muted-foreground">{w.tier}</td>
+                <td className="p-3 tabular-nums">{money(w.spend)}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    {/* customer_balances has no >= 0 check constraint, so a negative wallet is representable.
+                        It would mean we let work out the door unpaid — say so loudly rather than draw a bar. */}
+                    <span className={`font-semibold tabular-nums ${w.balance < 0 ? 'text-rose-600' : ''}`}>{money(w.balance)}</span>
+                    {w.balance < 0
+                      ? <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-600" title="This wallet is overdrawn — work was taken without credit to cover it">OVERDRAWN</span>
+                      : <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${(w.balance / maxBal) * 100}%` }} /></span>}
+                  </div>
+                </td>
+                <td className="p-3 text-muted-foreground">{w.lastActive ? w.lastActive.slice(0, 10) : '—'}</td>
+                <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
+              </tr>
+            ))}
+            {holders.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No customer holds prepaid credit yet.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.company} · Wallet ledger` : ''}>
-        {selected && <WalletDetail c={selected} balance={balanceOf(selected)} extraTx={sessionTxFor(selected.id)} onTopup={() => setTopup({ open: true, presetId: selected.id })} />}
-      </SlideOver>
-
-      <SlideOver open={topup.open} onClose={() => setTopup({ open: false })} title="Top up wallet">
-        {topup.open && <TopupForm presetId={topup.presetId} balanceOf={(id) => { const c = CUSTOMERS.find((x) => x.id === id); return c ? balanceOf(c) : 0; }} onSubmit={addCredit} onClose={() => setTopup({ open: false })} />}
+      <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.company || selected.name} · Wallet ledger` : ''}>
+        {selected && <WalletDetail w={selected} entries={ledger.filter((e) => e.customerId === selected.id)} />}
       </SlideOver>
     </div>
   );
 }
 
-const TOPUP_PRESETS = [25, 50, 100, 250];
-
-function TopupForm({ presetId, balanceOf, onSubmit, onClose }: {
-  presetId?: string;
-  balanceOf: (id: string) => number;
-  onSubmit: (customerId: string, amount: number, note: string) => void;
-  onClose: () => void;
-}) {
-  const customers = useMemo(() => [...CUSTOMERS].sort((a, b) => a.company.localeCompare(b.company)), []);
-  const [cid, setCid] = useState(presetId ?? '');
-  const [amount, setAmount] = useState<number>(50);
-  const [note, setNote] = useState('Trial credit');
-  const cust = customers.find((c) => c.id === cid);
-  const valid = !!cid && amount > 0;
-
+/** One customer's wallet: the balance, and every movement that produced it — from the same real ledger. */
+function WalletDetail({ w, entries }: { w: CustomerWallet; entries: LedgerEntry[] }) {
+  const toppedUp = entries.filter((e) => e.kind === 'topup').reduce((s, e) => s + e.amount, 0);
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600"><i className="ph-bold ph-plus-circle text-xl" /></span>
-        <div>
-          <p className="display text-lg font-bold leading-none">Add wallet credit</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Grant prepaid credit so a customer can try paid services.</p>
-        </div>
+      <div className="rounded-2xl border border-border bg-background/40 p-4">
+        <p className="text-xs text-muted-foreground">Wallet balance</p>
+        <p className={`display text-3xl font-bold leading-tight ${w.balance < 0 ? 'text-rose-600' : ''}`}>{money(w.balance)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">Credit we hold — owed back to {w.company || w.name} as work, not revenue.</p>
       </div>
 
-      {/* customer */}
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <KV label="Tier" value={w.tier} />
+        <KV label="Last active" value={w.lastActive ? w.lastActive.slice(0, 10) : '—'} />
+        <KV label="Topped up" value={money(toppedUp)} />
+        <KV label="Spent on orders" value={money(w.spend)} />
+      </div>
+
       <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</label>
-        <select value={cid} onChange={(e) => setCid(e.target.value)} disabled={!!presetId}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60">
-          <option value="">Select a customer…</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.company} · {c.name}</option>)}
-        </select>
-        {cust && <p className="mt-1 text-xs text-muted-foreground">Current balance <span className="font-semibold text-foreground tabular-nums">{money(balanceOf(cust.id))}</span> → after top-up <span className="font-semibold text-emerald-600 tabular-nums">{money(balanceOf(cust.id) + (amount > 0 ? amount : 0))}</span></p>}
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ledger · {entries.length} movement{entries.length !== 1 ? 's' : ''}</p>
+        <ul className="divide-y divide-border/60 rounded-lg border border-border">
+          {entries.map((e) => {
+            const meta = LEDGER_KIND[e.kind];
+            return (
+              <li key={e.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                <i className={`ph-bold ${meta.icon} ${meta.flow === 'in' ? 'text-emerald-600' : 'text-rose-500'}`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  {/* a debit with no order is the "non-order spend" term in the reconcile identity — a
+                      manual/legacy adjustment. Calling it "Order placed" would name it after an order
+                      that doesn't exist. */}
+                  <span className="font-medium">{movementLabel(e)}</span>
+                  {e.orderCode && <span className="text-muted-foreground"> · {e.orderCode}</span>}
+                  <span className="block text-[11px] text-muted-foreground">{stamp(e.at)} UTC</span>
+                </span>
+                <LedgerAmount n={e.amount} />
+              </li>
+            );
+          })}
+          {entries.length === 0 && <li className="px-3 py-4 text-center text-xs text-muted-foreground">No movements.</li>}
+        </ul>
       </div>
 
-      {/* amount */}
-      <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Amount</label>
-        <div className="flex items-center overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
-          <span className="shrink-0 border-r border-border bg-muted px-3 py-2 text-sm text-muted-foreground">$</span>
-          <input type="number" min={1} step={5} value={amount}
-            onChange={(e) => setAmount(Math.max(0, Number(e.target.value)))}
-            className="w-full bg-transparent px-3 py-2 text-sm font-semibold tabular-nums outline-none" />
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {TOPUP_PRESETS.map((v) => (
-            <button key={v} onClick={() => setAmount(v)}
-              className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${amount === v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'}`}>{money(v)}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* note */}
-      <div>
-        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Note</label>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Trial credit, goodwill, refund top-up"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-      </div>
-
-      {/* action */}
-      <div className="flex gap-2 border-t border-border pt-4">
-        <button onClick={onClose} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-accent">Cancel</button>
-        <button onClick={() => valid && onSubmit(cid, amount, note)} disabled={!valid}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40">
-          <i className="ph-bold ph-plus-circle" />Add {money(amount > 0 ? amount : 0)} credit
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function WalletDetail({ c, balance, extraTx, onTopup }: { c: AdminCustomer; balance: number; extraTx: Transaction[]; onTopup: () => void }) {
-  const ledger = [...extraTx, ...TRANSACTIONS.filter((t) => t.partyId === c.id)]
-    .sort((a, b) => b.at.localeCompare(a.at));
-  const toppedUp = ledger.filter((t) => t.kind === 'top_up' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const spent = ledger.filter((t) => t.kind === 'charge' && t.method === 'wallet' && t.status === 'settled').reduce((a, t) => a + t.amount, 0);
-  const pending = ledger.filter((t) => t.status === 'pending').reduce((a, t) => a + t.amount, 0);
-  const tier = TIER[c.tier];
-
-  return (
-    <div className="space-y-5">
-      {/* header */}
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><i className="ph-bold ph-wallet text-xl" /></span>
-        <div className="min-w-0">
-          <p className="display text-xl font-bold leading-none">{c.company}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{c.name} · <span style={{ color: tier.color }}>{tier.label}</span></p>
-        </div>
-        <div className="ml-auto shrink-0 text-right">
-          <p className="display text-xl font-bold tabular-nums text-primary">{money(balance)}</p>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Balance</p>
-        </div>
-      </div>
-
-      {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        {([
-          { label: 'Topped up', val: money(toppedUp), tone: 'text-emerald-600' },
-          { label: 'Spent (wallet)', val: money(spent), tone: 'text-rose-500' },
-          { label: 'Pending', val: money(pending), tone: pending ? 'text-amber-600' : '' },
-        ] as { label: string; val: string; tone: string }[]).map(({ label, val, tone }) => (
-          <div key={label} className="rounded-xl border border-border p-3">
-            <p className={`display text-lg font-bold ${tone}`}>{val}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ledger */}
-      <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transaction history</p>
-        {ledger.length === 0 ? (
-          <p className="rounded-xl border border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground">No wallet activity recorded.</p>
-        ) : (
-          <ul className="divide-y divide-border/60 rounded-xl border border-border">
-            {ledger.map((t) => {
-              const meta = TX_KIND[t.kind];
-              const isAdmin = t.id.startsWith('atu-');
-              return (
-                <li key={t.id} className="flex items-center gap-3 p-3 text-sm">
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${meta.flow === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}><i className={`ph-bold ${meta.icon}`} /></span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{isAdmin ? 'Admin top-up' : meta.label}{t.orderCode ? <span className="text-muted-foreground"> · {t.orderCode}</span> : ''}{isAdmin && <span className="ml-1.5 rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-600">new</span>}</p>
-                    <p className="text-[11px] text-muted-foreground">{t.at} · {TX_METHOD[t.method].label}{isAdmin && t.note ? ` · ${t.note}` : ''}</p>
-                  </div>
-                  <div className="text-right">
-                    <Amount n={t.amount} status={t.status} />
-                    {t.status !== 'settled' && <p className="text-[10px] capitalize text-muted-foreground">{t.status}</p>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="flex gap-2 border-t border-border pt-4">
-        <button onClick={onTopup} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-plus-circle" />Top up</button>
-        <Link href={`/admin/customers/${c.id}`} className="flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 font-semibold transition hover:bg-accent"><i className="ph-bold ph-user" />Profile</Link>
+      <div className="flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
+        <Link href={`/admin/customers/${w.id}`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-user" aria-hidden />Customer profile</Link>
       </div>
     </div>
   );
 }
 
 /* ---------------------------------------------------------------- Payouts */
-type PayoutOverride = { base: number; rate: number; bonus: number };
+// Same shape (and localStorage key) the staff-profile pay editor writes — gigRates carries
+// any per-service gig-rate overrides set there.
+type PayoutOverride = { base: number; rate: number; bonus: number; gigRates?: Record<string, number>; gigPkgRates?: Record<string, number> };
 
-// Effective comp for a payout, applying any admin override.
+// Effective comp for a payout, applying any admin override. Gig pay is recomputed from the
+// staffer's per-service gig counts and any per-service rate override (shared with the profile).
 function effComp(p: Payout, ov?: PayoutOverride) {
   const base = ov ? ov.base : p.base;
   const rate = ov ? ov.rate / 100 : p.rate;
   const bonus = ov ? ov.bonus : p.bonus;
   const commission = Math.round(p.basis * rate);
-  return { base, rate, bonus, commission, total: base + commission + bonus };
+  const gig = gigPay(p.gigCounts, ov?.gigRates, ov?.gigPkgRates);
+  return { base, rate, bonus, commission, gig, total: base + gig + commission + bonus };
+}
+
+// Manager comp: fixed salary + an OVERRIDE on what the pod's STAFF earn — gigPct% of the pod's gig
+// pay plus commPct% of the pod's commission. Pod gig/commission are passed in live (they change as
+// the admin edits the staff pay rows above). Managers have NO KPI bonus (that is a staff mechanism).
+type MgrOverride = { base: number; gigPct: number; commPct: number };
+function effMgrComp(m: ManagerPayout, ov: MgrOverride | undefined, podGig: number, podComm: number) {
+  const base = ov ? ov.base : m.base;
+  const gigPct = ov ? ov.gigPct : Math.round(m.gigPct * 100);
+  const commPct = ov ? ov.commPct : Math.round(m.commPct * 100);
+  const gigShare = Math.round((podGig * gigPct) / 100);
+  const commShare = Math.round((podComm * commPct) / 100);
+  const commission = gigShare + commShare;
+  return { base, gigPct, commPct, gigShare, commShare, commission, total: base + commission };
+}
+
+// A compact inline number editor (prefix/suffix), used for the manager payroll fields.
+function NumCell({ value, onChange, prefix, suffix, width = 'w-20' }: { value: number; onChange: (v: number) => void; prefix?: string; suffix?: string; width?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded-lg border border-border bg-background px-1.5 py-1 text-xs ${width}`}>
+      {prefix && <span className="text-muted-foreground">{prefix}</span>}
+      <input type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="w-full bg-transparent text-right tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+      {suffix && <span className="text-muted-foreground">{suffix}</span>}
+    </span>
+  );
 }
 
 function PayoutsTab() {
   const [paid, setPaid] = usePersistedState<Record<string, boolean>>('payoutsPaid', {});
   const [selected, setSelected] = useState<Payout | null>(null);
   const [overrides, setOverrides] = usePersistedState<Record<string, PayoutOverride>>('payoutOverrides', {});
+  const [mgrOv, setMgrOv] = usePersistedState<Record<string, MgrOverride>>('managerPayoutOverridesV2', {});
+  const [mgrPaid, setMgrPaid] = usePersistedState<Record<string, boolean>>('managerPayoutsPaid', {});
   const [gran, setGran] = useState<'current' | PayGran>('current');
   const rows = useMemo(() => [...PAYOUTS].sort((a, b) => b.due - a.due), []);
+  // A manager earns a % of their pod's gig pay + commission — read LIVE from the same `overrides`
+  // state edited in the staff table above, so editing a staffer's pay updates their manager's comp.
+  const podGigOf = (managerId: string) =>
+    PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === managerId)
+      .reduce((a, p) => a + effComp(p, overrides[p.staffId]).gig, 0);
+  const podCommOf = (managerId: string) =>
+    PAYOUTS.filter((p) => STAFF_MANAGER[p.staffId] === managerId)
+      .reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0);
+  const setMgrField = (m: ManagerPayout, field: keyof MgrOverride, value: number) => setMgrOv((s) => {
+    const cur = s[m.managerId] ?? { base: m.base, gigPct: Math.round(m.gigPct * 100), commPct: Math.round(m.commPct * 100) };
+    return { ...s, [m.managerId]: { ...cur, [field]: Math.max(0, value) } };
+  });
 
   const effDue = (p: Payout): number => effComp(p, overrides[p.staffId]).total;
   const netDue = (p: Payout): number => effDue(p) - currentPenalties(p.staffId).applied;
@@ -631,6 +647,7 @@ function PayoutsTab() {
   }
 
   const totBase = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).base, 0);
+  const totGig = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).gig, 0);
   const totComm = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).commission, 0);
   const totBonus = rows.reduce((a, p) => a + effComp(p, overrides[p.staffId]).bonus, 0);
   const totPen = rows.reduce((a, p) => a + currentPenalties(p.staffId).applied, 0);
@@ -642,22 +659,32 @@ function PayoutsTab() {
       {granToggle}
       {/* commission rates legend */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
-        <i className="ph-bold ph-percent text-primary" />
-        <span className="font-semibold text-foreground">Rates this period:</span>
+        <i className="ph-bold ph-percent text-primary" aria-hidden />
+        <span className="font-semibold text-foreground">Commission rates:</span>
         {Object.entries(PAYOUT_RATE).map(([role, rate]) => (
           <span key={role} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
             {role} <span className="font-bold text-foreground">{Math.round(rate * 100)}%</span>
           </span>
         ))}
       </div>
+      {/* gig (piece-rate) legend */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[11px]">
+        <i className="ph-bold ph-package text-primary" aria-hidden />
+        <span className="font-semibold text-foreground">Gig pay per delivered gig:</span>
+        {Object.entries(GIG_RATE).map(([service, rate]) => (
+          <span key={service} className="rounded-md border border-border bg-background px-2 py-0.5 font-medium text-muted-foreground">
+            {service} <span className="font-bold text-foreground">{money(rate)}</span>
+          </span>
+        ))}
+      </div>
 
-      <p className="px-1 text-xs text-muted-foreground">Fixed salary + commission on billable work + bonus, less penalties withheld this cycle · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay{pendingPenStaff > 0 && <> · <span className="font-semibold text-amber-600">{pendingPenStaff} with fines pending review</span></>}. Click a row to edit salary, rate or bonus.</p>
+      <p className="px-1 text-xs text-muted-foreground">Fixed salary + gig pay (piece-rate per delivered gig) + commission on billable work + bonus, less penalties withheld this cycle · <span className="font-semibold text-foreground">{money(remaining)}</span> still to pay{pendingPenStaff > 0 && <> · <span className="font-semibold text-amber-600">{pendingPenStaff} with fines pending review</span></>}. Click a row to edit salary, rate or bonus.</p>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Commission</th>
+              <th className="p-3">Staff</th><th className="p-3">Fixed</th><th className="p-3">Gig pay</th><th className="p-3">Commission</th>
               <th className="p-3">Bonus</th><th className="p-3">Penalty</th><th className="p-3">Net pay</th><th className="p-3 text-right">Action</th><th className="p-3" aria-hidden />
             </tr>
           </thead>
@@ -683,7 +710,11 @@ function PayoutsTab() {
                   </td>
                   <td className="p-3 tabular-nums">
                     {money(e.base)}
-                    {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" />}
+                    {baseChanged && <i className="ph-bold ph-pencil-simple ml-1 text-[9px] text-amber-600" aria-hidden />}
+                  </td>
+                  <td className="p-3 tabular-nums">
+                    {e.gig ? money(e.gig) : <span className="text-muted-foreground">—</span>}
+                    <span className="ml-1 text-[10px] text-muted-foreground" title="Delivered gigs this cycle">· {p.gigUnits} gig{p.gigUnits === 1 ? '' : 's'}</span>
                   </td>
                   <td className="p-3 tabular-nums">
                     {money(e.commission)}
@@ -703,7 +734,7 @@ function PayoutsTab() {
                       : <button onClick={() => setPaid((s) => ({ ...s, [p.staffId]: true }))} disabled={net <= 0}
                           className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">Mark paid</button>}
                   </td>
-                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" /></td>
+                  <td className="p-3 text-right text-muted-foreground"><i className="ph-bold ph-caret-right opacity-40" aria-hidden /></td>
                 </tr>
               );
             })}
@@ -712,6 +743,7 @@ function PayoutsTab() {
             <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
               <td className="p-3 text-muted-foreground">{rows.length} staff</td>
               <td className="p-3 tabular-nums">{money(totBase)}</td>
+              <td className="p-3 tabular-nums">{money(totGig)}</td>
               <td className="p-3 tabular-nums">{money(totComm)}</td>
               <td className="p-3 tabular-nums text-emerald-600">{money(totBonus)}</td>
               <td className="p-3 tabular-nums text-rose-600">{totPen > 0 ? `−${money(totPen)}` : money(0)}</td>
@@ -720,6 +752,85 @@ function PayoutsTab() {
             </tr>
           </tfoot>
         </table>
+      </div>
+
+      {/* ---- Manager payroll ---- */}
+      <div className="space-y-2 pt-3">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-1">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold"><i className="ph-bold ph-user-circle-gear text-primary" aria-hidden />Manager payroll</h3>
+          <span className="text-[11px] text-muted-foreground">Fixed salary + an override on what their pod's staff earn — a % of the pod's gig pay and a % of the pod's commission. Percentages are editable per manager. No KPI bonus.</span>
+        </div>
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <th className="p-3">Manager</th><th className="p-3">Fixed salary</th><th className="p-3">Pod gig pay</th>
+                <th className="p-3">Pod commission</th><th className="p-3">Override</th><th className="p-3">Manager comm</th>
+                <th className="p-3">Net pay</th><th className="p-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MANAGER_PAYOUTS.map((m) => {
+                const ov = mgrOv[m.managerId];
+                const podGig = podGigOf(m.managerId);
+                const podComm = podCommOf(m.managerId);
+                const e = effMgrComp(m, ov, podGig, podComm);
+                const baseVal = ov ? ov.base : m.base;
+                const gigPct = ov ? ov.gigPct : Math.round(m.gigPct * 100);
+                const commPct = ov ? ov.commPct : Math.round(m.commPct * 100);
+                const isPaid = mgrPaid[m.managerId];
+                return (
+                  <tr key={m.managerId} className="border-b border-border/50 transition hover:bg-muted/40">
+                    <td className="p-3">
+                      <Link href={`/admin/managers`} className="font-medium hover:underline">{m.manager}</Link>
+                      <span className="text-muted-foreground"> · {m.title}</span>
+                      <div className="text-[11px] text-muted-foreground">{m.podStaff} staff in pod</div>
+                    </td>
+                    <td className="p-3"><NumCell prefix="$" value={baseVal} onChange={(v) => setMgrField(m, 'base', v)} width="w-24" /></td>
+                    <td className="p-3 tabular-nums text-muted-foreground">{money(podGig)}</td>
+                    <td className="p-3 tabular-nums text-muted-foreground">{money(podComm)}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><span className="text-foreground">gig</span><NumCell suffix="%" value={gigPct} onChange={(v) => setMgrField(m, 'gigPct', v)} width="w-12" /></span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><span className="text-foreground">comm</span><NumCell suffix="%" value={commPct} onChange={(v) => setMgrField(m, 'commPct', v)} width="w-12" /></span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <span className="font-semibold tabular-nums">{money(e.commission)}</span>
+                      <div className="text-[10px] text-muted-foreground tabular-nums" title="gig share + commission share">{money(e.gigShare)} gig · {money(e.commShare)} comm</div>
+                    </td>
+                    <td className="p-3 font-semibold tabular-nums">{money(e.total)}</td>
+                    <td className="p-3 text-right">
+                      {isPaid
+                        ? <span className="pill pill-live">Paid</span>
+                        : <button onClick={() => setMgrPaid((s) => ({ ...s, [m.managerId]: true }))} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold transition hover:bg-accent">Mark paid</button>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              {(() => {
+                const t = MANAGER_PAYOUTS.reduce((acc, m) => {
+                  const e = effMgrComp(m, mgrOv[m.managerId], podGigOf(m.managerId), podCommOf(m.managerId));
+                  return { base: acc.base + e.base, comm: acc.comm + e.commission, total: acc.total + e.total };
+                }, { base: 0, comm: 0, total: 0 });
+                return (
+                  <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
+                    <td className="p-3 text-muted-foreground">{MANAGER_PAYOUTS.length} managers</td>
+                    <td className="p-3 tabular-nums">{money(t.base)}</td>
+                    <td className="p-3" />
+                    <td className="p-3" />
+                    <td className="p-3" />
+                    <td className="p-3 tabular-nums">{money(t.comm)}</td>
+                    <td className="p-3 tabular-nums">{money(t.total)}</td>
+                    <td className="p-3" />
+                  </tr>
+                );
+              })()}
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       <SlideOver open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.staff} · Payout detail` : ''}>
@@ -760,8 +871,9 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
         <span className="ml-auto text-[11px] text-muted-foreground">{period.lines.length} staff · {t.tasks} billable tasks</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi icon="ph-money" label="Base salary" value={money(t.base)} />
+        <Kpi icon="ph-package" label="Gig pay" value={money(t.gig)} />
         <Kpi icon="ph-percent" label="Commission" value={money(t.commission)} />
         <Kpi icon="ph-gift" label="Bonus" value={money(t.bonus)} tone="good" />
         <Kpi icon="ph-gavel" label="Penalties" value={t.penalties > 0 ? `−${money(t.penalties)}` : money(0)} tone={t.penalties > 0 ? 'warn' : 'primary'} />
@@ -772,7 +884,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Staff</th><th className="p-3 text-right">Tasks</th><th className="p-3 text-right">Fixed</th><th className="p-3 text-right">Commission</th>
+              <th className="p-3">Staff</th><th className="p-3 text-right">Tasks</th><th className="p-3 text-right">Fixed</th><th className="p-3 text-right">Gig</th><th className="p-3 text-right">Commission</th>
               <th className="p-3 text-right">Bonus</th><th className="p-3 text-right">Penalty</th><th className="p-3 text-right">Net</th><th className="p-3 w-28">Share</th>
             </tr>
           </thead>
@@ -782,6 +894,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
                 <td className="p-3"><StaffHoverCard staff={l.staffId}><Link href={`/admin/staff/${l.staffId}`} className="font-medium hover:underline">{l.staff}</Link></StaffHoverCard><span className="text-muted-foreground"> · {l.role}</span>{!l.active && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">inactive</span>}</td>
                 <td className="p-3 text-right tabular-nums text-muted-foreground">{l.tasks}</td>
                 <td className="p-3 text-right tabular-nums">{money(l.base)}</td>
+                <td className="p-3 text-right tabular-nums">{l.gig ? money(l.gig) : <span className="text-muted-foreground">—</span>}</td>
                 <td className="p-3 text-right tabular-nums">{money(l.commission)}</td>
                 <td className="p-3 text-right tabular-nums">{l.bonus ? <span className="font-semibold text-emerald-600">+{money(l.bonus)}</span> : <span className="text-muted-foreground">—</span>}</td>
                 <td className="p-3 text-right tabular-nums">{l.penalties > 0 ? <span className="font-semibold text-rose-600">−{money(l.penalties)}</span> : <span className="text-muted-foreground">—</span>}</td>
@@ -795,6 +908,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
               <td className="p-3 text-muted-foreground">{lines.length} staff</td>
               <td className="p-3 text-right tabular-nums">{t.tasks}</td>
               <td className="p-3 text-right tabular-nums">{money(t.base)}</td>
+              <td className="p-3 text-right tabular-nums">{money(t.gig)}</td>
               <td className="p-3 text-right tabular-nums">{money(t.commission)}</td>
               <td className="p-3 text-right tabular-nums text-emerald-600">{money(t.bonus)}</td>
               <td className="p-3 text-right tabular-nums text-rose-600">{t.penalties > 0 ? `−${money(t.penalties)}` : money(0)}</td>
@@ -804,7 +918,7 @@ function PayrollPeriodView({ gran }: { gran: PayGran }) {
           </tfoot>
         </table>
       </div>
-      <p className="px-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Base is the fixed monthly salary ({gran === 'quarter' ? '×3 for the quarter' : 'one month'}); commission &amp; bonus track that period&apos;s delivered work; penalties are fines applied in the period.</p>
+      <p className="px-1 text-[11px] text-muted-foreground"><i className="ph-bold ph-info mr-1" aria-hidden />Net = base + gig + commission + bonus − penalties. Base is the fixed monthly salary ({gran === 'quarter' ? '×3 for the quarter' : 'one month'}); gig is piece-rate pay (current cycle only in this mock); commission &amp; bonus track that period&apos;s delivered work; penalties are fines applied in the period.</p>
     </div>
   );
 }
@@ -826,7 +940,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
   const rateChanged = !!override && Math.round(override.rate) !== roleRate;
   const bonusSet = e.bonus !== 0;
   const previewCommission = Math.round(p.basis * (draftRate / 100));
-  const previewTotal = draftBase + previewCommission + draftBonus;
+  const previewTotal = draftBase + p.gig + previewCommission + draftBonus;
   // Penalties withheld this cycle + the staffer's recent fine history (for context).
   const penCycle = currentPenalties(p.staffId);
   const penHistory = myPenalties(p.staffId);
@@ -838,14 +952,14 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
     setDraftBonus(override?.bonus ?? p.bonus);
     setEditing(true);
   };
-  const saveEdit = () => { onSaveOverride({ base: draftBase, rate: draftRate, bonus: draftBonus }); setEditing(false); };
+  const saveEdit = () => { onSaveOverride({ ...override, base: draftBase, rate: draftRate, bonus: draftBonus }); setEditing(false); };
 
   return (
     <div className="space-y-5">
       {/* staff header */}
       <div className="flex items-center gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-          <i className="ph-bold ph-user text-xl" />
+          <i className="ph-bold ph-user text-xl" aria-hidden />
         </span>
         <div className="min-w-0">
           <p className="display text-xl font-bold leading-none">{p.staff}</p>
@@ -863,7 +977,7 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Compensation this period</p>
             {!paid && (
               <button onClick={startEditing} className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground">
-                <i className="ph-bold ph-pencil-simple text-[10px]" /> Edit
+                <i className="ph-bold ph-pencil-simple text-[10px]" aria-hidden /> Edit
               </button>
             )}
           </div>
@@ -871,6 +985,10 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Fixed salary{baseChanged && <span className="ml-1.5 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</dt>
               <dd className="font-semibold tabular-nums">{money(e.base)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-muted-foreground">Gig pay <span className="text-xs">(piece-rate · {p.gigUnits} gig{p.gigUnits === 1 ? '' : 's'})</span></dt>
+              <dd className={`font-semibold tabular-nums ${e.gig ? '' : 'text-muted-foreground'}`}>{e.gig ? money(e.gig) : money(0)}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">Commission <span className="text-xs">({effRatePct}% × {money(p.basis)} billable){rateChanged && <span className="ml-1 rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-bold text-amber-700">edited</span>}</span></dt>
@@ -1027,120 +1145,146 @@ function PayoutDetail({ p, paid, onMarkPaid, override, onSaveOverride }: {
         <div className="border-t border-border pt-4">
           <button onClick={onMarkPaid}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:brightness-110">
-            <i className="ph-bold ph-check-circle" /> Mark {money(netPay)} as paid
+            <i className="ph-bold ph-check-circle" aria-hidden /> Mark {money(netPay)} as paid
           </button>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 py-3 text-sm font-semibold text-emerald-600">
-          <i className="ph-bold ph-check-circle" /> Paid this session
+          <i className="ph-bold ph-check-circle" aria-hidden /> Paid this session
         </div>
       )}
     </div>
   );
 }
 
-/* --------------------------------------------------------------- Invoices */
-function InvoicesTab() {
-  const [status, setStatus] = useState<InvoiceStatus | 'all'>('all');
-  const [paidIds, setPaidIds] = usePersistedState<Record<string, boolean>>('invoicePaid', {});
-  const [remindedIds, setRemindedIds] = usePersistedState<Record<string, boolean>>('invoiceReminded', {});
+/* --------------------------------------------------------------- Payments */
+// Receipts for money already taken. This replaces an "Invoices" table that modelled a post-paid
+// business we don't run: it had Due dates, an Overdue state, "Remind" and "Mark paid" buttons — and
+// its own $20,080 "Outstanding" total. All fiction. We are prepaid: the receipt is written *after*
+// the provider confirms the charge, so there is nothing to chase, nothing to mark, and no due date.
+// The only real status distinction is whether the provider has confirmed it yet.
+const RECEIPT_STATUS: Record<PaymentReceipt['status'], { label: string; pill: string; hint: string }> = {
+  issued:     { label: 'Settled',    pill: 'pill-live', hint: 'Provider confirmed the charge — cash is in' },
+  processing: { label: 'In flight',  pill: 'pill-warn', hint: 'Charge taken, awaiting provider confirmation' },
+  void:       { label: 'Void',       pill: 'pill-bad',  hint: 'Cancelled — never collected' },
+};
 
-  const effStatus = (i: Invoice): InvoiceStatus => (paidIds[i.id] ? 'paid' : i.status);
-
-  const sorted = useMemo(() => [...INVOICES].sort((a, b) => b.issued.localeCompare(a.issued)), []);
-  const rows = sorted.filter((i) => status === 'all' || effStatus(i) === status);
+function PaymentsTab({ payments }: { payments: PaymentReceipt[] }) {
+  const [status, setStatus] = useState<PaymentReceipt['status'] | 'all'>('all');
+  const rows = payments.filter((p) => status === 'all' || p.status === status);
+  const collected = rows.filter((p) => p.status === 'issued').reduce((s, p) => s + p.amount, 0);
+  const inFlight = rows.filter((p) => p.status === 'processing').reduce((s, p) => s + p.amount, 0);
   const counts = {
-    all: INVOICES.length,
-    overdue: INVOICES.filter((i) => effStatus(i) === 'overdue').length,
-    due: INVOICES.filter((i) => effStatus(i) === 'due').length,
-    paid: INVOICES.filter((i) => effStatus(i) === 'paid').length,
+    all: payments.length,
+    issued: payments.filter((p) => p.status === 'issued').length,
+    processing: payments.filter((p) => p.status === 'processing').length,
+    void: payments.filter((p) => p.status === 'void').length,
+  };
+  const exportCsv = () => {
+    downloadCsv('payments.csv', ['Receipt', 'Customer', 'Date', 'Provider', 'Reference', 'Status', 'Amount'],
+      rows.map((p) => [p.number, p.customer, stamp(p.at), p.provider, p.providerRef ?? '', RECEIPT_STATUS[p.status].label, p.amount]));
   };
 
   return (
     <div className="space-y-3">
-      <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
-        {(['all', 'overdue', 'due', 'paid'] as const).map((s) => (
-          <button key={s} onClick={() => setStatus(s)}
-            className={`rounded-md px-2.5 py-1 capitalize transition ${status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{s} · {counts[s]}</button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border p-0.5 text-xs font-semibold">
+          {(['all', 'issued', 'processing', 'void'] as const).map((s) => (
+            <button key={s} onClick={() => setStatus(s)}
+              className={`rounded-md px-2.5 py-1 transition ${status === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {s === 'all' ? 'All' : RECEIPT_STATUS[s].label} · {counts[s]}
+            </button>
+          ))}
+        </div>
+        <button onClick={exportCsv} disabled={rows.length === 0}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent disabled:opacity-40">
+          <i className="ph-bold ph-download-simple" aria-hidden />Export CSV
+        </button>
       </div>
+
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="p-3">Invoice</th><th className="p-3">Customer</th><th className="p-3">Issued</th>
-              <th className="p-3">Due</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
-              <th className="p-3 text-right">Actions</th>
+              <th className="p-3">Receipt</th><th className="p-3">Customer</th>
+              <th className="p-3">Paid <span className="font-normal normal-case opacity-60" title="Kept in UTC">(UTC)</span></th>
+              <th className="p-3">Provider</th><th className="p-3">Status</th><th className="p-3 text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((i) => {
-              const st = effStatus(i);
-              const justPaid = !!paidIds[i.id];
-              const reminded = !!remindedIds[i.id];
-              return (
-                <tr key={i.id} className="border-b border-border/50 transition hover:bg-muted/40">
-                  <td className="p-3"><span className="font-semibold">{i.code}</span><span className="block text-[11px] text-muted-foreground">{i.orderCodes.join(', ')}</span></td>
-                  <td className="p-3"><Link href={`/admin/customers/${i.customerId}`} className="font-medium hover:underline">{i.customer}</Link></td>
-                  <td className="p-3 text-muted-foreground">{i.issued}</td>
-                  <td className="p-3 text-muted-foreground">{i.due}</td>
-                  <td className="p-3">
-                    <span className={`pill ${INVOICE_STATUS[st].pill}`}>{INVOICE_STATUS[st].label}</span>
-                    {justPaid && <span className="ml-1 text-[10px] font-semibold text-emerald-600">✓ now</span>}
-                  </td>
-                  <td className="p-3 text-right font-semibold tabular-nums">{money(i.amount)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {st === 'paid' ? (
-                        <span className="text-[11px] text-muted-foreground">—</span>
-                      ) : (
-                        <>
-                          {st === 'overdue' && (
-                            reminded
-                              ? <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2 py-1 text-[11px] font-semibold text-emerald-600"><i className="ph-bold ph-check" />Reminded</span>
-                              : <button onClick={() => setRemindedIds((s) => ({ ...s, [i.id]: true }))}
-                                  title={`Send a payment reminder to ${i.customer}`}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold transition hover:bg-accent"><i className="ph-bold ph-bell" />Remind</button>
-                          )}
-                          <button onClick={() => setPaidIds((s) => ({ ...s, [i.id]: true }))}
-                            title={`Mark ${i.code} as paid`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"><i className="ph-bold ph-check-circle" />Mark paid</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No invoices.</td></tr>}
+            {rows.map((p) => (
+              <tr key={p.id} className="border-b border-border/50 transition hover:bg-muted/40">
+                <td className="p-3 font-semibold">{p.number}</td>
+                <td className="p-3"><Link href={`/admin/customers/${p.customerId}`} className="font-medium hover:underline">{p.customer}</Link></td>
+                <td className="whitespace-nowrap p-3 text-muted-foreground">{stamp(p.at)}</td>
+                <td className="p-3 text-muted-foreground">
+                  <span className="capitalize">{p.provider}</span>
+                  {p.providerRef && <span className="block text-[11px] opacity-70">{p.providerRef}</span>}
+                </td>
+                <td className="p-3"><span className={`pill ${RECEIPT_STATUS[p.status].pill}`} title={RECEIPT_STATUS[p.status].hint}>{RECEIPT_STATUS[p.status].label}</span></td>
+                <td className="p-3 text-right font-semibold tabular-nums">{money(p.amount)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No payments.</td></tr>}
           </tbody>
-          {rows.length > 0 && (() => {
-            const total = rows.reduce((s, i) => s + i.amount, 0);
-            const outstanding = rows.filter((i) => effStatus(i) !== 'paid').reduce((s, i) => s + i.amount, 0);
-            const paid = rows.filter((i) => effStatus(i) === 'paid').reduce((s, i) => s + i.amount, 0);
-            return (
-              <tfoot>
-                <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
-                  <td className="p-3 text-muted-foreground">{rows.length} invoice{rows.length !== 1 ? 's' : ''}</td>
-                  <td colSpan={3} className="p-3">
-                    <span className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
-                      {outstanding > 0 && <span className="text-amber-600">Outstanding {money(outstanding)}</span>}
-                      {paid > 0 && <span className="text-emerald-600">Paid {money(paid)}</span>}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right tabular-nums">{money(total)}</td>
-                  <td className="p-3" />
-                </tr>
-              </tfoot>
-            );
-          })()}
+          {rows.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/30 text-xs font-semibold">
+                <td className="p-3 text-muted-foreground">{rows.length} receipt{rows.length !== 1 ? 's' : ''}</td>
+                {/* 'Collected' means COLLECTED: only 'issued' is confirmed cash. An earlier cut summed
+                    status !== 'void', which quietly counted in-flight charges as money we hold — the same
+                    filter-doesn't-match-the-label bug as the "Outstanding AR" this page just lost. It
+                    read correctly only because no row is 'processing' today. */}
+                <td colSpan={4} className="p-3 text-muted-foreground">
+                  Collected
+                  {inFlight > 0 && <span className="ml-2 font-normal text-amber-600">· {money(inFlight)} in flight, not yet confirmed</span>}
+                </td>
+                <td className="p-3 text-right tabular-nums">{money(collected)}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
+
+      <p className="px-1 text-[11px] text-muted-foreground">
+        These are <b className="text-foreground">receipts for money already collected</b>, one per wallet top-up — not bills.
+        Customers pay before we work, so nothing here can be overdue. What we owe <i>them</i> is the{' '}
+        <b className="text-foreground">wallet liability</b> above; what they&apos;ve spent is in Transactions.
+      </p>
     </div>
   );
 }
 
 /* ----------------------------------------------------------------- shared */
+/**
+ * ISO timestamp → 'YYYY-MM-DD HH:mm', in UTC, read straight off the string.
+ *
+ * It must NOT use Date's local getters, for two reasons:
+ *
+ *  1. HYDRATION. This is a 'use client' component, but Next still server-renders it. A deployed Node
+ *     container runs UTC while the admin's browser doesn't, so getHours() would emit different HTML on
+ *     each side and React would blow up on hydrate. It never shows in dev because the dev server and
+ *     the browser share a timezone — this bug is invisible locally by construction.
+ *  2. CONSISTENCY. Every date in this money code is UTC-keyed: the range filter compares
+ *     at.slice(0,10), the book's MTD window uses toISOString().slice(0,10), the charts bucket by UTC
+ *     day. Rendering local time would make a row *display* 2026-07-18 while every total and filter
+ *     counts it as 2026-07-17 — the ledger would disagree with itself.
+ *
+ * So: the ledger is kept in UTC and shown in UTC. The column header says so.
+ */
+function stamp(iso: string): string {
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
+}
+
+/** A signed ledger amount. Green = credit into the wallet, red = out of it. */
+function LedgerAmount({ n }: { n: number }) {
+  return (
+    <span className={`font-semibold tabular-nums ${n >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+      {n >= 0 ? '+' : '−'}{money(Math.abs(n))}
+    </span>
+  );
+}
+
 function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
   const escape = (v: string | number) => {
     const s = String(v);
@@ -1180,7 +1324,7 @@ function Kpi({ icon, label, value, hint, tone = 'primary' }: { icon: string; lab
       <span className="kpi-glow" />
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-        <i className={`ph-bold ${icon} ${toneColor}`} />
+        <i className={`ph-bold ${icon} ${toneColor}`} aria-hidden />
       </div>
       <p className="display mt-auto text-2xl font-bold tracking-tight">{value}</p>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}

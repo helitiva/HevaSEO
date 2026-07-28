@@ -17,10 +17,12 @@ describe('buildPayrollPeriods', () => {
     for (const gran of ['month', 'quarter'] as const) {
       for (const p of buildPayrollPeriods(gran)) {
         for (const l of p.lines) {
-          expect(l.net).toBe(l.base + l.commission + l.bonus - l.penalties);
+          expect(l.net).toBe(l.base + l.gig + l.commission + l.bonus - l.penalties);
+          expect(l.gig).toBeGreaterThanOrEqual(0);
         }
-        const sum = (sel: (n: { base: number; commission: number; bonus: number; penalties: number; net: number }) => number) => p.lines.reduce((a, l) => a + sel(l), 0);
+        const sum = (sel: (n: { base: number; gig: number; commission: number; bonus: number; penalties: number; net: number }) => number) => p.lines.reduce((a, l) => a + sel(l), 0);
         expect(p.totals.base).toBe(sum((l) => l.base));
+        expect(p.totals.gig).toBe(sum((l) => l.gig));
         expect(p.totals.commission).toBe(sum((l) => l.commission));
         expect(p.totals.bonus).toBe(sum((l) => l.bonus));
         expect(p.totals.penalties).toBe(sum((l) => l.penalties));

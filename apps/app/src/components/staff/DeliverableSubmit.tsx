@@ -2,10 +2,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { bumpVersion } from '@/lib/staff';
 import { SnippetPicker } from '@/components/staff/SnippetPicker';
+import { uploadDeliverableFile } from '@/lib/uploadMedia';
 import { REVIEWER_NOTE_SNIPPETS, CUSTOMER_MSG_SNIPPETS } from '@/data/staffMock';
+import { deliverableAssets } from '@/data/adminMock';
 import type { StaffDeliverable } from '@/data/staffMock';
 
-const ACCEPT = 'PDF · DOCX · XLSX · CSV · PNG · JPG · ZIP · max 25MB';
+export type DeliverableFile = { kind: 'file' | 'link'; fileName?: string | null; url?: string | null };
+const ACCEPT = 'PDF · DOCX · XLSX · CSV · PNG · JPG · ZIP · max 30MB';
 
 // Grow a textarea to fit its content as the user types (min height held by CSS).
 function autoGrow(el: HTMLTextAreaElement) {
@@ -17,16 +20,18 @@ function autoGrow(el: HTMLTextAreaElement) {
 // with their changes-requested note pinned. A required note gates the submit button.
 export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, lockReason = null, status }: {
   history: StaffDeliverable[];
-  onSubmit: (note: string, customerNote?: string) => void;
+  onSubmit: (note: string, customerNote: string | undefined, files: DeliverableFile[]) => void | Promise<void>;
   qaDone?: number;
   qaTotal?: number;
   lockReason?: string | null;
   status?: string;
 }) {
-  const [file, setFile] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [link, setLink] = useState('');
   const [note, setNote] = useState('');
   const [customerNote, setCustomerNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const [reviewerSnips, setReviewerSnips] = useState(REVIEWER_NOTE_SNIPPETS);
   const [customerSnips, setCustomerSnips] = useState(CUSTOMER_MSG_SNIPPETS);
   const noteRef = useRef<HTMLTextAreaElement>(null);
@@ -36,13 +41,29 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
   useEffect(() => { if (custRef.current) autoGrow(custRef.current); }, [customerNote]);
   const insert = (cur: string, s: string) => (cur.trim() ? `${cur.trim()}\n${s}` : s);
   const nextV = bumpVersion(history);
-  const canSubmit = note.trim().length > 0 && (Boolean(file) || link.trim().length > 0);
+  const canSubmit = note.trim().length > 0 && (Boolean(file) || link.trim().length > 0) && !busy;
   const qaComplete = qaTotal === 0 || qaDone >= qaTotal;
+
+  // Attach BOTH a file (uploaded) and a link if provided — they're not exclusive. The reviewer/customer
+  // then see the downloadable file AND the URL.
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setBusy(true); setErr('');
+    const files: DeliverableFile[] = [];
+    if (file) {
+      const up = await uploadDeliverableFile(file);
+      if (!up) { setBusy(false); setErr('Upload failed — file may be over 30MB. Try again or paste a link.'); return; }
+      files.push(up);
+    }
+    if (link.trim()) files.push({ kind: 'link', url: link.trim(), fileName: null });
+    await onSubmit(note.trim(), customerNote.trim() || undefined, files);
+    setBusy(false);
+  }
 
   return (
     <div className="kcard">
       <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-file-arrow-up text-primary" /> Deliverable</p>
+        <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-file-arrow-up text-primary" aria-hidden /> Deliverable</p>
         <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
           {lockReason ? (status ?? '').replace('_', ' ') : history.length ? `resubmission · v${nextV}` : 'first submission · v1'}
         </span>
@@ -52,9 +73,15 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
         <ul className="mb-3 space-y-1.5">
           {history.map((d) => (
             <li key={d.id} className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs">
-              <span className="font-semibold">v{d.version}</span>
-              <i className={`ph-bold ${d.kind === 'link' ? 'ph-link' : 'ph-file-text'} text-muted-foreground`} />
-              <span className="truncate text-muted-foreground">{d.fileName ?? d.url}</span>
+              <span className="shrink-0 font-semibold">v{d.version}</span>
+              <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
+                {deliverableAssets(d).map((a, i) => (
+                  <span key={i} className="inline-flex min-w-0 items-center gap-1">
+                    <i className={`ph-bold ${a.kind === 'link' ? 'ph-link' : 'ph-file-text'}`} aria-hidden />
+                    <span className="truncate">{a.fileName ?? a.url}</span>
+                  </span>
+                ))}
+              </span>
               <span className={`pill ${d.status === 'approved' ? 'pill-live' : d.status === 'changes_requested' ? 'pill-warn' : 'pill-good'} ml-auto shrink-0`}>{d.status.replace('_', ' ')}</span>
             </li>
           ))}
@@ -69,20 +96,21 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
       ) : (<>
       <label className="flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-dashed border-border px-4 py-6 text-center transition hover:border-primary/50">
         <i className="ph-bold ph-upload text-2xl text-muted-foreground" aria-hidden />
-        <span className="text-sm">{file ? <span className="font-medium">{file}</span> : <>Drag report here or <span className="text-primary">browse</span></>}</span>
+        <span className="text-sm">{file ? <span className="font-medium">{file.name}</span> : <>Drag report here or <span className="text-primary">browse</span></>}</span>
         <span className="text-[11px] text-muted-foreground">{ACCEPT}</span>
-        <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0]?.name ?? null)} />
+        <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </label>
       {file && (
         <button onClick={() => setFile(null)} className="mt-1.5 text-xs text-muted-foreground hover:text-destructive">
-          <i className="ph-bold ph-x" /> Remove {file}
+          <i className="ph-bold ph-x" aria-hidden /> Remove {file.name}
         </button>
       )}
 
-      <div className="my-2 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" /></div>
+      <div className="my-2 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="h-px flex-1 bg-border" /> and / or add a link <span className="h-px flex-1 bg-border" /></div>
 
       <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste an external link (Google Doc / Drive)"
         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      <p className="mt-1 text-[11px] text-muted-foreground">Attach a file, a link, or both — the customer &amp; reviewer see everything you include.</p>
 
       <div className="mb-1 mt-3 flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground"><i className="ph-bold ph-lock-simple" aria-hidden /> Note for the reviewer <span className="truncate font-normal opacity-70">· internal, required</span></p>
@@ -100,15 +128,16 @@ export function DeliverableSubmit({ history, onSubmit, qaDone = 0, qaTotal = 0, 
 
       {qaTotal > 0 && !qaComplete && (
         <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-          <i className="ph-bold ph-warning-circle" /> {qaDone}/{qaTotal} acceptance checks ticked — worth finishing your self-check first.
+          <i className="ph-bold ph-warning-circle" aria-hidden /> {qaDone}/{qaTotal} acceptance checks ticked — worth finishing your self-check first.
         </p>
       )}
 
-      <button disabled={!canSubmit} onClick={() => onSubmit(note.trim(), customerNote.trim() || undefined)}
+      {err && <p role="alert" className="mt-2 text-center text-[11px] font-medium text-destructive">{err}</p>}
+      <button disabled={!canSubmit} onClick={handleSubmit}
         className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-        <i className="ph-bold ph-paper-plane-tilt" /> Submit v{nextV} for review
+        <i className={`ph-bold ${busy ? 'ph-circle-notch animate-spin' : 'ph-paper-plane-tilt'}`} aria-hidden /> {busy ? 'Uploading…' : `Submit v${nextV} for review`}
       </button>
-      {!canSubmit && <p className="mt-1 text-center text-[11px] text-muted-foreground">Attach a file or link, and add a note.</p>}
+      {!busy && !canSubmit && <p className="mt-1 text-center text-[11px] text-muted-foreground">Attach a file or link, and add a note.</p>}
       </>)}
     </div>
   );

@@ -9,12 +9,12 @@ export function CareTags({ company }: { company: string }) {
     <span className="inline-flex flex-wrap items-center gap-1" title={care.hint}>
       {care.tierMeta && (
         <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: `${care.tierMeta.color}1f`, color: care.tierMeta.color }}>
-          <i className={`ph-fill ${care.tierMeta.icon}`} />{care.tierMeta.label}
+          <i className={`ph-fill ${care.tierMeta.icon}`} aria-hidden />{care.tierMeta.label}
         </span>
       )}
       {care.isDemanding && (
         <span className="inline-flex items-center gap-0.5 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
-          <i className="ph-bold ph-seal-warning" />Particular
+          <i className="ph-bold ph-seal-warning" aria-hidden />Particular
         </span>
       )}
     </span>

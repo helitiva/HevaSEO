@@ -16,6 +16,7 @@ export const NAV: NavSection[] = [
     title: 'Overview',
     items: [
       { label: 'Overview', href: '/dashboard', icon: 'ph-squares-four' },
+      { label: 'Inbox', href: '/inbox', icon: 'ph-tray' },
       { label: 'Projects', href: '/projects', icon: 'ph-globe-hemisphere-west' },
       { label: 'Orders', href: '/orders', icon: 'ph-kanban', badge: '9' },
     ],
@@ -31,6 +32,13 @@ export const NAV: NavSection[] = [
       { label: 'Optimization', href: '/services/optimize', icon: 'ph-gauge' },
       { label: 'Web Design', href: '/services/design', icon: 'ph-palette' },
       { label: 'Indexer', href: '/services/indexer', icon: 'ph-magnifying-glass' },
+    ],
+  },
+  {
+    title: 'Resources',
+    items: [
+      { label: 'Docs & guides', href: '/docs', icon: 'ph-books' },
+      { label: 'Notes', href: '/notes', icon: 'ph-note-pencil' },
     ],
   },
   {

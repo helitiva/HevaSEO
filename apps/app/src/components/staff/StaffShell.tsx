@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { StaffSidebar } from './StaffSidebar';
 import { StaffTopbar } from './StaffTopbar';
+import { BroadcastBanner } from '../broadcast/BroadcastBanner';
+import { SiteAlertBar } from '../broadcast/SiteAlertBar';
+import { BroadcastToaster } from '../broadcast/BroadcastToaster';
 import { STAFF } from '@/data/adminMock';
 import { readImpersonation, readImpersonationMode, clearImpersonation } from '@/lib/impersonation';
 import { StaffViewOnlyProvider } from '@/lib/staffView';
@@ -54,10 +57,13 @@ export function StaffShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
+        <SiteAlertBar />
         <main ref={mainRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 pt-4 sm:pb-6 lg:px-7">
+          {pathname === '/staff' && <div className="mb-4"><BroadcastBanner /></div>}
           <div key={pathname} className="page-anim">{children}</div>
         </main>
       </div>
+      <BroadcastToaster />
     </div>
     </StaffViewOnlyProvider>
   );

@@ -10,15 +10,19 @@ import { TeamPerformance } from '@/components/admin/TeamPerformance';
 import { Donut } from '@/components/admin/Donut';
 import { CustomerHoverCard } from '@/components/admin/CustomerHoverCard';
 import { PeriodSelector } from './PeriodSelector';
-import {
-  REVENUE_KPIS, REVENUE_ANALYTICS, REVENUE_90, SERVICE_MIX, CUSTOMERS, money, type RevKpi,
-} from '@/data/adminMock';
+import { money, type RevKpi } from '@/data/adminMock';
+import { getAnalytics, getSupportStats, getGeoStats } from '@/data/analytics.server';
+import { getStaff } from '@/data/staff.server';
 
-export default function AnalyticsPage() {
-  const r = REVENUE_ANALYTICS;
-  const srcSegs = r.bySource.map((s) => ({ label: s.label, value: s.value, color: s.color }));
-  const srcTotal = srcSegs.reduce((s, x) => s + x.value, 0);
-  const topRev = [...CUSTOMERS].sort((a, b) => b.spend - a.spend).slice(0, 5);
+export const metadata = { title: 'Analytics' };
+
+// inc-analytics — revenue section reads REAL aggregates from orders (getAnalytics); audience/geo/support
+// panels stay mock (no events/geo/tickets data source).
+export default async function AnalyticsPage() {
+  const [a, staff, support, geo] = await Promise.all([getAnalytics(), getStaff(), getSupportStats(), getGeoStats()]);
+  const srcSegs = a.bySource;
+  const srcTotal = a.bySourceTotal || 1;
+  const topRev = a.topCustomers;
   const maxSpend = Math.max(...topRev.map((c) => c.spend), 1);
 
   return (
@@ -31,14 +35,14 @@ export default function AnalyticsPage() {
 
       {/* ---- Revenue (lead) ---- */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {REVENUE_KPIS.map((k) => <RevTile key={k.key} kpi={k} />)}
+        {a.kpis.map((k) => <RevTile key={k.key} kpi={k} />)}
       </div>
 
-      <RevenueChart data={REVENUE_90} services={SERVICE_MIX} />
+      <RevenueChart data={a.daily} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-shopping-cart-simple text-primary" /> Revenue by source</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-shopping-cart-simple text-primary" aria-hidden /> Revenue by source</p>
           <div className="flex items-center gap-4">
             <Donut segs={srcSegs} centerValue={money(srcTotal)} centerLabel="MTD" size={120} />
             <div className="space-y-2 text-xs">
@@ -52,11 +56,11 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <ServiceMix data={SERVICE_MIX} />
+        <ServiceMix data={a.serviceMix} />
 
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
-            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-crown-simple text-primary" /> Top revenue</p>
+            <p className="flex items-center gap-2 text-sm font-semibold"><i className="ph-bold ph-crown-simple text-primary" aria-hidden /> Top revenue</p>
             <Link href="/admin/customers" className="text-xs font-semibold text-primary hover:underline">All →</Link>
           </div>
           <div className="space-y-2.5">
@@ -78,10 +82,10 @@ export default function AnalyticsPage() {
 
       {/* ---- Performance & reach ---- */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <SupportStats />
-        <div className="lg:col-span-2"><TeamPerformance /></div>
+        <SupportStats stats={support} />
+        <div className="lg:col-span-2"><TeamPerformance staff={staff} /></div>
       </div>
-      <GeoPanel />
+      <GeoPanel data={geo} />
     </section>
   );
 }

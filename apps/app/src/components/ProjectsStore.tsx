@@ -1,55 +1,57 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { PROJECTS, FOLDERS, type Project } from '@/data/mock';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { type Project } from '@/data/mock';
+import { UUID_RE } from '@/lib/orderMap';
+import {
+  createProjectAction, updateProjectAction, deleteProjectAction,
+  createFolderAction, updateFolderAction, deleteFolderAction, archiveFolderAction,
+  type MutResult,
+} from '@/app/(portal)/projects.actions';
 
 export type Folder = { id: string; name: string; color: string; parentId: string | null };
 
 type ProjectsCtx = {
   projects: Project[];
   folders: Folder[];
-  addProject: (p: Project) => void;
-  updateProject: (id: string, patch: Partial<Project>) => void;
-  removeProject: (id: string) => void;
-  addFolder: (f: Folder) => void;
-  updateFolder: (id: string, patch: Partial<Folder>) => void;
-  removeFolder: (id: string) => void;
+  addProject: (p: Project) => Promise<MutResult>;
+  updateProject: (id: string, patch: Partial<Project>) => Promise<MutResult>;
+  removeProject: (id: string) => Promise<MutResult>;
+  addFolder: (f: Folder) => Promise<MutResult>;
+  updateFolder: (id: string, patch: Partial<Folder>) => Promise<MutResult>;
+  removeFolder: (id: string) => Promise<MutResult>;
+  archiveFolder: (id: string) => Promise<MutResult>;
 };
 
 const Ctx = createContext<ProjectsCtx | null>(null);
+const folderId = (v: string | null | undefined) => (v && UUID_RE.test(v) ? v : null);
 
-/** Shared projects + folders so /projects, the project detail page, and the order
- *  form's project picker all see the same session edits. */
-export function ProjectsProvider({ children }: { children: ReactNode }) {
-  const [extraProjects, setExtraProjects] = useState<Project[]>([]);
-  const [projectOverrides, setProjectOverrides] = useState<Record<string, Partial<Project>>>({});
-  const [removedProjects, setRemovedProjects] = useState<Set<string>>(new Set());
-  const [extraFolders, setExtraFolders] = useState<Folder[]>([]);
-  const [folderOverrides, setFolderOverrides] = useState<Record<string, Partial<Folder>>>({});
-  const [removedFolders, setRemovedFolders] = useState<Set<string>>(new Set());
+/** Shared, DB-backed projects + folders. Reads are the real RLS-scoped rows (passed from the layout);
+ *  every mutation persists via a server action and re-fetches so /projects, the project detail page and
+ *  the order form's project picker all reflect the same durable state. */
+export function ProjectsProvider({ children, initialProjects = [], initialFolders = [] }: { children: ReactNode; initialProjects?: Project[]; initialFolders?: Folder[] }) {
+  const router = useRouter();
 
   const value = useMemo<ProjectsCtx>(() => {
-    const projects = [...extraProjects, ...PROJECTS]
-      .filter((p) => !removedProjects.has(p.id))
-      .map((p) => (projectOverrides[p.id] ? { ...p, ...projectOverrides[p.id] } : p));
-    const folders: Folder[] = [...FOLDERS, ...extraFolders]
-      .filter((f) => !removedFolders.has(f.id))
-      .map((f) => (folderOverrides[f.id] ? { ...f, ...folderOverrides[f.id] } : f));
+    // run the mutation, re-fetch on success, and hand the result back so callers can surface errors.
+    const run = (p: Promise<MutResult>): Promise<MutResult> => p.then((r) => { if (r.ok) router.refresh(); return r; });
     return {
-      projects,
-      folders,
-      addProject: (p) => setExtraProjects((prev) => [p, ...prev]),
-      updateProject: (id, patch) => setProjectOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } })),
-      removeProject: (id) => setRemovedProjects((prev) => new Set(prev).add(id)),
-      addFolder: (f) => setExtraFolders((prev) => [...prev, f]),
-      updateFolder: (id, patch) => setFolderOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } })),
-      removeFolder: (id) => setRemovedFolders((prev) => {
-        const n = new Set(prev).add(id);
-        for (const f of folders) if (f.parentId === id) n.add(f.id); // cascade child folders
-        return n;
-      }),
+      projects: initialProjects,
+      folders: initialFolders,
+      addProject: (p) => run(createProjectAction({ name: p.name, domain: p.domain, folderId: folderId(p.folder), status: p.status, note: p.note })),
+      updateProject: (id, patch) => run(updateProjectAction(id, {
+        name: patch.name, domain: patch.domain, status: patch.status, note: patch.note,
+        ...(patch.folder !== undefined ? { folderId: folderId(patch.folder) } : {}),
+        ...(patch.archived !== undefined ? { archived: patch.archived } : {}),
+      })),
+      removeProject: (id) => run(deleteProjectAction(id)),
+      addFolder: (f) => run(createFolderAction({ name: f.name, color: f.color, parentId: folderId(f.parentId) })),
+      updateFolder: (id, patch) => run(updateFolderAction(id, { name: patch.name, color: patch.color, parentId: patch.parentId })),
+      removeFolder: (id) => run(deleteFolderAction(id)),
+      archiveFolder: (id) => run(archiveFolderAction(id)),
     };
-  }, [extraProjects, projectOverrides, removedProjects, extraFolders, folderOverrides, removedFolders]);
+  }, [initialProjects, initialFolders, router]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

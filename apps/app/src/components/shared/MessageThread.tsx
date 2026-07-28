@@ -5,7 +5,8 @@ export interface ThreadMessage { who: string; body: string; internal: boolean; a
 
 // Shared two-thread chat. The composer carries a recipient label that flips with the active tab,
 // so an internal note is never posted to the customer by mistake (the leak guard, D5).
-export function MessageThread({ initial, className }: { initial: ThreadMessage[]; className?: string }) {
+// `onSend` (inc-E29) persists the message to the real order thread; when omitted the thread is mock-only.
+export function MessageThread({ initial, className, onSend }: { initial: ThreadMessage[]; className?: string; onSend?: (body: string, internal: boolean) => void }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initial);
   const [tab, setTab] = useState<'customer' | 'internal'>('customer');
   const [draft, setDraft] = useState('');
@@ -15,8 +16,9 @@ export function MessageThread({ initial, className }: { initial: ThreadMessage[]
   function send() {
     const body = draft.trim();
     if (!body) return;
-    setMessages((m) => [...m, { who: 'You', body, internal, at: 'now' }]);
+    setMessages((m) => [...m, { who: 'You', body, internal, at: 'now' }]); // optimistic
     setDraft('');
+    onSend?.(body, internal);
   }
 
   return (
@@ -24,16 +26,16 @@ export function MessageThread({ initial, className }: { initial: ThreadMessage[]
       <div role="tablist" aria-label="Message threads" className="mb-3 grid grid-cols-2 gap-1.5">
         <button role="tab" aria-selected={!internal} onClick={() => setTab('customer')}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${!internal ? 'bg-primary/10 text-primary ring-2 ring-primary/40' : 'bg-muted text-muted-foreground'}`}>
-          <i className="ph-bold ph-user" /> Customer
+          <i className="ph-bold ph-user" aria-hidden /> Customer
         </button>
         <button role="tab" aria-selected={internal} onClick={() => setTab('internal')}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${internal ? 'bg-amber-500/15 text-amber-600 ring-2 ring-amber-500/40 dark:text-amber-400' : 'bg-muted text-muted-foreground'}`}>
-          <i className="ph-bold ph-lock-simple" /> Internal
+          <i className="ph-bold ph-lock-simple" aria-hidden /> Internal
         </button>
       </div>
 
       <p className={`mb-3 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium ${internal ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-primary/10 text-primary'}`}>
-        <i className={`ph-bold ${internal ? 'ph-eye-slash' : 'ph-eye'}`} />
+        <i className={`ph-bold ${internal ? 'ph-eye-slash' : 'ph-eye'}`} aria-hidden />
         {internal ? 'Only staff & admin can see this thread' : 'The customer can read this thread'}
       </p>
 
@@ -52,14 +54,14 @@ export function MessageThread({ initial, className }: { initial: ThreadMessage[]
 
       <div className="mt-3">
         <p className={`mb-1 flex items-center gap-1 text-[11px] font-semibold ${internal ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}`}>
-          <i className={`ph-bold ${internal ? 'ph-lock-simple' : 'ph-paper-plane-tilt'}`} />
+          <i className={`ph-bold ${internal ? 'ph-lock-simple' : 'ph-paper-plane-tilt'}`} aria-hidden />
           {internal ? 'Internal note' : 'Sending to: Customer'}
         </p>
         <div className="flex gap-2">
           <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder={internal ? 'Add an internal note…' : 'Reply to customer…'}
             className={`flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary ${internal ? 'border-amber-500/40' : 'border-border'}`} />
-          <button onClick={send} aria-label="Send" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><i className="ph-bold ph-paper-plane-tilt" /></button>
+          <button onClick={send} aria-label="Send" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><i className="ph-bold ph-paper-plane-tilt" aria-hidden /></button>
         </div>
       </div>
     </div>
