@@ -3,10 +3,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signInWithPassword, homePathForRole } from '@/lib/auth';
+import { signInAction } from '@/app/auth.actions';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
 
-// One-click dev logins (skip reCAPTCHA) — password is demo1234 for every seeded account.
+// DEV ONLY — the quick-login rail renders exclusively under `next dev` (see IS_DEV below). These are the
+// local seed accounts; a production build must never offer one-click admin access.
+const IS_DEV = process.env.NODE_ENV === 'development';
 const QUICK_LOGINS = [
   { email: 'jane@acme.com', label: 'Customer', icon: 'ph-user' },
   { email: 'mai@hevaseo.com', label: 'Staff', icon: 'ph-headset' },
@@ -37,12 +40,14 @@ export function LoginClient() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!token) {
+    if (!token && !IS_DEV) {
       setError('Please complete the reCAPTCHA');
       return;
     }
     setBusy(true);
-    const res = await signInWithPassword(email, password);
+    // Server action: verifies the captcha server-side (fail-closed in prod), then signs in with the
+    // server client so the session cookies are set before we navigate.
+    const res = await signInAction({ email, password, captchaToken: token });
     if (res.ok) {
       router.replace(homePathForRole(res.role));
       router.refresh();
@@ -96,6 +101,7 @@ export function LoginClient() {
         </AuthSubmit>
       </form>
 
+      {IS_DEV && (
       <div className="mt-6 rounded-xl border border-dashed border-border bg-muted/30 p-3">
         <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
           <i className="ph-bold ph-lightning text-primary" aria-hidden /> Log in as
@@ -116,6 +122,7 @@ export function LoginClient() {
         </div>
         <p className="mt-2 text-[10px] text-muted-foreground">All seeded accounts · password <span className="font-mono font-semibold text-foreground/80">demo1234</span></p>
       </div>
+      )}
     </AuthShell>
   );
 }

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signUpCustomer } from '@/lib/auth';
+import { signUpAction } from '@/app/auth.actions';
 import { claimReferralAction } from './referral.actions';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
@@ -36,7 +36,8 @@ export function RegisterClient() {
     if (!token && process.env.NODE_ENV !== 'development') { setError('Please complete the reCAPTCHA'); return; }
 
     setBusy(true);
-    const res = await signUpCustomer({ name, email, password });
+    // Server action: captcha verified server-side (fail-closed in prod), signup via the server client.
+    const res = await signUpAction({ name, email, password, captchaToken: token });
     if (res.ok) {
       if (res.signedIn) {
         // Claim this signup for the affiliate whose link brought them here (30-day `heva_ref` cookie).

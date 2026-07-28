@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { requestPasswordReset } from '@/lib/auth';
+import { requestPasswordResetAction } from '@/app/auth.actions';
 import { Recaptcha } from '@/components/auth/Recaptcha';
 import { AuthShell, AuthField, AuthError, AuthSubmit, authInputClass } from '@/components/auth/AuthShell';
 
@@ -15,12 +15,15 @@ export function ForgotPasswordClient() {
 
   const canSubmit = email.trim().length > 0;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!EMAIL_RE.test(email)) { setError('Please enter a valid email address.'); return; }
-    if (!token) { setError('Please complete the reCAPTCHA'); return; }
-    requestPasswordReset(email);
+    if (!token && process.env.NODE_ENV !== 'development') { setError('Please complete the reCAPTCHA'); return; }
+    // Real GoTrue recovery email (was a localStorage outbox mock that mailed nobody). The action always
+    // reports ok for unknown emails so this form can't be used to probe which accounts exist.
+    const res = await requestPasswordResetAction({ email, captchaToken: token });
+    if (!res.ok) { setError(res.error); return; }
     setSent(true);
   };
 

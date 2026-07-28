@@ -74,6 +74,7 @@
     "apps/app/src/lib/calendar.ts::monthOf",
     "apps/app/src/lib/calendar.ts::monthGrid",
     "apps/app/src/lib/calendar.ts::monthLabel",
+    "apps/app/src/lib/captcha.ts::verifyRecaptcha",
     "apps/app/src/lib/currentAffiliate.ts::currentAffiliateId",
     "apps/app/src/lib/currentAffiliate.ts::isImpersonatingAffiliate",
     "apps/app/src/lib/currentStaff.ts::currentStaffId",

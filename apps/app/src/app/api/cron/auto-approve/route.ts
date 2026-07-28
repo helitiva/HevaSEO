@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic';
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // not configured (local/dev) → allow
+  // Not configured: fine for local dev, but a production deploy without the secret must fail CLOSED —
+  // this endpoint runs a service-role RPC and used to be world-invocable if the env var was forgotten.
+  if (!secret) return process.env.NODE_ENV !== 'production';
   const header = req.headers.get('authorization') ?? '';
   return header === `Bearer ${secret}`;
 }

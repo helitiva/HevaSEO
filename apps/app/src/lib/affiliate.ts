@@ -284,7 +284,9 @@ export function isCodeValid(code: string): boolean {
 }
 
 // The public marketing site is where referred traffic lands; ?ref carries the code.
-export const REF_ORIGIN = 'https://hevaseo.com';
+// Marketing-site origin the /r/<code> redirect lands on. NEXT_PUBLIC_ so the same value is available
+// client-side (the link builders below run in the browser); hardcode kept only as the last fallback.
+export const REF_ORIGIN = process.env.NEXT_PUBLIC_MARKETING_ORIGIN ?? 'https://hevaseo.com';
 
 export function buildAffiliateUrl(code: string): string {
   return `${REF_ORIGIN}/?ref=${encodeURIComponent(code)}`;
